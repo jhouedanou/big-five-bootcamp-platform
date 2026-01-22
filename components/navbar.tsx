@@ -20,7 +20,7 @@ export function Navbar() {
               alt="Big Five Bootcamp"
               width={40}
               height={40}
-              className="relative h-10 w-10 rounded-lg"
+              className="relative h-10 w-10"
               priority
             />
           </div>

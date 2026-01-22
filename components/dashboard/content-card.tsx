@@ -35,14 +35,14 @@ const platformConfig: Record<string, { bg: string; icon: React.ReactNode }> = {
 }
 
 const sectorColors: Record<string, string> = {
-  "Telecoms": "bg-blue-500/10 text-blue-600",
-  "Banque/Finance": "bg-emerald-500/10 text-emerald-600",
-  "FMCG": "bg-orange-500/10 text-orange-600",
-  "E-commerce": "bg-purple-500/10 text-purple-600",
-  "Tech": "bg-cyan-500/10 text-cyan-600",
-  "Mode": "bg-pink-500/10 text-pink-600",
-  "Energie": "bg-yellow-500/10 text-yellow-700",
-  "Industrie": "bg-gray-500/10 text-gray-600",
+  "Telecoms": "bg-blue-600 text-white shadow-md shadow-blue-600/20",
+  "Banque/Finance": "bg-purple-600 text-white shadow-md shadow-purple-600/20",
+  "FMCG": "bg-orange-500 text-white shadow-md shadow-orange-500/20",
+  "E-commerce": "bg-pink-600 text-white shadow-md shadow-pink-600/20",
+  "Tech": "bg-cyan-600 text-white shadow-md shadow-cyan-600/20",
+  "Mode": "bg-rose-600 text-white shadow-md shadow-rose-600/20",
+  "Energie": "bg-yellow-500 text-white shadow-md shadow-yellow-500/20",
+  "Industrie": "bg-slate-600 text-white shadow-md shadow-slate-600/20",
 }
 
 const countryFlags: Record<string, string> = {
@@ -66,8 +66,8 @@ export function ContentCard({ content }: ContentCardProps) {
       <article className="modern-card overflow-hidden hover-lift">
         <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-[#0A1F44] to-[#1a3a6e]">
           {content.imageUrl ? (
-            <img 
-              src={content.imageUrl || "/placeholder.svg"} 
+            <img
+              src={content.imageUrl || "/placeholder.svg"}
               alt={content.title}
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
@@ -78,7 +78,7 @@ export function ContentCard({ content }: ContentCardProps) {
               </div>
             </div>
           )}
-          
+
           {/* Video play overlay */}
           {content.isVideo && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
@@ -87,14 +87,14 @@ export function ContentCard({ content }: ContentCardProps) {
               </div>
             </div>
           )}
-          
+
           {/* Platform badge */}
           <div className="absolute right-2 top-2">
             <div className={`flex h-6 w-6 items-center justify-center rounded-full ${platform.bg} shadow-md`}>
               {platform.icon}
             </div>
           </div>
-          
+
           {/* Hover overlay */}
           <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100">
             <span className="mb-4 rounded-full bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground shadow-lg">
@@ -102,12 +102,12 @@ export function ContentCard({ content }: ContentCardProps) {
             </span>
           </div>
         </div>
-        
+
         <div className="p-4">
           <h3 className="line-clamp-2 font-[family-name:var(--font-heading)] text-sm font-semibold text-card-foreground transition-colors group-hover:text-primary">
             {content.title}
           </h3>
-          
+
           <div className="mt-2 flex flex-wrap gap-1.5">
             <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${sectorColor}`}>
               {content.sector}
@@ -121,7 +121,7 @@ export function ContentCard({ content }: ContentCardProps) {
               </span>
             ))}
           </div>
-          
+
           <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
             <div className="flex items-center gap-1">
               <Globe className="h-3 w-3" />

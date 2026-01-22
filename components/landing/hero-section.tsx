@@ -2,116 +2,153 @@
 
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Play, Target, BarChart3, Search, CheckCircle, Zap, RefreshCw, Globe } from "lucide-react"
+import { ArrowRight, Play, Target, BarChart3, Search, CheckCircle, Zap, RefreshCw, Globe, Layers, Sparkles } from "lucide-react"
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-background via-background to-[#0A1F44]/5">
-      {/* Animated background elements */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary/10 blur-3xl animate-pulse-glow" />
-        <div className="absolute top-1/2 -left-40 h-80 w-80 rounded-full bg-accent/10 blur-3xl animate-pulse-glow delay-300" />
-        <div className="absolute bottom-0 right-1/4 h-60 w-60 rounded-full bg-[#10B981]/10 blur-3xl animate-pulse-glow delay-500" />
+    <section className="relative overflow-hidden bg-background pt-20 pb-32 sm:pt-32 sm:pb-40 lg:pb-48">
+      {/* Background gradients and blobs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[500px] w-[500px] bg-primary/20 blur-[120px] rounded-full mix-blend-screen opacity-60 animate-pulse-glow" />
+        <div className="absolute bottom-0 right-0 h-[600px] w-[600px] bg-accent/10 blur-[130px] rounded-full mix-blend-screen opacity-50" />
+        <div className="absolute top-1/2 left-0 h-[400px] w-[400px] bg-sky-500/10 blur-[100px] rounded-full mix-blend-screen opacity-40" />
       </div>
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent" />
 
-      <div className="relative mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-28 lg:px-8 lg:py-32">
-        <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-20">
-          <div className="flex flex-col items-start">
-            <div className="mb-6 flex flex-wrap items-center gap-3 animate-fade-in-up">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#10B981]/10 px-4 py-1.5 text-xs font-semibold text-[#10B981] ring-1 ring-[#10B981]/20 hover-lift cursor-default">
-                <CheckCircle className="h-3.5 w-3.5" />
-                100+ marques
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-24">
+
+          {/* Text Content */}
+          <div className="flex flex-col items-start text-left z-10">
+            <div className="mb-8 flex flex-wrap items-center gap-3 animate-fade-in-up">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary ring-1 ring-primary/20 hover-lift cursor-default backdrop-blur-sm">
+                <Sparkles className="h-3.5 w-3.5" />
+                Nouveau: Version 2.0
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary ring-1 ring-primary/20 hover-lift cursor-default">
-                <RefreshCw className="h-3.5 w-3.5" />
-                Mise a jour quotidienne
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#0A1F44]/10 px-4 py-1.5 text-xs font-semibold text-[#0A1F44] ring-1 ring-[#0A1F44]/20 hover-lift cursor-default">
-                <Globe className="h-3.5 w-3.5" />
-                Afrique & International
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-4 py-1.5 text-xs font-semibold text-foreground ring-1 ring-border hover-lift cursor-default backdrop-blur-sm">
+                <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                15+ Pays Africains
               </span>
             </div>
 
-            <h1 className="font-[family-name:var(--font-heading)] text-balance text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl lg:text-6xl animate-fade-in-up delay-100">
-              <span className="gradient-text">{"L'inspiration creative"}</span>
-              <br />
-              {"a portee de clic"}
+            <h1 className="font-[family-name:var(--font-heading)] text-5xl font-extrabold tracking-tight text-foreground sm:text-6xl lg:text-7xl leading-[1.1] animate-fade-in-up delay-100">
+              L'inspiration <br />
+              <span className="gradient-text relative inline-block">
+                créative
+                <span className="absolute -bottom-2 left-0 w-full h-2 bg-primary/20 -rotate-1 rounded-full blur-sm"></span>
+              </span> <br />
+              sans limites.
             </h1>
 
-            <p className="mt-6 max-w-xl text-pretty text-lg leading-relaxed text-muted-foreground animate-fade-in-up delay-200">
-              {"Des milliers de campagnes reelles, filtrees pour les pros de la com' africaine. Trouvez l'inspiration en quelques clics."}
+            <p className="mt-8 max-w-xl text-lg text-muted-foreground leading-relaxed animate-fade-in-up delay-200">
+              Accédez à la plus grande bibliothèque de campagnes marketing réelles en Afrique. Analysez, benchmarkez et créez des concepts gagnants en quelques minutes.
             </p>
 
-            <div className="mt-10 flex flex-col gap-4 sm:flex-row animate-fade-in-up delay-300">
-              <Button size="lg" asChild className="group h-14 px-8 text-base font-semibold shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/40 hover:scale-105">
+            <div className="mt-10 flex flex-col gap-4 sm:flex-row animate-fade-in-up delay-300 w-full sm:w-auto">
+              <Button size="lg" asChild className="btn-glow group h-14 px-8 text-base font-bold shadow-xl shadow-primary/20 transition-all duration-300 hover:scale-[1.02]">
                 <Link href="/register">
                   Essai gratuit 30 jours
                   <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" asChild className="group h-14 bg-transparent px-8 text-base font-semibold border-2 transition-all duration-300 hover:bg-foreground/5 hover:scale-105">
+              <Button size="lg" variant="outline" asChild className="glass group h-14 px-8 text-base font-semibold border-border/50 hover:bg-secondary/50 hover:border-border transition-all duration-300">
                 <Link href="/dashboard">
-                  <Play className="mr-2 h-5 w-5 transition-transform group-hover:scale-110" />
-                  Voir une demo
+                  <Play className="mr-2 h-5 w-5 fill-current text-primary opacity-80" />
+                  Voir la démo
                 </Link>
               </Button>
             </div>
 
-            <p className="mt-6 flex items-center gap-2 text-sm text-muted-foreground animate-fade-in-up delay-400">
-              <CheckCircle className="h-4 w-4 text-[#10B981]" />
-              Sans carte bancaire. Annulez a tout moment.
-            </p>
-          </div>
-          
-          <div className="relative animate-scale-in delay-200">
-            <div className="absolute -inset-4 rounded-3xl bg-gradient-to-r from-primary/30 via-accent/20 to-[#10B981]/20 blur-3xl animate-pulse-glow" />
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-card/90 shadow-2xl backdrop-blur-xl animate-float">
-              <div className="flex items-center gap-2 border-b border-white/10 bg-gradient-to-r from-[#0A1F44] to-[#122a52] px-4 py-3">
-                <div className="h-3 w-3 rounded-full bg-[#EF4444] shadow-lg shadow-[#EF4444]/50" />
-                <div className="h-3 w-3 rounded-full bg-accent shadow-lg shadow-accent/50" />
-                <div className="h-3 w-3 rounded-full bg-[#10B981] shadow-lg shadow-[#10B981]/50" />
-                <span className="ml-3 text-xs font-medium text-white/80">Big Five Bootcamp - Bibliotheque</span>
+            <div className="mt-10 flex items-center gap-6 animate-fade-in-up delay-400">
+              <div className="flex -space-x-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className={`h-10 w-10 rounded-full border-2 border-background bg-slate-200 z-${10 - i} flex items-center justify-center text-xs font-medium text-slate-600`}>
+                    U{i}
+                  </div>
+                ))}
               </div>
-              <div className="p-5">
-                <div className="mb-5 flex items-center gap-3">
-                  <div className="flex flex-1 items-center rounded-xl border border-border bg-background/80 px-4 py-3 text-sm text-muted-foreground shadow-inner">
-                    <Search className="mr-3 h-4 w-4" />
-                    Rechercher des campagnes...
-                  </div>
-                  <div className="rounded-xl bg-gradient-to-r from-primary to-primary/80 px-4 py-3 shadow-lg shadow-primary/30 transition-all hover:shadow-xl hover:shadow-primary/40">
-                    <Search className="h-4 w-4 text-primary-foreground" />
-                  </div>
+              <div className="flex flex-col">
+                <div className="flex gap-1 text-[#FFD23F]">
+                  {"★★★★★"}
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  {[
-                    { title: "MTN Ghana", tags: ["Telecoms", "Social"], gradient: "from-[#FFCC00] to-[#FF9500]" },
-                    { title: "Orange CI", tags: ["FMCG", "Video"], gradient: "from-[#FF6B35] to-[#FF4500]" },
-                    { title: "Jumia NG", tags: ["E-commerce", "Display"], gradient: "from-[#F68B1E] to-[#E8650E]" },
-                    { title: "Wave SN", tags: ["Fintech", "Story"], gradient: "from-[#1DA1F2] to-[#0D8ECF]" },
-                  ].map((item, i) => (
-                    <div key={i} className="group overflow-hidden rounded-xl border border-border/50 bg-background/80 transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:-translate-y-1">
-                      <div className={`aspect-video bg-gradient-to-br ${item.gradient} relative overflow-hidden`}>
-                        <div className="absolute inset-0 bg-black/20" />
-                        <div className="absolute bottom-2 left-2 h-6 w-6 rounded-full bg-white/90 flex items-center justify-center">
-                          <Play className="h-3 w-3 text-foreground ml-0.5" />
-                        </div>
-                      </div>
-                      <div className="p-3">
-                        <div className="text-sm font-semibold text-foreground">{item.title}</div>
-                        <div className="mt-2 flex gap-1.5">
-                          {item.tags.map((tag, j) => (
-                            <span key={j} className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
+                <span className="text-sm font-medium text-muted-foreground">
+                  Approuvé par <span className="text-foreground font-bold">2,500+</span> marketeurs
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Visual Content - Floating Interface */}
+          <div className="relative animate-slide-in-right delay-200 hidden lg:block perspective-1000">
+            {/* Decorative Elements behind card */}
+            <div className="absolute -top-12 -right-12 h-64 w-64 bg-accent/20 rounded-full blur-3xl animate-pulse-glow"></div>
+            <div className="absolute -bottom-8 -left-8 h-48 w-48 bg-primary/20 rounded-full blur-3xl animate-pulse-glow delay-700"></div>
+
+            <div className="glass-panel rounded-2xl p-4 transform rotate-y-[-5deg] rotate-x-[5deg] transition-transform duration-500 hover:rotate-0 hover:scale-[1.02]">
+              <div className="rounded-xl bg-card border border-border shadow-2xl overflow-hidden">
+                {/* Window Header */}
+                <div className="flex items-center justify-between border-b border-border bg-muted/50 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-3 rounded-full bg-[#EF4444]" />
+                    <div className="h-3 w-3 rounded-full bg-[#FFD23F]" />
+                    <div className="h-3 w-3 rounded-full bg-[#10B981]" />
+                  </div>
+                  <div className="flex-1 text-center">
+                    <div className="inline-flex items-center gap-2 rounded-md bg-background px-3 py-1 text-xs font-medium text-muted-foreground border border-border/50 shadow-sm">
+                      <Search className="h-3 w-3" />
+                      bigfive-bootcamp.com
                     </div>
-                  ))}
+                  </div>
+                  <div className="w-12"></div>
+                </div>
+
+                {/* Dashboard Preview Content */}
+                <div className="p-6 bg-gradient-to-b from-card to-muted/20">
+                  <div className="mb-6 flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                    {["Tous", "Télécoms", "FMCG", "Fintech", "Banque"].map((filter, i) => (
+                      <span key={i} className={`whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-medium transition-colors cursor-pointer ${i === 0 ? 'bg-primary text-white shadow-lg shadow-primary/25' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'}`}>
+                        {filter}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { title: "MTN - Yello", cat: "Télécom", imgGrad: "from-[#FFCC00] to-[#FF9500]" },
+                      { title: "Orange Money", cat: "Fintech", imgGrad: "from-[#FF6B35] to-[#E8650E]" },
+                      { title: "Nescafé", cat: "FMCG", imgGrad: "from-red-600 to-red-900" },
+                      { title: "Wave", cat: "Mobile Money", imgGrad: "from-sky-400 to-blue-600" },
+                    ].map((card, i) => (
+                      <div key={i} className="group cursor-pointer rounded-lg border border-border bg-background p-2 transition-all hover:shadow-lg hover:-translate-y-1">
+                        <div className={`aspect-video w-full rounded-md bg-gradient-to-br ${card.imgGrad} relative overflow-hidden`}>
+                          <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+                          <div className="absolute bottom-2 right-2 h-6 w-6 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Play className="h-3 w-3 text-white fill-current" />
+                          </div>
+                        </div>
+                        <div className="mt-3 px-1">
+                          <h4 className="font-semibold text-sm text-foreground">{card.title}</h4>
+                          <span className="text-xs text-muted-foreground">{card.cat}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
+
+            {/* Floating Badge */}
+            <div className="absolute -right-8 top-1/2 -translate-y-1/2 glass-panel p-4 rounded-xl animate-float shadow-xl hidden xl:block">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                  <BarChart3 className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground">Taux de clic</div>
+                  <div className="text-sm font-bold text-foreground">+127%</div>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
@@ -123,68 +160,51 @@ export function FeaturesSection() {
   const features = [
     {
       icon: Target,
-      title: "Gain de temps brutal",
-      description: "Fini les heures sur Instagram/TikTok a chercher l'inspi. Tout est centralise et organise pour vous.",
-      color: "from-primary to-[#FF4500]",
-      bgColor: "bg-primary/10"
+      title: "Ciblage Ultra-Précis",
+      description: "Filtrez par pays, industrie, format ou objectif. Trouvez exactement ce que vous cherchez.",
+      color: "text-primary",
+      bg: "bg-primary/10"
     },
     {
-      icon: BarChart3,
-      title: "Contenus reels uniquement",
-      description: "Pas de concepts, que des campagnes qui ont tourne. Resultats et strategies documentes.",
-      color: "from-accent to-[#FFA500]",
-      bgColor: "bg-accent/10"
+      icon: Layers,
+      title: "Bibliothèque Massive",
+      description: "Plus de 10,000 campagnes archivées et mises à jour quotidiennement par nos équipes.",
+      color: "text-blue-500",
+      bg: "bg-blue-500/10"
     },
     {
-      icon: Search,
-      title: "Filtres ultra-precis",
-      description: "Pays, secteur, format, plateforme... Trouvez exactement ce dont vous avez besoin en 3 clics.",
-      color: "from-[#10B981] to-[#059669]",
-      bgColor: "bg-[#10B981]/10"
+      icon: Zap,
+      title: "Analyse Instantanée",
+      description: "Décortiquez les stratégies gagnantes. Comprenez pourquoi une campagne fonctionne.",
+      color: "text-amber-500",
+      bg: "bg-amber-500/10"
     }
   ]
 
   return (
-    <section className="relative border-t border-border bg-gradient-to-b from-card to-background py-24 sm:py-32 overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+    <section className="py-24 bg-muted/30 relative">
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_0%,black_70%,transparent_100%)] pointer-events-none" />
 
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary mb-4">
-            <Zap className="h-4 w-4" />
-            Fonctionnalites
-          </span>
-          <h2 className="font-[family-name:var(--font-heading)] text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-            Pourquoi choisir <span className="gradient-text">Big Five</span> ?
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div className="text-center max-w-2xl mx-auto mb-16">
+          <h2 className="font-[family-name:var(--font-heading)] text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            Pourquoi les meilleures agences utilisent <span className="gradient-text">Big Five</span> ?
           </h2>
-          <p className="mt-6 text-pretty text-lg text-muted-foreground">
-            Une plateforme pensee pour les creatifs et marketeurs exigeants.
+          <p className="mt-4 text-lg text-muted-foreground">
+            Une suite d'outils conçue pour accélérer votre processus créatif et valider vos intuitions.
           </p>
         </div>
 
-        <div className="mt-20 grid gap-8 md:grid-cols-3">
-          {features.map((feature, index) => (
-            <div
-              key={index}
-              className="modern-card group relative p-8 hover-lift"
-            >
-              {/* Gradient background on hover */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300 rounded-xl`} />
-
-              <div className={`relative mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl ${feature.bgColor} transition-all duration-300 group-hover:scale-110`}>
-                <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
-                <feature.icon className="relative h-7 w-7 text-foreground transition-colors duration-300 group-hover:text-white" />
+        <div className="grid md:grid-cols-3 gap-8">
+          {features.map((feature, idx) => (
+            <div key={idx} className="glass-panel p-8 rounded-2xl hover:border-primary/30 transition-colors group">
+              <div className={`h-12 w-12 rounded-xl ${feature.bg} ${feature.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                <feature.icon className="h-6 w-6" />
               </div>
-
-              <h3 className="font-[family-name:var(--font-heading)] text-xl font-bold text-card-foreground mb-3">{feature.title}</h3>
-              <p className="leading-relaxed text-muted-foreground">{feature.description}</p>
-
-              {/* Decorative arrow */}
-              <div className="mt-6 flex items-center text-sm font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                En savoir plus
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </div>
+              <h3 className="text-xl font-bold mb-3 text-foreground">{feature.title}</h3>
+              <p className="text-muted-foreground leading-relaxed">
+                {feature.description}
+              </p>
             </div>
           ))}
         </div>
@@ -195,74 +215,56 @@ export function FeaturesSection() {
 
 export function PreviewSection() {
   return (
-    <section className="border-t border-border bg-background py-20 sm:py-28">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl text-center">
-          <h2 className="font-[family-name:var(--font-heading)] text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Navigue dans une bibliotheque organisee comme jamais
-          </h2>
-          <p className="mt-4 text-pretty text-lg text-muted-foreground">
-            Interface intuitive, filtres puissants, recherche instantanee. Tout pour trouver {"l'inspiration"} rapidement.
-          </p>
-        </div>
-        
-        <div className="relative mt-12">
-          <div className="absolute -inset-4 rounded-2xl bg-gradient-to-r from-primary/10 via-accent/10 to-[#10B981]/10 blur-xl" />
-          <div className="relative overflow-hidden rounded-xl border border-border bg-card shadow-2xl">
-            <div className="flex items-center gap-2 border-b border-border bg-[#0A1F44] px-4 py-3">
-              <div className="h-3 w-3 rounded-full bg-[#EF4444]" />
-              <div className="h-3 w-3 rounded-full bg-accent" />
-              <div className="h-3 w-3 rounded-full bg-[#10B981]" />
-              <span className="ml-2 text-xs text-white/70">Big Five - Dashboard</span>
+    <section className="py-24 overflow-hidden bg-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="lg:grid lg:grid-cols-12 lg:gap-16 items-center">
+          <div className="lg:col-span-6 mb-12 lg:mb-0">
+            <h2 className="font-[family-name:var(--font-heading)] text-3xl font-bold tracking-tight text-foreground sm:text-4xl mb-6">
+              Une interface pensée pour la <span className="text-primary">vitesse</span>.
+            </h2>
+            <p className="text-lg text-muted-foreground mb-8">
+              Ne perdez plus de temps sur des captures d'écran désorganisées. Notre dashboard unifié vous donne une vue d'ensemble sur le marché en temps réel.
+            </p>
+
+            <ul className="space-y-4">
+              {[
+                "Sauvegardez vos favoris dans des collections",
+                "Partagez des moodboards avec vos clients",
+                "Téléchargez les assets en haute qualité",
+                "Recevez des alertes sur vos concurrents"
+              ].map((item, i) => (
+                <li key={i} className="flex items-center gap-3">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  <span className="text-foreground/80 font-medium">{item}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="mt-10">
+              <Button variant="ghost" className="text-primary hover:text-primary/80 hover:bg-primary/5 p-0 font-semibold group">
+                Explorer toutes les fonctionnalités
+                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Button>
             </div>
-            <div className="flex">
-              <div className="hidden w-64 border-r border-border bg-background p-4 md:block">
-                <div className="space-y-4">
-                  <div>
-                    <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pays</div>
-                    <div className="space-y-1.5">
-                      {["Cote d'Ivoire", "Senegal", "Nigeria", "France"].map((country) => (
-                        <div key={country} className="flex items-center gap-2 text-sm text-foreground">
-                          <div className="h-3.5 w-3.5 rounded border border-border bg-background" />
-                          {country}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Secteur</div>
-                    <div className="space-y-1.5">
-                      {["Telecoms", "Banque", "FMCG", "Tech"].map((sector) => (
-                        <div key={sector} className="flex items-center gap-2 text-sm text-foreground">
-                          <div className="h-3.5 w-3.5 rounded border border-border bg-background" />
-                          {sector}
-                        </div>
-                      ))}
-                    </div>
+          </div>
+
+          <div className="lg:col-span-6 relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 blur-3xl rounded-full opacity-30 animate-pulse-glow" />
+            <div className="relative glass-panel rounded-xl border border-border/50 shadow-2xl overflow-hidden group">
+              <div className="aspect-[4/3] bg-muted relative">
+                {/* Abstract UI representation */}
+                <div className="absolute inset-0 bg-gradient-to-br from-card to-background p-6">
+                  <div className="h-8 w-1/3 bg-muted-foreground/10 rounded mb-6 animate-pulse" />
+                  <div className="grid grid-cols-2 gap-4">
+                    {[1, 2, 3, 4].map(n => (
+                      <div key={n} className="aspect-video bg-muted-foreground/5 rounded-lg border border-border/50" />
+                    ))}
                   </div>
                 </div>
-              </div>
-              <div className="flex-1 p-4">
-                <div className="mb-4 flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">127 resultats</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Trier par:</span>
-                    <span className="text-xs font-medium text-foreground">Plus recent</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="overflow-hidden rounded-lg border border-border bg-background">
-                      <div className="aspect-video bg-gradient-to-br from-muted to-muted/50" />
-                      <div className="p-2">
-                        <div className="h-2 w-3/4 rounded bg-muted" />
-                        <div className="mt-1 flex gap-1">
-                          <div className="h-1.5 w-8 rounded bg-primary/30" />
-                          <div className="h-1.5 w-6 rounded bg-accent/30" />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+
+                {/* Overlay CTA */}
+                <div className="absolute inset-0 flex items-center justify-center bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
+                  <Button className="rounded-full shadow-lg">Voir en action</Button>
                 </div>
               </div>
             </div>
@@ -275,78 +277,36 @@ export function PreviewSection() {
 
 export function PricingTeaser() {
   return (
-    <section className="relative border-t border-border bg-gradient-to-b from-card to-background py-24 sm:py-32 overflow-hidden">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0A1F44] via-[#122a52] to-[#0A1F44] px-6 py-20 sm:px-12 sm:py-24">
-          {/* Animated background effects */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute -top-20 -right-20 h-60 w-60 rounded-full bg-primary/20 blur-3xl animate-pulse-glow" />
-            <div className="absolute -bottom-20 -left-20 h-60 w-60 rounded-full bg-accent/20 blur-3xl animate-pulse-glow delay-300" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-80 w-80 rounded-full bg-[#10B981]/10 blur-3xl animate-pulse-glow delay-500" />
-          </div>
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white/5 via-transparent to-transparent" />
+    <section className="py-24 bg-[#0F172A] text-white relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent opacity-50" />
 
-          {/* Grid pattern overlay */}
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.03)_1px,transparent_1px)] bg-[size:60px_60px]" />
+      <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
+        <span className="inline-block py-1 px-3 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-semibold mb-6 animate-bounce">
+          Offre Limitée
+        </span>
+        <h2 className="font-[family-name:var(--font-heading)] text-4xl font-bold mb-6">
+          Commencez à créer des campagnes impactantes.
+        </h2>
+        <p className="text-slate-400 text-xl mb-10 max-w-2xl mx-auto">
+          Rejoignez des centaines de créatifs qui utilisent Big Five Bootcamp pour élever leur niveau de jeu. Sans carte bancaire requise à l'inscription.
+        </p>
 
-          <div className="relative mx-auto max-w-2xl text-center">
-            <div className="mb-8 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#10B981]/20 to-[#10B981]/10 px-5 py-2 text-sm font-semibold text-[#10B981] ring-1 ring-[#10B981]/30 animate-shimmer">
-              <Zap className="h-4 w-4" />
-              Offre speciale lancement
-            </div>
-
-            <h2 className="font-[family-name:var(--font-heading)] text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
-              30 jours gratuits,{" "}
-              <span className="bg-gradient-to-r from-accent via-primary to-[#10B981] bg-clip-text text-transparent">
-                100% des fonctionnalites
-              </span>
-            </h2>
-
-            <div className="mt-10 flex flex-col items-center">
-              <div className="flex items-baseline gap-2">
-                <span className="text-6xl font-extrabold text-white sm:text-7xl">4 500</span>
-                <div className="flex flex-col items-start">
-                  <span className="text-xl font-semibold text-white/90">FCFA</span>
-                  <span className="text-sm text-white/60">/mois</span>
-                </div>
-              </div>
-              <p className="mt-4 text-white/60 flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-[#10B981]" />
-                Sans engagement, annulation a tout moment
-              </p>
-            </div>
-
-            <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-              <Button size="lg" asChild className="group h-14 bg-gradient-to-r from-accent to-accent/90 px-10 text-base font-semibold text-accent-foreground shadow-lg shadow-accent/30 transition-all duration-300 hover:shadow-xl hover:shadow-accent/40 hover:scale-105">
-                <Link href="/register">
-                  Commencer maintenant
-                  <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild className="h-14 border-white/20 bg-white/5 px-8 text-base font-semibold text-white hover:bg-white/10 hover:border-white/30 transition-all duration-300">
-                <Link href="/dashboard">
-                  Voir la demo
-                </Link>
-              </Button>
-            </div>
-
-            {/* Trust indicators */}
-            <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-sm text-white/50">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-[#10B981]" />
-                Sans carte bancaire
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-[#10B981]" />
-                Acces immediat
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-[#10B981]" />
-                Support inclus
-              </div>
-            </div>
-          </div>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Button size="lg" className="h-14 px-8 text-lg bg-primary hover:bg-primary/90 text-white font-bold rounded-full shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-1" asChild>
+            <Link href="/register">
+              Essai Gratuit 30 Jours
+            </Link>
+          </Button>
+          <Button size="lg" variant="outline" className="h-14 px-8 text-lg border-white/20 text-white hover:bg-white/10 rounded-full" asChild>
+            <Link href="/pricing">
+              Voir les tarifs
+            </Link>
+          </Button>
         </div>
+
+        <p className="mt-8 text-sm text-slate-500">
+          Pas de carte requise • Annulation à tout moment • Support 24/7
+        </p>
       </div>
     </section>
   )

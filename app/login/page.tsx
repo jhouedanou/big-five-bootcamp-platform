@@ -28,20 +28,23 @@ export default function LoginPage() {
       {/* Left side - Form */}
       <div className="flex flex-1 flex-col justify-center px-4 py-12 sm:px-6 lg:flex-none lg:px-20 xl:px-24">
         <div className="mx-auto w-full max-w-sm lg:w-96">
-          <div className="mb-8">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0A1F44]">
-                <Sparkles className="h-5 w-5 text-accent" />
+          <div className="mb-8 animate-fade-in-up">
+            <Link href="/" className="group inline-flex items-center gap-3 transition-all duration-300">
+              <div className="relative">
+                <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-primary/20 to-accent/20 opacity-0 blur transition-opacity duration-300 group-hover:opacity-100" />
+                <img src="/logo.png" alt="Big Five Bootcamp" className="relative h-10 w-10 rounded-lg" />
               </div>
-              <span className="font-[family-name:var(--font-heading)] text-xl font-bold text-foreground">Big Five</span>
+              <span className="font-[family-name:var(--font-heading)] text-xl font-bold text-foreground">
+                Big Five <span className="text-primary">Bootcamp</span>
+              </span>
             </Link>
           </div>
 
-          <div>
-            <h1 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-foreground">
+          <div className="animate-fade-in-up delay-100">
+            <h1 className="font-[family-name:var(--font-heading)] text-3xl font-bold text-foreground">
               Content de te revoir !
             </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-3 text-muted-foreground">
               Connecte-toi pour acceder a ta bibliotheque
             </p>
           </div>
@@ -129,22 +132,63 @@ export default function LoginPage() {
 
       {/* Right side - Visual */}
       <div className="relative hidden w-0 flex-1 lg:block">
-        <div className="absolute inset-0 bg-[#0A1F44]">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0A1F44] via-[#122a52] to-[#0A1F44]">
+          {/* Animated background effects */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute -top-20 -right-20 h-60 w-60 rounded-full bg-primary/20 blur-3xl animate-pulse-glow" />
+            <div className="absolute -bottom-20 -left-20 h-60 w-60 rounded-full bg-accent/20 blur-3xl animate-pulse-glow delay-300" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-80 w-80 rounded-full bg-[#10B981]/10 blur-3xl animate-pulse-glow delay-500" />
+          </div>
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/30 via-transparent to-transparent" />
-          <div className="flex h-full flex-col items-center justify-center p-12">
+          {/* Grid pattern overlay */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:60px_60px]" />
+
+          <div className="relative flex h-full flex-col items-center justify-center p-12">
             <div className="max-w-md text-center">
-              <h2 className="font-[family-name:var(--font-heading)] text-3xl font-bold text-white">
-                {"L'inspiration creative a portee de clic"}
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium text-white/80 mb-6">
+                <Sparkles className="h-4 w-4 text-accent" />
+                Plateforme creative
+              </span>
+              <h2 className="font-[family-name:var(--font-heading)] text-4xl font-bold text-white">
+                <span className="bg-gradient-to-r from-white via-white to-white/70 bg-clip-text text-transparent">
+                  {"L'inspiration creative"}
+                </span>
+                <br />
+                <span className="bg-gradient-to-r from-primary via-accent to-[#10B981] bg-clip-text text-transparent">
+                  a portee de clic
+                </span>
               </h2>
-              <p className="mt-4 text-lg text-white/70">
+              <p className="mt-6 text-lg text-white/70">
                 Accede a des milliers de campagnes marketing reelles pour booster ta creativite.
               </p>
-              <div className="mt-8 grid grid-cols-3 gap-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="aspect-square overflow-hidden rounded-lg bg-white/10">
-                    <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent/20" />
+              <div className="mt-10 grid grid-cols-3 gap-4">
+                {[
+                  { gradient: "from-[#FFCC00] to-[#FF9500]" },
+                  { gradient: "from-primary to-[#FF4500]" },
+                  { gradient: "from-[#1DA1F2] to-[#0D8ECF]" },
+                ].map((item, i) => (
+                  <div key={i} className="aspect-square overflow-hidden rounded-xl bg-white/5 border border-white/10 hover-lift">
+                    <div className={`h-full w-full bg-gradient-to-br ${item.gradient} opacity-80`} />
                   </div>
                 ))}
+              </div>
+
+              {/* Stats */}
+              <div className="mt-10 flex items-center justify-center gap-8">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-white">1000+</div>
+                  <div className="text-xs text-white/60">Campagnes</div>
+                </div>
+                <div className="h-8 w-px bg-white/20" />
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-white">100+</div>
+                  <div className="text-xs text-white/60">Marques</div>
+                </div>
+                <div className="h-8 w-px bg-white/20" />
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-white">15+</div>
+                  <div className="text-xs text-white/60">Pays</div>
+                </div>
               </div>
             </div>
           </div>

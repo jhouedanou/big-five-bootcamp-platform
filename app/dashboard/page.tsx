@@ -45,15 +45,17 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <DashboardNavbar />
-      
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Bibliothèque</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {filteredContent.length} campagne{filteredContent.length > 1 ? "s" : ""} trouvée{filteredContent.length > 1 ? "s" : ""}
+
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-8 flex items-center justify-between">
+          <div className="animate-fade-in-up">
+            <h1 className="font-[family-name:var(--font-heading)] text-3xl font-bold text-foreground">
+              Bibliothèque
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              <span className="font-semibold text-primary">{filteredContent.length}</span> campagne{filteredContent.length > 1 ? "s" : ""} trouvée{filteredContent.length > 1 ? "s" : ""}
             </p>
           </div>
           

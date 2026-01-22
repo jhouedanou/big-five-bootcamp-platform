@@ -124,43 +124,67 @@ export function FeaturesSection() {
     {
       icon: Target,
       title: "Gain de temps brutal",
-      description: "Fini les heures sur Instagram/TikTok a chercher l'inspi. Tout est centralise et organise pour vous."
+      description: "Fini les heures sur Instagram/TikTok a chercher l'inspi. Tout est centralise et organise pour vous.",
+      color: "from-primary to-[#FF4500]",
+      bgColor: "bg-primary/10"
     },
     {
       icon: BarChart3,
       title: "Contenus reels uniquement",
-      description: "Pas de concepts, que des campagnes qui ont tourne. Resultats et strategies documentes."
+      description: "Pas de concepts, que des campagnes qui ont tourne. Resultats et strategies documentes.",
+      color: "from-accent to-[#FFA500]",
+      bgColor: "bg-accent/10"
     },
     {
       icon: Search,
       title: "Filtres ultra-precis",
-      description: "Pays, secteur, format, plateforme... Trouvez exactement ce dont vous avez besoin en 3 clics."
+      description: "Pays, secteur, format, plateforme... Trouvez exactement ce dont vous avez besoin en 3 clics.",
+      color: "from-[#10B981] to-[#059669]",
+      bgColor: "bg-[#10B981]/10"
     }
   ]
 
   return (
-    <section className="border-t border-border bg-card py-20 sm:py-28">
+    <section className="relative border-t border-border bg-gradient-to-b from-card to-background py-24 sm:py-32 overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="font-[family-name:var(--font-heading)] text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Pourquoi choisir Big Five ?
+          <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-sm font-semibold text-primary mb-4">
+            <Zap className="h-4 w-4" />
+            Fonctionnalites
+          </span>
+          <h2 className="font-[family-name:var(--font-heading)] text-balance text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+            Pourquoi choisir <span className="gradient-text">Big Five</span> ?
           </h2>
-          <p className="mt-4 text-pretty text-lg text-muted-foreground">
+          <p className="mt-6 text-pretty text-lg text-muted-foreground">
             Une plateforme pensee pour les creatifs et marketeurs exigeants.
           </p>
         </div>
-        
-        <div className="mt-16 grid gap-8 md:grid-cols-3">
+
+        <div className="mt-20 grid gap-8 md:grid-cols-3">
           {features.map((feature, index) => (
             <div
               key={index}
-              className="group relative overflow-hidden rounded-xl border border-border bg-background p-8 transition-all duration-300 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5"
+              className="modern-card group relative p-8 hover-lift"
             >
-              <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                <feature.icon className="h-6 w-6" />
+              {/* Gradient background on hover */}
+              <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300 rounded-xl`} />
+
+              <div className={`relative mb-6 inline-flex h-14 w-14 items-center justify-center rounded-2xl ${feature.bgColor} transition-all duration-300 group-hover:scale-110`}>
+                <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                <feature.icon className="relative h-7 w-7 text-foreground transition-colors duration-300 group-hover:text-white" />
               </div>
-              <h3 className="font-[family-name:var(--font-heading)] text-xl font-semibold text-card-foreground">{feature.title}</h3>
-              <p className="mt-2 leading-relaxed text-muted-foreground">{feature.description}</p>
+
+              <h3 className="font-[family-name:var(--font-heading)] text-xl font-bold text-card-foreground mb-3">{feature.title}</h3>
+              <p className="leading-relaxed text-muted-foreground">{feature.description}</p>
+
+              {/* Decorative arrow */}
+              <div className="mt-6 flex items-center text-sm font-semibold text-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                En savoir plus
+                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </div>
             </div>
           ))}
         </div>
@@ -251,36 +275,75 @@ export function PreviewSection() {
 
 export function PricingTeaser() {
   return (
-    <section className="border-t border-border bg-card py-20 sm:py-28">
+    <section className="relative border-t border-border bg-gradient-to-b from-card to-background py-24 sm:py-32 overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="relative overflow-hidden rounded-2xl bg-[#0A1F44] px-6 py-16 sm:px-12 sm:py-20">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent" />
-          
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0A1F44] via-[#122a52] to-[#0A1F44] px-6 py-20 sm:px-12 sm:py-24">
+          {/* Animated background effects */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute -top-20 -right-20 h-60 w-60 rounded-full bg-primary/20 blur-3xl animate-pulse-glow" />
+            <div className="absolute -bottom-20 -left-20 h-60 w-60 rounded-full bg-accent/20 blur-3xl animate-pulse-glow delay-300" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-80 w-80 rounded-full bg-[#10B981]/10 blur-3xl animate-pulse-glow delay-500" />
+          </div>
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white/5 via-transparent to-transparent" />
+
+          {/* Grid pattern overlay */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.03)_1px,transparent_1px)] bg-[size:60px_60px]" />
+
           <div className="relative mx-auto max-w-2xl text-center">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#10B981]/20 px-4 py-1.5 text-sm text-[#10B981]">
+            <div className="mb-8 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#10B981]/20 to-[#10B981]/10 px-5 py-2 text-sm font-semibold text-[#10B981] ring-1 ring-[#10B981]/30 animate-shimmer">
               <Zap className="h-4 w-4" />
               Offre speciale lancement
             </div>
-            
-            <h2 className="font-[family-name:var(--font-heading)] text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              30 jours gratuits, 100% des fonctionnalites
+
+            <h2 className="font-[family-name:var(--font-heading)] text-balance text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+              30 jours gratuits,{" "}
+              <span className="bg-gradient-to-r from-accent via-primary to-[#10B981] bg-clip-text text-transparent">
+                100% des fonctionnalites
+              </span>
             </h2>
-            
-            <div className="mt-8 flex flex-col items-center">
-              <div className="flex items-baseline gap-1">
-                <span className="text-5xl font-bold text-white">4 500</span>
-                <span className="text-xl text-white/80">FCFA/mois</span>
+
+            <div className="mt-10 flex flex-col items-center">
+              <div className="flex items-baseline gap-2">
+                <span className="text-6xl font-extrabold text-white sm:text-7xl">4 500</span>
+                <div className="flex flex-col items-start">
+                  <span className="text-xl font-semibold text-white/90">FCFA</span>
+                  <span className="text-sm text-white/60">/mois</span>
+                </div>
               </div>
-              <p className="mt-2 text-white/60">Sans engagement, annulation a tout moment</p>
+              <p className="mt-4 text-white/60 flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-[#10B981]" />
+                Sans engagement, annulation a tout moment
+              </p>
             </div>
-            
-            <div className="mt-8">
-              <Button size="lg" asChild className="h-12 bg-accent px-8 text-base text-accent-foreground shadow-lg transition-all hover:bg-accent/90 hover:shadow-xl">
+
+            <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+              <Button size="lg" asChild className="group h-14 bg-gradient-to-r from-accent to-accent/90 px-10 text-base font-semibold text-accent-foreground shadow-lg shadow-accent/30 transition-all duration-300 hover:shadow-xl hover:shadow-accent/40 hover:scale-105">
                 <Link href="/register">
                   Commencer maintenant
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </Link>
               </Button>
+              <Button size="lg" variant="outline" asChild className="h-14 border-white/20 bg-white/5 px-8 text-base font-semibold text-white hover:bg-white/10 hover:border-white/30 transition-all duration-300">
+                <Link href="/dashboard">
+                  Voir la demo
+                </Link>
+              </Button>
+            </div>
+
+            {/* Trust indicators */}
+            <div className="mt-12 flex flex-wrap items-center justify-center gap-6 text-sm text-white/50">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-[#10B981]" />
+                Sans carte bancaire
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-[#10B981]" />
+                Acces immediat
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-[#10B981]" />
+                Support inclus
+              </div>
             </div>
           </div>
         </div>

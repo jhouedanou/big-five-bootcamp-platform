@@ -72,7 +72,7 @@ const initialContent: AdminContent[] = [
   },
   {
     id: "3",
-    title: "Wave - Envoi simplifie",
+    title: "Wave - Envoi simplifié",
     brand: "Wave",
     industry: "Fintech",
     format: "Video",
@@ -123,7 +123,12 @@ export default function AdminContentPage() {
 
   const saveEdit = () => {
     if (!editingId || !draft) return;
-    setItems((prev) => prev.map((item) => (item.id === editingId ? { ...item, ...draft } as AdminContent : item)));
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== editingId || !draft) return item;
+        return { ...item, ...draft };
+      })
+    );
     cancelEdit();
   };
 
@@ -226,18 +231,30 @@ export default function AdminContentPage() {
                           {item.status}
                         </span>
                         <div className="flex items-center gap-2 text-xs text-[#9CA3AF]">
-                          <Switch
-                            checked={editingId === item.id ? draft?.isPremium : item.isPremium}
-                            onCheckedChange={(checked) => {
-                              if (editingId === item.id) {
-                                setDraft((d) => ({ ...d, isPremium: checked }))
-                              } else {
-                                setItems((prev) => prev.map((c) => c.id === item.id ? { ...c, isPremium: checked } : c))
-                              }
-                            }}
-                            className="data-[state=checked]:bg-[#FF6B35]"
-                          />
-                          <span>{(editingId === item.id ? draft?.isPremium : item.isPremium) ? "Premium" : "Public"}</span>
+                          {(() => {
+                            const currentPremium =
+                              editingId === item.id ? draft?.isPremium ?? item.isPremium : item.isPremium;
+                            return (
+                              <>
+                                <Switch
+                                  checked={currentPremium}
+                                  onCheckedChange={(checked) => {
+                                    if (editingId === item.id && draft) {
+                                      setDraft({ ...draft, isPremium: checked });
+                                    } else {
+                                      setItems((prev) =>
+                                        prev.map((c) =>
+                                          c.id === item.id ? { ...c, isPremium: checked } : c
+                                        )
+                                      );
+                                    }
+                                  }}
+                                  className="data-[state=checked]:bg-[#FF6B35]"
+                                />
+                                <span>{currentPremium ? "Premium" : "Public"}</span>
+                              </>
+                            );
+                          })()}
                         </div>
                       </div>
                     </TableCell>

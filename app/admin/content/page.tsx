@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,24 +24,113 @@ import {
   Plus,
   MoreHorizontal,
   Edit,
-  Trash2,
   Eye,
   Filter,
+  Save,
+  X,
 } from "lucide-react";
-import { sampleContent } from "@/lib/sample-content";
-import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Switch } from "@/components/ui/switch";
 import Loading from "./loading";
+
+type AdminContent = {
+  id: string;
+  title: string;
+  brand: string;
+  industry: string;
+  format: string;
+  isPremium: boolean;
+  date: string;
+  type: "contenu" | "campagne";
+  status: "Publie" | "En attente" | "Brouillon";
+  thumbnail?: string;
+};
+
+const initialContent: AdminContent[] = [
+  {
+    id: "1",
+    title: "MTN Ghana - Mobile Money",
+    brand: "MTN",
+    industry: "Telecoms",
+    format: "Video",
+    isPremium: true,
+    date: "Jan 2024",
+    type: "campagne",
+    status: "Publie",
+    thumbnail: "/placeholder.svg",
+  },
+  {
+    id: "2",
+    title: "Jumia - Black Friday",
+    brand: "Jumia",
+    industry: "E-commerce",
+    format: "Campagne 360",
+    isPremium: false,
+    date: "Nov 2024",
+    type: "campagne",
+    status: "En attente",
+    thumbnail: "/placeholder.svg",
+  },
+  {
+    id: "3",
+    title: "Wave - Envoi simplifié",
+    brand: "Wave",
+    industry: "Fintech",
+    format: "Video",
+    isPremium: false,
+    date: "Dec 2024",
+    type: "contenu",
+    status: "Publie",
+    thumbnail: "/placeholder.svg",
+  },
+  {
+    id: "4",
+    title: "Big Five Academy",
+    brand: "Big Five",
+    industry: "Education",
+    format: "Article",
+    isPremium: true,
+    date: "Jan 2025",
+    type: "contenu",
+    status: "Brouillon",
+    thumbnail: "/placeholder.svg",
+  },
+];
 
 export default function AdminContentPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  const searchParams = useSearchParams();
-
-  const filteredContent = sampleContent.filter(
-    (item) =>
-      item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.brand.toLowerCase().includes(searchQuery.toLowerCase())
+  const [items, setItems] = useState<AdminContent[]>(initialContent);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<Partial<AdminContent> | null>(null);
+  const filteredContent = useMemo(
+    () =>
+      items.filter(
+        (item) =>
+          item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          item.brand.toLowerCase().includes(searchQuery.toLowerCase())
+      ),
+    [items, searchQuery]
   );
+
+  const startEdit = (item: AdminContent) => {
+    setEditingId(item.id);
+    setDraft(item);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setDraft(null);
+  };
+
+  const saveEdit = () => {
+    if (!editingId || !draft) return;
+    setItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== editingId || !draft) return item;
+        return { ...item, ...draft };
+      })
+    );
+    cancelEdit();
+  };
 
   return (
     <div className="p-6 lg:p-8">
@@ -51,7 +140,7 @@ export default function AdminContentPage() {
             Gestion des contenus
           </h1>
           <p className="text-[#9CA3AF] mt-1">
-            {sampleContent.length} contenus au total
+            {items.length} éléments (contenus & campagnes)
           </p>
         </div>
         <Button className="bg-[#FF6B35] hover:bg-[#e55a2b] text-white">
@@ -95,6 +184,7 @@ export default function AdminContentPage() {
                   <TableHead className="text-[#9CA3AF]">Marque</TableHead>
                   <TableHead className="text-[#9CA3AF]">Industrie</TableHead>
                   <TableHead className="text-[#9CA3AF]">Format</TableHead>
+                  <TableHead className="text-[#9CA3AF]">Type</TableHead>
                   <TableHead className="text-[#9CA3AF]">Statut</TableHead>
                   <TableHead className="text-[#9CA3AF] text-right">Actions</TableHead>
                 </TableRow>
@@ -126,16 +216,47 @@ export default function AdminContentPage() {
                     <TableCell className="text-white">{item.brand}</TableCell>
                     <TableCell className="text-[#9CA3AF]">{item.industry}</TableCell>
                     <TableCell className="text-[#9CA3AF]">{item.format}</TableCell>
+                    <TableCell className="text-[#9CA3AF] capitalize">{item.type}</TableCell>
                     <TableCell>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          item.isPremium
-                            ? "bg-[#FFD23F]/20 text-[#FFD23F]"
-                            : "bg-[#10B981]/20 text-[#10B981]"
-                        }`}
-                      >
-                        {item.isPremium ? "Premium" : "Public"}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            item.status === "Publie"
+                              ? "bg-[#10B981]/20 text-[#10B981]"
+                              : item.status === "En attente"
+                                ? "bg-[#FFD23F]/20 text-[#FFD23F]"
+                                : "bg-[#6B7280]/20 text-[#9CA3AF]"
+                          }`}
+                        >
+                          {item.status}
+                        </span>
+                        <div className="flex items-center gap-2 text-xs text-[#9CA3AF]">
+                          {(() => {
+                            const currentPremium =
+                              editingId === item.id ? draft?.isPremium ?? item.isPremium : item.isPremium;
+                            return (
+                              <>
+                                <Switch
+                                  checked={currentPremium}
+                                  onCheckedChange={(checked) => {
+                                    if (editingId === item.id && draft) {
+                                      setDraft({ ...draft, isPremium: checked });
+                                    } else {
+                                      setItems((prev) =>
+                                        prev.map((c) =>
+                                          c.id === item.id ? { ...c, isPremium: checked } : c
+                                        )
+                                      );
+                                    }
+                                  }}
+                                  className="data-[state=checked]:bg-[#FF6B35]"
+                                />
+                                <span>{currentPremium ? "Premium" : "Public"}</span>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -156,14 +277,32 @@ export default function AdminContentPage() {
                             <Eye className="h-4 w-4 mr-2" />
                             Voir
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-white hover:bg-[#1a3a6e] cursor-pointer">
-                            <Edit className="h-4 w-4 mr-2" />
-                            Modifier
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-red-400 hover:bg-[#1a3a6e] cursor-pointer">
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Supprimer
-                          </DropdownMenuItem>
+                          {editingId === item.id ? (
+                            <>
+                              <DropdownMenuItem
+                                className="text-white hover:bg-[#1a3a6e] cursor-pointer"
+                                onClick={saveEdit}
+                              >
+                                <Save className="h-4 w-4 mr-2" />
+                                Enregistrer
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-white hover:bg-[#1a3a6e] cursor-pointer"
+                                onClick={cancelEdit}
+                              >
+                                <X className="h-4 w-4 mr-2" />
+                                Annuler
+                              </DropdownMenuItem>
+                            </>
+                          ) : (
+                            <DropdownMenuItem
+                              className="text-white hover:bg-[#1a3a6e] cursor-pointer"
+                              onClick={() => startEdit(item)}
+                            >
+                              <Edit className="h-4 w-4 mr-2" />
+                              Modifier
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

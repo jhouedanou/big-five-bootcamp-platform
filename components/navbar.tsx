@@ -38,7 +38,7 @@ export function Navbar() {
             <span className="absolute bottom-0 left-1/2 h-0.5 w-0 bg-gradient-to-r from-primary to-accent transition-all duration-300 group-hover:left-4 group-hover:w-[calc(100%-32px)]" />
           </Link>
           <Link
-            href="/#pricing"
+            href="/pricing"
             className="relative px-4 py-2 text-sm font-medium text-muted-foreground transition-all duration-300 hover:text-foreground group"
           >
             Tarifs
@@ -48,7 +48,7 @@ export function Navbar() {
             href="/dashboard"
             className="relative px-4 py-2 text-sm font-medium text-muted-foreground transition-all duration-300 hover:text-foreground group"
           >
-            Demo
+            Démo
             <span className="absolute bottom-0 left-1/2 h-0.5 w-0 bg-gradient-to-r from-primary to-accent transition-all duration-300 group-hover:left-4 group-hover:w-[calc(100%-32px)]" />
           </Link>
         </nav>
@@ -58,8 +58,8 @@ export function Navbar() {
             <Link href="/login">Connexion</Link>
           </Button>
           <Button asChild className="group font-semibold shadow-lg shadow-primary/25 transition-all duration-300 hover:shadow-xl hover:shadow-primary/30 hover:scale-105">
-            <Link href="/register">
-              Essai gratuit 30j
+            <Link href="/pricing">
+              4 500 XOF / mois
               <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </Button>
@@ -84,10 +84,10 @@ export function Navbar() {
               className="rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground transition-all duration-300 hover:bg-primary/5 hover:text-foreground hover:translate-x-1"
               onClick={() => setIsOpen(false)}
             >
-              Fonctionnalites
+              Fonctionnalités
             </Link>
             <Link
-              href="/#pricing"
+              href="/pricing"
               className="rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground transition-all duration-300 hover:bg-primary/5 hover:text-foreground hover:translate-x-1"
               onClick={() => setIsOpen(false)}
             >
@@ -98,7 +98,7 @@ export function Navbar() {
               className="rounded-xl px-4 py-3 text-sm font-medium text-muted-foreground transition-all duration-300 hover:bg-primary/5 hover:text-foreground hover:translate-x-1"
               onClick={() => setIsOpen(false)}
             >
-              Demo
+              Démo
             </Link>
             <hr className="my-3 border-border/50" />
             <Link
@@ -109,8 +109,8 @@ export function Navbar() {
               Connexion
             </Link>
             <Button asChild className="mt-3 h-12 font-semibold shadow-lg shadow-primary/25">
-              <Link href="/register" onClick={() => setIsOpen(false)}>
-                Essai gratuit 30j
+              <Link href="/pricing" onClick={() => setIsOpen(false)}>
+                4 500 XOF / mois
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>

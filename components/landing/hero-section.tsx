@@ -45,8 +45,8 @@ export function HeroSection() {
 
             <div className="mt-10 flex flex-col gap-4 sm:flex-row animate-fade-in-up delay-300 w-full sm:w-auto">
               <Button size="lg" asChild className="btn-glow group h-14 px-8 text-base font-bold shadow-xl shadow-primary/20 transition-all duration-300 hover:scale-[1.02]">
-                <Link href="/register">
-                  Essai gratuit 30 jours
+                <Link href="/pricing">
+                  4 500 XOF / mois
                   <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </Link>
               </Button>
@@ -293,8 +293,8 @@ export function PricingTeaser() {
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Button size="lg" className="h-14 px-8 text-lg bg-primary hover:bg-primary/90 text-white font-bold rounded-full shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-1" asChild>
-            <Link href="/register">
-              Essai Gratuit 30 Jours
+            <Link href="/pricing">
+              4 500 XOF / mois
             </Link>
           </Button>
           <Button size="lg" variant="outline" className="h-14 px-8 text-lg border-white/20 text-white hover:bg-white/10 rounded-full" asChild>

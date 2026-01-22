@@ -2,8 +2,9 @@
 
 import Link from "next/link"
 import { useState } from "react"
-import { Menu, X, Search, Bell, User, Sparkles, LogOut, Settings, CreditCard } from "lucide-react"
+import { Menu, X, Search, Bell, User, LogOut, Settings, CreditCard } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,10 +22,15 @@ export function DashboardNavbar() {
       <div className="mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0A1F44]">
-              <Sparkles className="h-5 w-5 text-accent" />
-            </div>
-            <span className="hidden font-[family-name:var(--font-heading)] text-lg font-bold text-foreground sm:inline-block">Big Five</span>
+            <Image
+              src="/logo.png"
+              alt="Big Five Bootcamp"
+              width={32}
+              height={32}
+              className="h-8 w-8"
+              priority
+            />
+            <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-foreground">Big Five Bootcamp</span>
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex">

@@ -2,8 +2,9 @@
 
 import Link from "next/link"
 import { useState } from "react"
-import { Menu, X, Sparkles } from "lucide-react"
+import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
@@ -11,11 +12,16 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#0A1F44]">
-            <Sparkles className="h-5 w-5 text-accent" />
-          </div>
-          <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-foreground">Big Five</span>
+        <Link href="/" className="flex items-center gap-3">
+          <Image
+            src="/logo.png"
+            alt="Big Five Bootcamp"
+            width={40}
+            height={40}
+            className="h-10 w-10"
+            priority
+          />
+          <span className="font-[family-name:var(--font-heading)] text-xl font-bold text-foreground">Big Five Bootcamp</span>
         </Link>
 
         <nav className="hidden items-center gap-6 md:flex">

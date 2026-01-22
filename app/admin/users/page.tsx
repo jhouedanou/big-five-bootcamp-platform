@@ -232,7 +232,3 @@ export default function AdminUsersPage() {
     </div>
   );
 }
-
-export function Loading() {
-  return null;
-}

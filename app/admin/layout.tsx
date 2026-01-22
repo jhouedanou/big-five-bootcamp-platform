@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import Image from "next/image";
 
 const sidebarLinks = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -36,10 +37,15 @@ export default function AdminLayout({
       {/* Mobile header */}
       <div className="lg:hidden bg-[#071428] border-b border-[#1a3a6e] p-4 flex items-center justify-between">
         <Link href="/admin" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#FF6B35] rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">B5</span>
-          </div>
-          <span className="text-white font-semibold">Admin</span>
+          <Image
+            src="/logo.png"
+            alt="Big Five Bootcamp"
+            width={32}
+            height={32}
+            className="h-8 w-8"
+            priority
+          />
+          <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-white">Big Five</span>
         </Link>
         <Button
           variant="ghost"
@@ -64,11 +70,16 @@ export default function AdminLayout({
             {/* Logo */}
             <div className="p-6 border-b border-[#1a3a6e] hidden lg:block">
               <Link href="/admin" className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#FF6B35] rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold">B5</span>
-                </div>
-                <div>
-                  <span className="text-white font-semibold block">Big Five</span>
+                <Image
+                  src="/logo.png"
+                  alt="Big Five Bootcamp"
+                  width={40}
+                  height={40}
+                  className="h-10 w-10"
+                  priority
+                />
+                <div className="flex flex-col">
+                  <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-white">Big Five</span>
                   <span className="text-[#9CA3AF] text-xs">Back-office</span>
                 </div>
               </Link>

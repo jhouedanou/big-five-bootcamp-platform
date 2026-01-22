@@ -6,11 +6,9 @@ export function Footer() {
     <footer className="border-t border-border bg-[#0A1F44]">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center justify-between gap-8 md:flex-row">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10">
-              <Sparkles className="h-5 w-5 text-accent" />
-            </div>
-            <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-white">Big Five</span>
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Big Five Bootcamp" className="h-10 w-10" />
+            <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-white">Big Five Bootcamp</span>
           </div>
           
           <nav className="flex flex-wrap items-center justify-center gap-6">

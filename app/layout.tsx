@@ -1,20 +1,19 @@
 import React from "react"
 import type { Metadata, Viewport } from 'next'
-import { Inter, Poppins } from 'next/font/google'
+import { Inter, Montserrat } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const poppins = Poppins({ 
-  subsets: ["latin"], 
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-poppins"
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  variable: "--font-montserrat"
 });
 
 export const metadata: Metadata = {
-  title: 'Big Five Bootcamp Platform - Trouvez l\'inspiration créative',
+  title: 'Big Five Bootcamp - Trouvez l\'inspiration créative',
   description: 'Des milliers de campagnes marketing réelles, organisées pour vous. Trouvez l\'inspiration créative en quelques clics.',
-  generator: 'v0.app',
   icons: {
     icon: [
       {
@@ -45,7 +44,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body className={`${inter.variable} ${poppins.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${montserrat.variable} font-sans antialiased`}>
         {children}
         <Analytics />
       </body>

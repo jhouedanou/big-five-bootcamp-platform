@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { SwipeableCarousel } from "@/components/ui/swipeable-carousel";
 import {
   ArrowLeft,
   Heart,
@@ -17,8 +18,6 @@ import {
   Tag,
   Globe,
   Lock,
-  ChevronLeft,
-  ChevronRight,
 } from "lucide-react";
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar";
 import { sampleContent } from "@/lib/sample-content";
@@ -28,7 +27,6 @@ export default function ContentDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
@@ -42,14 +40,6 @@ export default function ContentDetailPage({
   ];
 
   const relatedContent = sampleContent.slice(1, 5);
-
-  const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % images.length);
-  };
-
-  const prevImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -104,12 +94,12 @@ export default function ContentDetailPage({
                     }`}
                   />
                 ))}
-              </div>
+              </SwipeableCarousel>
 
               {/* Premium badge */}
               {content.isPremium && (
-                <div className="absolute top-4 right-4">
-                  <Badge className="bg-[#FFD23F] text-[#0A1F44] hover:bg-[#FFD23F]">
+                <div className="absolute top-4 right-4 z-20">
+                  <Badge className="bg-accent text-accent-foreground hover:bg-accent">
                     <Lock className="h-3 w-3 mr-1" />
                     Premium
                   </Badge>
@@ -143,7 +133,7 @@ export default function ContentDetailPage({
                   variant="outline"
                   size="icon"
                   onClick={() => setIsSaved(!isSaved)}
-                  className={isSaved ? "text-[#FF6B35] border-[#FF6B35]" : ""}
+                  className={isSaved ? "text-primary border-primary" : ""}
                 >
                   <Bookmark
                     className={`h-5 w-5 ${isSaved ? "fill-current" : ""}`}
@@ -185,26 +175,26 @@ export default function ContentDetailPage({
                     <Badge
                       key={tag}
                       variant="secondary"
-                      className="cursor-pointer hover:bg-[#FF6B35] hover:text-white transition-colors"
+                      className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
                     >
                       {tag}
                     </Badge>
                   ))}
                   <Badge
                     variant="secondary"
-                    className="cursor-pointer hover:bg-[#FF6B35] hover:text-white transition-colors"
+                    className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
                   >
                     Branding
                   </Badge>
                   <Badge
                     variant="secondary"
-                    className="cursor-pointer hover:bg-[#FF6B35] hover:text-white transition-colors"
+                    className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
                   >
                     Digital
                   </Badge>
                   <Badge
                     variant="secondary"
-                    className="cursor-pointer hover:bg-[#FF6B35] hover:text-white transition-colors"
+                    className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
                   >
                     Engagement
                   </Badge>
@@ -247,7 +237,7 @@ export default function ContentDetailPage({
                 </div>
 
                 <div className="pt-4 border-t">
-                  <Button className="w-full bg-[#FF6B35] hover:bg-[#e55a2b] text-white">
+                  <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
                     <ExternalLink className="h-4 w-4 mr-2" />
                     Voir la source originale
                   </Button>
@@ -275,7 +265,7 @@ export default function ContentDetailPage({
                         />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-medium text-foreground group-hover:text-[#FF6B35] transition-colors line-clamp-2">
+                        <h3 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
                           {item.title}
                         </h3>
                         <p className="text-xs text-muted-foreground mt-1">

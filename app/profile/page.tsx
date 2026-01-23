@@ -33,21 +33,21 @@ export default function ProfilePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white">
       <DashboardNavbar />
       
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-        <h1 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-foreground">Mon Profil</h1>
+        <h1 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[#1A1F2B]">Mon Profil</h1>
         
         {/* Account Info Section */}
-        <section className="mt-8 rounded-xl border border-border bg-card p-6">
+        <section className="mt-8 rounded-xl border border-[#D0E4F2] bg-white p-6 shadow-sm">
           <div className="flex items-start justify-between">
-            <h2 className="font-[family-name:var(--font-heading)] text-lg font-semibold text-card-foreground">Informations du compte</h2>
+            <h2 className="font-[family-name:var(--font-heading)] text-lg font-semibold text-[#1A1F2B]">Informations du compte</h2>
             <Button 
               variant="outline" 
               size="sm"
               onClick={() => setIsEditing(!isEditing)}
-              className="bg-transparent"
+              className="bg-white border-[#D0E4F2] text-[#1A1F2B]"
             >
               {isEditing ? "Annuler" : "Modifier"}
             </Button>
@@ -55,13 +55,13 @@ export default function ProfilePage() {
           
           <div className="mt-6 flex flex-col items-start gap-6 sm:flex-row">
             <div className="relative">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#80368D] text-2xl font-bold text-white">
                 {user.name.split(" ").map(n => n[0]).join("")}
               </div>
               {isEditing && (
                 <button 
                   type="button"
-                  className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground shadow-sm transition-colors hover:bg-muted/80"
+                  className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-[#D0E4F2] text-[#1A1F2B]/60 shadow-sm transition-colors hover:bg-[#D0E4F2]/80"
                 >
                   <Camera className="h-4 w-4" />
                 </button>
@@ -71,11 +71,11 @@ export default function ProfilePage() {
             <div className="flex-1 space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <Label htmlFor="name" className="text-sm text-muted-foreground">Nom complet</Label>
+                  <Label htmlFor="name" className="text-sm text-[#1A1F2B]/60">Nom complet</Label>
                   {isEditing ? (
-                    <Input id="name" defaultValue={user.name} className="mt-1" />
+                    <Input id="name" defaultValue={user.name} className="mt-1 border-[#D0E4F2]" />
                   ) : (
-                    <p className="mt-1 font-medium text-foreground">{user.name}</p>
+                    <p className="mt-1 font-medium text-[#1A1F2B]">{user.name}</p>
                   )}
                 </div>
                 <div>

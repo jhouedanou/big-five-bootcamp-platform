@@ -36,19 +36,19 @@ export default function SubscribePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="border-b border-border bg-background">
+      <header className="border-b border-[#D0E4F2] bg-white">
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
-          <Link href="/dashboard" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <Link href="/dashboard" className="flex items-center gap-2 text-sm text-[#1A1F2B]/70 hover:text-[#1A1F2B]">
             <ArrowLeft className="h-4 w-4" />
             Retour
           </Link>
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#0A1F44]">
-              <Sparkles className="h-4 w-4 text-accent" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#80368D]">
+              <Sparkles className="h-4 w-4 text-white" />
             </div>
-            <span className="font-[family-name:var(--font-heading)] font-bold text-foreground">Big Five</span>
+            <span className="font-[family-name:var(--font-heading)] font-bold text-[#1A1F2B]">Big Five</span>
           </Link>
           <div className="w-16" />
         </div>
@@ -61,12 +61,12 @@ export default function SubscribePage() {
             <div key={s} className="flex items-center gap-2">
               <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
                 step >= s 
-                  ? "bg-primary text-primary-foreground" 
-                  : "bg-muted text-muted-foreground"
+                  ? "bg-[#80368D] text-white" 
+                  : "bg-[#D0E4F2] text-[#1A1F2B]/60"
               }`}>
                 {step > s ? <Check className="h-4 w-4" /> : s}
               </div>
-              {s < 3 && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+              {s < 3 && <ChevronRight className="h-4 w-4 text-[#1A1F2B]/40" />}
             </div>
           ))}
         </div>
@@ -74,7 +74,7 @@ export default function SubscribePage() {
         {/* Step 1: Payment Method Selection */}
         {step === 1 && (
           <div className="mx-auto max-w-md">
-            <h1 className="text-center font-[family-name:var(--font-heading)] text-2xl font-bold text-foreground">
+            <h1 className="text-center font-[family-name:var(--font-heading)] text-2xl font-bold text-[#1A1F2B]">
               Choisis ton moyen de paiement
             </h1>
             

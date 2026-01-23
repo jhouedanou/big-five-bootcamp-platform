@@ -87,13 +87,13 @@ export function FiltersSidebar({ selectedFilters, onFilterChange, className }: F
     <aside className={className}>
       <div className="sticky top-20">
         <div className="flex items-center justify-between pb-4">
-          <h2 className="font-[family-name:var(--font-heading)] text-sm font-semibold uppercase tracking-wider text-foreground">Filtres</h2>
+          <h2 className="font-[family-name:var(--font-heading)] text-sm font-semibold uppercase tracking-wider text-[#1A1F2B]">Filtres</h2>
           {totalFilters > 0 && (
             <Button
               variant="ghost"
               size="sm"
               onClick={clearAllFilters}
-              className="h-auto px-2 py-1 text-xs text-primary hover:text-primary/80"
+              className="h-auto px-2 py-1 text-xs text-[#80368D] hover:text-[#80368D]/80"
             >
               Reinitialiser ({totalFilters})
             </Button>
@@ -102,24 +102,24 @@ export function FiltersSidebar({ selectedFilters, onFilterChange, className }: F
 
         <div className="space-y-1">
           {filterGroups.map((group) => (
-            <div key={group.name} className="border-b border-border pb-2">
+            <div key={group.name} className="border-b border-[#D0E4F2] pb-2">
               <button
                 type="button"
                 onClick={() => toggleGroup(group.name)}
-                className="flex w-full items-center justify-between py-2.5 text-left text-sm font-medium text-foreground transition-colors hover:text-primary"
+                className="flex w-full items-center justify-between py-2.5 text-left text-sm font-medium text-[#1A1F2B] transition-colors hover:text-[#80368D]"
               >
                 <span className="flex items-center gap-2">
                   {group.name}
                   {(selectedFilters[group.name]?.length ?? 0) > 0 && (
-                    <Badge className="h-5 rounded-full bg-primary px-1.5 text-xs text-primary-foreground">
+                    <Badge className="h-5 rounded-full bg-[#80368D] px-1.5 text-xs text-white">
                       {selectedFilters[group.name]?.length}
                     </Badge>
                   )}
                 </span>
                 {expandedGroups.includes(group.name) ? (
-                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                  <ChevronUp className="h-4 w-4 text-[#1A1F2B]/60" />
                 ) : (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  <ChevronDown className="h-4 w-4 text-[#1A1F2B]/60" />
                 )}
               </button>
               
@@ -134,23 +134,23 @@ export function FiltersSidebar({ selectedFilters, onFilterChange, className }: F
                         onClick={() => toggleFilter(group.name, option)}
                         className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
                           isSelected
-                            ? "bg-primary/10 text-primary"
-                            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                            ? "bg-[#80368D]/10 text-[#80368D]"
+                            : "text-[#1A1F2B]/70 hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B]"
                         }`}
                       >
                         <div className={`flex h-4 w-4 items-center justify-center rounded border ${
                           isSelected 
-                            ? "border-primary bg-primary" 
-                            : "border-border bg-background"
+                            ? "border-[#80368D] bg-[#80368D]" 
+                            : "border-[#D0E4F2] bg-white"
                         }`}>
                           {isSelected && (
-                            <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                             </svg>
                           )}
                         </div>
                         {group.hasIcons && platformIcons[option] && (
-                          <span className="text-muted-foreground">{platformIcons[option]}</span>
+                          <span className="text-[#1A1F2B]/60">{platformIcons[option]}</span>
                         )}
                         {option}
                       </button>

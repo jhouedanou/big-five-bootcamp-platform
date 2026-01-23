@@ -101,14 +101,14 @@ export function ContentCard({ content }: ContentCardProps) {
 
           {/* Hover overlay */}
           <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100">
-            <span className="mb-4 rounded-full bg-primary px-4 py-1.5 text-xs font-medium text-primary-foreground shadow-lg">
+            <span className="mb-4 rounded-full bg-[#80368D] px-4 py-1.5 text-xs font-medium text-white shadow-lg">
               Voir details
             </span>
           </div>
         </div>
 
         <div className="p-4">
-          <h3 className="line-clamp-2 font-[family-name:var(--font-heading)] text-sm font-semibold text-card-foreground transition-colors group-hover:text-primary">
+          <h3 className="line-clamp-2 font-[family-name:var(--font-heading)] text-sm font-semibold text-[#1A1F2B] transition-colors group-hover:text-[#80368D]">
             {content.title}
           </h3>
 
@@ -119,14 +119,14 @@ export function ContentCard({ content }: ContentCardProps) {
             {content.tags.slice(0, 2).map((tag) => (
               <span
                 key={tag}
-                className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
+                className="rounded-full bg-[#D0E4F2]/50 px-2 py-0.5 text-xs text-[#1A1F2B]/70"
               >
                 {tag}
               </span>
             ))}
           </div>
 
-          <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+          <div className="mt-3 flex items-center justify-between text-xs text-[#1A1F2B]/60">
             <div className="flex items-center gap-1">
               <Globe className="h-3 w-3" />
               <span>{countryFlags[content.country] || content.country}</span>

@@ -1,9 +1,11 @@
 "use client";
 
 import React from "react"
+import { AdminProvider } from "./AdminContext";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useAdmin } from "./AdminContext";
 import {
   LayoutDashboard,
   FolderOpen,
@@ -29,8 +31,46 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
+  return (
+    <AdminProvider>
+      <AdminLayoutContent>{children}</AdminLayoutContent>
+    </AdminProvider>
+  );
+}
+
+function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { isAuthenticated, logout } = useAdmin();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  React.useEffect(() => {
+    // Small delay to allow context to load from localStorage
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+      if (!isAuthenticated && pathname !== "/admin/login") {
+        router.push("/admin/login");
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, pathname, router]);
+
+  if (isLoading) {
+    return <div className="min-h-screen bg-[#0A1F44] flex items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+    </div>;
+  }
+
+  // If on login page, render just the children (the login form)
+  if (pathname === "/admin/login") {
+    return <>{children}</>;
+  }
+
+  // If not authenticated and not on login page, don't render anything (will redirect)
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-[#0A1F44]">
@@ -112,13 +152,13 @@ export default function AdminLayout({
 
             {/* Footer */}
             <div className="p-4 border-t border-[#1a3a6e]">
-              <Link
-                href="/"
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-[#9CA3AF] hover:bg-[#1a3a6e] hover:text-white transition-colors"
+              <button
+                onClick={logout}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[#9CA3AF] hover:bg-[#1a3a6e] hover:text-white transition-colors"
               >
                 <LogOut className="h-5 w-5" />
-                <span className="font-medium">Retour au site</span>
-              </Link>
+                <span className="font-medium">Deconnexion</span>
+              </button>
             </div>
           </div>
         </aside>

@@ -1,234 +1,237 @@
 "use client";
 
 import { useState } from "react";
+import { useAdmin, User } from "../AdminContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus, Search, Trash2, Edit, MoreVertical } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Search,
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  Eye,
-  Filter,
-  Mail,
-} from "lucide-react";
-import { useSearchParams } from "next/navigation";
-import Loading from "./loading";
 
-const users = [
-  {
-    id: 1,
-    name: "Marie Dupont",
-    email: "marie.dupont@example.com",
-    plan: "Premium",
-    status: "Actif",
-    joinDate: "12 Jan 2024",
-    lastActive: "Il y a 2h",
-  },
-  {
-    id: 2,
-    name: "Jean Martin",
-    email: "jean.martin@example.com",
-    plan: "Free",
-    status: "Actif",
-    joinDate: "8 Jan 2024",
-    lastActive: "Il y a 1j",
-  },
-  {
-    id: 3,
-    name: "Sophie Bernard",
-    email: "sophie.bernard@example.com",
-    plan: "Premium",
-    status: "Actif",
-    joinDate: "5 Jan 2024",
-    lastActive: "Il y a 3h",
-  },
-  {
-    id: 4,
-    name: "Lucas Petit",
-    email: "lucas.petit@example.com",
-    plan: "Free",
-    status: "Inactif",
-    joinDate: "1 Jan 2024",
-    lastActive: "Il y a 7j",
-  },
-  {
-    id: 5,
-    name: "Emma Leroy",
-    email: "emma.leroy@example.com",
-    plan: "Premium",
-    status: "Actif",
-    joinDate: "28 Dec 2023",
-    lastActive: "Il y a 5h",
-  },
-  {
-    id: 6,
-    name: "Thomas Moreau",
-    email: "thomas.moreau@example.com",
-    plan: "Free",
-    status: "Actif",
-    joinDate: "20 Dec 2023",
-    lastActive: "Il y a 12h",
-  },
-];
+export default function UsersPage() {
+  const { users, addUser, updateUser, deleteUser } = useAdmin();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
 
-export default function AdminUsersPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const searchParams = useSearchParams();
+  // Form State
+  const [formData, setFormData] = useState<Partial<User>>({
+    name: "",
+    email: "",
+    role: "user",
+    plan: "Free",
+    status: "active",
+  });
 
   const filteredUsers = users.filter(
     (user) =>
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchQuery.toLowerCase())
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleOpenAdd = () => {
+    setEditingUser(null);
+    setFormData({
+      name: "",
+      email: "",
+      role: "user",
+      plan: "Free",
+      status: "active",
+    });
+    setIsAddDialogOpen(true);
+  };
+
+  const handleOpenEdit = (user: User) => {
+    setEditingUser(user);
+    setFormData(user);
+    setIsAddDialogOpen(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingUser) {
+      updateUser(editingUser.id, formData);
+    } else {
+      addUser(formData as Omit<User, "id" | "createdAt">);
+    }
+    setIsAddDialogOpen(false);
+  };
+
   return (
-    <div className="p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div className="p-6 lg:p-8 space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-white font-[family-name:var(--font-heading)]">
-            Gestion des utilisateurs
+            Utilisateurs
           </h1>
-          <p className="text-[#9CA3AF] mt-1">{users.length} utilisateurs inscrits</p>
+          <p className="text-[#9CA3AF] mt-1">
+            Gerez les comptes et les acces
+          </p>
         </div>
+        <Button onClick={handleOpenAdd} className="bg-[#FF6B35] hover:bg-[#e55a2b] text-white">
+          <Plus className="h-4 w-4 mr-2" />
+          Ajouter un utilisateur
+        </Button>
       </div>
 
-      {/* Search and filters */}
-      <Card className="bg-[#122a52] border-[#1a3a6e] mb-6">
+      {/* Filters */}
+      <Card className="bg-[#122a52] border-[#1a3a6e]">
         <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9CA3AF]" />
-              <Input
-                placeholder="Rechercher un utilisateur..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-[#1a3a6e] border-[#1a3a6e] text-white placeholder:text-[#9CA3AF]"
-              />
-            </div>
-            <Button
-              variant="outline"
-              className="border-[#1a3a6e] text-white hover:bg-[#1a3a6e] bg-transparent"
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              Filtres
-            </Button>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9CA3AF]" />
+            <Input
+              placeholder="Rechercher par nom ou email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-[#071428] border-[#1a3a6e] text-white placeholder:text-[#9CA3AF]"
+            />
           </div>
         </CardContent>
       </Card>
 
-      {/* Users table */}
-      <Card className="bg-[#122a52] border-[#1a3a6e]">
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-[#1a3a6e] hover:bg-transparent">
-                <TableHead className="text-[#9CA3AF]">Utilisateur</TableHead>
-                <TableHead className="text-[#9CA3AF]">Plan</TableHead>
-                <TableHead className="text-[#9CA3AF]">Statut</TableHead>
-                <TableHead className="text-[#9CA3AF]">Inscription</TableHead>
-                <TableHead className="text-[#9CA3AF]">Derniere activite</TableHead>
-                <TableHead className="text-[#9CA3AF] text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow
-                  key={user.id}
-                  className="border-[#1a3a6e] hover:bg-[#1a3a6e]/50"
+      {/* Users List */}
+      <div className="grid gap-4">
+        {filteredUsers.map((user) => (
+          <Card key={user.id} className="bg-[#122a52] border-[#1a3a6e]">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-[#1a3a6e] flex items-center justify-center text-white font-bold">
+                  {user.name.charAt(0)}
+                </div>
+                <div>
+                  <h3 className="text-white font-medium">{user.name}</h3>
+                  <p className="text-[#9CA3AF] text-sm">{user.email}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4">
+                <div className="hidden md:block text-right">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    user.plan === 'Premium' ? 'bg-[#FF6B35]/20 text-[#FF6B35]' : 'bg-gray-700 text-gray-300'
+                  }`}>
+                    {user.plan}
+                  </span>
+                  <p className="text-[#9CA3AF] text-xs mt-1">
+                    {user.role === 'admin' ? 'Administrateur' : 'Utilisateur'}
+                  </p>
+                </div>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-[#9CA3AF] hover:text-white">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="bg-[#071428] border-[#1a3a6e] text-white">
+                    <DropdownMenuItem onClick={() => handleOpenEdit(user)} className="hover:bg-[#1a3a6e] cursor-pointer">
+                      <Edit className="h-4 w-4 mr-2" />
+                      Modifier
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => deleteUser(user.id)} className="text-red-400 hover:bg-[#1a3a6e] hover:text-red-300 cursor-pointer">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Supprimer
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Add/Edit Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="bg-[#122a52] border-[#1a3a6e] text-white sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{editingUser ? "Modifier l'utilisateur" : "Ajouter un utilisateur"}</DialogTitle>
+            <DialogDescription className="text-[#9CA3AF]">
+              {editingUser ? "Modifiez les informations de l'utilisateur." : "Creez un nouveau compte utilisateur."}
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nom complet</Label>
+              <Input
+                id="name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="bg-[#071428] border-[#1a3a6e] text-white"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="bg-[#071428] border-[#1a3a6e] text-white"
+                required
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Role</Label>
+                <Select
+                  value={formData.role}
+                  onValueChange={(value: any) => setFormData({ ...formData, role: value })}
                 >
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-[#1a3a6e] rounded-full flex items-center justify-center">
-                        <span className="text-white font-medium">
-                          {user.name.charAt(0)}
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-white font-medium">{user.name}</p>
-                        <p className="text-[#9CA3AF] text-sm">{user.email}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        user.plan === "Premium"
-                          ? "bg-[#FF6B35]/20 text-[#FF6B35]"
-                          : "bg-[#6B7280]/20 text-[#9CA3AF]"
-                      }`}
-                    >
-                      {user.plan}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        user.status === "Actif"
-                          ? "bg-[#10B981]/20 text-[#10B981]"
-                          : "bg-[#6B7280]/20 text-[#9CA3AF]"
-                      }`}
-                    >
-                      {user.status}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-[#9CA3AF]">{user.joinDate}</TableCell>
-                  <TableCell className="text-[#9CA3AF]">{user.lastActive}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-[#9CA3AF] hover:text-white hover:bg-[#1a3a6e]"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="bg-[#122a52] border-[#1a3a6e]"
-                      >
-                        <DropdownMenuItem className="text-white hover:bg-[#1a3a6e] cursor-pointer">
-                          <Eye className="h-4 w-4 mr-2" />
-                          Voir le profil
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-white hover:bg-[#1a3a6e] cursor-pointer">
-                          <Mail className="h-4 w-4 mr-2" />
-                          Envoyer un email
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-white hover:bg-[#1a3a6e] cursor-pointer">
-                          <Edit className="h-4 w-4 mr-2" />
-                          Modifier
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-400 hover:bg-[#1a3a6e] cursor-pointer">
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Supprimer
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                  <SelectTrigger className="bg-[#071428] border-[#1a3a6e] text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#071428] border-[#1a3a6e] text-white">
+                    <SelectItem value="user">Utilisateur</SelectItem>
+                    <SelectItem value="admin">Administrateur</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Plan</Label>
+                <Select
+                  value={formData.plan}
+                  onValueChange={(value: any) => setFormData({ ...formData, plan: value })}
+                >
+                  <SelectTrigger className="bg-[#071428] border-[#1a3a6e] text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#071428] border-[#1a3a6e] text-white">
+                    <SelectItem value="Free">Gratuit</SelectItem>
+                    <SelectItem value="Premium">Premium</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit" className="bg-[#FF6B35] hover:bg-[#e55a2b] text-white">
+                {editingUser ? "Enregistrer" : "Ajouter"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

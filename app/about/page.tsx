@@ -4,27 +4,27 @@ import { Users, Target, Rocket, Heart } from "lucide-react"
 
 export default function AboutPage() {
     return (
-        <div className="flex min-h-screen flex-col bg-background">
+        <div className="flex min-h-screen flex-col bg-white">
             <Navbar />
             <main className="flex-1">
                 {/* Hero Section */}
-                <section className="relative py-20 lg:py-32 overflow-hidden bg-slate-950 text-white">
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/20 via-slate-950 to-slate-950" />
+                <section className="relative py-20 lg:py-32 overflow-hidden bg-gradient-to-b from-[#D0E4F2] to-white">
+                    <div className="absolute inset-0 bg-[linear-gradient(rgba(208,228,242,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(208,228,242,0.3)_1px,transparent_1px)] bg-[size:40px_40px]" />
                     <div className="container relative mx-auto px-4 text-center">
-                        <span className="inline-block py-1 px-3 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-semibold mb-6">
+                        <span className="inline-block py-1 px-3 rounded-full bg-[#80368D]/10 border border-[#80368D]/20 text-[#80368D] text-sm font-semibold mb-6">
                             Notre Mission
                         </span>
-                        <h1 className="text-4xl lg:text-6xl font-extrabold tracking-tight mb-6">
-                            Inspirer la créativité <br /> <span className="text-primary">Africaine</span>
+                        <h1 className="font-[family-name:var(--font-heading)] text-4xl lg:text-6xl font-extrabold tracking-tight mb-6 text-[#1A1F2B]">
+                            Inspirer la créativité <br /> <span className="text-[#80368D]">Africaine</span>
                         </h1>
-                        <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+                        <p className="text-lg text-[#1A1F2B]/70 max-w-2xl mx-auto">
                             Big Five Bootcamp est né d'un constat simple : les créatifs africains manquent d'outils adaptés pour benchmarker et s'inspirer des meilleures campagnes locales.
                         </p>
                     </div>
                 </section>
 
                 {/* Values Section */}
-                <section className="py-20 lg:py-32">
+                <section className="py-20 lg:py-32 bg-white">
                     <div className="container mx-auto px-4">
                         <div className="grid md:grid-cols-3 gap-8">
                             {[
@@ -44,12 +44,12 @@ export default function AboutPage() {
                                     desc: "Des outils de pointe pour vous aider à analyser et décrypter les tendances du marché."
                                 }
                             ].map((item, i) => (
-                                <div key={i} className="p-8 rounded-2xl border border-border bg-card hover:shadow-lg transition-all">
-                                    <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-6">
+                                <div key={i} className="p-8 rounded-2xl border border-[#D0E4F2] bg-white hover:shadow-lg transition-all">
+                                    <div className="h-12 w-12 rounded-lg bg-[#80368D]/10 flex items-center justify-center text-[#80368D] mb-6">
                                         <item.icon className="h-6 w-6" />
                                     </div>
-                                    <h3 className="text-xl font-bold mb-3">{item.title}</h3>
-                                    <p className="text-muted-foreground">{item.desc}</p>
+                                    <h3 className="text-xl font-bold mb-3 text-[#1A1F2B]">{item.title}</h3>
+                                    <p className="text-[#1A1F2B]/70">{item.desc}</p>
                                 </div>
                             ))}
                         </div>
@@ -57,17 +57,17 @@ export default function AboutPage() {
                 </section>
 
                 {/* Team Section (Placeholder) */}
-                <section className="py-20 bg-muted/30">
+                <section className="py-20 bg-[#D0E4F2]/20">
                     <div className="container mx-auto px-4 text-center">
-                        <h2 className="text-3xl font-bold mb-12">L'équipe derrière Big Five</h2>
+                        <h2 className="font-[family-name:var(--font-heading)] text-3xl font-bold mb-12 text-[#1A1F2B]">L'équipe derrière Big Five</h2>
                         <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
                             {[1, 2, 3].map((i) => (
                                 <div key={i} className="group">
-                                    <div className="bg-slate-200 aspect-square rounded-2xl mb-4 overflow-hidden relative">
-                                        <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    <div className="bg-[#D0E4F2] aspect-square rounded-2xl mb-4 overflow-hidden relative">
+                                        <div className="absolute inset-0 bg-[#80368D]/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                     </div>
-                                    <h3 className="font-bold text-lg">Membre de l'équipe</h3>
-                                    <p className="text-primary text-sm">Cofondateur</p>
+                                    <h3 className="font-bold text-lg text-[#1A1F2B]">Membre de l'équipe</h3>
+                                    <p className="text-[#80368D] text-sm">Cofondateur</p>
                                 </div>
                             ))}
                         </div>

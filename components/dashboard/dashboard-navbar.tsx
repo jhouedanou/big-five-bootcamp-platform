@@ -18,7 +18,7 @@ export function DashboardNavbar() {
   const [searchQuery, setSearchQuery] = useState("")
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full border-b border-[#D0E4F2] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4">
           <Link href="/dashboard" className="flex items-center gap-2">
@@ -30,19 +30,19 @@ export function DashboardNavbar() {
               className="h-8 w-8"
               priority
             />
-            <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-foreground">Big Five Bootcamp</span>
+            <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#1A1F2B]">Big Five Bootcamp</span>
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex">
             <Link
               href="/dashboard"
-              className="rounded-md px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B] transition-colors hover:bg-[#D0E4F2]/50"
             >
               Bibliothèque
             </Link>
             <Link
               href="/profile"
-              className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B]"
             >
               Profil
             </Link>
@@ -51,64 +51,64 @@ export function DashboardNavbar() {
 
         <div className="hidden flex-1 items-center justify-center px-8 md:flex">
           <div className="relative w-full max-w-lg">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#1A1F2B]/50" />
             <input
               type="text"
               placeholder="Rechercher par mots-clés, marque, secteur..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-10 w-full rounded-lg border border-input bg-background pl-10 pr-4 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
+              className="h-10 w-full rounded-lg border border-[#D0E4F2] bg-white pl-10 pr-4 text-sm text-[#1A1F2B] outline-none transition-colors placeholder:text-[#1A1F2B]/50 focus:border-[#80368D] focus:ring-2 focus:ring-[#80368D]/20"
             />
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="relative hidden md:flex">
+          <Button variant="ghost" size="icon" className="relative hidden md:flex text-[#1A1F2B]">
             <Bell className="h-5 w-5" />
-            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary" />
+            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#80368D]" />
           </Button>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#80368D] text-sm font-medium text-white">
                   JD
                 </div>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuContent align="end" className="w-56 bg-white border-[#D0E4F2]">
               <div className="px-2 py-1.5">
-                <p className="text-sm font-medium">John Doe</p>
-                <p className="text-xs text-muted-foreground">john@exemple.com</p>
+                <p className="text-sm font-medium text-[#1A1F2B]">John Doe</p>
+                <p className="text-xs text-[#1A1F2B]/60">john@exemple.com</p>
                 <div className="mt-2 flex items-center gap-1.5">
                   <span className="rounded-full bg-[#10B981]/10 px-2 py-0.5 text-xs font-medium text-[#10B981]">
                     Essai gratuit
                   </span>
-                  <span className="text-xs text-muted-foreground">25j restants</span>
+                  <span className="text-xs text-[#1A1F2B]/60">25j restants</span>
                 </div>
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/profile" className="flex items-center gap-2">
+                <Link href="/profile" className="flex items-center gap-2 text-[#1A1F2B]">
                   <User className="h-4 w-4" />
                   Profil
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/subscribe" className="flex items-center gap-2">
+                <Link href="/subscribe" className="flex items-center gap-2 text-[#1A1F2B]">
                   <CreditCard className="h-4 w-4" />
                   Abonnement
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/settings" className="flex items-center gap-2">
+                <Link href="/settings" className="flex items-center gap-2 text-[#1A1F2B]">
                   <Settings className="h-4 w-4" />
                   Paramètres
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/" className="flex items-center gap-2 text-destructive">
+                <Link href="/" className="flex items-center gap-2 text-red-600">
                   <LogOut className="h-4 w-4" />
                   Déconnexion
                 </Link>
@@ -118,7 +118,7 @@ export function DashboardNavbar() {
 
           <button
             type="button"
-            className="md:hidden"
+            className="md:hidden text-[#1A1F2B]"
             onClick={() => setIsOpen(!isOpen)}
             aria-label="Toggle menu"
           >
@@ -128,35 +128,35 @@ export function DashboardNavbar() {
       </div>
 
       {isOpen && (
-        <div className="border-t border-border bg-background md:hidden">
+        <div className="border-t border-[#D0E4F2] bg-white md:hidden">
           <div className="px-4 py-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#1A1F2B]/50" />
               <input
                 type="text"
                 placeholder="Rechercher des campagnes..."
-                className="h-10 w-full rounded-lg border border-input bg-background pl-10 pr-4 text-sm outline-none"
+                className="h-10 w-full rounded-lg border border-[#D0E4F2] bg-white pl-10 pr-4 text-sm text-[#1A1F2B] outline-none"
               />
             </div>
           </div>
           <nav className="flex flex-col gap-1 px-4 pb-4">
             <Link
               href="/dashboard"
-              className="rounded-md px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B] transition-colors hover:bg-[#D0E4F2]/50"
               onClick={() => setIsOpen(false)}
             >
               Bibliothèque
             </Link>
             <Link
               href="/profile"
-              className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B]"
               onClick={() => setIsOpen(false)}
             >
               Profil
             </Link>
             <Link
               href="/subscribe"
-              className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B]"
               onClick={() => setIsOpen(false)}
             >
               Abonnement

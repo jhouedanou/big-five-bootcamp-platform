@@ -3,12 +3,12 @@ import { Footer } from "@/components/footer"
 
 export default function PrivacyPage() {
     return (
-        <div className="flex min-h-screen flex-col bg-background">
+        <div className="flex min-h-screen flex-col bg-white">
             <Navbar />
             <main className="flex-1 py-16 lg:py-24">
                 <div className="container mx-auto px-4 max-w-3xl">
-                    <h1 className="font-[family-name:var(--font-heading)] text-3xl font-bold mb-8">Politique de Confidentialité</h1>
-                    <div className="prose prose-slate dark:prose-invert max-w-none">
+                    <h1 className="font-[family-name:var(--font-heading)] text-3xl font-bold mb-8 text-[#1A1F2B]">Politique de Confidentialité</h1>
+                    <div className="prose prose-slate max-w-none">
                         <p className="lead text-lg text-muted-foreground mb-8">
                             Votre vie privée est importante pour nous. La politique de Big Five Bootcamp est de respecter votre vie privée concernant toute information que nous pouvons collecter auprès de vous sur notre site web.
                         </p>

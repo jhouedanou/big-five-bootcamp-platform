@@ -31,11 +31,11 @@ export function Footer() {
                 <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-white">
                   Big Five <span className="text-primary">Bootcamp</span>
                 </span>
-                <span className="text-xs text-white/50">L&apos;inspiration creative</span>
+                <span className="text-xs text-white/50">L&apos;inspiration créative</span>
               </div>
             </Link>
             <p className="mt-4 text-sm leading-relaxed text-white/60">
-              Des milliers de campagnes marketing reelles pour inspirer vos prochaines creations.
+              Des milliers de campagnes marketing réelles pour inspirer vos prochaines créations.
             </p>
           </div>
 
@@ -45,7 +45,7 @@ export function Footer() {
               <h3 className="text-sm font-semibold uppercase tracking-wider text-white/90">Produit</h3>
               <nav className="mt-4 flex flex-col gap-3">
                 <Link href="/#features" className="group flex items-center text-sm text-white/60 transition-colors hover:text-white">
-                  Fonctionnalites
+                  Fonctionnalités
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
                 <Link href="/#pricing" className="group flex items-center text-sm text-white/60 transition-colors hover:text-white">
@@ -53,7 +53,7 @@ export function Footer() {
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
                 <Link href="/dashboard" className="group flex items-center text-sm text-white/60 transition-colors hover:text-white">
-                  Demo
+                  Démo
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
               </nav>
@@ -63,7 +63,7 @@ export function Footer() {
               <h3 className="text-sm font-semibold uppercase tracking-wider text-white/90">Entreprise</h3>
               <nav className="mt-4 flex flex-col gap-3">
                 <Link href="/about" className="group flex items-center text-sm text-white/60 transition-colors hover:text-white">
-                  A propos
+                  À propos
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
                 <Link href="/contact" className="group flex items-center text-sm text-white/60 transition-colors hover:text-white">
@@ -81,7 +81,7 @@ export function Footer() {
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
                 <Link href="/privacy" className="group flex items-center text-sm text-white/60 transition-colors hover:text-white">
-                  Confidentialite
+                  Confidentialité
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
               </nav>

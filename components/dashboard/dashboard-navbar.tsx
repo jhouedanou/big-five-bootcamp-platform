@@ -38,7 +38,7 @@ export function DashboardNavbar() {
               href="/dashboard"
               className="rounded-md px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
             >
-              Bibliotheque
+              Bibliothèque
             </Link>
             <Link
               href="/profile"
@@ -54,7 +54,7 @@ export function DashboardNavbar() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Rechercher par mots-cles, marque, secteur..."
+              placeholder="Rechercher par mots-clés, marque, secteur..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-10 w-full rounded-lg border border-input bg-background pl-10 pr-4 text-sm outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -103,14 +103,14 @@ export function DashboardNavbar() {
               <DropdownMenuItem asChild>
                 <Link href="/settings" className="flex items-center gap-2">
                   <Settings className="h-4 w-4" />
-                  Parametres
+                  Paramètres
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/" className="flex items-center gap-2 text-destructive">
                   <LogOut className="h-4 w-4" />
-                  Deconnexion
+                  Déconnexion
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -145,7 +145,7 @@ export function DashboardNavbar() {
               className="rounded-md px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
               onClick={() => setIsOpen(false)}
             >
-              Bibliotheque
+              Bibliothèque
             </Link>
             <Link
               href="/profile"

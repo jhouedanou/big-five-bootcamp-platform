@@ -34,7 +34,7 @@ export function Navbar() {
             href="/#features"
             className="relative px-4 py-2 text-sm font-medium text-muted-foreground transition-all duration-300 hover:text-foreground group"
           >
-            Fonctionnalites
+            Fonctionnalités
             <span className="absolute bottom-0 left-1/2 h-0.5 w-0 bg-gradient-to-r from-primary to-accent transition-all duration-300 group-hover:left-4 group-hover:w-[calc(100%-32px)]" />
           </Link>
           <Link

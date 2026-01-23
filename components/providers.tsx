@@ -12,8 +12,8 @@ export function Providers({ children }: ProvidersProps) {
     <SessionProvider>
       <ThemeProvider
         attribute="class"
-        defaultTheme="light"
-        forcedTheme="light"
+        defaultTheme="system"
+        enableSystem
         disableTransitionOnChange
       >
         {children}

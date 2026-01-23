@@ -58,18 +58,41 @@ export default function ContentDetailPage({
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main content area */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Swipeable image carousel - TikTok style */}
-            <div className="relative aspect-video bg-muted rounded-xl overflow-hidden">
-              <SwipeableCarousel>
-                {images.map((image, index) => (
-                  <div key={index} className="relative aspect-video">
-                    <Image
-                      src={image || "/placeholder.svg"}
-                      alt={`${content.title} - Image ${index + 1}`}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
+            {/* Image carousel */}
+            <div className="relative aspect-square bg-muted rounded-xl overflow-hidden group">
+              <Image
+                src={images[currentImageIndex] || "/placeholder.svg"}
+                alt={content.title}
+                fill
+                className="object-cover"
+              />
+
+              {/* Navigation arrows */}
+              <button
+                onClick={prevImage}
+                className="absolute left-4 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <button
+                onClick={nextImage}
+                className="absolute right-4 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+
+              {/* Image indicators */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                {images.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentImageIndex(index)}
+                    className={`w-2 h-2 rounded-full transition-colors ${
+                      index === currentImageIndex
+                        ? "bg-[#FF6B35]"
+                        : "bg-background/60"
+                    }`}
+                  />
                 ))}
               </SwipeableCarousel>
 
@@ -233,7 +256,7 @@ export default function ContentDetailPage({
                       href={`/content/${item.id}`}
                       className="flex gap-3 group"
                     >
-                      <div className="relative w-20 h-14 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+                      <div className="relative w-16 h-16 bg-muted rounded-lg overflow-hidden flex-shrink-0">
                         <Image
                           src={item.thumbnail || "/placeholder.svg"}
                           alt={item.title}

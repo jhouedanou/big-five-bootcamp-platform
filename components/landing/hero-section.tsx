@@ -6,12 +6,10 @@ import { ArrowRight, Play, Target, BarChart3, Search, CheckCircle, Zap, RefreshC
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden bg-background pt-20 pb-32 sm:pt-32 sm:pb-40 lg:pb-48">
-      {/* Background gradients and blobs */}
+    <section className="relative overflow-hidden bg-white pt-20 pb-32 sm:pt-32 sm:pb-40 lg:pb-48">
+      {/* Subtle background pattern */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[500px] w-[500px] bg-primary/20 blur-[120px] rounded-full mix-blend-screen opacity-60 animate-pulse-glow" />
-        <div className="absolute bottom-0 right-0 h-[600px] w-[600px] bg-accent/10 blur-[130px] rounded-full mix-blend-screen opacity-50" />
-        <div className="absolute top-1/2 left-0 h-[400px] w-[400px] bg-sky-500/10 blur-[100px] rounded-full mix-blend-screen opacity-40" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(208,228,242,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(208,228,242,0.3)_1px,transparent_1px)] bg-[size:40px_40px]" />
       </div>
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -19,44 +17,64 @@ export function HeroSection() {
 
           {/* Text Content */}
           <div className="flex flex-col items-start text-left z-10">
+            {/* Free Trial Banner - Prominent */}
+            <div className="mb-6 w-full sm:w-auto animate-fade-in-up">
+              <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#F2B33D]/20 to-[#F2B33D]/10 px-5 py-3 ring-2 ring-[#F2B33D]/30 shadow-lg shadow-[#F2B33D]/10">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F2B33D] text-white">
+                  <CheckCircle className="h-5 w-5" />
+                </span>
+                <span className="text-base font-bold text-[#1A1F2B]">
+                  🎉 Essai gratuit de 30 jours
+                </span>
+                <span className="text-sm text-[#1A1F2B]/70">
+                  — Sans carte bancaire
+                </span>
+              </div>
+            </div>
+
             <div className="mb-8 flex flex-wrap items-center gap-3 animate-fade-in-up">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary ring-1 ring-primary/20 hover-lift cursor-default backdrop-blur-sm">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#80368D]/10 px-4 py-1.5 text-xs font-semibold text-[#80368D] ring-1 ring-[#80368D]/20 hover-lift cursor-default">
                 <Sparkles className="h-3.5 w-3.5" />
                 Nouveau: Version 2.0
               </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-4 py-1.5 text-xs font-semibold text-foreground ring-1 ring-border hover-lift cursor-default backdrop-blur-sm">
-                <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#D0E4F2] px-4 py-1.5 text-xs font-semibold text-[#1A1F2B] ring-1 ring-[#D0E4F2] hover-lift cursor-default">
+                <Globe className="h-3.5 w-3.5 text-[#29358B]" />
                 15+ Pays Africains
               </span>
             </div>
 
-            <h1 className="font-[family-name:var(--font-heading)] text-5xl font-extrabold tracking-tight text-foreground sm:text-6xl lg:text-7xl leading-[1.1] animate-fade-in-up delay-100">
+            <h1 className="font-[family-name:var(--font-heading)] text-5xl font-extrabold tracking-tight text-[#1A1F2B] sm:text-6xl lg:text-7xl leading-[1.1] animate-fade-in-up delay-100">
               L'inspiration <br />
               <span className="gradient-text relative inline-block">
                 créative
-                <span className="absolute -bottom-2 left-0 w-full h-2 bg-primary/20 -rotate-1 rounded-full blur-sm"></span>
+                <span className="absolute -bottom-2 left-0 w-full h-2 bg-[#80368D]/20 -rotate-1 rounded-full blur-sm"></span>
               </span> <br />
               sans limites.
             </h1>
 
-            <p className="mt-8 max-w-xl text-lg text-muted-foreground leading-relaxed animate-fade-in-up delay-200">
+            <p className="mt-8 max-w-xl text-lg text-[#1A1F2B]/70 leading-relaxed animate-fade-in-up delay-200">
               Accédez à la plus grande bibliothèque de campagnes marketing réelles en Afrique. Analysez, benchmarkez et créez des concepts gagnants en quelques minutes.
             </p>
 
             <div className="mt-10 flex flex-col gap-4 sm:flex-row animate-fade-in-up delay-300 w-full sm:w-auto">
-              <Button size="lg" asChild className="btn-glow group h-14 px-8 text-base font-bold shadow-xl shadow-primary/20 transition-all duration-300 hover:scale-[1.02]">
+              <Button size="lg" asChild className="group h-14 px-8 text-base font-bold bg-[#80368D] hover:bg-[#80368D]/90 text-white shadow-xl shadow-[#80368D]/20 transition-all duration-300 hover:scale-[1.02]">
                 <Link href="/pricing">
-                  4 500 XOF / mois
+                  Commencer gratuitement
                   <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" asChild className="glass group h-14 px-8 text-base font-semibold border-border/50 hover:bg-secondary/50 hover:border-border transition-all duration-300">
+              <Button size="lg" variant="outline" asChild className="group h-14 px-8 text-base font-semibold border-[#D0E4F2] bg-white text-[#1A1F2B] hover:bg-[#D0E4F2]/50 hover:border-[#D0E4F2] transition-all duration-300">
                 <Link href="/dashboard">
-                  <Play className="mr-2 h-5 w-5 fill-current text-primary opacity-80" />
+                  <Play className="mr-2 h-5 w-5 fill-current text-[#80368D] opacity-80" />
                   Voir la démo
                 </Link>
               </Button>
             </div>
+
+            {/* Price info below buttons */}
+            <p className="mt-4 text-sm text-[#1A1F2B]/60 animate-fade-in-up delay-300">
+              Puis seulement <span className="font-semibold text-foreground">4 500 XOF/mois</span> après l'essai
+            </p>
 
             <div className="mt-10 flex items-center gap-6 animate-fade-in-up delay-400">
               <div className="flex -space-x-3">
@@ -67,7 +85,7 @@ export function HeroSection() {
                 ))}
               </div>
               <div className="flex flex-col">
-                <div className="flex gap-1 text-[#FFD23F]">
+                <div className="flex gap-1 text-[#F2B33D]">
                   {"★★★★★"}
                 </div>
                 <span className="text-sm font-medium text-muted-foreground">
@@ -79,21 +97,21 @@ export function HeroSection() {
 
           {/* Visual Content - Floating Interface */}
           <div className="relative animate-slide-in-right delay-200 hidden lg:block perspective-1000">
-            {/* Decorative Elements behind card */}
-            <div className="absolute -top-12 -right-12 h-64 w-64 bg-accent/20 rounded-full blur-3xl animate-pulse-glow"></div>
-            <div className="absolute -bottom-8 -left-8 h-48 w-48 bg-primary/20 rounded-full blur-3xl animate-pulse-glow delay-700"></div>
+            {/* Subtle decorative elements */}
+            <div className="absolute -top-12 -right-12 h-64 w-64 bg-[#D0E4F2]/50 rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-8 -left-8 h-48 w-48 bg-[#F2B33D]/10 rounded-full blur-3xl"></div>
 
             <div className="glass-panel rounded-2xl p-4 transform rotate-y-[-5deg] rotate-x-[5deg] transition-transform duration-500 hover:rotate-0 hover:scale-[1.02]">
-              <div className="rounded-xl bg-card border border-border shadow-2xl overflow-hidden">
+              <div className="rounded-xl bg-white border border-[#D0E4F2] shadow-2xl overflow-hidden">
                 {/* Window Header */}
-                <div className="flex items-center justify-between border-b border-border bg-muted/50 px-4 py-3">
+                <div className="flex items-center justify-between border-b border-[#D0E4F2] bg-[#D0E4F2]/30 px-4 py-3">
                   <div className="flex items-center gap-2">
                     <div className="h-3 w-3 rounded-full bg-[#EF4444]" />
-                    <div className="h-3 w-3 rounded-full bg-[#FFD23F]" />
+                    <div className="h-3 w-3 rounded-full bg-[#F2B33D]" />
                     <div className="h-3 w-3 rounded-full bg-[#10B981]" />
                   </div>
                   <div className="flex-1 text-center">
-                    <div className="inline-flex items-center gap-2 rounded-md bg-background px-3 py-1 text-xs font-medium text-muted-foreground border border-border/50 shadow-sm">
+                    <div className="inline-flex items-center gap-2 rounded-md bg-white px-3 py-1 text-xs font-medium text-[#1A1F2B]/70 border border-[#D0E4F2] shadow-sm">
                       <Search className="h-3 w-3" />
                       bigfive-bootcamp.com
                     </div>
@@ -102,10 +120,10 @@ export function HeroSection() {
                 </div>
 
                 {/* Dashboard Preview Content */}
-                <div className="p-6 bg-gradient-to-b from-card to-muted/20">
+                <div className="p-6 bg-white">
                   <div className="mb-6 flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
                     {["Tous", "Télécoms", "FMCG", "Fintech", "Banque"].map((filter, i) => (
-                      <span key={i} className={`whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-medium transition-colors cursor-pointer ${i === 0 ? 'bg-primary text-white shadow-lg shadow-primary/25' : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'}`}>
+                      <span key={i} className={`whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-medium transition-colors cursor-pointer ${i === 0 ? 'bg-[#80368D] text-white shadow-lg shadow-[#80368D]/25' : 'bg-[#D0E4F2] text-[#1A1F2B] hover:bg-[#D0E4F2]/80'}`}>
                         {filter}
                       </span>
                     ))}
@@ -118,7 +136,7 @@ export function HeroSection() {
                       { title: "Nescafé", cat: "FMCG", imgGrad: "from-red-600 to-red-900" },
                       { title: "Wave", cat: "Mobile Money", imgGrad: "from-sky-400 to-blue-600" },
                     ].map((card, i) => (
-                      <div key={i} className="group cursor-pointer rounded-lg border border-border bg-background p-2 transition-all hover:shadow-lg hover:-translate-y-1">
+                      <div key={i} className="group cursor-pointer rounded-lg border border-[#D0E4F2] bg-white p-2 transition-all hover:shadow-lg hover:-translate-y-1">
                         <div className={`aspect-video w-full rounded-md bg-gradient-to-br ${card.imgGrad} relative overflow-hidden`}>
                           <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
                           <div className="absolute bottom-2 right-2 h-6 w-6 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -126,8 +144,8 @@ export function HeroSection() {
                           </div>
                         </div>
                         <div className="mt-3 px-1">
-                          <h4 className="font-semibold text-sm text-foreground">{card.title}</h4>
-                          <span className="text-xs text-muted-foreground">{card.cat}</span>
+                          <h4 className="font-semibold text-sm text-[#1A1F2B]">{card.title}</h4>
+                          <span className="text-xs text-[#1A1F2B]/60">{card.cat}</span>
                         </div>
                       </div>
                     ))}
@@ -137,14 +155,14 @@ export function HeroSection() {
             </div>
 
             {/* Floating Badge */}
-            <div className="absolute -right-8 top-1/2 -translate-y-1/2 glass-panel p-4 rounded-xl animate-float shadow-xl hidden xl:block">
+            <div className="absolute -right-8 top-1/2 -translate-y-1/2 bg-white p-4 rounded-xl shadow-xl border border-[#D0E4F2] animate-float hidden xl:block">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
                   <BarChart3 className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="text-xs text-muted-foreground">Taux de clic</div>
-                  <div className="text-sm font-bold text-foreground">+127%</div>
+                  <div className="text-xs text-[#1A1F2B]/60">Taux de clic</div>
+                  <div className="text-sm font-bold text-[#1A1F2B]">+127%</div>
                 </div>
               </div>
             </div>
@@ -162,47 +180,47 @@ export function FeaturesSection() {
       icon: Target,
       title: "Ciblage Ultra-Précis",
       description: "Filtrez par pays, industrie, format ou objectif. Trouvez exactement ce que vous cherchez.",
-      color: "text-primary",
-      bg: "bg-primary/10"
+      color: "text-[#80368D]",
+      bg: "bg-[#80368D]/10"
     },
     {
       icon: Layers,
       title: "Bibliothèque Massive",
       description: "Plus de 10,000 campagnes archivées et mises à jour quotidiennement par nos équipes.",
-      color: "text-blue-500",
-      bg: "bg-blue-500/10"
+      color: "text-[#29358B]",
+      bg: "bg-[#29358B]/10"
     },
     {
       icon: Zap,
       title: "Analyse Instantanée",
       description: "Décortiquez les stratégies gagnantes. Comprenez pourquoi une campagne fonctionne.",
-      color: "text-amber-500",
-      bg: "bg-amber-500/10"
+      color: "text-[#F2B33D]",
+      bg: "bg-[#F2B33D]/20"
     }
   ]
 
   return (
-    <section className="py-24 bg-muted/30 relative">
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.02)_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_0%,black_70%,transparent_100%)] pointer-events-none" />
+    <section className="py-24 bg-[#D0E4F2]/30 relative">
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(208,228,242,0.5)_1px,transparent_1px),linear-gradient(90deg,rgba(208,228,242,0.5)_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_0%,black_70%,transparent_100%)] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <h2 className="font-[family-name:var(--font-heading)] text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+          <h2 className="font-[family-name:var(--font-heading)] text-3xl font-bold tracking-tight text-[#1A1F2B] sm:text-4xl">
             Pourquoi les meilleures agences utilisent <span className="gradient-text">Big Five</span> ?
           </h2>
-          <p className="mt-4 text-lg text-muted-foreground">
+          <p className="mt-4 text-lg text-[#1A1F2B]/70">
             Une suite d'outils conçue pour accélérer votre processus créatif et valider vos intuitions.
           </p>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
           {features.map((feature, idx) => (
-            <div key={idx} className="glass-panel p-8 rounded-2xl hover:border-primary/30 transition-colors group">
+            <div key={idx} className="bg-white p-8 rounded-2xl border border-[#D0E4F2] shadow-sm hover:shadow-lg hover:border-[#80368D]/30 transition-all group">
               <div className={`h-12 w-12 rounded-xl ${feature.bg} ${feature.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
                 <feature.icon className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-bold mb-3 text-foreground">{feature.title}</h3>
-              <p className="text-muted-foreground leading-relaxed">
+              <h3 className="text-xl font-bold mb-3 text-[#1A1F2B]">{feature.title}</h3>
+              <p className="text-[#1A1F2B]/70 leading-relaxed">
                 {feature.description}
               </p>
             </div>
@@ -215,14 +233,14 @@ export function FeaturesSection() {
 
 export function PreviewSection() {
   return (
-    <section className="py-24 overflow-hidden bg-background">
+    <section className="py-24 overflow-hidden bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="lg:grid lg:grid-cols-12 lg:gap-16 items-center">
           <div className="lg:col-span-6 mb-12 lg:mb-0">
-            <h2 className="font-[family-name:var(--font-heading)] text-3xl font-bold tracking-tight text-foreground sm:text-4xl mb-6">
-              Une interface pensée pour la <span className="text-primary">vitesse</span>.
+            <h2 className="font-[family-name:var(--font-heading)] text-3xl font-bold tracking-tight text-[#1A1F2B] sm:text-4xl mb-6">
+              Une interface pensée pour la <span className="text-[#80368D]">vitesse</span>.
             </h2>
-            <p className="text-lg text-muted-foreground mb-8">
+            <p className="text-lg text-[#1A1F2B]/70 mb-8">
               Ne perdez plus de temps sur des captures d'écran désorganisées. Notre dashboard unifié vous donne une vue d'ensemble sur le marché en temps réel.
             </p>
 
@@ -234,14 +252,14 @@ export function PreviewSection() {
                 "Recevez des alertes sur vos concurrents"
               ].map((item, i) => (
                 <li key={i} className="flex items-center gap-3">
-                  <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="text-foreground/80 font-medium">{item}</span>
+                  <CheckCircle className="h-5 w-5 text-[#10B981]" />
+                  <span className="text-[#1A1F2B]/80 font-medium">{item}</span>
                 </li>
               ))}
             </ul>
 
             <div className="mt-10">
-              <Button variant="ghost" className="text-primary hover:text-primary/80 hover:bg-primary/5 p-0 font-semibold group">
+              <Button variant="ghost" className="text-[#80368D] hover:text-[#80368D]/80 hover:bg-[#80368D]/5 p-0 font-semibold group">
                 Explorer toutes les fonctionnalités
                 <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Button>
@@ -249,22 +267,22 @@ export function PreviewSection() {
           </div>
 
           <div className="lg:col-span-6 relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-accent/20 blur-3xl rounded-full opacity-30 animate-pulse-glow" />
-            <div className="relative glass-panel rounded-xl border border-border/50 shadow-2xl overflow-hidden group">
-              <div className="aspect-[4/3] bg-muted relative">
+            <div className="absolute inset-0 bg-[#D0E4F2]/30 blur-3xl rounded-full opacity-50" />
+            <div className="relative bg-white rounded-xl border border-[#D0E4F2] shadow-2xl overflow-hidden group">
+              <div className="aspect-[4/3] bg-[#D0E4F2]/20 relative">
                 {/* Abstract UI representation */}
-                <div className="absolute inset-0 bg-gradient-to-br from-card to-background p-6">
-                  <div className="h-8 w-1/3 bg-muted-foreground/10 rounded mb-6 animate-pulse" />
+                <div className="absolute inset-0 bg-white p-6">
+                  <div className="h-8 w-1/3 bg-[#D0E4F2] rounded mb-6" />
                   <div className="grid grid-cols-2 gap-4">
                     {[1, 2, 3, 4].map(n => (
-                      <div key={n} className="aspect-video bg-muted-foreground/5 rounded-lg border border-border/50" />
+                      <div key={n} className="aspect-video bg-[#D0E4F2]/50 rounded-lg border border-[#D0E4F2]" />
                     ))}
                   </div>
                 </div>
 
                 {/* Overlay CTA */}
-                <div className="absolute inset-0 flex items-center justify-center bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
-                  <Button className="rounded-full shadow-lg">Voir en action</Button>
+                <div className="absolute inset-0 flex items-center justify-center bg-white/50 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
+                  <Button className="rounded-full shadow-lg bg-[#80368D] hover:bg-[#80368D]/90">Voir en action</Button>
                 </div>
               </div>
             </div>
@@ -277,35 +295,39 @@ export function PreviewSection() {
 
 export function PricingTeaser() {
   return (
-    <section className="py-24 bg-[#0F172A] text-white relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent opacity-50" />
+    <section className="py-24 bg-[#D0E4F2]/30 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(208,228,242,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(208,228,242,0.3)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
 
       <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
-        <span className="inline-block py-1 px-3 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-semibold mb-6 animate-bounce">
-          Offre Limitée
-        </span>
-        <h2 className="font-[family-name:var(--font-heading)] text-4xl font-bold mb-6">
+        {/* Free Trial Banner */}
+        <div className="mb-8 inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-[#F2B33D]/30 to-[#F2B33D]/10 px-6 py-3 ring-2 ring-[#F2B33D]/40 shadow-lg">
+          <span className="text-lg font-bold text-[#1A1F2B]">
+            🎉 Essai gratuit de 30 jours
+          </span>
+        </div>
+        
+        <h2 className="font-[family-name:var(--font-heading)] text-4xl font-bold mb-6 text-[#1A1F2B]">
           Commencez à créer des campagnes impactantes.
         </h2>
-        <p className="text-slate-400 text-xl mb-10 max-w-2xl mx-auto">
+        <p className="text-[#1A1F2B]/70 text-xl mb-10 max-w-2xl mx-auto">
           Rejoignez des centaines de créatifs qui utilisent Big Five Bootcamp pour élever leur niveau de jeu. Sans carte bancaire requise à l'inscription.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-          <Button size="lg" className="h-14 px-8 text-lg bg-primary hover:bg-primary/90 text-white font-bold rounded-full shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all hover:-translate-y-1" asChild>
+          <Button size="lg" className="h-14 px-8 text-lg bg-[#80368D] hover:bg-[#80368D]/90 text-white font-bold rounded-full shadow-lg shadow-[#80368D]/25 hover:shadow-[#80368D]/40 transition-all hover:-translate-y-1" asChild>
             <Link href="/pricing">
-              4 500 XOF / mois
+              Commencer gratuitement
             </Link>
           </Button>
-          <Button size="lg" variant="outline" className="h-14 px-8 text-lg border-white/20 text-white hover:bg-white/10 rounded-full" asChild>
+          <Button size="lg" variant="outline" className="h-14 px-8 text-lg border-[#29358B]/30 text-[#29358B] hover:bg-[#29358B]/10 rounded-full" asChild>
             <Link href="/pricing">
               Voir les tarifs
             </Link>
           </Button>
         </div>
 
-        <p className="mt-8 text-sm text-slate-500">
-          Pas de carte requise • Annulation à tout moment • Support 24/7
+        <p className="mt-8 text-sm text-[#1A1F2B]/50">
+          Puis 4 500 XOF/mois • Annulation à tout moment • Support 24/7
         </p>
       </div>
     </section>

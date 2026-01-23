@@ -8,17 +8,17 @@ export default function ContactPage() {
         <div className="flex min-h-screen flex-col bg-background">
             <Navbar />
             <main className="flex-1">
-                <section className="relative py-20 lg:py-32 overflow-hidden bg-slate-950 text-white">
+                <section className="relative py-20 lg:py-32 overflow-hidden bg-gradient-to-b from-[#D0E4F2] to-white">
                     {/* Abstract wave background */}
                     <div className="absolute inset-0 opacity-20">
-                        <div className="absolute top-0 -left-1/4 w-full h-full bg-gradient-to-br from-primary via-transparent to-transparent rounded-full blur-3xl transform rotate-12 scale-150" />
+                        <div className="absolute top-0 -left-1/4 w-full h-full bg-gradient-to-br from-[#80368D]/30 via-transparent to-transparent rounded-full blur-3xl transform rotate-12 scale-150" />
                     </div>
 
                     <div className="container relative mx-auto px-4 text-center">
-                        <h1 className="text-4xl lg:text-6xl font-extrabold tracking-tight mb-6">
+                        <h1 className="text-4xl lg:text-6xl font-extrabold tracking-tight mb-6 text-[#1A1F2B]">
                             On discute ?
                         </h1>
-                        <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+                        <p className="text-lg text-[#1A1F2B]/70 max-w-2xl mx-auto">
                             Une question sur nos offres ? Besoin d'une démo personnalisée ? Notre équipe est là pour vous aider à décoller.
                         </p>
                     </div>

@@ -1,10 +1,14 @@
 import React from "react"
 import type { Metadata, Viewport } from 'next'
-import { Inter, Montserrat } from 'next/font/google'
+import { Questrial, Montserrat } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const questrial = Questrial({ 
+  subsets: ["latin"], 
+  weight: "400",
+  variable: "--font-questrial" 
+});
 const montserrat = Montserrat({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800", "900"],
@@ -34,8 +38,10 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#1a2332',
+  themeColor: '#80368D',
 }
+
+import { Providers } from "@/components/providers"
 
 export default function RootLayout({
   children,
@@ -43,9 +49,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="fr">
-      <body className={`${inter.variable} ${montserrat.variable} font-sans antialiased`}>
-        {children}
+    <html lang="fr" suppressHydrationWarning>
+      <body className={`${questrial.variable} ${montserrat.variable} font-sans antialiased`}>
+        <Providers>
+          {children}
+        </Providers>
         <Analytics />
       </body>
     </html>

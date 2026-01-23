@@ -6,11 +6,11 @@ export function Footer() {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="relative border-t border-white/10 bg-gradient-to-b from-[#0A1F44] to-[#071428] overflow-hidden">
+    <footer className="relative border-t border-[#D0E4F2] bg-gradient-to-b from-white to-[#D0E4F2]/30 overflow-hidden">
       {/* Decorative elements */}
-      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-      <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary/5 blur-3xl" />
-      <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-accent/5 blur-3xl" />
+      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#80368D]/30 to-transparent" />
+      <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-[#80368D]/5 blur-3xl" />
+      <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-[#F2B33D]/5 blur-3xl" />
 
       <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="grid gap-12 lg:grid-cols-4">
@@ -18,7 +18,7 @@ export function Footer() {
           <div className="lg:col-span-1">
             <Link href="/" className="group inline-flex items-center gap-3 transition-all duration-300">
               <div className="relative">
-                <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-primary/20 to-accent/20 opacity-0 blur transition-opacity duration-300 group-hover:opacity-100" />
+                <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-[#80368D]/20 to-[#F2B33D]/20 opacity-0 blur transition-opacity duration-300 group-hover:opacity-100" />
                 <Image
                   src="/logo.png"
                   alt="Big Five Bootcamp"
@@ -28,13 +28,13 @@ export function Footer() {
                 />
               </div>
               <div className="flex flex-col">
-                <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-white">
-                  Big Five <span className="text-primary">Bootcamp</span>
+                <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#1A1F2B]">
+                  Big Five <span className="text-[#80368D]">Bootcamp</span>
                 </span>
-                <span className="text-xs text-white/50">L&apos;inspiration créative</span>
+                <span className="text-xs text-[#1A1F2B]/50">L&apos;inspiration créative</span>
               </div>
             </Link>
-            <p className="mt-4 text-sm leading-relaxed text-white/60">
+            <p className="mt-4 text-sm leading-relaxed text-[#1A1F2B]/60">
               Des milliers de campagnes marketing réelles pour inspirer vos prochaines créations.
             </p>
           </div>
@@ -42,17 +42,17 @@ export function Footer() {
           {/* Navigation links */}
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:col-span-3">
             <div>
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-white/90">Produit</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-[#29358B]">Produit</h3>
               <nav className="mt-4 flex flex-col gap-3">
-                <Link href="/#features" className="group flex items-center text-sm text-white/60 transition-colors hover:text-white">
+                <Link href="/#features" className="group flex items-center text-sm text-[#1A1F2B]/60 transition-colors hover:text-[#80368D]">
                   Fonctionnalités
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
-                <Link href="/#pricing" className="group flex items-center text-sm text-white/60 transition-colors hover:text-white">
+                <Link href="/#pricing" className="group flex items-center text-sm text-[#1A1F2B]/60 transition-colors hover:text-[#80368D]">
                   Tarifs
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
-                <Link href="/dashboard" className="group flex items-center text-sm text-white/60 transition-colors hover:text-white">
+                <Link href="/dashboard" className="group flex items-center text-sm text-[#1A1F2B]/60 transition-colors hover:text-[#80368D]">
                   Démo
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
@@ -60,13 +60,13 @@ export function Footer() {
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-white/90">Entreprise</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-[#29358B]">Entreprise</h3>
               <nav className="mt-4 flex flex-col gap-3">
-                <Link href="/about" className="group flex items-center text-sm text-white/60 transition-colors hover:text-white">
+                <Link href="/about" className="group flex items-center text-sm text-[#1A1F2B]/60 transition-colors hover:text-[#80368D]">
                   À propos
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
-                <Link href="/contact" className="group flex items-center text-sm text-white/60 transition-colors hover:text-white">
+                <Link href="/contact" className="group flex items-center text-sm text-[#1A1F2B]/60 transition-colors hover:text-[#80368D]">
                   Contact
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
@@ -74,13 +74,13 @@ export function Footer() {
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold uppercase tracking-wider text-white/90">Legal</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-wider text-[#29358B]">Legal</h3>
               <nav className="mt-4 flex flex-col gap-3">
-                <Link href="/terms" className="group flex items-center text-sm text-white/60 transition-colors hover:text-white">
+                <Link href="/terms" className="group flex items-center text-sm text-[#1A1F2B]/60 transition-colors hover:text-[#80368D]">
                   CGU
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
-                <Link href="/privacy" className="group flex items-center text-sm text-white/60 transition-colors hover:text-white">
+                <Link href="/privacy" className="group flex items-center text-sm text-[#1A1F2B]/60 transition-colors hover:text-[#80368D]">
                   Confidentialité
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
@@ -90,10 +90,10 @@ export function Footer() {
         </div>
 
         {/* Bottom section */}
-        <div className="mt-12 flex flex-col items-center justify-between gap-6 border-t border-white/10 pt-8 md:flex-row">
-          <p className="flex items-center gap-1 text-sm text-white/50">
+        <div className="mt-12 flex flex-col items-center justify-between gap-6 border-t border-[#D0E4F2] pt-8 md:flex-row">
+          <p className="flex items-center gap-1 text-sm text-[#1A1F2B]/50">
             {currentYear} Big Five Bootcamp. Fait avec
-            <Heart className="h-4 w-4 text-primary animate-pulse" />
+            <Heart className="h-4 w-4 text-[#80368D] animate-pulse" />
             en Afrique.
           </p>
 
@@ -101,28 +101,28 @@ export function Footer() {
           <div className="flex items-center gap-2">
             <Link
               href="https://facebook.com"
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-white/60 transition-all duration-300 hover:bg-primary/20 hover:text-white hover:scale-110"
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D0E4F2]/50 text-[#29358B] transition-all duration-300 hover:bg-[#80368D]/20 hover:text-[#80368D] hover:scale-110"
               aria-label="Facebook"
             >
               <Facebook className="h-5 w-5" />
             </Link>
             <Link
               href="https://instagram.com"
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-white/60 transition-all duration-300 hover:bg-gradient-to-br hover:from-[#833AB4] hover:via-[#FD1D1D] hover:to-[#FCAF45] hover:text-white hover:scale-110"
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D0E4F2]/50 text-[#29358B] transition-all duration-300 hover:bg-gradient-to-br hover:from-[#833AB4]/20 hover:via-[#FD1D1D]/20 hover:to-[#FCAF45]/20 hover:text-[#80368D] hover:scale-110"
               aria-label="Instagram"
             >
               <Instagram className="h-5 w-5" />
             </Link>
             <Link
               href="https://twitter.com"
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-white/60 transition-all duration-300 hover:bg-[#1DA1F2]/20 hover:text-white hover:scale-110"
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D0E4F2]/50 text-[#29358B] transition-all duration-300 hover:bg-[#1DA1F2]/20 hover:text-[#1DA1F2] hover:scale-110"
               aria-label="Twitter"
             >
               <Twitter className="h-5 w-5" />
             </Link>
             <Link
               href="https://linkedin.com"
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 text-white/60 transition-all duration-300 hover:bg-[#0A66C2]/20 hover:text-white hover:scale-110"
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D0E4F2]/50 text-[#29358B] transition-all duration-300 hover:bg-[#0A66C2]/20 hover:text-[#0A66C2] hover:scale-110"
               aria-label="LinkedIn"
             >
               <Linkedin className="h-5 w-5" />

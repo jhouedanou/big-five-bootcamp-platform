@@ -36,25 +36,25 @@ export default function RegisterPage() {
     <div className="flex min-h-screen">
       {/* Left side - Visual */}
       <div className="relative hidden flex-1 lg:block">
-        <div className="absolute inset-0 bg-[#0A1F44]">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-primary/30 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#D0E4F2] via-white to-[#D0E4F2]">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-[#80368D]/20 via-transparent to-transparent" />
           <div className="flex h-full flex-col items-center justify-center p-12">
             <div className="max-w-md">
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#10B981]/20 px-4 py-1.5 text-sm text-[#10B981]">
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#10B981]/20 px-4 py-1.5 text-sm text-[#10B981] font-medium">
                 <Shield className="h-4 w-4" />
                 30 jours gratuits, sans CB
               </div>
               
-              <h2 className="font-[family-name:var(--font-heading)] text-3xl font-bold text-white">
+              <h2 className="font-[family-name:var(--font-heading)] text-3xl font-bold text-[#1A1F2B]">
                 Rejoins des milliers de creatifs africains
               </h2>
-              <p className="mt-4 text-lg text-white/70">
+              <p className="mt-4 text-lg text-[#1A1F2B]/70">
                 Commence ton essai gratuit et decouvre les meilleures campagnes marketing du continent.
               </p>
               
               <ul className="mt-8 space-y-4">
                 {benefits.map((benefit, index) => (
-                  <li key={index} className="flex items-center gap-3 text-white">
+                  <li key={index} className="flex items-center gap-3 text-[#1A1F2B]">
                     <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#10B981]/20">
                       <Check className="h-4 w-4 text-[#10B981]" />
                     </div>
@@ -68,14 +68,14 @@ export default function RegisterPage() {
                   {[1, 2, 3, 4].map((i) => (
                     <div
                       key={i}
-                      className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#0A1F44] bg-white/10 text-xs font-medium text-white"
+                      className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-[#D0E4F2] text-xs font-medium text-[#29358B]"
                     >
                       {["AB", "CD", "EF", "GH"][i - 1]}
                     </div>
                   ))}
                 </div>
-                <div className="text-sm text-white/80">
-                  <span className="font-semibold text-white">+2,500</span> marketeurs actifs
+                <div className="text-sm text-[#1A1F2B]/80">
+                  <span className="font-semibold text-[#1A1F2B]">+2,500</span> marketeurs actifs
                 </div>
               </div>
             </div>
@@ -88,8 +88,8 @@ export default function RegisterPage() {
         <div className="mx-auto w-full max-w-sm lg:w-96">
           <div className="mb-8">
             <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0A1F44]">
-                <Sparkles className="h-5 w-5 text-accent" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#80368D]">
+                <Sparkles className="h-5 w-5 text-white" />
               </div>
               <span className="font-[family-name:var(--font-heading)] text-xl font-bold text-foreground">Big Five</span>
             </Link>

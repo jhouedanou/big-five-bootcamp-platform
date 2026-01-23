@@ -18,6 +18,10 @@ export interface ContentItem {
   tags: string[]
   date: string
   isVideo?: boolean
+  brand?: string
+  agency?: string
+  year?: number
+  award?: string
 }
 
 interface ContentCardProps {

@@ -1,20 +1,27 @@
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
-import { Check } from "lucide-react"
+import { Check, Gift } from "lucide-react"
 
 export default function PricingPage() {
     return (
         <div className="flex min-h-screen flex-col bg-background">
             <Navbar />
             <main className="flex-1">
-                <section className="relative py-20 lg:py-32 overflow-hidden bg-slate-950 text-white">
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900/20 via-slate-950 to-slate-950" />
+                <section className="relative py-20 lg:py-32 overflow-hidden bg-gradient-to-b from-[#D0E4F2] to-white">
                     <div className="container relative mx-auto px-4 text-center">
-                        <h1 className="text-4xl lg:text-6xl font-extrabold tracking-tight mb-6">
-                            Des tarifs adaptés à <br /> <span className="text-primary">votre ambition</span>
+                        {/* Free Trial Banner */}
+                        <div className="mb-8 inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-[#F2B33D]/30 to-[#F2B33D]/10 px-6 py-3 ring-2 ring-[#F2B33D]/40 shadow-lg">
+                            <Gift className="h-6 w-6 text-[#F2B33D]" />
+                            <span className="text-lg font-bold text-[#1A1F2B]">
+                                🎉 Essai gratuit de 30 jours — Sans carte bancaire !
+                            </span>
+                        </div>
+                        
+                        <h1 className="text-4xl lg:text-6xl font-extrabold tracking-tight mb-6 text-[#1A1F2B]">
+                            Des tarifs adaptés à <br /> <span className="text-[#80368D]">votre ambition</span>
                         </h1>
-                        <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+                        <p className="text-lg text-[#1A1F2B]/70 max-w-2xl mx-auto">
                             Investissez dans votre veille créative et prenez une longueur d'avance sur la concurrence.
                         </p>
                     </div>
@@ -49,19 +56,22 @@ export default function PricingPage() {
 
                             {/* Pro Tier (Highlighted) */}
                             <div className="rounded-2xl border-2 border-primary bg-card p-8 shadow-2xl shadow-primary/20 relative flex flex-col transform md:-translate-y-4">
-                                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-medium">
-                                    Recommandé
+                                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#F2B33D] text-[#1A1F2B] px-4 py-1.5 rounded-full text-sm font-bold shadow-lg">
+                                    ⭐ 30 jours gratuits
                                 </div>
-                                <div className="mb-6">
+                                <div className="mb-6 mt-2">
                                     <h3 className="font-bold text-xl mb-2 text-primary">Pro</h3>
                                     <p className="text-muted-foreground text-sm">Pour les créatifs exigeants.</p>
                                 </div>
-                                <div className="mb-6">
+                                <div className="mb-2">
                                     <span className="text-4xl font-bold">4 500</span>
                                     <span className="text-muted-foreground ml-2">XOF / mois</span>
                                 </div>
-                                <Button className="w-full mb-8 font-bold shadow-lg shadow-primary/25">
-                                    Choisir l'offre Pro
+                                <p className="text-sm text-[#F2B33D] font-medium mb-6">
+                                    Après votre essai gratuit de 30 jours
+                                </p>
+                                <Button className="w-full mb-8 font-bold shadow-lg shadow-primary/25 h-12 text-base">
+                                    Commencer l'essai gratuit
                                 </Button>
                                 <ul className="space-y-4 text-sm flex-1">
                                     <li className="flex items-center gap-2">

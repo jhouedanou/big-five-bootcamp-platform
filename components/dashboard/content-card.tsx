@@ -68,7 +68,7 @@ export function ContentCard({ content }: ContentCardProps) {
   return (
     <Link href={`/content/${content.id}`} className="group block">
       <article className="modern-card overflow-hidden hover-lift">
-        <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-[#0A1F44] to-[#1a3a6e]">
+        <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-[#0A1F44] to-[#1a3a6e]">
           {content.imageUrl ? (
             <img
               src={content.imageUrl || "/placeholder.svg"}

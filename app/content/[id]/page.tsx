@@ -69,7 +69,7 @@ export default function ContentDetailPage({
           {/* Main content area */}
           <div className="lg:col-span-2 space-y-6">
             {/* Image carousel */}
-            <div className="relative aspect-video bg-muted rounded-xl overflow-hidden group">
+            <div className="relative aspect-square bg-muted rounded-xl overflow-hidden group">
               <Image
                 src={images[currentImageIndex] || "/placeholder.svg"}
                 alt={content.title}
@@ -266,7 +266,7 @@ export default function ContentDetailPage({
                       href={`/content/${item.id}`}
                       className="flex gap-3 group"
                     >
-                      <div className="relative w-20 h-14 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+                      <div className="relative w-16 h-16 bg-muted rounded-lg overflow-hidden flex-shrink-0">
                         <Image
                           src={item.thumbnail || "/placeholder.svg"}
                           alt={item.title}

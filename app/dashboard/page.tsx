@@ -69,19 +69,19 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 relative">
-      <ParticlesBackground color="#FF6B35" particleCount={40} />
+    <div className="min-h-screen bg-gradient-to-br from-white via-white to-[#D0E4F2]/20 relative">
+      <ParticlesBackground color="#80368D" particleCount={40} />
       <div className="relative z-10">
         <DashboardNavbar />
 
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div className="animate-fade-in-up">
-              <h1 className="font-[family-name:var(--font-heading)] text-3xl font-bold text-foreground">
+              <h1 className="font-[family-name:var(--font-heading)] text-3xl font-bold text-[#1A1F2B]">
                 Bibliothèque
               </h1>
-              <p className="mt-2 text-sm text-muted-foreground">
-                <span className="font-semibold text-primary">{filteredContent.length}</span> campagne{filteredContent.length > 1 ? "s" : ""} trouvée{filteredContent.length > 1 ? "s" : ""}
+              <p className="mt-2 text-sm text-[#1A1F2B]/70">
+                <span className="font-semibold text-[#80368D]">{filteredContent.length}</span> campagne{filteredContent.length > 1 ? "s" : ""} trouvée{filteredContent.length > 1 ? "s" : ""}
               </p>
             </div>
 
@@ -94,7 +94,7 @@ export default function DashboardPage() {
                     onClick={() => handleQuickFilter(filter)}
                     className={`whitespace-nowrap rounded-full px-5 py-2 text-sm font-semibold transition-all duration-300 ${activeQuickFilter === filter.label
                       ? `${filter.color} shadow-lg scale-105`
-                      : "bg-white border border-border text-muted-foreground hover:bg-muted/50 hover:text-foreground hover:border-primary/50"
+                      : "bg-white border border-[#D0E4F2] text-[#1A1F2B]/70 hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] hover:border-[#80368D]/50"
                       }`}
                   >
                     {filter.label}
@@ -106,18 +106,18 @@ export default function DashboardPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="lg:hidden bg-transparent"
+                  className="lg:hidden bg-white border-[#D0E4F2] text-[#1A1F2B]"
                   onClick={() => setShowMobileFilters(!showMobileFilters)}
                 >
                   <Filter className="mr-2 h-4 w-4" />
                   Filtres
                 </Button>
 
-                <div className="hidden items-center gap-1 rounded-lg border border-border p-1 sm:flex">
+                <div className="hidden items-center gap-1 rounded-lg border border-[#D0E4F2] bg-white p-1 sm:flex">
                   <button
                     type="button"
                     onClick={() => setViewMode("grid")}
-                    className={`rounded p-1.5 ${viewMode === "grid" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                    className={`rounded p-1.5 ${viewMode === "grid" ? "bg-[#D0E4F2] text-[#1A1F2B]" : "text-[#1A1F2B]/60 hover:text-[#1A1F2B]"}`}
                     aria-label="Grid view"
                   >
                     <Grid3X3 className="h-4 w-4" />
@@ -125,7 +125,7 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => setViewMode("list")}
-                    className={`rounded p-1.5 ${viewMode === "list" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+                    className={`rounded p-1.5 ${viewMode === "list" ? "bg-[#D0E4F2] text-[#1A1F2B]" : "text-[#1A1F2B]/60 hover:text-[#1A1F2B]"}`}
                     aria-label="List view"
                   >
                     <LayoutList className="h-4 w-4" />

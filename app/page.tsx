@@ -1,10 +1,6 @@
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
-import { HeroSection } from "@/components/landing/hero-section"
-import { ValueProposition } from "@/components/landing/value-proposition"
-import { FeaturedBootcamps } from "@/components/landing/featured-bootcamps"
-import { Testimonials } from "@/components/landing/testimonials"
-import { CTASection } from "@/components/landing/cta-section"
+import { HeroSection, FeaturesSection, PreviewSection, PricingTeaser } from "@/components/landing/hero-section"
 
 export default function HomePage() {
   return (
@@ -12,10 +8,13 @@ export default function HomePage() {
       <Navbar />
       <main className="flex-1">
         <HeroSection />
-        <ValueProposition />
-        <FeaturedBootcamps />
-        <Testimonials />
-        <CTASection />
+        <section id="features">
+          <FeaturesSection />
+        </section>
+        <PreviewSection />
+        <section id="pricing">
+          <PricingTeaser />
+        </section>
       </main>
       <Footer />
     </div>

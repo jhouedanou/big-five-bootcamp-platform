@@ -1,23 +1,23 @@
 import React from "react"
 import type { Metadata, Viewport } from 'next'
-import { Josefin_Sans, Poppins } from 'next/font/google'
+import { Questrial, Montserrat } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const josefinSans = Josefin_Sans({ 
+const questrial = Questrial({ 
   subsets: ["latin"], 
-  weight: ["100", "300", "400", "500", "700"],
-  variable: "--font-heading" 
+  weight: "400",
+  variable: "--font-questrial" 
 });
-const poppins = Poppins({
+const montserrat = Montserrat({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
-  variable: "--font-body"
+  weight: ["400", "500", "600", "700", "800", "900"],
+  variable: "--font-montserrat"
 });
 
 export const metadata: Metadata = {
-  title: 'Big Five Bootcamp | Laissez Votre Empreinte',
-  description: 'Bootcamps intensifs pour professionnels du digital. Développez vos compétences avec Big Five, agence de stratégie digitale basée à Abidjan.',
+  title: 'Big Five Bootcamp - Trouvez l\'inspiration créative',
+  description: 'Des milliers de campagnes marketing réelles, organisées pour vous. Trouvez l\'inspiration créative en quelques clics.',
   icons: {
     icon: [
       {
@@ -50,7 +50,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body className={`${josefinSans.variable} ${poppins.variable} font-sans antialiased`}>
+      <body className={`${questrial.variable} ${montserrat.variable} font-sans antialiased`}>
         <Providers>
           {children}
         </Providers>

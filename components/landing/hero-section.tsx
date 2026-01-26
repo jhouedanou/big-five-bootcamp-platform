@@ -1,126 +1,203 @@
 "use client"
 
 import Link from "next/link"
-import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { ArrowRight, Play, Users, Award, Clock, Star } from "lucide-react"
+import { ArrowRight, Play, Target, BarChart3, Search, CheckCircle, Zap, RefreshCw, Globe, Layers, Sparkles } from "lucide-react"
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-[#80368D] via-[#29358B] to-[#0A74C0] pt-8 pb-24 sm:pt-16 sm:pb-32">
-      {/* Animated background patterns */}
+    <section className="relative overflow-hidden bg-white pt-20 pb-32 sm:pt-32 sm:pb-40 lg:pb-48">
+      {/* Subtle background pattern */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Organic curved shapes */}
-        <svg className="absolute -top-1/2 -right-1/4 w-full h-full opacity-10" viewBox="0 0 800 800" fill="none">
-          <path d="M400 0C600 0 800 200 800 400C800 600 600 800 400 800C200 800 0 600 0 400C0 200 200 0 400 0Z" fill="url(#hero-gradient)" />
-          <defs>
-            <linearGradient id="hero-gradient" x1="0" y1="0" x2="800" y2="800">
-              <stop offset="0%" stopColor="white" />
-              <stop offset="100%" stopColor="white" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-        </svg>
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-white/5 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-[#F2B33D]/10 rounded-full blur-3xl animate-pulse delay-1000" />
-        
-        {/* Fingerprint pattern subtle */}
-        <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-black/10 to-transparent" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(208,228,242,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(208,228,242,0.3)_1px,transparent_1px)] bg-[size:40px_40px]" />
       </div>
 
       <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="text-center">
-          {/* Tagline badge */}
-          <div className="mb-8 inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur-sm px-5 py-2.5 ring-1 ring-white/20">
-            <span className="text-sm font-semibold text-white/90 tracking-wide uppercase">
-              Laissez Votre Empreinte
-            </span>
+        <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-24">
+
+          {/* Text Content */}
+          <div className="flex flex-col items-start text-left z-10">
+            {/* Free Trial Banner - Prominent */}
+            <div className="mb-6 w-full sm:w-auto animate-fade-in-up">
+              <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#F2B33D]/20 to-[#F2B33D]/10 px-5 py-3 ring-2 ring-[#F2B33D]/30 shadow-lg shadow-[#F2B33D]/10">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F2B33D] text-white">
+                  <CheckCircle className="h-5 w-5" />
+                </span>
+                <span className="text-base font-bold text-[#1A1F2B]">
+                  🎉 Essai gratuit de 30 jours
+                </span>
+                <span className="text-sm text-[#1A1F2B]/70">
+                  — Sans carte bancaire
+                </span>
+              </div>
+            </div>
+
+            <div className="mb-8 flex flex-wrap items-center gap-3 animate-fade-in-up">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#80368D]/10 px-4 py-1.5 text-xs font-semibold text-[#80368D] ring-1 ring-[#80368D]/20 hover-lift cursor-default">
+                <Sparkles className="h-3.5 w-3.5" />
+                Nouveau: Version 2.0
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#D0E4F2] px-4 py-1.5 text-xs font-semibold text-[#1A1F2B] ring-1 ring-[#D0E4F2] hover-lift cursor-default">
+                <Globe className="h-3.5 w-3.5 text-[#29358B]" />
+                15+ Pays Africains
+              </span>
+            </div>
+
+            <h1 className="font-[family-name:var(--font-heading)] text-5xl font-extrabold tracking-tight text-[#1A1F2B] sm:text-6xl lg:text-7xl leading-[1.1] animate-fade-in-up delay-100">
+              L'inspiration <br />
+              <span className="gradient-text relative inline-block">
+                créative
+                <span className="absolute -bottom-2 left-0 w-full h-2 bg-[#80368D]/20 -rotate-1 rounded-full blur-sm"></span>
+              </span> <br />
+              sans limites.
+            </h1>
+
+            <p className="mt-8 max-w-xl text-lg text-[#1A1F2B]/70 leading-relaxed animate-fade-in-up delay-200">
+              Accédez à la plus grande bibliothèque de campagnes marketing réelles en Afrique. Analysez, benchmarkez et créez des concepts gagnants en quelques minutes.
+            </p>
+
+            <div className="mt-10 flex flex-col gap-4 sm:flex-row animate-fade-in-up delay-300 w-full sm:w-auto">
+              <Button size="lg" asChild className="group h-14 px-8 text-base font-bold bg-[#80368D] hover:bg-[#80368D]/90 text-white shadow-xl shadow-[#80368D]/20 transition-all duration-300 hover:scale-[1.02]">
+                <Link href="/pricing">
+                  Commencer gratuitement
+                  <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" asChild className="group h-14 px-8 text-base font-semibold border-[#D0E4F2] bg-white text-[#1A1F2B] hover:bg-[#D0E4F2]/50 hover:border-[#D0E4F2] transition-all duration-300">
+                <Link href="/dashboard">
+                  <Play className="mr-2 h-5 w-5 fill-current text-[#80368D] opacity-80" />
+                  Voir la démo
+                </Link>
+              </Button>
+            </div>
+
+            {/* Price info below buttons */}
+            <p className="mt-4 text-sm text-[#1A1F2B]/60 animate-fade-in-up delay-300">
+              Puis seulement <span className="font-semibold text-foreground">4 500 XOF/mois</span> après l'essai
+            </p>
+
+            <div className="mt-10 flex items-center gap-6 animate-fade-in-up delay-400">
+              <div className="flex -space-x-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className={`h-10 w-10 rounded-full border-2 border-background bg-slate-200 z-${10 - i} flex items-center justify-center text-xs font-medium text-slate-600`}>
+                    U{i}
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-col">
+                <div className="flex gap-1 text-[#F2B33D]">
+                  {"★★★★★"}
+                </div>
+                <span className="text-sm font-medium text-muted-foreground">
+                  Approuvé par <span className="text-foreground font-bold">2,500+</span> marketeurs
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* Main headline */}
-          <h1 className="font-[family-name:var(--font-heading)] text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-white leading-[1.1]">
-            Développez vos<br />
-            <span className="relative inline-block">
-              compétences digitales
-              <svg className="absolute -bottom-2 left-0 w-full" height="12" viewBox="0 0 400 12" fill="none">
-                <path d="M2 10C100 2 300 2 398 10" stroke="#F2B33D" strokeWidth="4" strokeLinecap="round" />
-              </svg>
-            </span>
-          </h1>
+          {/* Visual Content - Floating Interface */}
+          <div className="relative animate-slide-in-right delay-200 hidden lg:block perspective-1000">
+            {/* Subtle decorative elements */}
+            <div className="absolute -top-12 -right-12 h-64 w-64 bg-[#D0E4F2]/50 rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-8 -left-8 h-48 w-48 bg-[#F2B33D]/10 rounded-full blur-3xl"></div>
 
-          {/* Subheadline */}
-          <p className="mx-auto mt-8 max-w-2xl text-lg sm:text-xl text-white/80 leading-relaxed font-[family-name:var(--font-body)]">
-            Bootcamps intensifs pour professionnels du digital. 
-            <span className="text-[#F2B33D] font-semibold"> 2 jours </span>
-            pour transformer votre carrière avec Big Five Academy.
-          </p>
+            <div className="glass-panel rounded-2xl p-4 transform rotate-y-[-5deg] rotate-x-[5deg] transition-transform duration-500 hover:rotate-0 hover:scale-[1.02]">
+              <div className="rounded-xl bg-white border border-[#D0E4F2] shadow-2xl overflow-hidden">
+                {/* Window Header */}
+                <div className="flex items-center justify-between border-b border-[#D0E4F2] bg-[#D0E4F2]/30 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-3 rounded-full bg-[#EF4444]" />
+                    <div className="h-3 w-3 rounded-full bg-[#F2B33D]" />
+                    <div className="h-3 w-3 rounded-full bg-[#10B981]" />
+                  </div>
+                  <div className="flex-1 text-center">
+                    <div className="inline-flex items-center gap-2 rounded-md bg-white px-3 py-1 text-xs font-medium text-[#1A1F2B]/70 border border-[#D0E4F2] shadow-sm">
+                      <Search className="h-3 w-3" />
+                      bigfive-bootcamp.com
+                    </div>
+                  </div>
+                  <div className="w-12"></div>
+                </div>
 
-          {/* CTA Buttons */}
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button 
-              size="lg" 
-              asChild 
-              className="group h-14 px-8 text-base font-bold bg-white text-[#80368D] hover:bg-white/90 shadow-2xl shadow-black/20 transition-all duration-300 hover:scale-[1.02]"
-            >
-              <Link href="/bootcamps">
-                Découvrir nos bootcamps
-                <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
-              </Link>
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              asChild 
-              className="group h-14 px-8 text-base font-semibold border-white/30 bg-white/5 text-white hover:bg-white/10 backdrop-blur-sm transition-all duration-300"
-            >
-              <Link href="#featured">
-                <Play className="mr-2 h-5 w-5" />
-                Voir le programme
-              </Link>
-            </Button>
-          </div>
+                {/* Dashboard Preview Content */}
+                <div className="p-6 bg-white">
+                  <div className="mb-6 flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                    {["Tous", "Télécoms", "FMCG", "Fintech", "Banque"].map((filter, i) => (
+                      <span key={i} className={`whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-medium transition-colors cursor-pointer ${i === 0 ? 'bg-[#80368D] text-white shadow-lg shadow-[#80368D]/25' : 'bg-[#D0E4F2] text-[#1A1F2B] hover:bg-[#D0E4F2]/80'}`}>
+                        {filter}
+                      </span>
+                    ))}
+                  </div>
 
-          {/* Trust indicators */}
-          <div className="mt-16 flex flex-wrap items-center justify-center gap-8 sm:gap-12">
-            <div className="flex items-center gap-3 text-white/80">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm">
-                <Users className="h-6 w-6 text-[#F2B33D]" />
-              </div>
-              <div className="text-left">
-                <p className="text-2xl font-bold text-white">500+</p>
-                <p className="text-sm text-white/60">Professionnels formés</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { title: "MTN - Yello", cat: "Télécom", imgGrad: "from-[#FFCC00] to-[#FF9500]" },
+                      { title: "Orange Money", cat: "Fintech", imgGrad: "from-[#FF6B35] to-[#E8650E]" },
+                      { title: "Nescafé", cat: "FMCG", imgGrad: "from-red-600 to-red-900" },
+                      { title: "Wave", cat: "Mobile Money", imgGrad: "from-sky-400 to-blue-600" },
+                    ].map((card, i) => (
+                      <div key={i} className="group cursor-pointer rounded-lg border border-[#D0E4F2] bg-white p-2 transition-all hover:shadow-lg hover:-translate-y-1">
+                        <div className={`aspect-video w-full rounded-md bg-gradient-to-br ${card.imgGrad} relative overflow-hidden`}>
+                          <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+                          <div className="absolute bottom-2 right-2 h-6 w-6 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Play className="h-3 w-3 text-white fill-current" />
+                          </div>
+                        </div>
+                        <div className="mt-3 px-1">
+                          <h4 className="font-semibold text-sm text-[#1A1F2B]">{card.title}</h4>
+                          <span className="text-xs text-[#1A1F2B]/60">{card.cat}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-3 text-white/80">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm">
-                <Award className="h-6 w-6 text-[#F2B33D]" />
-              </div>
-              <div className="text-left">
-                <p className="text-2xl font-bold text-white">98%</p>
-                <p className="text-sm text-white/60">Taux de satisfaction</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 text-white/80">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 backdrop-blur-sm">
-                <Clock className="h-6 w-6 text-[#F2B33D]" />
-              </div>
-              <div className="text-left">
-                <p className="text-2xl font-bold text-white">14h</p>
-                <p className="text-sm text-white/60">Format intensif</p>
+
+            {/* Floating Badge */}
+            <div className="absolute -right-8 top-1/2 -translate-y-1/2 bg-white p-4 rounded-xl shadow-xl border border-[#D0E4F2] animate-float hidden xl:block">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                  <BarChart3 className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="text-xs text-[#1A1F2B]/60">Taux de clic</div>
+                  <div className="text-sm font-bold text-[#1A1F2B]">+127%</div>
+                </div>
               </div>
             </div>
+
           </div>
         </div>
-      </div>
-
-      {/* Curved bottom */}
-      <div className="absolute bottom-0 left-0 w-full overflow-hidden">
-        <svg viewBox="0 0 1440 120" fill="none" className="w-full h-auto">
-          <path d="M0 120L48 110C96 100 192 80 288 70C384 60 480 60 576 65C672 70 768 80 864 85C960 90 1056 90 1152 85C1248 80 1344 70 1392 65L1440 60V120H1392C1344 120 1248 120 1152 120C1056 120 960 120 864 120C768 120 672 120 576 120C480 120 384 120 288 120C192 120 96 120 48 120H0Z" fill="white"/>
-        </svg>
       </div>
     </section>
   )
 }
+
+export function FeaturesSection() {
+  const features = [
+    {
+      icon: Target,
+      title: "Ciblage Ultra-Précis",
+      description: "Filtrez par pays, industrie, format ou objectif. Trouvez exactement ce que vous cherchez.",
+      color: "text-[#80368D]",
+      bg: "bg-[#80368D]/10"
+    },
+    {
+      icon: Layers,
+      title: "Bibliothèque Massive",
+      description: "Plus de 10,000 campagnes archivées et mises à jour quotidiennement par nos équipes.",
+      color: "text-[#29358B]",
+      bg: "bg-[#29358B]/10"
+    },
+    {
+      icon: Zap,
+      title: "Analyse Instantanée",
+      description: "Décortiquez les stratégies gagnantes. Comprenez pourquoi une campagne fonctionne.",
+      color: "text-[#F2B33D]",
+      bg: "bg-[#F2B33D]/20"
+    }
+  ]
 
   return (
     <section className="py-24 bg-[#D0E4F2]/30 relative">

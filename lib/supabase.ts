@@ -17,10 +17,64 @@ export const supabaseAdmin = createClient(
   }
 )
 
+// Helper pour créer un client Supabase côté client (dans les composants React)
+export function createSupabaseClient() {
+  return createClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+    }
+  })
+}
+
 // Types de la base de données
 export type Database = {
   public: {
     Tables: {
+      users: {
+        Row: {
+          id: string
+          email: string
+          name: string | null
+          role: 'admin' | 'user'
+          plan: 'Free' | 'Premium'
+          status: 'active' | 'inactive'
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          email: string
+          name?: string | null
+          role?: 'admin' | 'user'
+          plan?: 'Free' | 'Premium'
+          status?: 'active' | 'inactive'
+        }
+        Update: Partial<Database['public']['Tables']['users']['Insert']>
+      }
+      campaigns: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          brand: string | null
+          category: string | null
+          thumbnail: string | null
+          images: string[] | null
+          video_url: string | null
+          platforms: string[] | null
+          duration: string | null
+          target_audience: string | null
+          tags: string[] | null
+          status: 'Publié' | 'Brouillon' | 'En attente'
+          author_id: string | null
+          author_name: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: Omit<Database['public']['Tables']['campaigns']['Row'], 'id' | 'created_at' | 'updated_at'>
+        Update: Partial<Database['public']['Tables']['campaigns']['Insert']>
+      }
       bootcamps: {
         Row: {
           id: string

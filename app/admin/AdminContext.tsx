@@ -4,6 +4,8 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { useSession, signOut } from "next-auth/react";
 import { sampleContent } from "@/lib/sample-content";
 import type { ContentItem } from "@/components/dashboard/content-card";
+import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
 
 // Types
 export type User = {
@@ -86,15 +88,55 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [content, setContent] = useState<Content[]>(initialContent);
-  const [campaigns, setCampaigns] = useState<ContentItem[]>(sampleContent);
+  const [campaigns, setCampaigns] = useState<ContentItem[]>([]);
+  const [campaignsLoading, setCampaignsLoading] = useState(true);
 
-  const isLoading = status === "loading";
+  const isLoading = status === "loading" || campaignsLoading;
   const isAuthenticated = status === "authenticated";
   const isAdmin = session?.user?.role === "admin";
 
+  // Charger les campagnes depuis Supabase
   useEffect(() => {
-    setCampaigns(loadCampaigns());
+    loadCampaignsFromSupabase();
   }, []);
+
+  const loadCampaignsFromSupabase = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('campaigns')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Convertir les données Supabase au format ContentItem
+      const formattedCampaigns: ContentItem[] = (data || []).map((campaign: any) => ({
+        id: campaign.id,
+        title: campaign.title,
+        description: campaign.description || '',
+        imageUrl: campaign.thumbnail || '',
+        platform: campaign.platforms?.[0] || 'Facebook',
+        country: 'Côte d\'Ivoire',
+        sector: campaign.category || 'Marketing',
+        format: campaign.video_url ? 'Video' : 'Image',
+        tags: campaign.tags || [],
+        date: new Date(campaign.created_at).toISOString().split('T')[0],
+        isVideo: !!campaign.video_url,
+        images: campaign.images || [],
+        videoUrl: campaign.video_url || undefined,
+        brand: campaign.brand || '',
+      }));
+
+      setCampaigns(formattedCampaigns);
+    } catch (error: any) {
+      console.error('Error loading campaigns:', error);
+      toast.error('Erreur lors du chargement des campagnes');
+      // Fallback to sample content
+      setCampaigns(sampleContent);
+    } finally {
+      setCampaignsLoading(false);
+    }
+  };
 
   const logout = async () => {
     await signOut({ redirect: false });
@@ -137,26 +179,84 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   };
 
   // Campaign Actions
-  const addCampaign = (campaignData: Omit<ContentItem, "id">) => {
-    const newCampaign: ContentItem = {
-      ...campaignData,
-      id: Math.random().toString(36).substr(2, 9),
-    };
-    const updated = [...campaigns, newCampaign];
-    setCampaigns(updated);
-    saveCampaigns(updated);
+  const addCampaign = async (campaignData: Omit<ContentItem, "id">) => {
+    try {
+      const response = await fetch('/api/campaigns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: campaignData.title,
+          description: campaignData.description,
+          brand: campaignData.brand,
+          category: campaignData.sector,
+          thumbnail: campaignData.imageUrl,
+          images: campaignData.images || [],
+          video_url: campaignData.videoUrl,
+          platforms: [campaignData.platform],
+          tags: campaignData.tags,
+          status: 'Brouillon',
+          author_id: session?.user?.id,
+          author_name: session?.user?.name,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to create campaign');
+
+      const newCampaign = await response.json();
+      
+      // Recharger les campagnes
+      await loadCampaignsFromSupabase();
+      toast.success('Campagne créée avec succès');
+    } catch (error) {
+      console.error('Error adding campaign:', error);
+      toast.error('Erreur lors de la création de la campagne');
+    }
   };
 
-  const updateCampaign = (id: string, updatedData: Partial<ContentItem>) => {
-    const updated = campaigns.map((item) => (item.id === id ? { ...item, ...updatedData } : item));
-    setCampaigns(updated);
-    saveCampaigns(updated);
+  const updateCampaign = async (id: string, updatedData: Partial<ContentItem>) => {
+    try {
+      const response = await fetch(`/api/campaigns/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: updatedData.title,
+          description: updatedData.description,
+          brand: updatedData.brand,
+          category: updatedData.sector,
+          thumbnail: updatedData.imageUrl,
+          images: updatedData.images,
+          video_url: updatedData.videoUrl,
+          platforms: updatedData.platform ? [updatedData.platform] : undefined,
+          tags: updatedData.tags,
+        }),
+      });
+
+      if (!response.ok) throw new Error('Failed to update campaign');
+
+      // Recharger les campagnes
+      await loadCampaignsFromSupabase();
+      toast.success('Campagne mise à jour avec succès');
+    } catch (error) {
+      console.error('Error updating campaign:', error);
+      toast.error('Erreur lors de la mise à jour de la campagne');
+    }
   };
 
-  const deleteCampaign = (id: string) => {
-    const updated = campaigns.filter((item) => item.id !== id);
-    setCampaigns(updated);
-    saveCampaigns(updated);
+  const deleteCampaign = async (id: string) => {
+    try {
+      const response = await fetch(`/api/campaigns/${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete campaign');
+
+      // Recharger les campagnes
+      await loadCampaignsFromSupabase();
+      toast.success('Campagne supprimée avec succès');
+    } catch (error) {
+      console.error('Error deleting campaign:', error);
+      toast.error('Erreur lors de la suppression de la campagne');
+    }
   };
 
   return (

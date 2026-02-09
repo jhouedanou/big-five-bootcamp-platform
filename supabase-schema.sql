@@ -4,6 +4,47 @@
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- ==============================================
+-- PARTIE 1: SYSTÈME ADMIN (Users & Campaigns)
+-- ==============================================
+
+-- Table des utilisateurs (extends auth.users)
+CREATE TABLE IF NOT EXISTS public.users (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  name VARCHAR(255),
+  role VARCHAR(50) NOT NULL DEFAULT 'user' CHECK (role IN ('admin', 'user')),
+  plan VARCHAR(50) NOT NULL DEFAULT 'Free' CHECK (plan IN ('Free', 'Premium')),
+  status VARCHAR(50) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Table des campagnes (content marketing)
+CREATE TABLE IF NOT EXISTS campaigns (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  brand VARCHAR(100),
+  category VARCHAR(100),
+  thumbnail VARCHAR(500),
+  images TEXT[],
+  video_url VARCHAR(500),
+  platforms TEXT[],
+  duration VARCHAR(100),
+  target_audience TEXT,
+  tags TEXT[],
+  status VARCHAR(50) NOT NULL DEFAULT 'Brouillon' CHECK (status IN ('Publié', 'Brouillon', 'En attente')),
+  author_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+  author_name VARCHAR(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- ==============================================
+-- PARTIE 2: SYSTÈME BOOTCAMP
+-- ==============================================
+
 -- Table des bootcamps (thématiques)
 CREATE TABLE IF NOT EXISTS bootcamps (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -93,6 +134,17 @@ CREATE TRIGGER update_registrations_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+-- Triggers pour users et campaigns
+CREATE TRIGGER update_users_updated_at
+  BEFORE UPDATE ON public.users
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_campaigns_updated_at
+  BEFORE UPDATE ON campaigns
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
 -- Fonction pour mettre à jour automatiquement available_spots
 CREATE OR REPLACE FUNCTION update_session_available_spots()
 RETURNS TRIGGER AS $$
@@ -127,9 +179,72 @@ CREATE TRIGGER update_available_spots_on_registration
 -- Row Level Security (RLS) Policies
 
 -- Activer RLS sur toutes les tables
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE campaigns ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bootcamps ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE registrations ENABLE ROW LEVEL SECURITY;
+
+-- ==============================================
+-- RLS POLICIES - USERS
+-- ==============================================
+
+-- Users peuvent voir leur propre profil
+CREATE POLICY "Users can view own profile" 
+  ON public.users FOR SELECT 
+  USING (auth.uid() = id OR EXISTS (
+    SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin'
+  ));
+
+-- Users peuvent mettre à jour leur propre profil
+CREATE POLICY "Users can update own profile" 
+  ON public.users FOR UPDATE 
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
+
+-- Admins peuvent tout faire sur users
+CREATE POLICY "Admins can manage all users" 
+  ON public.users FOR ALL 
+  USING (EXISTS (
+    SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin'
+  ));
+
+-- ==============================================
+-- RLS POLICIES - CAMPAIGNS
+-- ==============================================
+
+-- Tout le monde peut voir les campagnes publiées
+CREATE POLICY "Published campaigns are viewable by everyone" 
+  ON campaigns FOR SELECT 
+  USING (status = 'Publié' OR author_id = auth.uid() OR EXISTS (
+    SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin'
+  ));
+
+-- Users authentifiés peuvent créer des campagnes
+CREATE POLICY "Authenticated users can create campaigns" 
+  ON campaigns FOR INSERT 
+  WITH CHECK (auth.uid() IS NOT NULL);
+
+-- Users peuvent modifier leurs propres campagnes
+CREATE POLICY "Users can update own campaigns" 
+  ON campaigns FOR UPDATE 
+  USING (author_id = auth.uid() OR EXISTS (
+    SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin'
+  ))
+  WITH CHECK (author_id = auth.uid() OR EXISTS (
+    SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin'
+  ));
+
+-- Users peuvent supprimer leurs propres campagnes
+CREATE POLICY "Users can delete own campaigns" 
+  ON campaigns FOR DELETE 
+  USING (author_id = auth.uid() OR EXISTS (
+    SELECT 1 FROM public.users WHERE id = auth.uid() AND role = 'admin'
+  ));
+
+-- ==============================================
+-- RLS POLICIES - BOOTCAMPS & SESSIONS
+-- ==============================================
 
 -- Bootcamps: tout le monde peut lire
 CREATE POLICY "Bootcamps are viewable by everyone" 

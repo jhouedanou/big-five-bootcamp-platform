@@ -1,7 +1,9 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
-import credentials from "./credentials.json";
+import { useSession, signOut } from "next-auth/react";
+import { sampleContent } from "@/lib/sample-content";
+import type { ContentItem } from "@/components/dashboard/content-card";
 
 // Types
 export type User = {
@@ -23,11 +25,15 @@ export type Content = {
   type: "campagne" | "article" | "video";
 };
 
+export type { ContentItem };
+
 type AdminContextType = {
   users: User[];
   content: Content[];
+  campaigns: ContentItem[];
   isAuthenticated: boolean;
-  login: (username: string, password: string) => boolean;
+  isAdmin: boolean;
+  isLoading: boolean;
   logout: () => void;
   addUser: (user: Omit<User, "id" | "createdAt">) => void;
   updateUser: (id: string, user: Partial<User>) => void;
@@ -35,6 +41,9 @@ type AdminContextType = {
   addContent: (item: Omit<Content, "id" | "date">) => void;
   updateContent: (id: string, item: Partial<Content>) => void;
   deleteContent: (id: string) => void;
+  addCampaign: (item: Omit<ContentItem, "id">) => void;
+  updateCampaign: (id: string, item: Partial<ContentItem>) => void;
+  deleteCampaign: (id: string) => void;
 };
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
@@ -52,30 +61,43 @@ const initialContent: Content[] = [
   { id: "3", title: "Spotify Wrapped 2024", status: "Publie", date: "2024-03-08", author: "Admin User", type: "video" },
 ];
 
+const CAMPAIGNS_STORAGE_KEY = "admin_campaigns";
+
+function loadCampaigns(): ContentItem[] {
+  if (typeof window === "undefined") return sampleContent;
+  const stored = localStorage.getItem(CAMPAIGNS_STORAGE_KEY);
+  if (stored) {
+    try {
+      return JSON.parse(stored);
+    } catch {
+      return sampleContent;
+    }
+  }
+  return sampleContent;
+}
+
+function saveCampaigns(campaigns: ContentItem[]) {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(CAMPAIGNS_STORAGE_KEY, JSON.stringify(campaigns));
+  }
+}
+
 export function AdminProvider({ children }: { children: ReactNode }) {
+  const { data: session, status } = useSession();
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [content, setContent] = useState<Content[]>(initialContent);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [campaigns, setCampaigns] = useState<ContentItem[]>(sampleContent);
+
+  const isLoading = status === "loading";
+  const isAuthenticated = status === "authenticated";
+  const isAdmin = session?.user?.role === "admin";
 
   useEffect(() => {
-    const storedAuth = localStorage.getItem("adminAuth");
-    if (storedAuth === "true") {
-      setIsAuthenticated(true);
-    }
+    setCampaigns(loadCampaigns());
   }, []);
 
-  const login = (u: string, p: string) => {
-    if (u === credentials.username && p === credentials.password) {
-      setIsAuthenticated(true);
-      localStorage.setItem("adminAuth", "true");
-      return true;
-    }
-    return false;
-  };
-
-  const logout = () => {
-    setIsAuthenticated(false);
-    localStorage.removeItem("adminAuth");
+  const logout = async () => {
+    await signOut({ redirect: false });
   };
 
   // User Actions
@@ -114,13 +136,38 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     setContent(content.filter((item) => item.id !== id));
   };
 
+  // Campaign Actions
+  const addCampaign = (campaignData: Omit<ContentItem, "id">) => {
+    const newCampaign: ContentItem = {
+      ...campaignData,
+      id: Math.random().toString(36).substr(2, 9),
+    };
+    const updated = [...campaigns, newCampaign];
+    setCampaigns(updated);
+    saveCampaigns(updated);
+  };
+
+  const updateCampaign = (id: string, updatedData: Partial<ContentItem>) => {
+    const updated = campaigns.map((item) => (item.id === id ? { ...item, ...updatedData } : item));
+    setCampaigns(updated);
+    saveCampaigns(updated);
+  };
+
+  const deleteCampaign = (id: string) => {
+    const updated = campaigns.filter((item) => item.id !== id);
+    setCampaigns(updated);
+    saveCampaigns(updated);
+  };
+
   return (
     <AdminContext.Provider
       value={{
         users,
         content,
+        campaigns,
         isAuthenticated,
-        login,
+        isAdmin,
+        isLoading,
         logout,
         addUser,
         updateUser,
@@ -128,6 +175,9 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         addContent,
         updateContent,
         deleteContent,
+        addCampaign,
+        updateCampaign,
+        deleteCampaign,
       }}
     >
       {children}

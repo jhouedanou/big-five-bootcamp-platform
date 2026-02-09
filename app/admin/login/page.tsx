@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAdmin } from "../AdminContext";
+import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,18 +11,33 @@ import { toast } from "sonner";
 import Image from "next/image";
 
 export default function AdminLoginPage() {
-  const { login } = useAdmin();
   const router = useRouter();
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (login(username, password)) {
-      toast.success("Connexion reussie");
-      router.push("/admin");
-    } else {
-      toast.error("Identifiants incorrects");
+    setIsLoading(true);
+
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        toast.error("Identifiants incorrects");
+      } else {
+        toast.success("Connexion reussie");
+        router.push("/admin");
+        router.refresh();
+      }
+    } catch {
+      toast.error("Erreur de connexion");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -47,14 +62,15 @@ export default function AdminLoginPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-white">Identifiant</Label>
+              <Label htmlFor="email" className="text-white">Email</Label>
               <Input
-                id="username"
-                type="text"
-                placeholder="admin"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                type="email"
+                placeholder="jeffrey@bigfive.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="bg-[#122a52] border-[#1a3a6e] text-white placeholder:text-[#9CA3AF]"
+                required
               />
             </div>
             <div className="space-y-2">
@@ -66,10 +82,15 @@ export default function AdminLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="bg-[#122a52] border-[#1a3a6e] text-white placeholder:text-[#9CA3AF]"
+                required
               />
             </div>
-            <Button type="submit" className="w-full bg-[#FF6B35] hover:bg-[#e55a2b] text-white">
-              Se connecter
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-[#FF6B35] hover:bg-[#e55a2b] text-white"
+            >
+              {isLoading ? "Connexion..." : "Se connecter"}
             </Button>
           </form>
         </CardContent>

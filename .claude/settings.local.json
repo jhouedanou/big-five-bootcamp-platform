@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run dev:*)"
+      "Bash(npm run dev:*)",
+      "Bash(npx next build:*)",
+      "Bash(ls:*)",
+      "Bash(npx prisma db push:*)",
+      "Bash(DATABASE_URL=\"file:./prisma/dev.db\" npx prisma db push:*)",
+      "Bash(DATABASE_URL=\"file:./prisma/dev.db\" npx tsx:*)",
+      "Bash(openssl rand:*)",
+      "Bash(grep:*)"
     ]
   }
 }

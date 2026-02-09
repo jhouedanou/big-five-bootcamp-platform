@@ -18,6 +18,8 @@ export interface ContentItem {
   tags: string[]
   date: string
   isVideo?: boolean
+  images?: string[]
+  videoUrl?: string
   brand?: string
   agency?: string
   year?: number

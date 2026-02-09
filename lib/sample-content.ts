@@ -42,8 +42,8 @@ const campaignImages = {
   ]
 }
 
-const getRandomImage = (sector: string, index: number) => {
-  const sectorKey = sector.toLowerCase().includes("telecom") ? "telecoms"
+const getSectorKey = (sector: string) => {
+  return sector.toLowerCase().includes("telecom") ? "telecoms"
     : sector.toLowerCase().includes("banque") || sector.toLowerCase().includes("finance") ? "finance"
     : sector.toLowerCase().includes("fmcg") ? "fmcg"
     : sector.toLowerCase().includes("commerce") ? "ecommerce"
@@ -51,9 +51,18 @@ const getRandomImage = (sector: string, index: number) => {
     : sector.toLowerCase().includes("energie") ? "energie"
     : sector.toLowerCase().includes("industrie") ? "industrie"
     : "default"
-  
-  const images = campaignImages[sectorKey as keyof typeof campaignImages]
+}
+
+const getRandomImage = (sector: string, index: number) => {
+  const images = campaignImages[getSectorKey(sector) as keyof typeof campaignImages]
   return images[index % images.length]
+}
+
+const getExtraImages = (sector: string, mainIndex: number) => {
+  const sectorKey = getSectorKey(sector) as keyof typeof campaignImages
+  const images = campaignImages[sectorKey]
+  // Return the other images from the same sector (excluding the main one)
+  return images.filter((_, i) => i !== mainIndex % images.length)
 }
 
 export const sampleContent: ContentItem[] = [
@@ -62,6 +71,7 @@ export const sampleContent: ContentItem[] = [
     title: "MTN Ghana - Mobile Money Campaign",
     description: "Campagne virale pour promouvoir les services de transfert d'argent mobile avec des influenceurs locaux.",
     imageUrl: getRandomImage("Telecoms", 0),
+    images: getExtraImages("Telecoms", 0),
     platform: "Facebook",
     country: "Cote d'Ivoire",
     sector: "Telecoms",
@@ -71,13 +81,15 @@ export const sampleContent: ContentItem[] = [
     brand: "MTN",
     agency: "Ogilvy Africa",
     year: 2024,
-    isVideo: true
+    isVideo: true,
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ"
   },
   {
     id: "2",
     title: "Orange CI - Fete de la Musique",
     description: "Activation musicale avec des artistes locaux pour celebrer la fete de la musique et renforcer le lien avec la jeunesse.",
     imageUrl: getRandomImage("Telecoms", 1),
+    images: getExtraImages("Telecoms", 1),
     platform: "Instagram",
     country: "Cote d'Ivoire",
     sector: "Telecoms",
@@ -87,13 +99,15 @@ export const sampleContent: ContentItem[] = [
     brand: "Orange",
     agency: "McCann Abidjan",
     year: 2024,
-    isVideo: true
+    isVideo: true,
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ"
   },
   {
     id: "3",
     title: "Jumia Nigeria - Black Friday Madness",
     description: "Campagne 360 pour le Black Friday avec countdown, influenceurs et offres exclusives sur l'app.",
     imageUrl: getRandomImage("E-commerce", 2),
+    images: getExtraImages("E-commerce", 2),
     platform: "TikTok",
     country: "Nigeria",
     sector: "E-commerce",
@@ -103,13 +117,15 @@ export const sampleContent: ContentItem[] = [
     brand: "Jumia",
     agency: "DDB Lagos",
     year: 2024,
-    isVideo: true
+    isVideo: true,
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ"
   },
   {
     id: "4",
     title: "Wave Senegal - Envoi d'argent simplifie",
     description: "Serie de temoignages clients montrant la simplicite des transferts d'argent via Wave.",
     imageUrl: getRandomImage("Banque/Finance", 3),
+    images: getExtraImages("Banque/Finance", 3),
     platform: "YouTube",
     country: "Senegal",
     sector: "Banque/Finance",
@@ -119,13 +135,15 @@ export const sampleContent: ContentItem[] = [
     brand: "Wave",
     agency: "TBWA Dakar",
     year: 2024,
-    isVideo: true
+    isVideo: true,
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ"
   },
   {
     id: "5",
     title: "Dangote Cement - Building Africa",
     description: "Campagne corporate mettant en avant la contribution de Dangote a la construction du continent.",
     imageUrl: getRandomImage("Industrie", 4),
+    images: getExtraImages("Industrie", 4),
     platform: "LinkedIn",
     country: "Nigeria",
     sector: "Industrie",
@@ -142,6 +160,7 @@ export const sampleContent: ContentItem[] = [
     title: "Societe Generale CI - Compte Jeune",
     description: "Lancement du compte bancaire jeune avec une campagne ciblee sur les etudiants et jeunes actifs.",
     imageUrl: getRandomImage("Banque/Finance", 5),
+    images: getExtraImages("Banque/Finance", 5),
     platform: "Instagram",
     country: "Cote d'Ivoire",
     sector: "Banque/Finance",
@@ -158,6 +177,7 @@ export const sampleContent: ContentItem[] = [
     title: "Coca-Cola Africa - Share a Coke",
     description: "Adaptation africaine de la campagne Share a Coke avec des prenoms locaux populaires.",
     imageUrl: getRandomImage("FMCG", 6),
+    images: getExtraImages("FMCG", 6),
     platform: "Facebook",
     country: "Afrique du Sud",
     sector: "FMCG",
@@ -174,6 +194,7 @@ export const sampleContent: ContentItem[] = [
     title: "Safaricom Kenya - M-Pesa 20 ans",
     description: "Celebration des 20 ans de M-Pesa avec des stories emotionnelles sur l'impact du service.",
     imageUrl: getRandomImage("Telecoms", 7),
+    images: getExtraImages("Telecoms", 7),
     platform: "YouTube",
     country: "Kenya",
     sector: "Telecoms",
@@ -183,13 +204,15 @@ export const sampleContent: ContentItem[] = [
     brand: "Safaricom",
     agency: "Scanad Kenya",
     year: 2024,
-    isVideo: true
+    isVideo: true,
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ"
   },
   {
     id: "9",
     title: "Airtel Nigeria - Data Bundle Promo",
     description: "Promotion agressive sur les forfaits data avec un mecanisme de parrainage viral.",
     imageUrl: getRandomImage("Telecoms", 8),
+    images: getExtraImages("Telecoms", 8),
     platform: "Twitter/X",
     country: "Nigeria",
     sector: "Telecoms",
@@ -206,6 +229,7 @@ export const sampleContent: ContentItem[] = [
     title: "Nestle Maggi - Recettes Africaines",
     description: "Serie de videos courtes avec des recettes traditionnelles africaines revisitees.",
     imageUrl: getRandomImage("FMCG", 9),
+    images: getExtraImages("FMCG", 9),
     platform: "TikTok",
     country: "Senegal",
     sector: "FMCG",
@@ -215,13 +239,15 @@ export const sampleContent: ContentItem[] = [
     brand: "Nestlé Maggi",
     agency: "Publicis Dakar",
     year: 2024,
-    isVideo: true
+    isVideo: true,
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ"
   },
   {
     id: "11",
     title: "Total Energies - Station Solaire",
     description: "Campagne RSE sur l'installation de stations solaires dans les zones rurales.",
     imageUrl: getRandomImage("Energie", 10),
+    images: getExtraImages("Energie", 10),
     platform: "LinkedIn",
     country: "Cote d'Ivoire",
     sector: "Energie",
@@ -235,6 +261,7 @@ export const sampleContent: ContentItem[] = [
     title: "UBA Africa - Pan-African Banking",
     description: "Campagne institutionnelle positionnant UBA comme la banque panafricaine de reference.",
     imageUrl: getRandomImage("Banque/Finance", 11),
+    images: getExtraImages("Banque/Finance", 11),
     platform: "YouTube",
     country: "Nigeria",
     sector: "Banque/Finance",
@@ -244,13 +271,15 @@ export const sampleContent: ContentItem[] = [
     brand: "UBA",
     agency: "Insight Publicis",
     year: 2024,
-    isVideo: true
+    isVideo: true,
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ"
   },
   {
     id: "13",
     title: "Glovo Maroc - Livraison Express",
     description: "Challenge TikTok montrant la rapidite de livraison Glovo avec des influenceurs locaux.",
     imageUrl: getRandomImage("E-commerce", 12),
+    images: getExtraImages("E-commerce", 12),
     platform: "TikTok",
     country: "Maroc",
     sector: "E-commerce",
@@ -260,13 +289,15 @@ export const sampleContent: ContentItem[] = [
     brand: "Glovo",
     agency: "Tribal DDB Maroc",
     year: 2024,
-    isVideo: true
+    isVideo: true,
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ"
   },
   {
     id: "14",
     title: "Moov Africa - Forfait Illimite",
     description: "Lancement du forfait illimite avec une campagne teaser mystere suivie d'une revelation.",
     imageUrl: getRandomImage("Telecoms", 13),
+    images: getExtraImages("Telecoms", 13),
     platform: "Instagram",
     country: "Cote d'Ivoire",
     sector: "Telecoms",
@@ -283,6 +314,7 @@ export const sampleContent: ContentItem[] = [
     title: "Ecobank - Digital Banking",
     description: "Tutoriel video sur l'utilisation de l'app Ecobank pour les operations bancaires quotidiennes.",
     imageUrl: getRandomImage("Banque/Finance", 14),
+    images: getExtraImages("Banque/Finance", 14),
     platform: "Facebook",
     country: "Ghana",
     sector: "Banque/Finance",
@@ -292,7 +324,8 @@ export const sampleContent: ContentItem[] = [
     brand: "Ecobank",
     agency: "Exp Agency Ghana",
     year: 2024,
-    isVideo: true
+    isVideo: true,
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ"
   },
   // Contenu supplémentaire pour simuler une grande base de données
   {
@@ -300,6 +333,7 @@ export const sampleContent: ContentItem[] = [
     title: "Nescafé Afrique - Morning Routine",
     description: "Série de mini-documentaires sur les routines matinales de créateurs africains avec Nescafé.",
     imageUrl: getRandomImage("FMCG", 15),
+    images: getExtraImages("FMCG", 15),
     platform: "YouTube",
     country: "Cote d'Ivoire",
     sector: "FMCG",
@@ -309,13 +343,15 @@ export const sampleContent: ContentItem[] = [
     brand: "Nescafé",
     agency: "Publicis Africa",
     year: 2024,
-    isVideo: true
+    isVideo: true,
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ"
   },
   {
     id: "17",
     title: "Vodafone Ghana - 5G Launch",
     description: "Campagne de lancement de la 5G au Ghana avec des démonstrations technologiques impressionnantes.",
     imageUrl: getRandomImage("Telecoms", 16),
+    images: getExtraImages("Telecoms", 16),
     platform: "YouTube",
     country: "Ghana",
     sector: "Telecoms",
@@ -325,13 +361,15 @@ export const sampleContent: ContentItem[] = [
     brand: "Vodafone",
     agency: "TBWA Ghana",
     year: 2024,
-    isVideo: true
+    isVideo: true,
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ"
   },
   {
     id: "18",
     title: "Guinness Nigeria - Made of Black",
     description: "Célébration de la culture africaine et de l'identité noire à travers des portraits artistiques.",
     imageUrl: getRandomImage("FMCG", 17),
+    images: getExtraImages("FMCG", 17),
     platform: "Instagram",
     country: "Nigeria",
     sector: "FMCG",
@@ -348,6 +386,7 @@ export const sampleContent: ContentItem[] = [
     title: "FirstBank Nigeria - 130 Years",
     description: "Campagne anniversaire célébrant 130 ans de présence bancaire au Nigeria.",
     imageUrl: getRandomImage("Banque/Finance", 18),
+    images: getExtraImages("Banque/Finance", 18),
     platform: "LinkedIn",
     country: "Nigeria",
     sector: "Banque/Finance",
@@ -357,13 +396,15 @@ export const sampleContent: ContentItem[] = [
     brand: "FirstBank",
     agency: "SO&U Nigeria",
     year: 2024,
-    isVideo: true
+    isVideo: true,
+    videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ"
   },
   {
     id: "20",
     title: "Senelec - Energie Verte",
     description: "Sensibilisation aux énergies renouvelables et aux économies d'énergie au Sénégal.",
     imageUrl: getRandomImage("Energie", 19),
+    images: getExtraImages("Energie", 19),
     platform: "Facebook",
     country: "Senegal",
     sector: "Energie",

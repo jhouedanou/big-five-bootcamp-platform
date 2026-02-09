@@ -14,6 +14,9 @@ import {
   LogOut,
   Menu,
   X,
+  Megaphone,
+  BookOpen,
+  ShieldAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -21,8 +24,10 @@ import Image from "next/image";
 
 const sidebarLinks = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/admin/campaigns", label: "Campagnes", icon: Megaphone },
   { href: "/admin/content", label: "Contenus", icon: FolderOpen },
   { href: "/admin/users", label: "Utilisateurs", icon: Users },
+  { href: "/admin/guide", label: "Guide", icon: BookOpen },
   { href: "/admin/settings", label: "Parametres", icon: Settings },
 ];
 
@@ -41,20 +46,17 @@ export default function AdminLayout({
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAuthenticated, logout } = useAdmin();
+  const { isAuthenticated, isAdmin, isLoading, logout } = useAdmin();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   React.useEffect(() => {
-    // Small delay to allow context to load from localStorage
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-      if (!isAuthenticated && pathname !== "/admin/login") {
-        router.push("/admin/login");
-      }
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [isAuthenticated, pathname, router]);
+    if (!isLoading && !isAuthenticated && pathname !== "/admin/login") {
+      router.push("/admin/login");
+    }
+    if (!isLoading && isAuthenticated && !isAdmin && pathname !== "/admin/login") {
+      router.push("/admin/login");
+    }
+  }, [isAuthenticated, isAdmin, isLoading, pathname, router]);
 
   if (isLoading) {
     return <div className="min-h-screen bg-[#0A1F44] flex items-center justify-center">
@@ -67,10 +69,29 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
-  // If not authenticated and not on login page, don't render anything (will redirect)
-  if (!isAuthenticated) {
-    return null;
+  // If not authenticated or not admin, don't render anything (will redirect)
+  if (!isAuthenticated || !isAdmin) {
+    return (
+      <div className="min-h-screen bg-[#0A1F44] flex items-center justify-center p-4">
+        <div className="text-center">
+          <ShieldAlert className="h-12 w-12 text-red-400 mx-auto mb-4" />
+          <h2 className="text-white text-xl font-bold mb-2">Acces refuse</h2>
+          <p className="text-[#9CA3AF] mb-4">Vous devez etre administrateur pour acceder a cette page.</p>
+          <Button
+            onClick={() => router.push("/admin/login")}
+            className="bg-[#FF6B35] hover:bg-[#e55a2b] text-white"
+          >
+            Se connecter
+          </Button>
+        </div>
+      </div>
+    );
   }
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/admin/login");
+  };
 
   return (
     <div className="min-h-screen bg-[#0A1F44]">
@@ -153,7 +174,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             {/* Footer */}
             <div className="p-4 border-t border-[#1a3a6e]">
               <button
-                onClick={logout}
+                onClick={handleLogout}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[#9CA3AF] hover:bg-[#1a3a6e] hover:text-white transition-colors"
               >
                 <LogOut className="h-5 w-5" />

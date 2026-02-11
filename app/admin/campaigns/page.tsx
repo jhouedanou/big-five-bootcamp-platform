@@ -513,12 +513,12 @@ export default function CampaignsPage() {
         setIsDialogOpen(open);
         if (!open) setCurrentStep(1);
       }}>
-        <DialogContent className="bg-[#122a52] border-[#1a3a6e] text-white sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="bg-white border-gray-200 text-gray-900 sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-gray-900">
               {editingCampaign ? "Modifier la campagne" : "Ajouter une campagne"}
             </DialogTitle>
-            <DialogDescription className="text-[#9CA3AF]">
+            <DialogDescription className="text-gray-500">
               {editingCampaign
                 ? "Modifiez les informations de la campagne."
                 : "Remplissez les informations pour creer une nouvelle campagne."}
@@ -526,7 +526,7 @@ export default function CampaignsPage() {
           </DialogHeader>
 
           {/* Stepper Header */}
-          <div className="flex items-center justify-between px-2 py-4 border-b border-[#1a3a6e]">
+          <div className="flex items-center justify-between px-2 py-4 border-b border-gray-200">
             {FORM_STEPS.map((step, index) => (
               <div key={step.id} className="flex items-center">
                 <div 
@@ -540,10 +540,10 @@ export default function CampaignsPage() {
                     className={cn(
                       "flex items-center justify-center w-8 h-8 rounded-full border-2 transition-colors",
                       currentStep === step.id 
-                        ? "border-[#FF6B35] bg-[#FF6B35] text-white" 
+                        ? "border-primary bg-primary text-white" 
                         : currentStep > step.id 
                           ? "border-green-500 bg-green-500 text-white"
-                          : "border-[#9CA3AF]/30 text-[#9CA3AF]"
+                          : "border-gray-300 text-gray-400"
                     )}
                   >
                     {currentStep > step.id ? (
@@ -555,7 +555,7 @@ export default function CampaignsPage() {
                   <div className="ml-2 hidden sm:block">
                     <p className={cn(
                       "text-xs font-medium",
-                      currentStep === step.id ? "text-white" : "text-[#9CA3AF]"
+                      currentStep === step.id ? "text-gray-900" : "text-gray-500"
                     )}>
                       {step.title}
                     </p>
@@ -565,7 +565,7 @@ export default function CampaignsPage() {
                   <div 
                     className={cn(
                       "w-8 sm:w-16 h-0.5 mx-2",
-                      currentStep > step.id ? "bg-green-500" : "bg-[#9CA3AF]/30"
+                      currentStep > step.id ? "bg-green-500" : "bg-gray-200"
                     )} 
                   />
                 )}
@@ -574,18 +574,18 @@ export default function CampaignsPage() {
           </div>
 
           {/* Form Content */}
-          <div className="flex-1 overflow-y-auto py-4 space-y-4">
+          <div className="flex-1 overflow-y-auto py-4 space-y-4 px-1">
             {/* Step 1: Basic Information */}
             {currentStep === 1 && (
               <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                 {/* Title */}
                 <div className="space-y-2">
-                  <Label htmlFor="camp-title">Titre *</Label>
+                  <Label htmlFor="camp-title" className="text-gray-700">Titre *</Label>
                   <Input
                     id="camp-title"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="bg-[#071428] border-[#1a3a6e] text-white"
+                    className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                     placeholder="Ex: MTN Ghana - Mobile Money Campaign"
                   />
                 </div>
@@ -593,22 +593,22 @@ export default function CampaignsPage() {
                 {/* Brand & Agency */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="camp-brand">Marque</Label>
+                    <Label htmlFor="camp-brand" className="text-gray-700">Marque</Label>
                     <Input
                       id="camp-brand"
                       value={formData.brand}
                       onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                      className="bg-[#071428] border-[#1a3a6e] text-white"
+                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                       placeholder="Ex: MTN"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="camp-agency">Agence</Label>
+                    <Label htmlFor="camp-agency" className="text-gray-700">Agence</Label>
                     <Input
                       id="camp-agency"
                       value={formData.agency}
                       onChange={(e) => setFormData({ ...formData, agency: e.target.value })}
-                      className="bg-[#071428] border-[#1a3a6e] text-white"
+                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                       placeholder="Ex: Ogilvy Africa"
                     />
                   </div>
@@ -617,15 +617,15 @@ export default function CampaignsPage() {
                 {/* Platform & Country */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Plateforme</Label>
+                    <Label className="text-gray-700">Plateforme</Label>
                     <Select
                       value={formData.platform}
                       onValueChange={(value) => setFormData({ ...formData, platform: value })}
                     >
-                      <SelectTrigger className="bg-[#071428] border-[#1a3a6e] text-white">
+                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#071428] border-[#1a3a6e] text-white">
+                      <SelectContent className="bg-white border-gray-200 text-gray-900">
                         {platforms.map((p) => (
                           <SelectItem key={p} value={p}>{p}</SelectItem>
                         ))}
@@ -633,15 +633,15 @@ export default function CampaignsPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Pays</Label>
+                    <Label className="text-gray-700">Pays</Label>
                     <Select
                       value={formData.country}
                       onValueChange={(value) => setFormData({ ...formData, country: value })}
                     >
-                      <SelectTrigger className="bg-[#071428] border-[#1a3a6e] text-white">
+                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#071428] border-[#1a3a6e] text-white">
+                      <SelectContent className="bg-white border-gray-200 text-gray-900">
                         {countries.map((c) => (
                           <SelectItem key={c} value={c}>{c}</SelectItem>
                         ))}
@@ -653,15 +653,15 @@ export default function CampaignsPage() {
                 {/* Sector & Format */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Secteur</Label>
+                    <Label className="text-gray-700">Secteur</Label>
                     <Select
                       value={formData.sector}
                       onValueChange={(value) => setFormData({ ...formData, sector: value })}
                     >
-                      <SelectTrigger className="bg-[#071428] border-[#1a3a6e] text-white">
+                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#071428] border-[#1a3a6e] text-white">
+                      <SelectContent className="bg-white border-gray-200 text-gray-900">
                         {sectors.map((s) => (
                           <SelectItem key={s} value={s}>{s}</SelectItem>
                         ))}
@@ -669,15 +669,15 @@ export default function CampaignsPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Format</Label>
+                    <Label className="text-gray-700">Format</Label>
                     <Select
                       value={formData.format}
                       onValueChange={(value) => setFormData({ ...formData, format: value })}
                     >
-                      <SelectTrigger className="bg-[#071428] border-[#1a3a6e] text-white">
+                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#071428] border-[#1a3a6e] text-white">
+                      <SelectContent className="bg-white border-gray-200 text-gray-900">
                         {formats.map((f) => (
                           <SelectItem key={f} value={f}>{f}</SelectItem>
                         ))}
@@ -689,48 +689,48 @@ export default function CampaignsPage() {
                 {/* Date & Year */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="camp-date">Date</Label>
+                    <Label htmlFor="camp-date" className="text-gray-700">Date</Label>
                     <Input
                       id="camp-date"
                       value={formData.date}
                       onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                      className="bg-[#071428] border-[#1a3a6e] text-white"
+                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                       placeholder="Ex: Jan 2024"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="camp-year">Annee</Label>
+                    <Label htmlFor="camp-year" className="text-gray-700">Annee</Label>
                     <Input
                       id="camp-year"
                       type="number"
                       value={formData.year}
                       onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) || new Date().getFullYear() })}
-                      className="bg-[#071428] border-[#1a3a6e] text-white"
+                      className="bg-white border-gray-300 text-gray-900"
                     />
                   </div>
                 </div>
 
                 {/* Status */}
                 <div className="space-y-2">
-                  <Label>Statut de publication</Label>
+                  <Label className="text-gray-700">Statut de publication</Label>
                   <Select
                     value={formData.status || "Brouillon"}
                     onValueChange={(value: "Brouillon" | "En attente" | "Publié") => setFormData({ ...formData, status: value })}
                   >
-                    <SelectTrigger className="bg-[#071428] border-[#1a3a6e] text-white">
+                    <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#071428] border-[#1a3a6e] text-white">
+                    <SelectContent className="bg-white border-gray-200 text-gray-900">
                       {statuses.map((s) => (
                         <SelectItem key={s} value={s}>
                           <span className={`inline-flex items-center gap-2 ${
-                            s === "Publié" ? "text-green-400" : 
-                            s === "En attente" ? "text-yellow-400" : 
-                            "text-gray-400"
+                            s === "Publié" ? "text-green-600" : 
+                            s === "En attente" ? "text-yellow-600" : 
+                            "text-gray-500"
                           }`}>
                             <span className={`w-2 h-2 rounded-full ${
-                              s === "Publié" ? "bg-green-400" : 
-                              s === "En attente" ? "bg-yellow-400" : 
+                              s === "Publié" ? "bg-green-500" : 
+                              s === "En attente" ? "bg-yellow-500" : 
                               "bg-gray-400"
                             }`}></span>
                             {s}
@@ -748,16 +748,16 @@ export default function CampaignsPage() {
               <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                 {/* Image principale */}
                 <div className="space-y-2">
-                  <Label htmlFor="camp-img">Image principale (thumbnail) *</Label>
+                  <Label htmlFor="camp-img" className="text-gray-700">Image principale (thumbnail) *</Label>
                   <Input
                     id="camp-img"
                     value={formData.imageUrl}
                     onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                    className="bg-[#071428] border-[#1a3a6e] text-white"
+                    className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                     placeholder="https://images.unsplash.com/..."
                   />
                   {formData.imageUrl && (
-                    <div className="w-32 h-32 rounded-lg overflow-hidden bg-[#1a3a6e] mt-2">
+                    <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-100 mt-2 border border-gray-200">
                       <img src={formData.imageUrl} alt="Principale" className="w-full h-full object-cover" />
                     </div>
                   )}
@@ -765,7 +765,7 @@ export default function CampaignsPage() {
 
                 {/* Images supplementaires */}
                 <div className="space-y-2">
-                  <Label>Visuels supplementaires</Label>
+                  <Label className="text-gray-700">Visuels supplementaires</Label>
                   <div className="flex gap-2">
                     <Input
                       value={imageInput}
@@ -776,14 +776,14 @@ export default function CampaignsPage() {
                           handleAddImage();
                         }
                       }}
-                      className="bg-[#071428] border-[#1a3a6e] text-white"
+                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                       placeholder="URL d'une image supplementaire..."
                     />
                     <Button
                       type="button"
                       onClick={handleAddImage}
                       variant="outline"
-                      className="border-[#1a3a6e] text-white hover:bg-[#1a3a6e]"
+                      className="border-gray-300 text-gray-700 hover:bg-gray-100"
                     >
                       <ImagePlus className="h-4 w-4" />
                     </Button>
@@ -791,12 +791,13 @@ export default function CampaignsPage() {
                   {(formData.images || []).length > 0 && (
                     <div className="flex flex-wrap gap-2 mt-2">
                       {(formData.images || []).map((img, idx) => (
-                        <div key={idx} className="relative group w-20 h-20 rounded-lg overflow-hidden bg-[#1a3a6e]">
+                        <div key={idx} className="relative group w-20 h-20 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
                           <img src={img} alt={`Visuel ${idx + 1}`} className="w-full h-full object-cover" />
                           <button
                             type="button"
                             onClick={() => handleRemoveImage(img)}
                             className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="Supprimer"
                           >
                             <X className="h-3 w-3" />
                           </button>
@@ -808,7 +809,7 @@ export default function CampaignsPage() {
 
                 {/* URL Video */}
                 <div className="space-y-2">
-                  <Label htmlFor="camp-video-url">
+                  <Label htmlFor="camp-video-url" className="text-gray-700">
                     <Video className="h-4 w-4 inline mr-1" />
                     URL de la video (YouTube embed, etc.)
                   </Label>
@@ -816,7 +817,7 @@ export default function CampaignsPage() {
                     id="camp-video-url"
                     value={formData.videoUrl || ""}
                     onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
-                    className="bg-[#071428] border-[#1a3a6e] text-white"
+                    className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                     placeholder="https://www.youtube.com/embed/..."
                   />
                 </div>
@@ -828,7 +829,7 @@ export default function CampaignsPage() {
                     checked={formData.isVideo || !!(formData.videoUrl && formData.videoUrl.trim())}
                     onCheckedChange={(checked) => setFormData({ ...formData, isVideo: !!checked })}
                   />
-                  <Label htmlFor="camp-video" className="cursor-pointer">
+                  <Label htmlFor="camp-video" className="cursor-pointer text-gray-700">
                     Cette campagne contient une video
                   </Label>
                 </div>
@@ -840,18 +841,18 @@ export default function CampaignsPage() {
               <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                 {/* Description with WYSIWYG */}
                 <div className="space-y-2">
-                  <Label>Description</Label>
+                  <Label className="text-gray-700">Description</Label>
                   <RichTextEditor
                     content={formData.description}
                     onChange={(content) => setFormData({ ...formData, description: content })}
                     placeholder="Decrivez la campagne, son contexte, ses resultats..."
-                    className="bg-[#071428] border-[#1a3a6e]"
+                    className="bg-white border-gray-300"
                   />
                 </div>
 
                 {/* Tags */}
                 <div className="space-y-2">
-                  <Label>Tags</Label>
+                  <Label className="text-gray-700">Tags</Label>
                   <div className="flex gap-2">
                     <Input
                       value={tagInput}
@@ -862,14 +863,14 @@ export default function CampaignsPage() {
                           handleAddTag();
                         }
                       }}
-                      className="bg-[#071428] border-[#1a3a6e] text-white"
+                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                       placeholder="Ajouter un tag..."
                     />
                     <Button
                       type="button"
                       onClick={handleAddTag}
                       variant="outline"
-                      className="border-[#1a3a6e] text-white hover:bg-[#1a3a6e]"
+                      className="border-gray-300 text-gray-700 hover:bg-gray-100"
                     >
                       +
                     </Button>
@@ -879,13 +880,14 @@ export default function CampaignsPage() {
                       {formData.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-[#FF6B35]/20 text-[#FF6B35]"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-primary/10 text-primary"
                         >
                           {tag}
                           <button
                             type="button"
                             onClick={() => handleRemoveTag(tag)}
-                            className="hover:text-white ml-1"
+                            className="hover:text-primary/70 ml-1"
+                            title="Supprimer le tag"
                           >
                             x
                           </button>
@@ -899,14 +901,14 @@ export default function CampaignsPage() {
           </div>
 
           {/* Footer with Navigation */}
-          <DialogFooter className="border-t border-[#1a3a6e] pt-4 flex-row justify-between">
+          <DialogFooter className="border-t border-gray-200 pt-4 flex-row justify-between">
             <div>
               {currentStep > 1 && (
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setCurrentStep(prev => prev - 1)}
-                  className="border-[#1a3a6e] text-white hover:bg-[#1a3a6e] gap-2"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-100 gap-2"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Précédent
@@ -918,7 +920,7 @@ export default function CampaignsPage() {
                 type="button"
                 variant="outline"
                 onClick={() => setIsDialogOpen(false)}
-                className="border-[#1a3a6e] text-white hover:bg-[#1a3a6e]"
+                className="border-gray-300 text-gray-700 hover:bg-gray-100"
               >
                 Annuler
               </Button>
@@ -927,7 +929,7 @@ export default function CampaignsPage() {
                   type="button"
                   onClick={() => setCurrentStep(prev => prev + 1)}
                   disabled={currentStep === 1 && !formData.title.trim()}
-                  className="bg-[#FF6B35] hover:bg-[#e55a2b] text-white gap-2"
+                  className="bg-primary hover:bg-primary/90 text-white gap-2"
                 >
                   Suivant
                   <ChevronRight className="h-4 w-4" />
@@ -936,7 +938,7 @@ export default function CampaignsPage() {
                 <Button 
                   type="button"
                   onClick={handleSubmit}
-                  className="bg-[#FF6B35] hover:bg-[#e55a2b] text-white"
+                  className="bg-primary hover:bg-primary/90 text-white"
                 >
                   {editingCampaign ? "Enregistrer" : "Ajouter"}
                 </Button>

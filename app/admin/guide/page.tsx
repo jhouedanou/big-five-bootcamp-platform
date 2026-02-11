@@ -150,29 +150,29 @@ export default function GuidePage() {
     <div className="p-6 lg:p-8 space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-white font-[family-name:var(--font-heading)]">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-[family-name:var(--font-heading)]">
           Guide d&apos;utilisation
         </h1>
-        <p className="text-[#9CA3AF] mt-1">
-          Comment mettre a jour les exemples de campagnes et formations sur la plateforme
+        <p className="text-gray-600 mt-1">
+          Comment mettre à jour les exemples de campagnes et formations sur la plateforme
         </p>
       </div>
 
       {/* Quick Info Card */}
-      <Card className="bg-[#FF6B35]/10 border-[#FF6B35]/30">
+      <Card className="bg-orange-50 border-orange-200">
         <CardContent className="p-6">
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-lg bg-[#FF6B35]/20 flex items-center justify-center flex-shrink-0">
               <AlertCircle className="h-5 w-5 text-[#FF6B35]" />
             </div>
             <div>
-              <h3 className="text-white font-semibold mb-1">Informations de connexion</h3>
-              <p className="text-[#9CA3AF] text-sm">
-                <strong className="text-white">Email :</strong> jeffrey@bigfive.com
+              <h3 className="text-gray-900 font-semibold mb-1">Informations de connexion</h3>
+              <p className="text-gray-600 text-sm">
+                <strong className="text-gray-900">Email :</strong> jeffrey@bigfive.com
                 <br />
-                <strong className="text-white">Mot de passe :</strong> admin2014!k
+                <strong className="text-gray-900">Mot de passe :</strong> admin2014!k
                 <br />
-                <strong className="text-white">URL :</strong> /admin/login
+                <strong className="text-gray-900">URL :</strong> /admin/login
               </p>
             </div>
           </div>
@@ -181,19 +181,19 @@ export default function GuidePage() {
 
       {/* Steps */}
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-white font-[family-name:var(--font-heading)]">
-          Etapes detaillees
+        <h2 className="text-xl font-semibold text-gray-900 font-[family-name:var(--font-heading)]">
+          Étapes détaillées
         </h2>
         {steps.map((step) => (
-          <Card key={step.id} className="bg-[#122a52] border-[#1a3a6e]">
+          <Card key={step.id} className="bg-white border-gray-200 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-3 text-white">
+              <CardTitle className="flex items-center gap-3 text-gray-900">
                 <div className={`w-10 h-10 rounded-lg ${step.bgColor} flex items-center justify-center flex-shrink-0`}>
                   <step.icon className={`h-5 w-5 ${step.color}`} />
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs font-normal text-[#9CA3AF] bg-[#1a3a6e] px-2 py-0.5 rounded-full">
-                    Etape {step.id}
+                  <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                    Étape {step.id}
                   </span>
                   <span className="text-base">{step.title}</span>
                 </div>
@@ -202,7 +202,7 @@ export default function GuidePage() {
             <CardContent className="pt-0 pl-[4.5rem]">
               <ul className="space-y-2">
                 {step.content.map((line, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-sm text-[#9CA3AF]">
+                  <li key={idx} className="flex items-start gap-2 text-sm text-gray-600">
                     {line.startsWith("  -") ? (
                       <>
                         <span className="text-[#FF6B35] mt-0.5 ml-4">-</span>

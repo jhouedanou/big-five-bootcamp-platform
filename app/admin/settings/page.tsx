@@ -25,10 +25,10 @@ export default function SettingsPage() {
     <div className="p-6 lg:p-8 space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white font-[family-name:var(--font-heading)]">
-            Parametres
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-[family-name:var(--font-heading)]">
+            Paramètres
           </h1>
-          <p className="text-[#9CA3AF] mt-1">
+          <p className="text-gray-600 mt-1">
             Configuration globale de la plateforme
           </p>
         </div>
@@ -40,19 +40,19 @@ export default function SettingsPage() {
 
       <div className="grid gap-6">
         {/* General Settings */}
-        <Card className="bg-[#122a52] border-[#1a3a6e]">
+        <Card className="bg-white border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-white">General</CardTitle>
-            <CardDescription className="text-[#9CA3AF]">
-              Parametres generaux de l'application
+            <CardTitle className="text-gray-900">Général</CardTitle>
+            <CardDescription className="text-gray-600">
+              Paramètres généraux de l'application
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label className="text-white text-base">Mode Maintenance</Label>
-                <p className="text-sm text-[#9CA3AF]">
-                  Desactive l'acces public au site pour maintenance
+                <Label className="text-gray-900 text-base">Mode Maintenance</Label>
+                <p className="text-sm text-gray-600">
+                  Désactive l'accès public au site pour maintenance
                 </p>
               </div>
               <Switch
@@ -62,8 +62,8 @@ export default function SettingsPage() {
             </div>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label className="text-white text-base">Inscriptions</Label>
-                <p className="text-sm text-[#9CA3AF]">
+                <Label className="text-gray-900 text-base">Inscriptions</Label>
+                <p className="text-sm text-gray-600">
                   Autoriser les nouvelles inscriptions utilisateurs
                 </p>
               </div>
@@ -76,18 +76,18 @@ export default function SettingsPage() {
         </Card>
 
         {/* Access Settings */}
-        <Card className="bg-[#122a52] border-[#1a3a6e]">
+        <Card className="bg-white border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-white">Acces et Paiements</CardTitle>
-            <CardDescription className="text-[#9CA3AF]">
-              Configuration des acces par defaut
+            <CardTitle className="text-gray-900">Accès et Paiements</CardTitle>
+            <CardDescription className="text-gray-600">
+              Configuration des accès par défaut
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label className="text-white text-base">Acces Public</Label>
-                <p className="text-sm text-[#9CA3AF]">
+                <Label className="text-gray-900 text-base">Accès Public</Label>
+                <p className="text-sm text-gray-600">
                   Le contenu gratuit est visible sans connexion
                 </p>
               </div>
@@ -100,18 +100,18 @@ export default function SettingsPage() {
         </Card>
 
         {/* Notifications */}
-        <Card className="bg-[#122a52] border-[#1a3a6e]">
+        <Card className="bg-white border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-white">Notifications</CardTitle>
-            <CardDescription className="text-[#9CA3AF]">
+            <CardTitle className="text-gray-900">Notifications</CardTitle>
+            <CardDescription className="text-gray-600">
               Configuration des emails automatiques
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label className="text-white text-base">Emails Transactionnels</Label>
-                <p className="text-sm text-[#9CA3AF]">
+                <Label className="text-gray-900 text-base">Emails Transactionnels</Label>
+                <p className="text-sm text-gray-600">
                   Envoyer des emails de bienvenue et de confirmation
                 </p>
               </div>

@@ -75,11 +75,11 @@ DATABASE_URL="postgresql://postgres.jyycgendzegiazltvarx:VOTRE_MOT_DE_PASSE_ICI@
 
 ## 🚀 Configuration Vercel (Production)
 
-Pour le site déployé sur `v0-big-five-bootcamp-platform.vercel.app` :
+Pour le site déployé sur `v0-big-five-Creative Library-platform.vercel.app` :
 
 1. **Aller sur Vercel Dashboard**
    - https://vercel.com/dashboard
-   - Sélectionner le projet `v0-big-five-bootcamp-platform`
+   - Sélectionner le projet `v0-big-five-Creative Library-platform`
 
 2. **Configurer les variables d'environnement**
    - Settings → Environment Variables
@@ -90,8 +90,8 @@ NEXT_PUBLIC_SUPABASE_URL=https://jyycgendzegiazltvarx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 SUPABASE_SERVICE_ROLE_KEY=sb_secret_skP7cY1zH_YOoE3VZq76Iw_amo0wfO3
 DATABASE_URL=postgresql://postgres.jyycgendzegiazltvarx:MOT_DE_PASSE@aws-0-eu-central-1.pooler.supabase.com:6543/postgres
-NEXTAUTH_URL=https://v0-big-five-bootcamp-platform.vercel.app
-NEXTAUTH_SECRET=bf5-bootcamp-secret-key-change-in-production
+NEXTAUTH_URL=https://v0-big-five-Creative Library-platform.vercel.app
+NEXTAUTH_SECRET=bf5-Creative Library-secret-key-change-in-production
 ```
 
 3. **Redéployer**
@@ -110,7 +110,7 @@ Pour vérifier que tout fonctionne :
 2. **En production** :
    ```bash
    # Tester la connexion
-   curl https://v0-big-five-bootcamp-platform.vercel.app/api/test-supabase
+   curl https://v0-big-five-Creative Library-platform.vercel.app/api/test-supabase
    ```
 
 ## 🆘 Problèmes courants

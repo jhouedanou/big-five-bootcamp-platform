@@ -16,8 +16,8 @@ Le fichier `supabase-schema.sql` a été mis à jour avec :
   - Champs : title, description, brand, category, thumbnail, images[], video_url, platforms[], duration, target_audience, tags[], status, author_id
   - Statuts : 'Publié' | 'Brouillon' | 'En attente'
 
-#### Tables bootcamp (déjà présentes) :
-- `bootcamps` - Thématiques de bootcamp
+#### Tables Creative Library (déjà présentes) :
+- `Creative Librarys` - Thématiques de Creative Library
 - `sessions` - Sessions programmées
 - `registrations` - Inscriptions participants
 
@@ -81,7 +81,7 @@ Le fichier `app/admin/AdminContext.tsx` a été mis à jour pour :
 - Users peuvent modifier leurs propres campagnes
 - Admins peuvent tout gérer
 
-**Bootcamps & Sessions :**
+**Creative Librarys & Sessions :**
 - Lecture publique
 - Écriture admin seulement
 
@@ -107,12 +107,12 @@ Le fichier `app/admin/AdminContext.tsx` a été mis à jour pour :
 2. **Email** provider devrait déjà être activé
 3. Configurer les URLs de redirection :
    - **Site URL** (Local): `http://localhost:3000`
-   - **Site URL** (Production): `https://v0-big-five-bootcamp-platform.vercel.app`
+   - **Site URL** (Production): `https://v0-big-five-Creative Library-platform.vercel.app`
    - **Redirect URLs**: 
      - `http://localhost:3000/auth/callback`
-     - `https://v0-big-five-bootcamp-platform.vercel.app/auth/callback`
+     - `https://v0-big-five-Creative Library-platform.vercel.app/auth/callback`
      - `http://localhost:3000/dashboard`
-     - `https://v0-big-five-bootcamp-platform.vercel.app/dashboard`
+     - `https://v0-big-five-Creative Library-platform.vercel.app/dashboard`
 
 4. Dans **Email Templates**, personnaliser les emails (optionnel) :
    - Confirmation d'inscription
@@ -161,12 +161,12 @@ VALUES (
    http://localhost:3000/api/test-supabase
    
    # En production
-   https://v0-big-five-bootcamp-platform.vercel.app/api/test-supabase
+   https://v0-big-five-Creative Library-platform.vercel.app/api/test-supabase
    ```
 
 2. **Se connecter**
    - Local: Aller sur `http://localhost:3000/auth`
-   - Production: Aller sur `https://v0-big-five-bootcamp-platform.vercel.app/auth`
+   - Production: Aller sur `https://v0-big-five-Creative Library-platform.vercel.app/auth`
    - Se connecter avec le compte admin
    - Vérifier la redirection vers `/dashboard`
 
@@ -207,7 +207,7 @@ Ou créer un script de migration.
 - [ ] URLs de redirection Supabase configurées pour production
 - [ ] Tests de l'API `/api/test-supabase` OK (local + production)
 - [ ] `NEXTAUTH_URL` mis à jour pour production
-- [ ] `NEXTAUTH_SECRET` changé (différent de "bf5-bootcamp-secret-key-change-in-production")
+- [ ] `NEXTAUTH_SECRET` changé (différent de "bf5-Creative Library-secret-key-change-in-production")
 
 ## 🚀 Déploiement Vercel
 
@@ -215,7 +215,7 @@ Ou créer un script de migration.
 
 1. **Aller sur Vercel Dashboard**
    - https://vercel.com/dashboard
-   - Sélectionner le projet `v0-big-five-bootcamp-platform`
+   - Sélectionner le projet `v0-big-five-Creative Library-platform`
 
 2. **Settings → Environment Variables**
 
@@ -231,7 +231,7 @@ SUPABASE_SERVICE_ROLE_KEY=sb_secret_skP7cY1zH_YOoE3VZq76Iw_amo0wfO3
 DATABASE_URL=postgresql://postgres.jyycgendzegiazltvarx:[VOTRE-PASSWORD]@aws-0-eu-central-1.pooler.supabase.com:6543/postgres
 
 # NextAuth
-NEXTAUTH_URL=https://v0-big-five-bootcamp-platform.vercel.app
+NEXTAUTH_URL=https://v0-big-five-Creative Library-platform.vercel.app
 NEXTAUTH_SECRET=GENERER-UN-NOUVEAU-SECRET-SECURISE
 
 # Stripe (si utilisé)
@@ -258,11 +258,11 @@ Copier le résultat et l'utiliser comme `NEXTAUTH_SECRET`
 
 1. **Tester l'API**
    ```bash
-   curl https://v0-big-five-bootcamp-platform.vercel.app/api/test-supabase
+   curl https://v0-big-five-Creative Library-platform.vercel.app/api/test-supabase
    ```
 
 2. **Tester l'authentification**
-   - Aller sur https://v0-big-five-bootcamp-platform.vercel.app/auth
+   - Aller sur https://v0-big-five-Creative Library-platform.vercel.app/auth
    - Créer un compte ou se connecter
 
 3. **Vérifier les logs Vercel**
@@ -283,7 +283,7 @@ Copier le résultat et l'utiliser comme `NEXTAUTH_SECRET`
    - Créer API routes `/api/contents`
    - Migrer AdminContext
 
-3. **Bootcamps & Sessions** (déjà dans le schéma)
+3. **Creative Librarys & Sessions** (déjà dans le schéma)
    - Créer les pages frontend
    - Utiliser les exemples dans `lib/supabase-examples.ts`
 

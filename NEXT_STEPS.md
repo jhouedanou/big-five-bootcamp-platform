@@ -26,8 +26,8 @@
 
 3. **Vérifier les tables créées**
    - Aller dans **Table Editor**
-   - Vous devriez voir 3 tables : `bootcamps`, `sessions`, `registrations`
-   - Cliquer sur `bootcamps` → vous devriez voir 1 ligne (Social Media Management)
+   - Vous devriez voir 3 tables : `Creative Librarys`, `sessions`, `registrations`
+   - Cliquer sur `Creative Librarys` → vous devriez voir 1 ligne (Social Media Management)
    - Cliquer sur `sessions` → vous devriez voir 2 lignes
 
 ### Étape 2 : Récupérer la vraie clé API ⏱️ 2 minutes
@@ -60,7 +60,7 @@ import { supabase } from '@/lib/supabase'
 export async function GET() {
   try {
     const { data, error } = await supabase
-      .from('bootcamps')
+      .from('Creative Librarys')
       .select('title')
       .limit(1)
 
@@ -69,7 +69,7 @@ export async function GET() {
     return NextResponse.json({ 
       success: true, 
       message: 'Connexion Supabase OK!',
-      bootcamp: data[0]?.title 
+      Creative Library: data[0]?.title 
     })
   } catch (error: any) {
     return NextResponse.json({ 
@@ -84,12 +84,12 @@ Puis tester : http://localhost:3000/api/test-supabase
 
 ### Étape 5 : Ajouter plus de données (optionnel) ⏱️ 10 minutes
 
-Créer plus de bootcamps pour le catalogue :
+Créer plus de Creative Librarys pour le catalogue :
 
 ```sql
 -- Dans le SQL Editor de Supabase
 
-INSERT INTO bootcamps (
+INSERT INTO Creative Librarys (
   slug,
   title,
   tagline,
@@ -141,8 +141,8 @@ INSERT INTO bootcamps (
 Avant de passer à la création des pages :
 
 - [ ] Schéma SQL exécuté avec succès
-- [ ] Tables `bootcamps`, `sessions`, `registrations` visibles dans Table Editor
-- [ ] Au moins 1 bootcamp et 2 sessions dans la base
+- [ ] Tables `Creative Librarys`, `sessions`, `registrations` visibles dans Table Editor
+- [ ] Au moins 1 Creative Library et 2 sessions dans la base
 - [ ] Clé API `NEXT_PUBLIC_SUPABASE_ANON_KEY` mise à jour dans `.env`
 - [ ] Test de connexion réussi (`/api/test-supabase`)
 - [ ] Serveur Next.js redémarré pour charger les nouvelles variables d'env
@@ -151,10 +151,10 @@ Avant de passer à la création des pages :
 
 Une fois Supabase configuré, nous pourrons créer :
 
-1. **Homepage** (`/`) - Avec les bootcamps en vedette depuis Supabase
-2. **Catalogue** (`/bootcamps`) - Liste tous les bootcamps
-3. **Détail bootcamp** (`/bootcamps/[slug]`) - Page de vente
-4. **Sélection session** (`/bootcamps/[slug]/sessions`) - Choix de la date
+1. **Homepage** (`/`) - Avec les Creative Librarys en vedette depuis Supabase
+2. **Catalogue** (`/Creative Librarys`) - Liste tous les Creative Librarys
+3. **Détail Creative Library** (`/Creative Librarys/[slug]`) - Page de vente
+4. **Sélection session** (`/Creative Librarys/[slug]/sessions`) - Choix de la date
 5. **Checkout** (`/checkout`) - Inscription et paiement
 6. **Confirmation** (`/confirmation`) - Page de succès
 

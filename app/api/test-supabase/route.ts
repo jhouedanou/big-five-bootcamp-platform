@@ -5,7 +5,7 @@ export async function GET() {
   try {
     // Test de connexion à Supabase
     const { data, error, count } = await supabase
-      .from('bootcamps')
+      .from('Creative Librarys')
       .select('id, title, slug', { count: 'exact' })
       .limit(5)
 
@@ -15,8 +15,8 @@ export async function GET() {
       success: true, 
       message: '✅ Connexion Supabase réussie!',
       stats: {
-        total_bootcamps: count,
-        sample_bootcamps: data
+        total_Creative Librarys: count,
+        sample_Creative Librarys: data
       },
       next_steps: [
         '1. Vérifier que les données sont bien présentes',

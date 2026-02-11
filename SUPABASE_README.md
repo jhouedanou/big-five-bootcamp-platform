@@ -1,4 +1,4 @@
-# Configuration Supabase - Big Five Bootcamp Platform
+# Configuration Supabase - Big Five Creative Library Platform
 
 ## 📋 Informations du projet
 
@@ -17,11 +17,11 @@
 5. Exécutez le script SQL
 
 Cela va créer :
-- ✅ Tables `bootcamps`, `sessions`, `registrations`
+- ✅ Tables `Creative Librarys`, `sessions`, `registrations`
 - ✅ Index pour les performances
 - ✅ Triggers pour `updated_at` et `available_spots`
 - ✅ Row Level Security (RLS) policies
-- ✅ Données de démonstration (1 bootcamp avec 2 sessions)
+- ✅ Données de démonstration (1 Creative Library avec 2 sessions)
 
 ### 2. Vérifier les clés API
 
@@ -49,25 +49,25 @@ Si vous voulez utiliser Supabase Auth au lieu de NextAuth :
 
 ### 4. Configuration du Storage (pour les images)
 
-Pour uploader les images des trainers et bootcamps :
+Pour uploader les images des trainers et Creative Librarys :
 
 1. Allez dans **Storage**
-2. Créez un bucket `bootcamp-images`
+2. Créez un bucket `Creative Library-images`
 3. Configurez les policies :
 
 ```sql
 -- Tout le monde peut lire
-CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id = 'bootcamp-images');
+CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id = 'Creative Library-images');
 
 -- Seuls les admins peuvent uploader
 CREATE POLICY "Admin Upload" ON storage.objects FOR INSERT 
-WITH CHECK (bucket_id = 'bootcamp-images' AND auth.jwt() ->> 'role' = 'admin');
+WITH CHECK (bucket_id = 'Creative Library-images' AND auth.jwt() ->> 'role' = 'admin');
 ```
 
 ## 📊 Structure de la base de données
 
-### Table `bootcamps`
-Stocke les thématiques de bootcamps (produits).
+### Table `Creative Librarys`
+Stocke les thématiques de Creative Librarys (produits).
 
 **Champs principaux** :
 - `slug` : identifiant URL unique (ex: `social-media-management-avance`)
@@ -79,10 +79,10 @@ Stocke les thématiques de bootcamps (produits).
 - `faq` : JSON avec questions/réponses
 
 ### Table `sessions`
-Dates et lieux spécifiques pour chaque bootcamp.
+Dates et lieux spécifiques pour chaque Creative Library.
 
 **Champs principaux** :
-- `bootcamp_id` : référence au bootcamp
+- `Creative Library_id` : référence au Creative Library
 - `start_date` / `end_date` : dates de la session
 - `city`, `location` : lieu
 - `format` : 'Présentiel' ou 'Hybride'
@@ -103,7 +103,7 @@ Inscriptions des participants.
 
 Les policies configurées :
 
-### Bootcamps & Sessions
+### Creative Librarys & Sessions
 - **SELECT** : Public (tout le monde peut voir)
 - **INSERT/UPDATE/DELETE** : Admin seulement (via service role key)
 
@@ -120,24 +120,24 @@ Les policies configurées :
 ```typescript
 import { supabase } from '@/lib/supabase'
 
-// Récupérer tous les bootcamps
-const { data: bootcamps } = await supabase
-  .from('bootcamps')
+// Récupérer tous les Creative Librarys
+const { data: Creative Librarys } = await supabase
+  .from('Creative Librarys')
   .select('*')
   .order('created_at', { ascending: false })
 
-// Récupérer un bootcamp par slug
-const { data: bootcamp } = await supabase
-  .from('bootcamps')
+// Récupérer un Creative Library par slug
+const { data: Creative Library } = await supabase
+  .from('Creative Librarys')
   .select('*, sessions(*)')
   .eq('slug', 'social-media-management-avance')
   .single()
 
-// Récupérer les sessions d'un bootcamp
+// Récupérer les sessions d'un Creative Library
 const { data: sessions } = await supabase
   .from('sessions')
   .select('*')
-  .eq('bootcamp_id', bootcampId)
+  .eq('Creative Library_id', Creative LibraryId)
   .eq('status', 'Ouvert')
   .order('start_date', { ascending: true })
 ```
@@ -201,10 +201,10 @@ supabase db dump -f backup.sql
 Utilisez le SQL Editor pour importer des données en masse :
 
 ```sql
--- Exemple : importer plusieurs bootcamps
-INSERT INTO bootcamps (slug, title, ...) VALUES
-  ('bootcamp-1', 'Titre 1', ...),
-  ('bootcamp-2', 'Titre 2', ...);
+-- Exemple : importer plusieurs Creative Librarys
+INSERT INTO Creative Librarys (slug, title, ...) VALUES
+  ('Creative Library-1', 'Titre 1', ...),
+  ('Creative Library-2', 'Titre 2', ...);
 ```
 
 ## 🐛 Troubleshooting

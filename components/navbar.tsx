@@ -17,7 +17,7 @@ export function Navbar() {
             <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-[#80368D]/10 to-[#F2B33D]/10 opacity-0 blur transition-opacity duration-300 group-hover:opacity-100" />
             <Image
               src="/logo.png"
-              alt="Big Five Bootcamp"
+              alt="Big Five Creative Library"
               width={40}
               height={40}
               className="relative h-10 w-10"
@@ -25,7 +25,7 @@ export function Navbar() {
             />
           </div>
           <span className="font-[family-name:var(--font-heading)] text-xl font-bold text-[#1A1F2B]">
-            Big Five <span className="text-[#80368D]">Bootcamp</span>
+            Big Five <span className="text-[#80368D]">Creative Library</span>
           </span>
         </Link>
 

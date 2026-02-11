@@ -1,8 +1,8 @@
-# 📊 Configuration Supabase - Big Five Bootcamp Platform
+# 📊 Configuration Supabase - Big Five Creative Library Platform
 
 ## 🎯 Résumé de la configuration
 
-Supabase a été configuré avec succès pour gérer toutes les données de la plateforme bootcamp :
+Supabase a été configuré avec succès pour gérer toutes les données de la plateforme Creative Library :
 - ✅ Client Supabase installé et configuré
 - ✅ Schéma de base de données créé (3 tables)
 - ✅ Variables d'environnement ajoutées
@@ -38,7 +38,7 @@ Service Role Key: sb_secret_skP7cY1zH_YOoE3VZq76Iw_amo0wfO3
 
 ## 📊 Structure de la base de données
 
-### Table `bootcamps`
+### Table `Creative Librarys`
 Stocke les thématiques de formation (les "produits")
 
 **Champs clés** :
@@ -51,10 +51,10 @@ Stocke les thématiques de formation (les "produits")
 - `faq` : JSON questions/réponses
 
 ### Table `sessions`
-Dates et lieux spécifiques pour chaque bootcamp
+Dates et lieux spécifiques pour chaque Creative Library
 
 **Champs clés** :
-- `bootcamp_id` : Référence au bootcamp
+- `Creative Library_id` : Référence au Creative Library
 - `start_date`, `end_date` : Dates de la session
 - `city`, `location` : Lieu (ex: "Abidjan", "Big Five Campus")
 - `format` : 'Présentiel' ou 'Hybride'
@@ -82,7 +82,7 @@ Inscriptions des participants
 
 ### Row Level Security (RLS)
 
-- **Bootcamps & Sessions** : Lecture publique, écriture admin seulement
+- **Creative Librarys & Sessions** : Lecture publique, écriture admin seulement
 - **Registrations** : Création publique, lecture limitée (own data + admin)
 
 ## 🧪 Tester la configuration
@@ -100,7 +100,7 @@ Inscriptions des participants
 ### 2. Vérifier dans Table Editor
 
 Vous devriez voir :
-- ✅ 1 bootcamp : "Social Media Management Avancé"
+- ✅ 1 Creative Library : "Social Media Management Avancé"
 - ✅ 2 sessions : Mars 2026 et Avril 2026
 
 ### 3. Tester l'API
@@ -114,30 +114,30 @@ http://localhost:3000/api/test-supabase
   "success": true,
   "message": "✅ Connexion Supabase réussie!",
   "stats": {
-    "total_bootcamps": 1,
-    "sample_bootcamps": [...]
+    "total_Creative Librarys": 1,
+    "sample_Creative Librarys": [...]
   }
 }
 ```
 
 ## 💻 Exemples d'utilisation
 
-### Récupérer tous les bootcamps
+### Récupérer tous les Creative Librarys
 
 ```typescript
 import { supabase } from '@/lib/supabase'
 
-const { data: bootcamps } = await supabase
-  .from('bootcamps')
+const { data: Creative Librarys } = await supabase
+  .from('Creative Librarys')
   .select('*')
   .order('created_at', { ascending: false })
 ```
 
-### Récupérer un bootcamp avec ses sessions
+### Récupérer un Creative Library avec ses sessions
 
 ```typescript
-const { data: bootcamp } = await supabase
-  .from('bootcamps')
+const { data: Creative Library } = await supabase
+  .from('Creative Librarys')
   .select(`
     *,
     sessions (*)
@@ -173,9 +173,9 @@ Plus d'exemples dans `lib/supabase-examples.ts` 📚
 2. ✅ **Mettre à jour la clé anon** dans `.env`
 3. ✅ **Tester la connexion** via `/api/test-supabase`
 4. 🔜 **Créer les pages** :
-   - Homepage avec bootcamps en vedette
-   - Catalogue des bootcamps
-   - Page de détail bootcamp
+   - Homepage avec Creative Librarys en vedette
+   - Catalogue des Creative Librarys
+   - Page de détail Creative Library
    - Sélection de session
    - Checkout
    - Confirmation
@@ -200,5 +200,5 @@ Plus d'exemples dans `lib/supabase-examples.ts` 📚
 ---
 
 **Créé le** : 9 février 2026  
-**Projet** : Big Five Bootcamp Platform  
+**Projet** : Big Five Creative Library Platform  
 **Supabase Project** : jyycgendzegiazltvarx

@@ -54,6 +54,7 @@ export default function AdminDashboardPage() {
             <div className="text-2xl font-bold">12,234</div>
             <p className="text-xs text-muted-foreground">
               +19% par rapport au mois dernier
+            </p>
           </CardContent>
         </Card>
       </div>

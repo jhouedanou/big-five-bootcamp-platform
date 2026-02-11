@@ -18,7 +18,7 @@ export default function AboutPage() {
                             Inspirer la créativité <br /> <span className="text-[#80368D]">Africaine</span>
                         </h1>
                         <p className="text-lg text-[#1A1F2B]/70 max-w-2xl mx-auto">
-                            Big Five Bootcamp est né d'un constat simple : les créatifs africains manquent d'outils adaptés pour benchmarker et s'inspirer des meilleures campagnes locales.
+                            Big Five Creative Library est né d'un constat simple : les créatifs africains manquent d'outils adaptés pour benchmarker et s'inspirer des meilleures campagnes locales.
                         </p>
                     </div>
                 </section>

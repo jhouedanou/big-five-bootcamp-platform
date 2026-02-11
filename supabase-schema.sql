@@ -1,4 +1,4 @@
--- Big Five Bootcamp Platform - Schéma Supabase
+-- Big Five Creative Library Platform - Schéma Supabase
 -- À exécuter dans le SQL Editor de Supabase
 
 -- Enable UUID extension
@@ -42,11 +42,11 @@ CREATE TABLE IF NOT EXISTS campaigns (
 );
 
 -- ==============================================
--- PARTIE 2: SYSTÈME BOOTCAMP
+-- PARTIE 2: SYSTÈME Creative Library
 -- ==============================================
 
--- Table des bootcamps (thématiques)
-CREATE TABLE IF NOT EXISTS bootcamps (
+-- Table des Creative Librarys (thématiques)
+CREATE TABLE IF NOT EXISTS Creative Librarys (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   slug VARCHAR(255) UNIQUE NOT NULL,
   title VARCHAR(255) NOT NULL,
@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS bootcamps (
 -- Table des sessions
 CREATE TABLE IF NOT EXISTS sessions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  bootcamp_id UUID NOT NULL REFERENCES bootcamps(id) ON DELETE CASCADE,
+  Creative Library_id UUID NOT NULL REFERENCES Creative Librarys(id) ON DELETE CASCADE,
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
   location VARCHAR(255) NOT NULL,
@@ -102,7 +102,7 @@ CREATE TABLE IF NOT EXISTS registrations (
 );
 
 -- Index pour améliorer les performances
-CREATE INDEX idx_sessions_bootcamp_id ON sessions(bootcamp_id);
+CREATE INDEX idx_sessions_Creative Library_id ON sessions(Creative Library_id);
 CREATE INDEX idx_sessions_start_date ON sessions(start_date);
 CREATE INDEX idx_sessions_status ON sessions(status);
 CREATE INDEX idx_registrations_session_id ON registrations(session_id);
@@ -119,8 +119,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Triggers pour updated_at
-CREATE TRIGGER update_bootcamps_updated_at
-  BEFORE UPDATE ON bootcamps
+CREATE TRIGGER update_Creative Librarys_updated_at
+  BEFORE UPDATE ON Creative Librarys
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
@@ -181,7 +181,7 @@ CREATE TRIGGER update_available_spots_on_registration
 -- Activer RLS sur toutes les tables
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE campaigns ENABLE ROW LEVEL SECURITY;
-ALTER TABLE bootcamps ENABLE ROW LEVEL SECURITY;
+ALTER TABLE Creative Librarys ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE registrations ENABLE ROW LEVEL SECURITY;
 
@@ -243,12 +243,12 @@ CREATE POLICY "Users can delete own campaigns"
   ));
 
 -- ==============================================
--- RLS POLICIES - BOOTCAMPS & SESSIONS
+-- RLS POLICIES - Creative LibraryS & SESSIONS
 -- ==============================================
 
--- Bootcamps: tout le monde peut lire
-CREATE POLICY "Bootcamps are viewable by everyone" 
-  ON bootcamps FOR SELECT 
+-- Creative Librarys: tout le monde peut lire
+CREATE POLICY "Creative Librarys are viewable by everyone" 
+  ON Creative Librarys FOR SELECT 
   USING (true);
 
 -- Sessions: tout le monde peut lire
@@ -268,8 +268,8 @@ CREATE POLICY "Users can view own registrations"
 
 -- Données de démonstration
 
--- Insérer un bootcamp exemple (Social Media Management)
-INSERT INTO bootcamps (
+-- Insérer un Creative Library exemple (Social Media Management)
+INSERT INTO Creative Librarys (
   slug,
   title,
   tagline,
@@ -288,7 +288,7 @@ INSERT INTO bootcamps (
   'social-media-management-avance',
   'Social Media Management Avancé',
   'Passez de gestionnaire à stratège des réseaux sociaux',
-  'Maîtrisez les stratégies avancées de gestion des réseaux sociaux, de la planification stratégique à l''analyse de performance. Ce bootcamp intensif vous transformera en expert capable de piloter une stratégie social media complète et mesurable.',
+  'Maîtrisez les stratégies avancées de gestion des réseaux sociaux, de la planification stratégique à l''analyse de performance. Ce Creative Library intensif vous transformera en expert capable de piloter une stratégie social media complète et mesurable.',
   'Avancé',
   '2 jours (14 heures)',
   450000,
@@ -353,12 +353,12 @@ INSERT INTO bootcamps (
   }'::jsonb,
   '[
     {
-      "question": "Quel niveau est requis pour ce bootcamp ?",
-      "answer": "Ce bootcamp s''adresse à des professionnels ayant au minimum 1 an d''expérience en gestion de réseaux sociaux. Vous devez maîtriser les bases des principales plateformes."
+      "question": "Quel niveau est requis pour ce Creative Library ?",
+      "answer": "Ce Creative Library s''adresse à des professionnels ayant au minimum 1 an d''expérience en gestion de réseaux sociaux. Vous devez maîtriser les bases des principales plateformes."
     },
     {
       "question": "Recevrai-je un certificat ?",
-      "answer": "Oui, un certificat de participation Big Five vous sera délivré à l''issue du bootcamp."
+      "answer": "Oui, un certificat de participation Big Five vous sera délivré à l''issue du Creative Library."
     },
     {
       "question": "Le matériel est-il fourni ?",
@@ -373,7 +373,7 @@ INSERT INTO bootcamps (
 
 -- Insérer des sessions exemple
 INSERT INTO sessions (
-  bootcamp_id,
+  Creative Library_id,
   start_date,
   end_date,
   location,
@@ -393,12 +393,12 @@ SELECT
   'Sarah Koné',
   20,
   20
-FROM bootcamps b
+FROM Creative Librarys b
 WHERE b.slug = 'social-media-management-avance'
 ON CONFLICT DO NOTHING;
 
 INSERT INTO sessions (
-  bootcamp_id,
+  Creative Library_id,
   start_date,
   end_date,
   location,
@@ -418,11 +418,11 @@ SELECT
   'Sarah Koné',
   25,
   25
-FROM bootcamps b
+FROM Creative Librarys b
 WHERE b.slug = 'social-media-management-avance'
 ON CONFLICT DO NOTHING;
 
 -- Afficher les résultats
 SELECT 'Schéma créé avec succès!' as message;
-SELECT COUNT(*) as bootcamps_count FROM bootcamps;
+SELECT COUNT(*) as Creative Librarys_count FROM Creative Librarys;
 SELECT COUNT(*) as sessions_count FROM sessions;

@@ -8,6 +8,18 @@ const registerSchema = z.object({
   password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
 })
 
+// Client avec anon key pour l'inscription auth
+const supabaseAuth = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
+
+// Client avec service role key pour bypasser le RLS et insérer dans public.users
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -22,14 +34,8 @@ export async function POST(request: Request) {
 
     const { name, email, password } = validation.data
 
-    // Utiliser le client Supabase avec la clé anon (l'inscription est ouverte)
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-
     // Créer l'utilisateur dans Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
+    const { data: authData, error: authError } = await supabaseAuth.auth.signUp({
       email,
       password,
       options: {
@@ -51,8 +57,8 @@ export async function POST(request: Request) {
       throw new Error("Erreur lors de la création du compte")
     }
 
-    // Créer le profil dans la table users
-    const { error: profileError } = await supabase
+    // Créer le profil dans la table users (avec service role pour bypasser RLS)
+    const { error: profileError } = await supabaseAdmin
       .from('users')
       .insert({
         id: authData.user.id,

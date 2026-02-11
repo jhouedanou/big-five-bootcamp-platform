@@ -2,7 +2,7 @@
 
 ## 📍 URLs du projet
 
-- **Production** : https://v0-big-five-bootcamp-platform.vercel.app
+- **Production** : https://v0-big-five-Creative Library-platform.vercel.app
 - **Développement** : http://localhost:3000
 - **Supabase Dashboard** : https://supabase.com/dashboard/project/jyycgendzegiazltvarx
 
@@ -20,7 +20,7 @@ SUPABASE_SERVICE_ROLE_KEY=sb_secret_skP7cY1zH_YOoE3VZq76Iw_amo0wfO3
 
 # NextAuth
 NEXTAUTH_SECRET=votre-secret-securise-pour-production
-NEXTAUTH_URL=https://v0-big-five-bootcamp-platform.vercel.app
+NEXTAUTH_URL=https://v0-big-five-Creative Library-platform.vercel.app
 
 # Database (optionnel si vous utilisez Prisma)
 DATABASE_URL=postgresql://postgres.jyycgendzegiazltvarx:[PASSWORD]@aws-0-eu-central-1.pooler.supabase.com:6543/postgres
@@ -37,18 +37,18 @@ Dans **Supabase Dashboard** → **Authentication** → **URL Configuration** :
 
 #### Site URL
 ```
-https://v0-big-five-bootcamp-platform.vercel.app
+https://v0-big-five-Creative Library-platform.vercel.app
 ```
 
 #### Redirect URLs (ajouter les deux)
 ```
-https://v0-big-five-bootcamp-platform.vercel.app/auth/callback
+https://v0-big-five-Creative Library-platform.vercel.app/auth/callback
 http://localhost:3000/auth/callback
 ```
 
 #### Allowed Redirect URLs (pour logout)
 ```
-https://v0-big-five-bootcamp-platform.vercel.app
+https://v0-big-five-Creative Library-platform.vercel.app
 http://localhost:3000
 ```
 
@@ -60,10 +60,10 @@ http://localhost:3000
 4. Exécuter le script
 
 Cela créera :
-- ✅ Tables : `users`, `campaigns`, `bootcamps`, `sessions`, `registrations`
+- ✅ Tables : `users`, `campaigns`, `Creative Librarys`, `sessions`, `registrations`
 - ✅ RLS Policies
 - ✅ Triggers automatiques
-- ✅ Données de démonstration (1 bootcamp + 2 sessions)
+- ✅ Données de démonstration (1 Creative Library + 2 sessions)
 
 ## 📋 Checklist de déploiement
 
@@ -77,7 +77,7 @@ Cela créera :
 
 ### Après le déploiement
 
-- [ ] Tester l'API : `https://v0-big-five-bootcamp-platform.vercel.app/api/test-supabase`
+- [ ] Tester l'API : `https://v0-big-five-Creative Library-platform.vercel.app/api/test-supabase`
 - [ ] Tester l'authentification : `/auth`
 - [ ] Créer le premier admin
 - [ ] Tester la création de campagnes
@@ -86,7 +86,7 @@ Cela créera :
 
 ### Option 1 : Via l'interface web
 
-1. Aller sur https://v0-big-five-bootcamp-platform.vercel.app/auth
+1. Aller sur https://v0-big-five-Creative Library-platform.vercel.app/auth
 2. Créer un compte avec votre email professionnel
 3. Vérifier l'email de confirmation Supabase
 4. Dans Supabase Dashboard → **Table Editor** → **users**
@@ -170,7 +170,7 @@ supabase db execute --file create-admin.sql
 
 ### 1. Tester la connexion Supabase
 ```
-GET https://v0-big-five-bootcamp-platform.vercel.app/api/test-supabase
+GET https://v0-big-five-Creative Library-platform.vercel.app/api/test-supabase
 ```
 
 Doit retourner :
@@ -179,33 +179,33 @@ Doit retourner :
   "success": true,
   "message": "✅ Connexion Supabase réussie!",
   "stats": {
-    "total_bootcamps": 1,
-    "sample_bootcamps": [...]
+    "total_Creative Librarys": 1,
+    "sample_Creative Librarys": [...]
   }
 }
 ```
 
 ### 2. Tester l'authentification
 
-1. Aller sur : https://v0-big-five-bootcamp-platform.vercel.app/auth
+1. Aller sur : https://v0-big-five-Creative Library-platform.vercel.app/auth
 2. Créer un compte ou se connecter
 3. Vérifier la redirection vers `/dashboard`
 
 ### 3. Tester les campagnes (admin)
 
 1. Se connecter en tant qu'admin
-2. Aller sur : https://v0-big-five-bootcamp-platform.vercel.app/admin/campaigns
+2. Aller sur : https://v0-big-five-Creative Library-platform.vercel.app/admin/campaigns
 3. Créer une nouvelle campagne
 4. Vérifier qu'elle apparaît dans la liste
 5. Dans Supabase Table Editor, vérifier la présence dans la table `campaigns`
 
-### 4. Tester les bootcamps
+### 4. Tester les Creative Librarys
 
 ```
-GET https://v0-big-five-bootcamp-platform.vercel.app/api/bootcamps
+GET https://v0-big-five-Creative Library-platform.vercel.app/api/Creative Librarys
 ```
 
-Doit retourner la liste des bootcamps (au moins 1 : Social Media Management).
+Doit retourner la liste des Creative Librarys (au moins 1 : Social Media Management).
 
 ## 🚨 Problèmes courants
 
@@ -227,7 +227,7 @@ Doit retourner la liste des bootcamps (au moins 1 : Social Media Management).
 ## 📊 Monitoring
 
 ### Logs Vercel
-https://vercel.com/jhouedanou/v0-big-five-bootcamp-platform/logs
+https://vercel.com/jhouedanou/v0-big-five-Creative Library-platform/logs
 
 ### Logs Supabase
 https://supabase.com/dashboard/project/jyycgendzegiazltvarx/logs/explorer
@@ -280,17 +280,17 @@ vercel --prod
 - [ ] Créer premier admin
 - [ ] Tester en production
 
-### Phase 2 : Pages Bootcamp
-- [ ] Homepage avec bootcamps en vedette
-- [ ] Page catalogue des bootcamps
-- [ ] Page détail bootcamp (sales page)
+### Phase 2 : Pages Creative Library
+- [ ] Homepage avec Creative Librarys en vedette
+- [ ] Page catalogue des Creative Librarys
+- [ ] Page détail Creative Library (sales page)
 - [ ] Page sélection de session
 - [ ] Page checkout/inscription
 - [ ] Page confirmation
 
 ### Phase 3 : Admin avancé
 - [ ] Gestion des utilisateurs (table users)
-- [ ] Gestion des bootcamps (CRUD)
+- [ ] Gestion des Creative Librarys (CRUD)
 - [ ] Gestion des sessions (CRUD)
 - [ ] Dashboard analytics
 - [ ] Export de données
@@ -303,10 +303,10 @@ vercel --prod
 
 ## 🔗 Liens utiles
 
-- **Site production** : https://v0-big-five-bootcamp-platform.vercel.app
-- **Dashboard Vercel** : https://vercel.com/jhouedanou/v0-big-five-bootcamp-platform
+- **Site production** : https://v0-big-five-Creative Library-platform.vercel.app
+- **Dashboard Vercel** : https://vercel.com/jhouedanou/v0-big-five-Creative Library-platform
 - **Dashboard Supabase** : https://supabase.com/dashboard/project/jyycgendzegiazltvarx
-- **Repo GitHub** : https://github.com/jhouedanou/big-five-bootcamp-platform
+- **Repo GitHub** : https://github.com/jhouedanou/big-five-Creative Library-platform
 - **Documentation** :
   - `MIGRATION_SUPABASE.md` - Guide de migration
   - `SUPABASE_README.md` - Guide Supabase

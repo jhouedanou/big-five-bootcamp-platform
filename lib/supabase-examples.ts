@@ -5,16 +5,16 @@ import { NextResponse } from 'next/server'
 import { supabase, supabaseAdmin } from '@/lib/supabase'
 
 // ============================================
-// BOOTCAMPS
+// Creative LibraryS
 // ============================================
 
 /**
- * GET /api/bootcamps
- * Récupérer tous les bootcamps
+ * GET /api/Creative Librarys
+ * Récupérer tous les Creative Librarys
  */
-export async function GET_AllBootcamps() {
+export async function GET_AllCreative Librarys() {
   const { data, error } = await supabase
-    .from('bootcamps')
+    .from('Creative Librarys')
     .select('*')
     .order('created_at', { ascending: false })
 
@@ -26,12 +26,12 @@ export async function GET_AllBootcamps() {
 }
 
 /**
- * GET /api/bootcamps/[slug]
- * Récupérer un bootcamp par son slug avec ses sessions
+ * GET /api/Creative Librarys/[slug]
+ * Récupérer un Creative Library par son slug avec ses sessions
  */
-export async function GET_BootcampBySlug(slug: string) {
+export async function GET_Creative LibraryBySlug(slug: string) {
   const { data, error } = await supabase
-    .from('bootcamps')
+    .from('Creative Librarys')
     .select(`
       *,
       sessions (
@@ -58,13 +58,13 @@ export async function GET_BootcampBySlug(slug: string) {
 }
 
 /**
- * POST /api/bootcamps
- * Créer un nouveau bootcamp (admin only)
+ * POST /api/Creative Librarys
+ * Créer un nouveau Creative Library (admin only)
  */
-export async function POST_CreateBootcamp(bootcampData: any) {
+export async function POST_CreateCreative Library(Creative LibraryData: any) {
   const { data, error } = await supabaseAdmin
-    .from('bootcamps')
-    .insert(bootcampData)
+    .from('Creative Librarys')
+    .insert(Creative LibraryData)
     .select()
     .single()
 
@@ -80,14 +80,14 @@ export async function POST_CreateBootcamp(bootcampData: any) {
 // ============================================
 
 /**
- * GET /api/sessions?bootcamp_id=xxx
- * Récupérer les sessions d'un bootcamp
+ * GET /api/sessions?Creative Library_id=xxx
+ * Récupérer les sessions d'un Creative Library
  */
-export async function GET_SessionsByBootcamp(bootcampId: string) {
+export async function GET_SessionsByCreative Library(Creative LibraryId: string) {
   const { data, error } = await supabase
     .from('sessions')
     .select('*')
-    .eq('bootcamp_id', bootcampId)
+    .eq('Creative Library_id', Creative LibraryId)
     .order('start_date', { ascending: true })
 
   if (error) {
@@ -106,7 +106,7 @@ export async function GET_OpenSessions() {
     .from('sessions')
     .select(`
       *,
-      bootcamps (
+      Creative Librarys (
         title,
         slug,
         level,
@@ -168,7 +168,7 @@ export async function POST_CreateRegistration(registrationData: {
   // 1. Vérifier que la session existe et a des places disponibles
   const { data: session, error: sessionError } = await supabase
     .from('sessions')
-    .select('id, available_spots, status, bootcamps(price)')
+    .select('id, available_spots, status, Creative Librarys(price)')
     .eq('id', registrationData.session_id)
     .single()
 
@@ -221,7 +221,7 @@ export async function GET_UserRegistrations(email: string) {
         location,
         city,
         format,
-        bootcamps (
+        Creative Librarys (
           title,
           slug
         )
@@ -325,15 +325,15 @@ export async function GET_SessionRegistrations(sessionId: string) {
 // ============================================
 
 /**
- * GET /api/bootcamps/search?q=social&level=Avancé
- * Recherche de bootcamps avec filtres
+ * GET /api/Creative Librarys/search?q=social&level=Avancé
+ * Recherche de Creative Librarys avec filtres
  */
-export async function GET_SearchBootcamps(
+export async function GET_SearchCreative Librarys(
   searchQuery?: string,
   level?: 'Intermédiaire' | 'Avancé'
 ) {
   let query = supabase
-    .from('bootcamps')
+    .from('Creative Librarys')
     .select('*')
 
   if (searchQuery) {

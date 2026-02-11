@@ -38,7 +38,7 @@ export default function ContactPage() {
                                             </div>
                                             <div>
                                                 <p className="font-medium">Email</p>
-                                                <p className="text-sm text-muted-foreground">hello@bigfivebootcamp.com</p>
+                                                <p className="text-sm text-muted-foreground">hello@bigfiveCreative Library.com</p>
                                             </div>
                                         </div>
                                         <div className="flex items-start gap-4">

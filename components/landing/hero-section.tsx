@@ -136,7 +136,7 @@ export function HeroSection() {
                   <div className="flex-1 text-center">
                     <div className="inline-flex items-center gap-2 rounded-md bg-white px-3 py-1 text-xs font-medium text-[#1A1F2B]/70 border border-[#D0E4F2] shadow-sm">
                       <Search className="h-3 w-3" />
-                      bigfive-bootcamp.com
+                      bigfive-Creative Library.com
                     </div>
                   </div>
                   <div className="w-12"></div>
@@ -337,7 +337,7 @@ export function PricingTeaser() {
           Commencez à créer des campagnes impactantes.
         </h2>
         <p className="text-[#1A1F2B]/70 text-xl mb-10 max-w-2xl mx-auto">
-          Rejoignez des centaines de créatifs qui utilisent Big Five Bootcamp pour élever leur niveau de jeu. Sans carte bancaire requise à l'inscription.
+          Rejoignez des centaines de créatifs qui utilisent Big Five Creative Library pour élever leur niveau de jeu. Sans carte bancaire requise à l'inscription.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

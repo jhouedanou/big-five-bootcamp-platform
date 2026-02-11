@@ -126,3 +126,61 @@ export async function deleteCreative(id: string) {
         return { success: false, error: "Failed to delete creative" }
     }
 }
+
+interface CSVCreativeRow {
+    title: string
+    platform: string
+    format: string
+    sector: string
+    objective: string
+    thumbnail: string
+    videoUrl?: string
+    whyItWorks?: string
+    howToUse?: string
+}
+
+export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
+    const supabase = getSupabaseAdmin()
+    const errors: string[] = []
+    let imported = 0
+
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i]
+        
+        try {
+            const { error } = await supabase.from('campaigns').insert({
+                title: row.title.trim(),
+                category: row.sector.trim(),
+                platforms: [row.platform.trim()],
+                thumbnail: row.thumbnail.trim(),
+                video_url: row.videoUrl?.trim() || null,
+                description: [row.whyItWorks, row.howToUse].filter(Boolean).join('\n\n') || null,
+                tags: [row.format.trim(), row.objective.trim()].filter(Boolean),
+                status: 'Publié',
+            })
+
+            if (error) {
+                errors.push(`Ligne ${i + 1}: ${error.message}`)
+            } else {
+                imported++
+            }
+        } catch (error: any) {
+            errors.push(`Ligne ${i + 1}: ${error.message || 'Erreur inconnue'}`)
+        }
+    }
+
+    revalidatePath("/admin/creatives")
+    revalidatePath("/admin/campaigns")
+    revalidatePath("/library")
+
+    if (errors.length > 0) {
+        return {
+            success: imported > 0,
+            imported,
+            errors,
+            error: `${errors.length} erreur(s) sur ${rows.length} lignes`
+        }
+    }
+
+    return { success: true, imported }
+}

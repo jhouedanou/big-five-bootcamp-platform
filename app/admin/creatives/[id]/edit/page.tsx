@@ -1,4 +1,4 @@
-import { CreativeForm } from "@/components/admin/creative-form"
+import { CreativeFormMultiStep } from "@/components/admin/creative-form-multi-step"
 import { getCreativeById } from "@/app/actions/creative"
 
 export default async function EditCreativePage({ params }: { params: { id: string } }) {
@@ -14,7 +14,7 @@ export default async function EditCreativePage({ params }: { params: { id: strin
                 <h1 className="text-3xl font-bold tracking-tight text-foreground">Modifier la Créative</h1>
                 <p className="text-muted-foreground">{creative.title}</p>
             </div>
-            <CreativeForm creative={creative} isEdit />
+            <CreativeFormMultiStep creative={creative} isEdit />
         </div>
     )
 }

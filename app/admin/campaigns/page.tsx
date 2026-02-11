@@ -7,7 +7,6 @@ import type { ContentItem } from "@/components/dashboard/content-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -40,6 +39,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Send,
+  FileText,
+  Image,
+  Sparkles,
+  Check,
+  Upload,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -48,12 +52,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
+import { CSVImporter } from "@/components/admin/csv-importer";
+import { cn } from "@/lib/utils";
 
 const platforms = ["Facebook", "Instagram", "TikTok", "YouTube", "LinkedIn", "Twitter/X"];
 const countries = ["Cote d'Ivoire", "Nigeria", "Kenya", "Ghana", "Senegal", "Maroc", "Afrique du Sud"];
 const sectors = ["Telecoms", "E-commerce", "Banque/Finance", "FMCG", "Tech", "Energie", "Industrie"];
 const formats = ["Video Ad", "Story", "Carousel", "Post Social", "Campagne 360"];
 const statuses = ["Brouillon", "En attente", "Publié"] as const;
+
+const FORM_STEPS = [
+  { id: 1, title: "Informations", icon: FileText, description: "Détails de base" },
+  { id: 2, title: "Médias", icon: Image, description: "Images et vidéos" },
+  { id: 3, title: "Description", icon: Sparkles, description: "Analyse et conseils" },
+];
 
 const defaultFormData: Omit<ContentItem, "id"> = {
   title: "",
@@ -86,6 +99,7 @@ export default function CampaignsPage() {
   const [imageInput, setImageInput] = useState("");
   const [previewCampaign, setPreviewCampaign] = useState<ContentItem | null>(null);
   const [previewImageIndex, setPreviewImageIndex] = useState(0);
+  const [currentStep, setCurrentStep] = useState(1);
 
   // Ouvrir automatiquement le formulaire si ?action=new
   useEffect(() => {
@@ -112,6 +126,7 @@ export default function CampaignsPage() {
     setFormData(defaultFormData);
     setTagInput("");
     setImageInput("");
+    setCurrentStep(1);
     setIsDialogOpen(true);
   };
 
@@ -137,6 +152,7 @@ export default function CampaignsPage() {
     });
     setTagInput("");
     setImageInput("");
+    setCurrentStep(1);
     setIsDialogOpen(true);
   };
 
@@ -211,10 +227,13 @@ export default function CampaignsPage() {
             Gerez les exemples de campagnes affiches sur la plateforme ({campaigns.length} campagnes)
           </p>
         </div>
-        <Button onClick={handleOpenAdd} className="bg-[#FF6B35] hover:bg-[#e55a2b] text-white">
-          <Plus className="h-4 w-4 mr-2" />
-          Ajouter une campagne
-        </Button>
+        <div className="flex gap-2">
+          <CSVImporter onImportComplete={() => window.location.reload()} />
+          <Button onClick={handleOpenAdd} className="bg-[#FF6B35] hover:bg-[#e55a2b] text-white">
+            <Plus className="h-4 w-4 mr-2" />
+            Ajouter une campagne
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}

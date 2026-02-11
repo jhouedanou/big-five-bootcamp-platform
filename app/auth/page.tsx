@@ -42,7 +42,22 @@ export default function AuthPage() {
         router.push('/dashboard')
       }
     } catch (error: any) {
-      toast.error(error.message || 'Une erreur est survenue')
+      const msg = error.message || ''
+      if (msg === 'Invalid login credentials') {
+        toast.error('Compte introuvable', {
+          description: "Aucun compte n'est associé à cet email ou le mot de passe est incorrect.",
+        })
+      } else if (msg === 'Email not confirmed') {
+        toast.warning('Email non vérifié', {
+          description: 'Veuillez vérifier votre boîte mail pour confirmer votre compte.',
+        })
+      } else if (msg.includes('User already registered')) {
+        toast.error('Email déjà utilisé', {
+          description: 'Un compte existe déjà avec cet email. Essayez de vous connecter.',
+        })
+      } else {
+        toast.error(msg || 'Une erreur est survenue')
+      }
     } finally {
       setIsSubmitting(false)
     }

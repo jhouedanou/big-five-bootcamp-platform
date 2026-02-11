@@ -1,53 +1,59 @@
 "use client"
 
-import React, { useState } from "react"
+import React from "react"
+
 import Link from "next/link"
+import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, Sparkles } from "lucide-react"
-import { toast } from "sonner"
-import { createClient } from "@/lib/supabase"
-
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { toast } from "sonner"
+import { supabase } from "@/lib/supabase"
 
 export default function LoginPage() {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const supabase = createClient()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
-    // Get form data
-    const formData = new FormData(e.target as HTMLFormElement)
-    const email = formData.get("email") as string
-    const password = formData.get("password") as string
-
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (error) {
-        toast.error("Échec de la connexion", {
-          description: error.message === "Invalid login credentials"
-            ? "Email ou mot de passe incorrect"
-            : error.message,
-        })
-      } else {
-        toast.success("Connexion réussie", {
-          description: "Content de te revoir !",
-        })
-        router.push("/dashboard")
-        router.refresh()
+        // Messages d'erreur spécifiques
+        if (error.message === "Invalid login credentials") {
+          toast.error("Compte introuvable", {
+            description: "Aucun compte n'est associé à cet email ou le mot de passe est incorrect.",
+          })
+        } else if (error.message === "Email not confirmed") {
+          toast.warning("Email non vérifié", {
+            description: "Veuillez vérifier votre boîte mail pour confirmer votre compte.",
+          })
+        } else {
+          toast.error("Erreur de connexion", {
+            description: error.message,
+          })
+        }
+        return
       }
-    } catch (error) {
-      toast.error("Une erreur est survenue", {
-        description: "Veuillez réessayer plus tard",
+
+      toast.success("Connexion réussie !", {
+        description: "Redirection vers votre tableau de bord...",
+      })
+      router.push("/dashboard")
+    } catch (err) {
+      toast.error("Une erreur inattendue est survenue", {
+        description: "Veuillez réessayer plus tard.",
       })
     } finally {
       setIsLoading(false)
@@ -63,20 +69,20 @@ export default function LoginPage() {
             <Link href="/" className="group inline-flex items-center gap-3 transition-all duration-300">
               <div className="relative">
                 <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-primary/20 to-accent/20 opacity-0 blur transition-opacity duration-300 group-hover:opacity-100" />
-                <img src="/logo.png" alt="Big Five Creative Library" className="relative h-10 w-10 rounded-lg" />
+                <img src="/logo.png" alt="Big Five Bootcamp" className="relative h-10 w-10 rounded-lg" />
               </div>
-              <span className="font-[family-name:var(--font-questrial)] text-xl font-bold text-foreground">
-                Big Five <span className="text-primary">Creative Library</span>
+              <span className="font-[family-name:var(--font-heading)] text-xl font-bold text-foreground">
+                Big Five <span className="text-primary">Bootcamp</span>
               </span>
             </Link>
           </div>
 
           <div className="animate-fade-in-up delay-100">
-            <h1 className="font-[family-name:var(--font-montserrat)] text-3xl font-bold text-foreground">
+            <h1 className="font-[family-name:var(--font-heading)] text-3xl font-bold text-foreground">
               Content de te revoir !
             </h1>
             <p className="mt-3 text-muted-foreground">
-              Connecte-toi pour accéder à ta bibliothèque
+              Connecte-toi pour acceder a ta bibliotheque
             </p>
           </div>
 
@@ -90,10 +96,11 @@ export default function LoginPage() {
                   <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="email"
-                    name="email"
                     type="email"
                     placeholder="ton@email.com"
                     className="h-11 pl-10"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                   />
                 </div>
@@ -105,17 +112,18 @@ export default function LoginPage() {
                     Mot de passe
                   </Label>
                   <Link href="/forgot-password" className="text-sm font-medium text-primary hover:text-primary/80">
-                    Mot de passe oublié ?
+                    Mot de passe oublie ?
                   </Link>
                 </div>
                 <div className="relative mt-1.5">
                   <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="password"
-                    name="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="********"
                     className="h-11 pl-10 pr-10"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
                   />
                   <button
@@ -132,6 +140,25 @@ export default function LoginPage() {
 
             <Button type="submit" className="h-11 w-full shadow-lg shadow-primary/25" disabled={isLoading}>
               {isLoading ? "Connexion..." : "Se connecter"}
+            </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-border" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">ou</span>
+              </div>
+            </div>
+
+            <Button type="button" variant="outline" className="h-11 w-full bg-transparent">
+              <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+              </svg>
+              Continuer avec Google
             </Button>
           </form>
 
@@ -161,19 +188,19 @@ export default function LoginPage() {
             <div className="max-w-md text-center">
               <span className="inline-flex items-center gap-2 rounded-full bg-[#80368D]/10 px-4 py-1.5 text-sm font-medium text-[#80368D] mb-6">
                 <Sparkles className="h-4 w-4 text-[#F2B33D]" />
-                Plateforme créative
+                Plateforme creative
               </span>
-              <h2 className="font-[family-name:var(--font-montserrat)] text-4xl font-bold text-[#1A1F2B]">
+              <h2 className="font-[family-name:var(--font-heading)] text-4xl font-bold text-[#1A1F2B]">
                 <span>
-                  {"L'inspiration créative"}
+                  {"L'inspiration creative"}
                 </span>
                 <br />
                 <span className="bg-gradient-to-r from-[#80368D] via-[#29358B] to-[#F2B33D] bg-clip-text text-transparent">
-                  à portée de clic
+                  a portee de clic
                 </span>
               </h2>
               <p className="mt-6 text-lg text-[#1A1F2B]/70">
-                Accède à des milliers de campagnes marketing réelles pour booster ta créativité.
+                Accede a des milliers de campagnes marketing reelles pour booster ta creativite.
               </p>
               <div className="mt-10 grid grid-cols-3 gap-4">
                 {[
@@ -211,4 +238,3 @@ export default function LoginPage() {
     </div>
   )
 }
-

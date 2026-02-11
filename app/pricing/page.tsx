@@ -17,7 +17,7 @@ export default function PricingPage() {
                                 🎉 Essai gratuit de 30 jours — Sans carte bancaire !
                             </span>
                         </div>
-
+                        
                         <h1 className="font-[family-name:var(--font-heading)] text-4xl lg:text-6xl font-extrabold tracking-tight mb-6 text-[#1A1F2B]">
                             Des tarifs adaptés à <br /> <span className="text-[#80368D]">votre ambition</span>
                         </h1>
@@ -64,8 +64,8 @@ export default function PricingPage() {
                                     <p className="text-[#1A1F2B]/60 text-sm">Pour les créatifs exigeants.</p>
                                 </div>
                                 <div className="mb-2">
-                                    <span className="text-4xl font-bold text-[#1A1F2B]">25 000</span>
-                                    <span className="text-[#1A1F2B]/60 ml-2">FCFA / mois</span>
+                                    <span className="text-4xl font-bold text-[#1A1F2B]">4 500</span>
+                                    <span className="text-[#1A1F2B]/60 ml-2">XOF / mois</span>
                                 </div>
                                 <p className="text-sm text-[#F2B33D] font-medium mb-6">
                                     Après votre essai gratuit de 30 jours

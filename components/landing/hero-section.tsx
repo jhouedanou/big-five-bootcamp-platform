@@ -1,10 +1,33 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowRight, Play, Target, BarChart3, Search, CheckCircle, Zap, RefreshCw, Globe, Layers, Sparkles } from "lucide-react"
 
+function useStats() {
+  const [stats, setStats] = useState({ users: 0, campaigns: 0 })
+
+  useEffect(() => {
+    fetch("/api/stats")
+      .then((res) => res.json())
+      .then((data) => setStats(data))
+      .catch(() => setStats({ users: 0, campaigns: 0 }))
+  }, [])
+
+  return stats
+}
+
+function formatNumber(n: number): string {
+  if (n >= 1000) {
+    return new Intl.NumberFormat("fr-FR").format(n)
+  }
+  return n.toString()
+}
+
 export function HeroSection() {
+  const stats = useStats()
+
   return (
     <section className="relative overflow-hidden bg-white pt-20 pb-32 sm:pt-32 sm:pb-40 lg:pb-48">
       {/* Subtle background pattern */}
@@ -73,26 +96,100 @@ export function HeroSection() {
 
             {/* Price info below buttons */}
             <p className="mt-4 text-sm text-[#1A1F2B]/60 animate-fade-in-up delay-300">
-              Puis seulement <span className="font-semibold text-foreground">25 000 FCFA/mois</span> après l'essai
+              Puis seulement <span className="font-semibold text-foreground">4 500 XOF/mois</span> après l'essai
             </p>
 
-            {/* Social proof removed as requested */}
+            <div className="mt-10 flex items-center gap-6 animate-fade-in-up delay-400">
+              <div className="flex -space-x-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className={`h-10 w-10 rounded-full border-2 border-background bg-slate-200 z-${10 - i} flex items-center justify-center text-xs font-medium text-slate-600`}>
+                    U{i}
+                  </div>
+                ))}
+              </div>
+              <div className="flex flex-col">
+                <div className="flex gap-1 text-[#F2B33D]">
+                  {"★★★★★"}
+                </div>
+                <span className="text-sm font-medium text-muted-foreground">
+                  Approuvé par <span className="text-foreground font-bold">{stats.users > 0 ? `${formatNumber(stats.users)}+` : '...'}</span> marketeurs
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* Visual Content - Video Placeholder */}
+          {/* Visual Content - Floating Interface */}
           <div className="relative animate-slide-in-right delay-200 hidden lg:block perspective-1000">
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl border border-border bg-black aspect-video group">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="h-20 w-20 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center cursor-pointer group-hover:scale-110 transition-transform">
-                  <Play className="h-8 w-8 text-white fill-current ml-1" />
+            {/* Subtle decorative elements */}
+            <div className="absolute -top-12 -right-12 h-64 w-64 bg-[#D0E4F2]/50 rounded-full blur-3xl"></div>
+            <div className="absolute -bottom-8 -left-8 h-48 w-48 bg-[#F2B33D]/10 rounded-full blur-3xl"></div>
+
+            <div className="glass-panel rounded-2xl p-4 transform rotate-y-[-5deg] rotate-x-[5deg] transition-transform duration-500 hover:rotate-0 hover:scale-[1.02]">
+              <div className="rounded-xl bg-white border border-[#D0E4F2] shadow-2xl overflow-hidden">
+                {/* Window Header */}
+                <div className="flex items-center justify-between border-b border-[#D0E4F2] bg-[#D0E4F2]/30 px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-3 rounded-full bg-[#EF4444]" />
+                    <div className="h-3 w-3 rounded-full bg-[#F2B33D]" />
+                    <div className="h-3 w-3 rounded-full bg-[#10B981]" />
+                  </div>
+                  <div className="flex-1 text-center">
+                    <div className="inline-flex items-center gap-2 rounded-md bg-white px-3 py-1 text-xs font-medium text-[#1A1F2B]/70 border border-[#D0E4F2] shadow-sm">
+                      <Search className="h-3 w-3" />
+                      bigfive-bootcamp.com
+                    </div>
+                  </div>
+                  <div className="w-12"></div>
+                </div>
+
+                {/* Dashboard Preview Content */}
+                <div className="p-6 bg-white">
+                  <div className="mb-6 flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                    {["Tous", "Télécoms", "FMCG", "Fintech", "Banque"].map((filter, i) => (
+                      <span key={i} className={`whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-medium transition-colors cursor-pointer ${i === 0 ? 'bg-[#80368D] text-white shadow-lg shadow-[#80368D]/25' : 'bg-[#D0E4F2] text-[#1A1F2B] hover:bg-[#D0E4F2]/80'}`}>
+                        {filter}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { title: "MTN - Yello", cat: "Télécom", imgGrad: "from-[#FFCC00] to-[#FF9500]" },
+                      { title: "Orange Money", cat: "Fintech", imgGrad: "from-[#FF6B35] to-[#E8650E]" },
+                      { title: "Nescafé", cat: "FMCG", imgGrad: "from-red-600 to-red-900" },
+                      { title: "Wave", cat: "Mobile Money", imgGrad: "from-sky-400 to-blue-600" },
+                    ].map((card, i) => (
+                      <div key={i} className="group cursor-pointer rounded-lg border border-[#D0E4F2] bg-white p-2 transition-all hover:shadow-lg hover:-translate-y-1">
+                        <div className={`aspect-video w-full rounded-md bg-gradient-to-br ${card.imgGrad} relative overflow-hidden`}>
+                          <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+                          <div className="absolute bottom-2 right-2 h-6 w-6 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Play className="h-3 w-3 text-white fill-current" />
+                          </div>
+                        </div>
+                        <div className="mt-3 px-1">
+                          <h4 className="font-semibold text-sm text-[#1A1F2B]">{card.title}</h4>
+                          <span className="text-xs text-[#1A1F2B]/60">{card.cat}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-              <div className="absolute bottom-0 inset-x-0 p-6 bg-gradient-to-t from-black/80 to-transparent">
-                <p className="text-white font-medium">Découvrir la plateforme en 2 minutes</p>
-              </div>
-              {/* Image placeholder or poster */}
-              <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/20 to-secondary/20" />
             </div>
+
+            {/* Floating Badge */}
+            <div className="absolute -right-8 top-1/2 -translate-y-1/2 bg-white p-4 rounded-xl shadow-xl border border-[#D0E4F2] animate-float hidden xl:block">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                  <BarChart3 className="h-5 w-5" />
+                </div>
+                <div>
+                  <div className="text-xs text-[#1A1F2B]/60">Taux de clic</div>
+                  <div className="text-sm font-bold text-[#1A1F2B]">+127%</div>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
@@ -101,6 +198,8 @@ export function HeroSection() {
 }
 
 export function FeaturesSection() {
+  const stats = useStats()
+
   const features = [
     {
       icon: Target,
@@ -112,7 +211,9 @@ export function FeaturesSection() {
     {
       icon: Layers,
       title: "Bibliothèque Massive",
-      description: "Plus de 10,000 campagnes archivées et mises à jour quotidiennement par nos équipes.",
+      description: stats.campaigns > 0
+        ? `Plus de ${formatNumber(stats.campaigns)} campagnes archivées et mises à jour quotidiennement par nos équipes.`
+        : "Des campagnes archivées et mises à jour quotidiennement par nos équipes.",
       color: "text-[#29358B]",
       bg: "bg-[#29358B]/10"
     },
@@ -231,7 +332,7 @@ export function PricingTeaser() {
             🎉 Essai gratuit de 30 jours
           </span>
         </div>
-
+        
         <h2 className="font-[family-name:var(--font-heading)] text-4xl font-bold mb-6 text-[#1A1F2B]">
           Commencez à créer des campagnes impactantes.
         </h2>
@@ -253,7 +354,7 @@ export function PricingTeaser() {
         </div>
 
         <p className="mt-8 text-sm text-[#1A1F2B]/50">
-          Puis 25 000 FCFA/mois • Annulation à tout moment • Support 24/7
+          Puis 4 500 XOF/mois • Annulation à tout moment • Support 24/7
         </p>
       </div>
     </section>

@@ -24,13 +24,13 @@ export function DashboardNavbar() {
           <Link href="/dashboard" className="flex items-center gap-2">
             <Image
               src="/logo.png"
-              alt="Big Five Creative Library"
+              alt="Big Five Bootcamp"
               width={32}
               height={32}
               className="h-8 w-8"
               priority
             />
-            <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#1A1F2B]">Big Five Creative Library</span>
+            <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#1A1F2B]">Big Five Bootcamp</span>
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex">

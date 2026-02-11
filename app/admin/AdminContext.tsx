@@ -88,7 +88,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         if (session?.user?.email) {
           // Fetch role from DB
           const { data: dbUser, error } = await supabase
-            .from('User') // Prisma table usually maps to "User" or "users" depending on config. Assuming default Prisma case.
+            .from('users')
             .select('role')
             .eq('email', session.user.email)
             .single();
@@ -113,7 +113,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       setSession(session);
       if (session?.user?.email) {
         const { data: dbUser } = await supabase
-          .from('User')
+          .from('users')
           .select('role')
           .eq('email', session.user.email)
           .single();
@@ -144,9 +144,9 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const loadCampaignsFromSupabase = async () => {
     try {
       const { data, error } = await supabase
-        .from('Creative') // Using the new table name 'Creative'
+        .from('campaigns')
         .select('*')
-        .order('createdAt', { ascending: false }); // Prisma default field is createdAt
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
@@ -154,19 +154,19 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       const formattedCampaigns: ContentItem[] = (data || []).map((campaign: any) => ({
         id: campaign.id,
         title: campaign.title,
-        description: "", // Missing in DB? Using empty for now or populate
+        description: campaign.description || '',
         imageUrl: campaign.thumbnail || '',
-        platform: campaign.platform || 'Facebook',
+        platform: campaign.platforms?.[0] || 'Facebook',
         country: 'Côte d\'Ivoire',
-        sector: campaign.sector || 'Marketing',
-        format: campaign.format || 'Image',
-        tags: [], // Need relation or json
-        date: new Date(campaign.createdAt).toISOString().split('T')[0],
-        isVideo: !!campaign.videoUrl,
-        images: [],
-        videoUrl: campaign.videoUrl || undefined,
-        brand: "",
-        status: 'Publié', // Default to published
+        sector: campaign.category || 'Marketing',
+        format: campaign.video_url ? 'Video' : 'Image',
+        tags: campaign.tags || [],
+        date: new Date(campaign.created_at).toISOString().split('T')[0],
+        isVideo: !!campaign.video_url,
+        images: campaign.images || [],
+        videoUrl: campaign.video_url || undefined,
+        brand: campaign.brand || '',
+        status: campaign.status || 'Publié',
       }));
 
       setCampaigns(formattedCampaigns);

@@ -1,12 +1,13 @@
 import NextAuth, { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
+import { createClient } from '@supabase/supabase-js'
 
-import { PrismaAdapter } from "@auth/prisma-adapter"
-import { prisma } from "@/lib/db"
-import bcrypt from "bcryptjs"
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma) as any,
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -19,31 +20,30 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Email et mot de passe requis")
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email }
+        // Authentifier via Supabase Auth
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: credentials.email,
+          password: credentials.password,
         })
 
-        if (!user || !user.password) {
-          throw new Error("Utilisateur non trouvé")
+        if (error || !data.user) {
+          throw new Error("Identifiants invalides")
         }
 
-        const isPasswordValid = await bcrypt.compare(credentials.password, user.password)
-
-        if (!isPasswordValid) {
-          throw new Error("Mot de passe incorrect")
-        }
-
-        if (user.status !== "active") {
-          throw new Error("Compte désactivé")
-        }
+        // Récupérer le profil utilisateur
+        const { data: profile } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', data.user.id)
+          .single()
 
         return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          plan: user.plan,
-          image: user.image,
+          id: data.user.id,
+          email: data.user.email!,
+          name: profile?.name || data.user.email!,
+          role: profile?.role || 'user',
+          plan: profile?.plan || 'Free',
+          image: null,
         }
       }
     }),

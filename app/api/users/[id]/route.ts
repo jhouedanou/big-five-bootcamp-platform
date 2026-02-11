@@ -1,17 +1,13 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
-import { prisma } from "@/lib/db"
-import bcrypt from "bcryptjs"
+import { getAuthenticatedUser, getSupabaseAdmin } from "@/lib/supabase-server"
 import { z } from "zod"
 
 const userUpdateSchema = z.object({
   name: z.string().min(2).optional(),
   email: z.string().email().optional(),
-  password: z.string().min(8).optional(),
-  role: z.enum(["user", "admin", "moderator"]).optional(),
-  plan: z.enum(["free", "premium", "enterprise"]).optional(),
-  status: z.enum(["active", "inactive", "suspended"]).optional(),
+  role: z.enum(["user", "admin"]).optional(),
+  plan: z.enum(["Free", "Premium"]).optional(),
+  status: z.enum(["active", "inactive"]).optional(),
 })
 
 // GET - Détails d'un utilisateur
@@ -20,9 +16,9 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const currentUser = await getAuthenticatedUser()
     
-    if (!session) {
+    if (!currentUser) {
       return NextResponse.json(
         { error: "Non autorisé" },
         { status: 401 }
@@ -30,35 +26,21 @@ export async function GET(
     }
 
     // Les utilisateurs peuvent voir leur propre profil, les admins peuvent voir tous
-    if (session.user.id !== params.id && session.user.role !== "admin") {
+    if (currentUser.id !== params.id && !currentUser.isAdmin) {
       return NextResponse.json(
         { error: "Non autorisé" },
         { status: 403 }
       )
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: params.id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        plan: true,
-        status: true,
-        createdAt: true,
-        image: true,
-        subscription: true,
-        _count: {
-          select: {
-            favorites: true,
-            contentViews: true,
-          }
-        }
-      }
-    })
+    const supabase = getSupabaseAdmin()
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('id', params.id)
+      .single()
 
-    if (!user) {
+    if (error || !user) {
       return NextResponse.json(
         { error: "Utilisateur non trouvé" },
         { status: 404 }
@@ -82,20 +64,18 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const currentUser = await getAuthenticatedUser()
     
-    if (!session) {
+    if (!currentUser) {
       return NextResponse.json(
         { error: "Non autorisé" },
         { status: 401 }
       )
     }
 
-    // Vérifier les permissions
-    const isAdmin = session.user.role === "admin"
-    const isSelf = session.user.id === params.id
+    const isSelf = currentUser.id === params.id
 
-    if (!isAdmin && !isSelf) {
+    if (!currentUser.isAdmin && !isSelf) {
       return NextResponse.json(
         { error: "Non autorisé" },
         { status: 403 }
@@ -112,33 +92,24 @@ export async function PATCH(
       )
     }
 
-    const data = validation.data
+    const data: any = { ...validation.data }
 
     // Seuls les admins peuvent modifier le rôle, plan et status
-    if (!isAdmin) {
+    if (!currentUser.isAdmin) {
       delete data.role
       delete data.plan
       delete data.status
     }
 
-    // Hasher le mot de passe si fourni
-    if (data.password) {
-      data.password = await bcrypt.hash(data.password, 12)
-    }
+    const supabase = getSupabaseAdmin()
+    const { data: user, error } = await supabase
+      .from('users')
+      .update(data)
+      .eq('id', params.id)
+      .select()
+      .single()
 
-    const user = await prisma.user.update({
-      where: { id: params.id },
-      data,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        plan: true,
-        status: true,
-        createdAt: true,
-      }
-    })
+    if (error) throw error
 
     return NextResponse.json({ user })
 
@@ -157,9 +128,9 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const currentUser = await getAuthenticatedUser()
     
-    if (!session || session.user.role !== "admin") {
+    if (!currentUser || !currentUser.isAdmin) {
       return NextResponse.json(
         { error: "Non autorisé" },
         { status: 401 }
@@ -167,16 +138,26 @@ export async function DELETE(
     }
 
     // Empêcher la suppression de son propre compte admin
-    if (session.user.id === params.id) {
+    if (currentUser.id === params.id) {
       return NextResponse.json(
         { error: "Vous ne pouvez pas supprimer votre propre compte" },
         { status: 400 }
       )
     }
 
-    await prisma.user.delete({
-      where: { id: params.id }
-    })
+    const supabase = getSupabaseAdmin()
+    
+    // Supprimer le profil
+    const { error: profileError } = await supabase
+      .from('users')
+      .delete()
+      .eq('id', params.id)
+
+    if (profileError) throw profileError
+
+    // Supprimer l'utilisateur auth
+    const { error: authError } = await supabase.auth.admin.deleteUser(params.id)
+    if (authError) console.error("Auth deletion warning:", authError)
 
     return NextResponse.json({ message: "Utilisateur supprimé" })
 

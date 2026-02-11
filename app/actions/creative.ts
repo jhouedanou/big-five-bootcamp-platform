@@ -1,15 +1,25 @@
 "use server"
 
-import { prisma } from "@/lib/db"
+import { createClient } from "@supabase/supabase-js"
 import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
+
+function getSupabaseAdmin() {
+    return createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+}
 
 export async function getCreatives() {
     try {
-        const creatives = await prisma.creative.findMany({
-            orderBy: { createdAt: "desc" },
-        })
-        return { success: true, data: creatives }
+        const supabase = getSupabaseAdmin()
+        const { data, error } = await supabase
+            .from('campaigns')
+            .select('*')
+            .order('created_at', { ascending: false })
+
+        if (error) throw error
+        return { success: true, data }
     } catch (error) {
         return { success: false, error: "Failed to fetch creatives" }
     }
@@ -17,10 +27,15 @@ export async function getCreatives() {
 
 export async function getCreativeById(id: string) {
     try {
-        const creative = await prisma.creative.findUnique({
-            where: { id },
-        })
-        return { success: true, data: creative }
+        const supabase = getSupabaseAdmin()
+        const { data, error } = await supabase
+            .from('campaigns')
+            .select('*')
+            .eq('id', id)
+            .single()
+
+        if (error) throw error
+        return { success: true, data }
     } catch (error) {
         return { success: false, error: "Failed to fetch creative" }
     }
@@ -38,20 +53,19 @@ export async function createCreative(formData: FormData) {
     const howToUse = formData.get("howToUse") as string
 
     try {
-        await prisma.creative.create({
-            data: {
-                title,
-                platform,
-                format,
-                sector,
-                objective,
-                thumbnail,
-                videoUrl: videoUrl || null,
-                whyItWorks: whyItWorks || null,
-                howToUse: howToUse || null,
-                status: "published",
-            },
+        const supabase = getSupabaseAdmin()
+        const { error } = await supabase.from('campaigns').insert({
+            title,
+            category: sector,
+            platforms: [platform],
+            thumbnail,
+            video_url: videoUrl || null,
+            description: [whyItWorks, howToUse].filter(Boolean).join('\n\n') || null,
+            tags: [format, objective].filter(Boolean),
+            status: 'Publié',
         })
+
+        if (error) throw error
         revalidatePath("/admin/creatives")
         revalidatePath("/library")
         return { success: true }
@@ -73,20 +87,21 @@ export async function updateCreative(id: string, formData: FormData) {
     const howToUse = formData.get("howToUse") as string
 
     try {
-        await prisma.creative.update({
-            where: { id },
-            data: {
+        const supabase = getSupabaseAdmin()
+        const { error } = await supabase
+            .from('campaigns')
+            .update({
                 title,
-                platform,
-                format,
-                sector,
-                objective,
+                category: sector,
+                platforms: [platform],
                 thumbnail,
-                videoUrl: videoUrl || null,
-                whyItWorks: whyItWorks || null,
-                howToUse: howToUse || null,
-            },
-        })
+                video_url: videoUrl || null,
+                description: [whyItWorks, howToUse].filter(Boolean).join('\n\n') || null,
+                tags: [format, objective].filter(Boolean),
+            })
+            .eq('id', id)
+
+        if (error) throw error
         revalidatePath("/admin/creatives")
         revalidatePath("/library")
         return { success: true }
@@ -97,9 +112,13 @@ export async function updateCreative(id: string, formData: FormData) {
 
 export async function deleteCreative(id: string) {
     try {
-        await prisma.creative.delete({
-            where: { id },
-        })
+        const supabase = getSupabaseAdmin()
+        const { error } = await supabase
+            .from('campaigns')
+            .delete()
+            .eq('id', id)
+
+        if (error) throw error
         revalidatePath("/admin/creatives")
         revalidatePath("/library")
         return { success: true }

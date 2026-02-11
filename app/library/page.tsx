@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db"
+import { createClient } from "@supabase/supabase-js"
 import { CreativeCard } from "@/components/library/creative-card"
 import { FilterBar } from "@/components/library/filter-bar"
 import { Metadata } from "next"
@@ -19,30 +19,43 @@ interface LibraryPageProps {
 }
 
 async function getCreatives(params: LibraryPageProps["searchParams"]) {
-    const where: any = {
-        status: 'published' // Only show published creatives
-    }
-
-    if (params.search) {
-        where.OR = [
-            { title: { contains: params.search, mode: "insensitive" } },
-            { whyItWorks: { contains: params.search, mode: "insensitive" } },
-            { objective: { contains: params.search, mode: "insensitive" } },
-            { sector: { contains: params.search, mode: "insensitive" } },
-        ]
-    }
-
-    if (params.platform) where.platform = params.platform
-    if (params.format) where.format = params.format
-    if (params.sector) where.sector = params.sector
-    if (params.objective) where.objective = params.objective
+    const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
 
     try {
-        const creatives = await prisma.creative.findMany({
-            where,
-            orderBy: { createdAt: "desc" },
-        })
-        return creatives
+        let query = supabase
+            .from('campaigns')
+            .select('*')
+            .eq('status', 'Publié')
+            .order('created_at', { ascending: false })
+
+        if (params.search) {
+            query = query.or(`title.ilike.%${params.search}%,description.ilike.%${params.search}%,brand.ilike.%${params.search}%,category.ilike.%${params.search}%`)
+        }
+        if (params.platform) query = query.contains('platforms', [params.platform])
+        if (params.sector) query = query.eq('category', params.sector)
+
+        const { data, error } = await query
+        if (error) throw error
+
+        // Adapter le format pour le composant CreativeCard
+        return (data || []).map((c: any) => ({
+            id: c.id,
+            title: c.title,
+            thumbnail: c.thumbnail || '',
+            videoUrl: c.video_url || null,
+            platform: c.platforms?.[0] || 'Facebook',
+            format: c.video_url ? 'Vidéo' : 'Image',
+            sector: c.category || 'Marketing',
+            objective: '',
+            whyItWorks: c.description || null,
+            howToUse: null,
+            status: 'published',
+            createdAt: c.created_at,
+            updatedAt: c.updated_at,
+        }))
     } catch (error) {
         console.error("Error fetching creatives:", error)
         return []

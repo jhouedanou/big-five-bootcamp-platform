@@ -1,13 +1,24 @@
 "use server"
 
-import { prisma } from "@/lib/db"
+import { createClient } from "@supabase/supabase-js"
 import { revalidatePath } from "next/cache"
+
+function getSupabaseAdmin() {
+    return createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+}
 
 export async function getUsers() {
     try {
-        const users = await prisma.user.findMany({
-            orderBy: { createdAt: "desc" },
-        })
+        const supabase = getSupabaseAdmin()
+        const { data: users, error } = await supabase
+            .from('users')
+            .select('*')
+            .order('created_at', { ascending: false })
+
+        if (error) throw error
         return { success: true, data: users }
     } catch (error) {
         return { success: false, error: "Failed to fetch users" }
@@ -16,14 +27,14 @@ export async function getUsers() {
 
 export async function toggleUserStatus(id: string, currentStatus: string) {
     try {
+        const supabase = getSupabaseAdmin()
         const newStatus = currentStatus === "active" ? "inactive" : "active"
-        await prisma.user.update({
-            where: { id },
-            data: { subscriptionStatus: newStatus } // Map to subscriptionStatus or status field pending schema check
-        })
-        // Note: schema has 'status' and 'subscriptionStatus'. 
-        // User model: role, subscriptionStatus. 
-        // I'll update 'subscriptionStatus'.
+        const { error } = await supabase
+            .from('users')
+            .update({ status: newStatus })
+            .eq('id', id)
+
+        if (error) throw error
         revalidatePath("/admin/users")
         return { success: true }
     } catch (error) {

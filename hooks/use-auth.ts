@@ -1,28 +1,78 @@
+
 "use client"
 
-import { useSession, signIn, signOut } from "next-auth/react"
+import { useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 
 export function useAuth() {
-  const { data: session, status, update } = useSession()
+  const [user, setUser] = useState<any>(null)
+  const [session, setSession] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [dbUser, setDbUser] = useState<any>(null)
+
+  const supabase = createClient()
   const router = useRouter()
 
-  const isLoading = status === "loading"
-  const isAuthenticated = status === "authenticated"
-  const user = session?.user
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        setSession(session)
+        setUser(session?.user ?? null)
+
+        if (session?.user?.email) {
+          // Fetch additional user details from DB if needed
+          const { data } = await supabase
+            .from('User')
+            .select('*')
+            .eq('email', session.user.email)
+            .single()
+          setDbUser(data)
+        }
+
+      } catch (error) {
+        console.error("Error checking auth:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    checkUser()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+
+      if (session?.user?.email) {
+        const { data } = await supabase
+          .from('User')
+          .select('*')
+          .eq('email', session.user.email)
+          .single()
+        setDbUser(data)
+      } else {
+        setDbUser(null)
+      }
+
+      setIsLoading(false)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [supabase])
 
   const login = async (email: string, password: string) => {
     try {
-      const result = await signIn("credentials", {
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
-        redirect: false,
       })
 
-      if (result?.error) {
-        throw new Error(result.error)
+      if (error) {
+        throw new Error(error.message === "Invalid login credentials" ? "Email ou mot de passe incorrect" : error.message)
       }
 
+      router.refresh()
       return { success: true }
     } catch (error: any) {
       return { success: false, error: error.message }
@@ -31,44 +81,57 @@ export function useAuth() {
 
   const register = async (name: string, email: string, password: string) => {
     try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name: name,
+          },
+          emailRedirectTo: `${location.origin}/auth/callback`
+        }
       })
 
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || "Erreur lors de l'inscription")
+      if (error) {
+        throw new Error(error.message)
       }
 
-      // Auto-login après inscription
-      return await login(email, password)
+      // Note: Ideally, a Trigger creates the User record in public.User.
+      // If not using triggers, we might need to insert here, but RLS might block it.
+      // For now, we assume Supabase Auth is the source of truth for auth, 
+      // and we might need an API route to sync if Trigger isn't set up.
+
+      return { success: true }
     } catch (error: any) {
       return { success: false, error: error.message }
     }
   }
 
   const logout = async () => {
-    await signOut({ redirect: false })
-    router.push("/")
+    await supabase.auth.signOut()
+    setSession(null)
+    setUser(null)
+    setDbUser(null)
+    router.push("/login")
+    router.refresh()
   }
 
   const loginWithGoogle = async () => {
-    await signIn("google", { callbackUrl: "/dashboard" })
+    // Removed as per user request
+    console.warn("Google login disabled")
   }
 
-  const isAdmin = user?.role === "admin"
-  const isModerator = user?.role === "moderator" || isAdmin
-  const isPremium = user?.plan === "premium" || user?.plan === "enterprise"
-  const isEnterprise = user?.plan === "enterprise"
+  // Derived state from DB user or fallbacks
+  const isAdmin = dbUser?.role === "admin"
+  const isModerator = dbUser?.role === "moderator" || isAdmin
+  const isPremium = dbUser?.plan === "premium" || dbUser?.plan === "enterprise"
+  const isEnterprise = dbUser?.plan === "enterprise"
 
   return {
     user,
     session,
     isLoading,
-    isAuthenticated,
+    isAuthenticated: !!session,
     isAdmin,
     isModerator,
     isPremium,
@@ -77,6 +140,6 @@ export function useAuth() {
     register,
     logout,
     loginWithGoogle,
-    updateSession: update,
+    // updateSession: update, // Not needed with Supabase real-time
   }
 }

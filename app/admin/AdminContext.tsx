@@ -1,11 +1,11 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
-import { useSession, signOut } from "next-auth/react";
 import { sampleContent } from "@/lib/sample-content";
 import type { ContentItem } from "@/components/dashboard/content-card";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 // Types
 export type User = {
@@ -65,47 +65,88 @@ const initialContent: Content[] = [
 
 const CAMPAIGNS_STORAGE_KEY = "admin_campaigns";
 
-function loadCampaigns(): ContentItem[] {
-  if (typeof window === "undefined") return sampleContent;
-  const stored = localStorage.getItem(CAMPAIGNS_STORAGE_KEY);
-  if (stored) {
-    try {
-      return JSON.parse(stored);
-    } catch {
-      return sampleContent;
-    }
-  }
-  return sampleContent;
-}
-
-function saveCampaigns(campaigns: ContentItem[]) {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(CAMPAIGNS_STORAGE_KEY, JSON.stringify(campaigns));
-  }
-}
-
 export function AdminProvider({ children }: { children: ReactNode }) {
-  const { data: session, status } = useSession();
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [content, setContent] = useState<Content[]>(initialContent);
   const [campaigns, setCampaigns] = useState<ContentItem[]>([]);
+
+  const [session, setSession] = useState<any>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
   const [campaignsLoading, setCampaignsLoading] = useState(true);
 
-  const isLoading = status === "loading" || campaignsLoading;
-  const isAuthenticated = status === "authenticated";
-  const isAdmin = session?.user?.role === "admin";
+  const supabase = createClient();
+  const router = useRouter();
+
+  // Auth Logic
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+
+        if (session?.user?.email) {
+          // Fetch role from DB
+          const { data: dbUser, error } = await supabase
+            .from('User') // Prisma table usually maps to "User" or "users" depending on config. Assuming default Prisma case.
+            .select('role')
+            .eq('email', session.user.email)
+            .single();
+
+          if (dbUser) {
+            setUserRole(dbUser.role);
+          } else {
+            // Fallback if not in DB yet (or mapping issue), check metadata or default
+            setUserRole('user');
+          }
+        }
+      } catch (error) {
+        console.error("Auth check error", error);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    checkUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setSession(session);
+      if (session?.user?.email) {
+        const { data: dbUser } = await supabase
+          .from('User')
+          .select('role')
+          .eq('email', session.user.email)
+          .single();
+        if (dbUser) setUserRole(dbUser.role);
+      } else {
+        setUserRole(null);
+      }
+      setAuthLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase]);
+
+
+  const isLoading = authLoading || campaignsLoading;
+  const isAuthenticated = !!session;
+  const isAdmin = userRole === "admin"; // Check role
 
   // Charger les campagnes depuis Supabase
   useEffect(() => {
-    loadCampaignsFromSupabase();
-  }, []);
+    if (isAdmin) {
+      loadCampaignsFromSupabase();
+    } else {
+      setCampaignsLoading(false);
+    }
+  }, [isAdmin]);
 
   const loadCampaignsFromSupabase = async () => {
     try {
       const { data, error } = await supabase
-        .from('campaigns')
+        .from('Creative') // Using the new table name 'Creative'
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('createdAt', { ascending: false }); // Prisma default field is createdAt
 
       if (error) throw error;
 
@@ -113,34 +154,34 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       const formattedCampaigns: ContentItem[] = (data || []).map((campaign: any) => ({
         id: campaign.id,
         title: campaign.title,
-        description: campaign.description || '',
+        description: "", // Missing in DB? Using empty for now or populate
         imageUrl: campaign.thumbnail || '',
-        platform: campaign.platforms?.[0] || 'Facebook',
+        platform: campaign.platform || 'Facebook',
         country: 'Côte d\'Ivoire',
-        sector: campaign.category || 'Marketing',
-        format: campaign.video_url ? 'Video' : 'Image',
-        tags: campaign.tags || [],
-        date: new Date(campaign.created_at).toISOString().split('T')[0],
-        isVideo: !!campaign.video_url,
-        images: campaign.images || [],
-        videoUrl: campaign.video_url || undefined,
-        brand: campaign.brand || '',
-        status: campaign.status || 'Brouillon',
+        sector: campaign.sector || 'Marketing',
+        format: campaign.format || 'Image',
+        tags: [], // Need relation or json
+        date: new Date(campaign.createdAt).toISOString().split('T')[0],
+        isVideo: !!campaign.videoUrl,
+        images: [],
+        videoUrl: campaign.videoUrl || undefined,
+        brand: "",
+        status: 'Publié', // Default to published
       }));
 
       setCampaigns(formattedCampaigns);
     } catch (error: any) {
       console.error('Error loading campaigns:', error);
-      toast.error('Erreur lors du chargement des campagnes');
-      // Fallback to sample content
-      setCampaigns(sampleContent);
+      // toast.error('Erreur lors du chargement des campagnes');
+      setCampaigns([]);
     } finally {
       setCampaignsLoading(false);
     }
   };
 
   const logout = async () => {
-    await signOut({ redirect: false });
+    await supabase.auth.signOut();
+    router.push("/admin/login");
   };
 
   // User Actions
@@ -181,84 +222,18 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   // Campaign Actions
   const addCampaign = async (campaignData: Omit<ContentItem, "id">) => {
-    try {
-      const response = await fetch('/api/campaigns', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: campaignData.title,
-          description: campaignData.description,
-          brand: campaignData.brand,
-          category: campaignData.sector,
-          thumbnail: campaignData.imageUrl,
-          images: campaignData.images || [],
-          video_url: campaignData.videoUrl,
-          platforms: [campaignData.platform],
-          tags: campaignData.tags,
-          status: campaignData.status || 'Brouillon',
-          author_id: session?.user?.id,
-          author_name: session?.user?.name,
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to create campaign');
-
-      const newCampaign = await response.json();
-      
-      // Recharger les campagnes
-      await loadCampaignsFromSupabase();
-      toast.success('Campagne créée avec succès');
-    } catch (error) {
-      console.error('Error adding campaign:', error);
-      toast.error('Erreur lors de la création de la campagne');
-    }
+    // TODO: Implement Supabase Insert
+    toast.info("Fonctionnalité en cours de migration Supabase");
   };
 
   const updateCampaign = async (id: string, updatedData: Partial<ContentItem>) => {
-    try {
-      const response = await fetch(`/api/campaigns/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: updatedData.title,
-          description: updatedData.description,
-          brand: updatedData.brand,
-          category: updatedData.sector,
-          thumbnail: updatedData.imageUrl,
-          images: updatedData.images,
-          video_url: updatedData.videoUrl,
-          platforms: updatedData.platform ? [updatedData.platform] : undefined,
-          tags: updatedData.tags,
-          status: updatedData.status,
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to update campaign');
-
-      // Recharger les campagnes
-      await loadCampaignsFromSupabase();
-      toast.success('Campagne mise à jour avec succès');
-    } catch (error) {
-      console.error('Error updating campaign:', error);
-      toast.error('Erreur lors de la mise à jour de la campagne');
-    }
+    // TODO: Implement Supabase Update
+    toast.info("Fonctionnalité en cours de migration Supabase");
   };
 
   const deleteCampaign = async (id: string) => {
-    try {
-      const response = await fetch(`/api/campaigns/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) throw new Error('Failed to delete campaign');
-
-      // Recharger les campagnes
-      await loadCampaignsFromSupabase();
-      toast.success('Campagne supprimée avec succès');
-    } catch (error) {
-      console.error('Error deleting campaign:', error);
-      toast.error('Erreur lors de la suppression de la campagne');
-    }
+    // TODO: Implement Supabase Delete
+    toast.info("Fonctionnalité en cours de migration Supabase");
   };
 
   return (

@@ -24,7 +24,7 @@ export function useAuth() {
         if (session?.user?.email) {
           // Fetch additional user details from DB if needed
           const { data } = await supabase
-            .from('User')
+            .from('users')
             .select('*')
             .eq('email', session.user.email)
             .single()
@@ -46,7 +46,7 @@ export function useAuth() {
 
       if (session?.user?.email) {
         const { data } = await supabase
-          .from('User')
+          .from('users')
           .select('*')
           .eq('email', session.user.email)
           .single()
@@ -124,8 +124,8 @@ export function useAuth() {
   // Derived state from DB user or fallbacks
   const isAdmin = dbUser?.role === "admin"
   const isModerator = dbUser?.role === "moderator" || isAdmin
-  const isPremium = dbUser?.plan === "premium" || dbUser?.plan === "enterprise"
-  const isEnterprise = dbUser?.plan === "enterprise"
+  const isPremium = dbUser?.plan?.toLowerCase() === "premium" || dbUser?.plan?.toLowerCase() === "enterprise"
+  const isEnterprise = dbUser?.plan?.toLowerCase() === "enterprise"
 
   return {
     user,

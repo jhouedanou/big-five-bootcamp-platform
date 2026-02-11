@@ -1,48 +1,19 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
-import { sampleContent } from "@/lib/sample-content";
 import type { ContentItem } from "@/components/dashboard/content-card";
 import { createClient } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-// Types
-export type User = {
-  id: string;
-  name: string;
-  email: string;
-  role: "admin" | "user";
-  plan: "Free" | "Premium";
-  status: "active" | "inactive";
-  createdAt: string;
-};
-
-export type Content = {
-  id: string;
-  title: string;
-  status: "Publie" | "Brouillon" | "En attente";
-  date: string;
-  author: string;
-  type: "campagne" | "article" | "video";
-};
-
 export type { ContentItem };
 
 type AdminContextType = {
-  users: User[];
-  content: Content[];
   campaigns: ContentItem[];
   isAuthenticated: boolean;
   isAdmin: boolean;
   isLoading: boolean;
   logout: () => void;
-  addUser: (user: Omit<User, "id" | "createdAt">) => void;
-  updateUser: (id: string, user: Partial<User>) => void;
-  deleteUser: (id: string) => void;
-  addContent: (item: Omit<Content, "id" | "date">) => void;
-  updateContent: (id: string, item: Partial<Content>) => void;
-  deleteContent: (id: string) => void;
   addCampaign: (item: Omit<ContentItem, "id">) => void;
   updateCampaign: (id: string, item: Partial<ContentItem>) => void;
   deleteCampaign: (id: string) => void;
@@ -50,24 +21,7 @@ type AdminContextType = {
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
-// Sample Data
-const initialUsers: User[] = [
-  { id: "1", name: "Marie Dupont", email: "marie@example.com", role: "user", plan: "Premium", status: "active", createdAt: "2024-01-15" },
-  { id: "2", name: "Jean Martin", email: "jean@example.com", role: "user", plan: "Free", status: "active", createdAt: "2024-02-01" },
-  { id: "3", name: "Admin User", email: "admin@bigfive.com", role: "admin", plan: "Premium", status: "active", createdAt: "2023-12-01" },
-];
-
-const initialContent: Content[] = [
-  { id: "1", title: "Campagne Nike Summer 2024", status: "Publie", date: "2024-03-10", author: "Marie Dupont", type: "campagne" },
-  { id: "2", title: "Apple Vision Pro Launch", status: "En attente", date: "2024-03-12", author: "Jean Martin", type: "article" },
-  { id: "3", title: "Spotify Wrapped 2024", status: "Publie", date: "2024-03-08", author: "Admin User", type: "video" },
-];
-
-const CAMPAIGNS_STORAGE_KEY = "admin_campaigns";
-
 export function AdminProvider({ children }: { children: ReactNode }) {
-  const [users, setUsers] = useState<User[]>(initialUsers);
-  const [content, setContent] = useState<Content[]>(initialContent);
   const [campaigns, setCampaigns] = useState<ContentItem[]>([]);
 
   const [session, setSession] = useState<any>(null);
@@ -157,16 +111,18 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         description: campaign.description || '',
         imageUrl: campaign.thumbnail || '',
         platform: campaign.platforms?.[0] || 'Facebook',
-        country: 'Côte d\'Ivoire',
-        sector: campaign.category || 'Marketing',
-        format: campaign.video_url ? 'Video' : 'Image',
+        country: campaign.country || '',
+        sector: campaign.category || '',
+        format: campaign.format || '',
         tags: campaign.tags || [],
         date: new Date(campaign.created_at).toISOString().split('T')[0],
         isVideo: !!campaign.video_url,
         images: campaign.images || [],
         videoUrl: campaign.video_url || undefined,
         brand: campaign.brand || '',
-        status: campaign.status || 'Publié',
+        agency: campaign.agency || '',
+        year: campaign.year || undefined,
+        status: campaign.status || 'Brouillon',
       }));
 
       setCampaigns(formattedCampaigns);
@@ -184,74 +140,74 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     router.push("/admin/login");
   };
 
-  // User Actions
-  const addUser = (userData: Omit<User, "id" | "createdAt">) => {
-    const newUser: User = {
-      ...userData,
-      id: Math.random().toString(36).substr(2, 9),
-      createdAt: new Date().toISOString().split("T")[0],
-    };
-    setUsers([...users, newUser]);
-  };
-
-  const updateUser = (id: string, updatedData: Partial<User>) => {
-    setUsers(users.map((user) => (user.id === id ? { ...user, ...updatedData } : user)));
-  };
-
-  const deleteUser = (id: string) => {
-    setUsers(users.filter((user) => user.id !== id));
-  };
-
-  // Content Actions
-  const addContent = (contentData: Omit<Content, "id" | "date">) => {
-    const newContent: Content = {
-      ...contentData,
-      id: Math.random().toString(36).substr(2, 9),
-      date: new Date().toISOString().split("T")[0],
-    };
-    setContent([...content, newContent]);
-  };
-
-  const updateContent = (id: string, updatedData: Partial<Content>) => {
-    setContent(content.map((item) => (item.id === id ? { ...item, ...updatedData } : item)));
-  };
-
-  const deleteContent = (id: string) => {
-    setContent(content.filter((item) => item.id !== id));
+  // Mapper ContentItem vers colonnes DB
+  const mapToDbRecord = (data: Partial<ContentItem>) => {
+    const record: Record<string, any> = {};
+    if (data.title !== undefined) record.title = data.title;
+    if (data.description !== undefined) record.description = data.description;
+    if (data.imageUrl !== undefined) record.thumbnail = data.imageUrl;
+    if (data.platform !== undefined) record.platforms = [data.platform];
+    if (data.sector !== undefined) record.category = data.sector;
+    if (data.videoUrl !== undefined) record.video_url = data.videoUrl || null;
+    if (data.country !== undefined) record.country = data.country;
+    if (data.format !== undefined) record.format = data.format;
+    if (data.agency !== undefined) record.agency = data.agency;
+    if (data.year !== undefined) record.year = data.year;
+    if (data.images !== undefined) record.images = data.images;
+    if (data.tags !== undefined) record.tags = data.tags;
+    if (data.brand !== undefined) record.brand = data.brand;
+    if (data.status !== undefined) record.status = data.status;
+    return record;
   };
 
   // Campaign Actions
   const addCampaign = async (campaignData: Omit<ContentItem, "id">) => {
-    // TODO: Implement Supabase Insert
-    toast.info("Fonctionnalité en cours de migration Supabase");
+    try {
+      const record = mapToDbRecord(campaignData);
+      if (!record.status) record.status = 'Brouillon';
+      const { error } = await supabase.from('campaigns').insert(record);
+      if (error) throw error;
+      toast.success("Campagne ajoutee avec succes");
+      await loadCampaignsFromSupabase();
+    } catch (error: any) {
+      console.error('Error creating campaign:', error);
+      toast.error("Erreur lors de la creation de la campagne");
+    }
   };
 
   const updateCampaign = async (id: string, updatedData: Partial<ContentItem>) => {
-    // TODO: Implement Supabase Update
-    toast.info("Fonctionnalité en cours de migration Supabase");
+    try {
+      const record = mapToDbRecord(updatedData);
+      const { error } = await supabase.from('campaigns').update(record).eq('id', id);
+      if (error) throw error;
+      toast.success("Campagne mise a jour avec succes");
+      await loadCampaignsFromSupabase();
+    } catch (error: any) {
+      console.error('Error updating campaign:', error);
+      toast.error("Erreur lors de la mise a jour");
+    }
   };
 
   const deleteCampaign = async (id: string) => {
-    // TODO: Implement Supabase Delete
-    toast.info("Fonctionnalité en cours de migration Supabase");
+    try {
+      const { error } = await supabase.from('campaigns').delete().eq('id', id);
+      if (error) throw error;
+      toast.success("Campagne supprimee");
+      await loadCampaignsFromSupabase();
+    } catch (error: any) {
+      console.error('Error deleting campaign:', error);
+      toast.error("Erreur lors de la suppression");
+    }
   };
 
   return (
     <AdminContext.Provider
       value={{
-        users,
-        content,
         campaigns,
         isAuthenticated,
         isAdmin,
         isLoading,
         logout,
-        addUser,
-        updateUser,
-        deleteUser,
-        addContent,
-        updateContent,
-        deleteContent,
         addCampaign,
         updateCampaign,
         deleteCampaign,

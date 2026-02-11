@@ -1,18 +1,21 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
+import Link from "next/link"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { FiltersSidebar } from "@/components/dashboard/filters-sidebar"
 import { ContentCard, ContentItem } from "@/components/dashboard/content-card"
-import { sampleContent } from "@/lib/sample-content"
 import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
-import { Filter, Grid3X3, LayoutList, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
+import { Filter, Grid3X3, LayoutList, ChevronLeft, ChevronRight, Loader2, Lock } from "lucide-react"
 import { ParticlesBackground } from "@/components/ui/particles-background"
+
+const FREE_CAMPAIGN_LIMIT = 4
 
 export default function DashboardPage() {
   const [campaigns, setCampaigns] = useState<ContentItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [userPlan, setUserPlan] = useState<string>("Free")
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({})
   const [showMobileFilters, setShowMobileFilters] = useState(false)
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
@@ -20,7 +23,29 @@ export default function DashboardPage() {
   const [activeQuickFilter, setActiveQuickFilter] = useState("Tous")
   const itemsPerPage = 9
 
-  // Charger les campagnes publiées depuis Supabase
+  const isPremium = userPlan.toLowerCase() === "premium"
+
+  // Charger le plan utilisateur
+  useEffect(() => {
+    const loadUserPlan = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('users')
+            .select('plan')
+            .eq('id', session.user.id)
+            .single()
+          if (profile?.plan) setUserPlan(profile.plan)
+        }
+      } catch (error) {
+        console.error('Error loading user plan:', error)
+      }
+    }
+    loadUserPlan()
+  }, [])
+
+  // Charger les campagnes publiees depuis Supabase
   useEffect(() => {
     const loadCampaigns = async () => {
       try {
@@ -32,30 +57,30 @@ export default function DashboardPage() {
 
         if (error) throw error
 
-        // Convertir les données Supabase au format ContentItem
         const formattedCampaigns: ContentItem[] = (data || []).map((campaign: any) => ({
           id: campaign.id,
           title: campaign.title,
           description: campaign.description || '',
           imageUrl: campaign.thumbnail || '',
           platform: campaign.platforms?.[0] || 'Facebook',
-          country: 'Côte d\'Ivoire',
-          sector: campaign.category || 'Marketing',
-          format: campaign.video_url ? 'Video' : 'Image',
+          country: campaign.country || '',
+          sector: campaign.category || '',
+          format: campaign.format || '',
           tags: campaign.tags || [],
           date: new Date(campaign.created_at).toISOString().split('T')[0],
           isVideo: !!campaign.video_url,
           images: campaign.images || [],
           videoUrl: campaign.video_url || undefined,
           brand: campaign.brand || '',
+          agency: campaign.agency || '',
+          year: campaign.year || undefined,
           status: campaign.status,
         }))
 
-        setCampaigns(formattedCampaigns.length > 0 ? formattedCampaigns : sampleContent)
+        setCampaigns(formattedCampaigns)
       } catch (error) {
         console.error('Error loading campaigns:', error)
-        // Fallback to sample content
-        setCampaigns(sampleContent)
+        setCampaigns([])
       } finally {
         setIsLoading(false)
       }
@@ -103,8 +128,14 @@ export default function DashboardPage() {
     })
   }, [selectedFilters, campaigns])
 
-  const totalPages = Math.ceil(filteredContent.length / itemsPerPage)
-  const paginatedContent = filteredContent.slice(
+  // Limiter l'acces pour les utilisateurs Free
+  const accessibleContent = isPremium
+    ? filteredContent
+    : filteredContent.slice(0, FREE_CAMPAIGN_LIMIT)
+  const showPaywall = !isPremium && filteredContent.length > FREE_CAMPAIGN_LIMIT
+
+  const totalPages = Math.ceil(accessibleContent.length / itemsPerPage)
+  const paginatedContent = accessibleContent.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   )
@@ -271,9 +302,9 @@ export default function DashboardPage() {
                   <div className="mb-4 rounded-full bg-muted p-4">
                     <Filter className="h-8 w-8 text-muted-foreground" />
                   </div>
-                  <h3 className="text-lg font-semibold text-foreground">Aucune campagne trouvée</h3>
+                  <h3 className="text-lg font-semibold text-foreground">Aucune campagne trouvee</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Essayez de modifier vos filtres pour voir plus de résultats.
+                    Essayez de modifier vos filtres pour voir plus de resultats.
                   </p>
                   <Button
                     variant="outline"
@@ -282,6 +313,29 @@ export default function DashboardPage() {
                   >
                     Effacer les filtres
                   </Button>
+                </div>
+              )}
+
+              {/* Paywall pour utilisateurs Free */}
+              {showPaywall && (
+                <div className="relative mt-8">
+                  <div className="absolute inset-x-0 -top-24 h-24 bg-gradient-to-t from-white to-transparent pointer-events-none z-10" />
+                  <div className="text-center py-12 bg-white rounded-xl border border-[#D0E4F2] shadow-sm">
+                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#80368D]/10">
+                      <Lock className="h-6 w-6 text-[#80368D]" />
+                    </div>
+                    <h3 className="font-[family-name:var(--font-heading)] text-xl font-bold text-[#1A1F2B]">
+                      Debloquez toute la bibliotheque
+                    </h3>
+                    <p className="mt-2 text-sm text-[#1A1F2B]/70">
+                      {filteredContent.length - FREE_CAMPAIGN_LIMIT} campagnes supplementaires disponibles avec l'abonnement Premium
+                    </p>
+                    <Link href="/subscribe">
+                      <Button className="mt-6 bg-[#80368D] hover:bg-[#80368D]/90 text-white shadow-lg shadow-[#80368D]/25">
+                        Passer Premium
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               )}
             </div>

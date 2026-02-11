@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { createClient } from "@supabase/supabase-js"
 import { CreativeCard } from "@/components/library/creative-card"
 import { FilterBar } from "@/components/library/filter-bar"
@@ -47,8 +48,8 @@ async function getCreatives(params: LibraryPageProps["searchParams"]) {
             thumbnail: c.thumbnail || '',
             videoUrl: c.video_url || null,
             platform: c.platforms?.[0] || 'Facebook',
-            format: c.video_url ? 'Vidéo' : 'Image',
-            sector: c.category || 'Marketing',
+            format: c.format || '',
+            sector: c.category || '',
             objective: '',
             whyItWorks: c.description || null,
             howToUse: null,
@@ -76,7 +77,9 @@ export default async function LibraryPage({ searchParams }: LibraryPageProps) {
                 </p>
             </div>
 
-            <FilterBar />
+            <Suspense fallback={<div className="py-4 border-b" />}>
+                <FilterBar />
+            </Suspense>
 
             <div className="mt-8">
                 {creatives.length > 0 ? (

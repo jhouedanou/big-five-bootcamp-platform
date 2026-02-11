@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Search, SlidersHorizontal, X } from "lucide-react"
-import { SUPPORTED_PLATFORMS, FILTERS } from "@/lib/constants"
+import { FILTERS } from "@/lib/constants"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useCallback, useState, useEffect } from "react"
 // import { useDebounce } from "@/hooks/use-debounce" // Disabled: implementing simple debounce locally
@@ -123,19 +123,17 @@ export function FilterBar() {
                                 Plateforme
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" className="max-h-[300px] overflow-y-auto">
                             <DropdownMenuLabel>Plateforme</DropdownMenuLabel>
                             <DropdownMenuSeparator />
-                            <DropdownMenuCheckboxItem
-                                checked={searchParams.get('platform') === SUPPORTED_PLATFORMS.FACEBOOK}
-                                onCheckedChange={() => handleFilterChange('platform', SUPPORTED_PLATFORMS.FACEBOOK)}>
-                                Facebook / Instagram
-                            </DropdownMenuCheckboxItem>
-                            <DropdownMenuCheckboxItem
-                                checked={searchParams.get('platform') === SUPPORTED_PLATFORMS.LINKEDIN}
-                                onCheckedChange={() => handleFilterChange('platform', SUPPORTED_PLATFORMS.LINKEDIN)}>
-                                LinkedIn
-                            </DropdownMenuCheckboxItem>
+                            {FILTERS.PLATFORMS.map(p => (
+                                <DropdownMenuCheckboxItem
+                                    key={p}
+                                    checked={searchParams.get('platform') === p}
+                                    onCheckedChange={() => handleFilterChange('platform', p)}>
+                                    {p}
+                                </DropdownMenuCheckboxItem>
+                            ))}
                         </DropdownMenuContent>
                     </DropdownMenu>
 

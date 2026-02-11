@@ -1,10 +1,11 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Menu, X, Search, Bell, User, LogOut, Settings, CreditCard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
+import { supabase } from "@/lib/supabase"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,6 +17,31 @@ import {
 export function DashboardNavbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [userName, setUserName] = useState("")
+  const [userEmail, setUserEmail] = useState("")
+  const [userPlan, setUserPlan] = useState("Free")
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        setUserEmail(session.user.email || "")
+        const { data: profile } = await supabase
+          .from('users')
+          .select('name, plan')
+          .eq('id', session.user.id)
+          .single()
+        if (profile) {
+          setUserName(profile.name || "")
+          setUserPlan(profile.plan || "Free")
+        }
+      }
+    }
+    loadUser()
+  }, [])
+
+  const isPremium = userPlan.toLowerCase() === "premium"
+  const initials = userName ? userName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "?"
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#D0E4F2] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
@@ -72,19 +98,22 @@ export function DashboardNavbar() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#80368D] text-sm font-medium text-white">
-                  JD
+                  {initials}
                 </div>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 bg-white border-[#D0E4F2]">
               <div className="px-2 py-1.5">
-                <p className="text-sm font-medium text-[#1A1F2B]">John Doe</p>
-                <p className="text-xs text-[#1A1F2B]/60">john@exemple.com</p>
+                <p className="text-sm font-medium text-[#1A1F2B]">{userName || "Utilisateur"}</p>
+                <p className="text-xs text-[#1A1F2B]/60">{userEmail}</p>
                 <div className="mt-2 flex items-center gap-1.5">
-                  <span className="rounded-full bg-[#10B981]/10 px-2 py-0.5 text-xs font-medium text-[#10B981]">
-                    Essai gratuit
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                    isPremium
+                      ? "bg-[#80368D]/10 text-[#80368D]"
+                      : "bg-[#10B981]/10 text-[#10B981]"
+                  }`}>
+                    {isPremium ? "Premium" : "Gratuit"}
                   </span>
-                  <span className="text-xs text-[#1A1F2B]/60">25j restants</span>
                 </div>
               </div>
               <DropdownMenuSeparator />
@@ -107,11 +136,15 @@ export function DashboardNavbar() {
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
-                <Link href="/" className="flex items-center gap-2 text-red-600">
-                  <LogOut className="h-4 w-4" />
-                  Déconnexion
-                </Link>
+              <DropdownMenuItem
+                onClick={async () => {
+                  await supabase.auth.signOut()
+                  window.location.href = "/login"
+                }}
+                className="flex items-center gap-2 text-red-600 cursor-pointer"
+              >
+                <LogOut className="h-4 w-4" />
+                Deconnexion
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

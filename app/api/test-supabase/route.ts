@@ -3,32 +3,26 @@ import { supabase } from '@/lib/supabase'
 
 export async function GET() {
   try {
-    // Test de connexion à Supabase
     const { data, error, count } = await supabase
-      .from('Creative Librarys')
-      .select('id, title, slug', { count: 'exact' })
+      .from('campaigns')
+      .select('id, title', { count: 'exact' })
       .limit(5)
 
     if (error) throw error
 
-    return NextResponse.json({ 
-      success: true, 
-      message: '✅ Connexion Supabase réussie!',
+    return NextResponse.json({
+      success: true,
+      message: 'Connexion Supabase reussie!',
       stats: {
-        total_Creative Librarys: count,
-        sample_Creative Librarys: data
+        total_campaigns: count,
+        sample_campaigns: data
       },
-      next_steps: [
-        '1. Vérifier que les données sont bien présentes',
-        '2. Compléter la clé NEXT_PUBLIC_SUPABASE_ANON_KEY si nécessaire',
-        '3. Commencer à créer les pages du site'
-      ]
     })
   } catch (error: any) {
-    return NextResponse.json({ 
-      success: false, 
+    return NextResponse.json({
+      success: false,
       error: error.message,
-      help: 'Vérifiez que le schéma SQL a été exécuté dans Supabase Dashboard'
+      help: 'Verifiez que le schema SQL a ete execute dans Supabase Dashboard'
     }, { status: 500 })
   }
 }

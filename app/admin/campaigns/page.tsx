@@ -151,35 +151,27 @@ export default function CampaignsPage() {
     setFormData({ ...formData, images: (formData.images || []).filter((img) => img !== url) });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim()) {
       toast.error("Le titre est obligatoire");
       return;
     }
     if (editingCampaign) {
-      updateCampaign(editingCampaign.id, formData);
-      toast.success("Campagne mise a jour avec succes");
+      await updateCampaign(editingCampaign.id, formData);
     } else {
-      addCampaign(formData);
-      toast.success("Campagne ajoutee avec succes");
+      await addCampaign(formData);
     }
     setIsDialogOpen(false);
   };
 
-  const handleDelete = (id: string, title: string) => {
-    deleteCampaign(id);
-    toast.success(`"${title}" supprimee`);
+  const handleDelete = async (id: string) => {
+    await deleteCampaign(id);
   };
 
-  const handlePublish = (item: ContentItem) => {
+  const handlePublish = async (item: ContentItem) => {
     const newStatus = item.status === "Publié" ? "Brouillon" : "Publié";
-    updateCampaign(item.id, { ...item, status: newStatus });
-    toast.success(
-      newStatus === "Publié" 
-        ? `"${item.title}" publiée avec succès` 
-        : `"${item.title}" dépubliée`
-    );
+    await updateCampaign(item.id, { status: newStatus });
   };
 
   const sectorColor = (sector: string) => {
@@ -355,7 +347,7 @@ export default function CampaignsPage() {
                         Modifier
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => handleDelete(item.id, item.title)}
+                        onClick={() => handleDelete(item.id)}
                         className="text-red-400 hover:bg-[#1a3a6e] hover:text-red-300 cursor-pointer"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />

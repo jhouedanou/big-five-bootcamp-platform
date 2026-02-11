@@ -11,39 +11,66 @@ export const PRICING_MONTHLY_VALUE = 25000;
 export const ENABLE_VIDEO_PLACEHOLDER = false;
 export const VIDEO_PLACEHOLDER_URL = ""; // Empty by default
 
-export const SUPPORTED_PLATFORMS = {
-    FACEBOOK: "Facebook",
-    LINKEDIN: "LinkedIn",
-} as const;
+export const SUPPORTED_PLATFORMS = [
+    "Facebook",
+    "Instagram",
+    "TikTok",
+    "YouTube",
+    "LinkedIn",
+    "Twitter/X",
+    "Outdoor",
+] as const;
 
 export const FILTERS = {
+    PLATFORMS: [
+        "Facebook",
+        "Instagram",
+        "TikTok",
+        "YouTube",
+        "LinkedIn",
+        "Twitter/X",
+        "Outdoor",
+    ],
     SECTORS: [
+        "Telecoms",
         "E-commerce",
-        "Finance",
-        "Immobilier",
-        "Education",
-        "Technologie",
-        "Santé",
-        "Restauration",
-        "Automobile",
-        "Services",
+        "Banque/Finance",
+        "FMCG",
+        "Tech",
+        "Mode",
+        "Sante",
+        "Energie",
+        "Industrie",
+    ],
+    COUNTRIES: [
+        "Cote d'Ivoire",
+        "Nigeria",
+        "Kenya",
+        "Ghana",
+        "Senegal",
+        "Maroc",
+        "Afrique du Sud",
+    ],
+    FORMATS: [
+        "Video Ad",
+        "Story",
+        "Carousel",
+        "Post Social",
+        "Campagne 360",
     ],
     OBJECTIVES: [
-        "Notoriété",
+        "Notoriete",
         "Trafic",
         "Interaction",
         "Prospects",
         "Ventes",
         "Promotion d'app",
     ],
-    FORMATS: [
-        "Image unique",
-        "Carrousel",
-        "Vidéo courte",
-        "Vidéo longue",
-        "Collection",
-        "Diaporama",
-    ],
+    STATUSES: [
+        "Brouillon",
+        "En attente",
+        "Publie",
+    ] as const,
 };
 
 export const BRAND_COLORS = {

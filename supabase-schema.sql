@@ -5,6 +5,22 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ==============================================
+-- NETTOYAGE: Supprimer les anciennes tables si elles existent
+-- ==============================================
+
+-- Supprimer les anciennes fonctions (cela supprime aussi les triggers associés)
+DROP FUNCTION IF EXISTS update_updated_at_column() CASCADE;
+DROP FUNCTION IF EXISTS update_session_available_spots() CASCADE;
+
+-- Supprimer les tables (CASCADE supprime les contraintes et triggers)
+DROP TABLE IF EXISTS registrations CASCADE;
+DROP TABLE IF EXISTS sessions CASCADE;
+DROP TABLE IF EXISTS creative_libraries CASCADE;
+DROP TABLE IF EXISTS "Creative Librarys" CASCADE;
+DROP TABLE IF EXISTS campaigns CASCADE;
+DROP TABLE IF EXISTS public.users CASCADE;
+
+-- ==============================================
 -- PARTIE 1: SYSTÈME ADMIN (Users & Campaigns)
 -- ==============================================
 
@@ -37,6 +53,10 @@ CREATE TABLE IF NOT EXISTS campaigns (
   status VARCHAR(50) NOT NULL DEFAULT 'Brouillon' CHECK (status IN ('Publié', 'Brouillon', 'En attente')),
   author_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
   author_name VARCHAR(255),
+  country VARCHAR(100),
+  format VARCHAR(100),
+  agency VARCHAR(255),
+  year INTEGER,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -45,8 +65,8 @@ CREATE TABLE IF NOT EXISTS campaigns (
 -- PARTIE 2: SYSTÈME Creative Library
 -- ==============================================
 
--- Table des Creative Librarys (thématiques)
-CREATE TABLE IF NOT EXISTS Creative Librarys (
+-- Table des creative_libraries (thématiques)
+CREATE TABLE IF NOT EXISTS creative_libraries (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   slug VARCHAR(255) UNIQUE NOT NULL,
   title VARCHAR(255) NOT NULL,
@@ -69,7 +89,7 @@ CREATE TABLE IF NOT EXISTS Creative Librarys (
 -- Table des sessions
 CREATE TABLE IF NOT EXISTS sessions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  Creative Library_id UUID NOT NULL REFERENCES Creative Librarys(id) ON DELETE CASCADE,
+  creative_library_id UUID NOT NULL REFERENCES creative_libraries(id) ON DELETE CASCADE,
   start_date DATE NOT NULL,
   end_date DATE NOT NULL,
   location VARCHAR(255) NOT NULL,
@@ -102,7 +122,7 @@ CREATE TABLE IF NOT EXISTS registrations (
 );
 
 -- Index pour améliorer les performances
-CREATE INDEX idx_sessions_Creative Library_id ON sessions(Creative Library_id);
+CREATE INDEX idx_sessions_creative_library_id ON sessions(creative_library_id);
 CREATE INDEX idx_sessions_start_date ON sessions(start_date);
 CREATE INDEX idx_sessions_status ON sessions(status);
 CREATE INDEX idx_registrations_session_id ON registrations(session_id);
@@ -119,8 +139,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Triggers pour updated_at
-CREATE TRIGGER update_Creative Librarys_updated_at
-  BEFORE UPDATE ON Creative Librarys
+CREATE TRIGGER update_creative_libraries_updated_at
+  BEFORE UPDATE ON creative_libraries
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
@@ -181,7 +201,7 @@ CREATE TRIGGER update_available_spots_on_registration
 -- Activer RLS sur toutes les tables
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE campaigns ENABLE ROW LEVEL SECURITY;
-ALTER TABLE Creative Librarys ENABLE ROW LEVEL SECURITY;
+ALTER TABLE creative_libraries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE registrations ENABLE ROW LEVEL SECURITY;
 
@@ -243,12 +263,12 @@ CREATE POLICY "Users can delete own campaigns"
   ));
 
 -- ==============================================
--- RLS POLICIES - Creative LibraryS & SESSIONS
+-- RLS POLICIES - CREATIVE_LIBRARIES & SESSIONS
 -- ==============================================
 
--- Creative Librarys: tout le monde peut lire
-CREATE POLICY "Creative Librarys are viewable by everyone" 
-  ON Creative Librarys FOR SELECT 
+-- creative_libraries: tout le monde peut lire
+CREATE POLICY "creative_libraries are viewable by everyone" 
+  ON creative_libraries FOR SELECT 
   USING (true);
 
 -- Sessions: tout le monde peut lire
@@ -268,8 +288,8 @@ CREATE POLICY "Users can view own registrations"
 
 -- Données de démonstration
 
--- Insérer un Creative Library exemple (Social Media Management)
-INSERT INTO Creative Librarys (
+-- Insérer un creative_library exemple (Social Media Management)
+INSERT INTO creative_libraries (
   slug,
   title,
   tagline,
@@ -373,7 +393,7 @@ INSERT INTO Creative Librarys (
 
 -- Insérer des sessions exemple
 INSERT INTO sessions (
-  Creative Library_id,
+  creative_library_id,
   start_date,
   end_date,
   location,
@@ -393,12 +413,12 @@ SELECT
   'Sarah Koné',
   20,
   20
-FROM Creative Librarys b
+FROM creative_libraries b
 WHERE b.slug = 'social-media-management-avance'
 ON CONFLICT DO NOTHING;
 
 INSERT INTO sessions (
-  Creative Library_id,
+  creative_library_id,
   start_date,
   end_date,
   location,
@@ -418,11 +438,11 @@ SELECT
   'Sarah Koné',
   25,
   25
-FROM Creative Librarys b
+FROM creative_libraries b
 WHERE b.slug = 'social-media-management-avance'
 ON CONFLICT DO NOTHING;
 
 -- Afficher les résultats
 SELECT 'Schéma créé avec succès!' as message;
-SELECT COUNT(*) as Creative Librarys_count FROM Creative Librarys;
+SELECT COUNT(*) as creative_libraries_count FROM creative_libraries;
 SELECT COUNT(*) as sessions_count FROM sessions;

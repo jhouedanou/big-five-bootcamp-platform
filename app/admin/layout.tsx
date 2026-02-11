@@ -13,7 +13,7 @@ import {
   Menu,
   X,
   ShieldAlert,
-  Image as ImageIcon,
+  Megaphone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -21,7 +21,7 @@ import Image from "next/image";
 
 const sidebarLinks = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/creatives", label: "Créatives", icon: ImageIcon },
+  { href: "/admin/campaigns", label: "Campagnes", icon: Megaphone },
   { href: "/admin/users", label: "Utilisateurs", icon: Users },
 ];
 

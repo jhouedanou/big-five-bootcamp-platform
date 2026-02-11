@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -19,9 +19,30 @@ import {
   ChevronLeft,
   ChevronRight,
   Video,
+  Loader2,
 } from "lucide-react";
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar";
-import { sampleContent } from "@/lib/sample-content";
+import { createClient } from "@/lib/supabase";
+
+interface Campaign {
+  id: string;
+  title: string;
+  description: string | null;
+  thumbnail: string | null;
+  video_url: string | null;
+  platforms: string[] | null;
+  category: string | null;
+  tags: string[] | null;
+  status: string | null;
+  brand?: string | null;
+  agency?: string | null;
+  country?: string | null;
+  format?: string | null;
+  date?: string | null;
+  year?: number | null;
+  images?: string[] | null;
+  created_at: string;
+}
 
 export default function ContentDetailPage({
   params,
@@ -32,10 +53,89 @@ export default function ContentDetailPage({
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [content, setContent] = useState<Campaign | null>(null);
+  const [relatedContent, setRelatedContent] = useState<Campaign[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const content = sampleContent.find((item) => item.id === id) || sampleContent[0];
+  useEffect(() => {
+    const fetchContent = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const supabase = createClient();
+        
+        // Récupérer le contenu principal
+        const { data: campaign, error: campaignError } = await supabase
+          .from('campaigns')
+          .select('*')
+          .eq('id', id)
+          .single();
+        
+        if (campaignError) {
+          console.error('Error fetching campaign:', campaignError);
+          setError('Contenu non trouvé');
+          setIsLoading(false);
+          return;
+        }
+        
+        setContent(campaign);
+        
+        // Récupérer les contenus similaires
+        const { data: related } = await supabase
+          .from('campaigns')
+          .select('*')
+          .neq('id', id)
+          .eq('status', 'Publié')
+          .limit(4);
+        
+        setRelatedContent(related || []);
+      } catch (err) {
+        console.error('Error:', err);
+        setError('Erreur lors du chargement');
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const allImages = [content.imageUrl, ...(content.images || [])].filter(Boolean);
+    fetchContent();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <DashboardNavbar />
+        <div className="flex items-center justify-center h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !content) {
+    return (
+      <div className="min-h-screen bg-background">
+        <DashboardNavbar />
+        <main className="container mx-auto px-4 py-8">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Retour à la bibliothèque
+          </Link>
+          <Card>
+            <CardContent className="p-8 text-center">
+              <p className="text-muted-foreground">{error || 'Contenu non trouvé'}</p>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  const allImages = [content.thumbnail, ...(content.images || [])].filter(Boolean) as string[];
 
   const prevImage = () => {
     setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
@@ -45,9 +145,14 @@ export default function ContentDetailPage({
     setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
   };
 
-  const relatedContent = sampleContent
-    .filter((item) => item.id !== content.id)
-    .slice(0, 4);
+  // Extraire les infos depuis les champs
+  const platform = content.platforms?.[0] || 'N/A';
+  const sector = content.category || 'N/A';
+  const format = content.format || content.tags?.[0] || 'N/A';
+  const country = content.country || "Côte d'Ivoire";
+  const brand = content.brand || '';
+  const agency = content.agency || '';
+  const date = content.date || new Date(content.created_at).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
 
   return (
     <div className="min-h-screen bg-background">
@@ -118,19 +223,20 @@ export default function ContentDetailPage({
             </div>
 
             {/* Video player */}
-            {content.videoUrl && (
+            {content.video_url && (
               <Card>
                 <CardContent className="p-4">
                   <h2 className="font-semibold text-lg mb-3 flex items-center gap-2">
                     <Video className="h-5 w-5" />
-                    Video
+                    Vidéo
                   </h2>
                   <div className="rounded-lg overflow-hidden">
                     <iframe
-                      src={content.videoUrl}
+                      src={content.video_url}
                       className="w-full aspect-video rounded-lg"
                       allowFullScreen
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      title="Vidéo de la campagne"
                     />
                   </div>
                 </CardContent>
@@ -144,7 +250,7 @@ export default function ContentDetailPage({
                   {content.title}
                 </h1>
                 <p className="text-muted-foreground mt-2">
-                  {content.brand || ""}{content.brand && content.sector ? " - " : ""}{content.sector}
+                  {brand}{brand && sector !== 'N/A' ? " - " : ""}{sector !== 'N/A' ? sector : ''}
                 </p>
               </div>
 
@@ -176,17 +282,20 @@ export default function ContentDetailPage({
             </div>
 
             {/* Description */}
-            <Card>
-              <CardContent className="p-6">
-                <h2 className="font-semibold text-lg mb-3">Description</h2>
-                <p className="text-muted-foreground leading-relaxed">
-                  {content.description}
-                </p>
-              </CardContent>
-            </Card>
+            {content.description && (
+              <Card>
+                <CardContent className="p-6">
+                  <h2 className="font-semibold text-lg mb-3">Description</h2>
+                  <div 
+                    className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: content.description }}
+                  />
+                </CardContent>
+              </Card>
+            )}
 
             {/* Tags */}
-            {content.tags.length > 0 && (
+            {content.tags && content.tags.length > 0 && (
               <Card>
                 <CardContent className="p-6">
                   <h2 className="font-semibold text-lg mb-3">Tags</h2>
@@ -214,94 +323,96 @@ export default function ContentDetailPage({
                 <h2 className="font-semibold text-lg">Informations</h2>
 
                 <div className="space-y-3">
-                  {content.brand && (
+                  {brand && (
                     <div className="flex items-center gap-3 text-sm">
                       <Building2 className="h-4 w-4 text-muted-foreground" />
                       <span className="text-muted-foreground">Marque:</span>
-                      <span className="font-medium">{content.brand}</span>
+                      <span className="font-medium">{brand}</span>
                     </div>
                   )}
 
                   <div className="flex items-center gap-3 text-sm">
                     <Tag className="h-4 w-4 text-muted-foreground" />
                     <span className="text-muted-foreground">Secteur:</span>
-                    <span className="font-medium">{content.sector}</span>
+                    <span className="font-medium">{sector}</span>
                   </div>
 
                   <div className="flex items-center gap-3 text-sm">
                     <Globe className="h-4 w-4 text-muted-foreground" />
                     <span className="text-muted-foreground">Pays:</span>
-                    <span className="font-medium">{content.country}</span>
+                    <span className="font-medium">{country}</span>
                   </div>
 
                   <div className="flex items-center gap-3 text-sm">
-                    <Globe className="h-4 w-4 text-muted-foreground" />
+                    <Tag className="h-4 w-4 text-muted-foreground" />
                     <span className="text-muted-foreground">Format:</span>
-                    <span className="font-medium">{content.format}</span>
+                    <span className="font-medium">{format}</span>
                   </div>
 
                   <div className="flex items-center gap-3 text-sm">
                     <Globe className="h-4 w-4 text-muted-foreground" />
                     <span className="text-muted-foreground">Plateforme:</span>
-                    <span className="font-medium">{content.platform}</span>
+                    <span className="font-medium">{platform}</span>
                   </div>
 
                   <div className="flex items-center gap-3 text-sm">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span className="text-muted-foreground">Date:</span>
-                    <span className="font-medium">{content.date}</span>
+                    <span className="font-medium">{date}</span>
                   </div>
 
-                  {content.agency && (
+                  {agency && (
                     <div className="flex items-center gap-3 text-sm">
                       <Building2 className="h-4 w-4 text-muted-foreground" />
                       <span className="text-muted-foreground">Agence:</span>
-                      <span className="font-medium">{content.agency}</span>
+                      <span className="font-medium">{agency}</span>
                     </div>
                   )}
-                </div>
-
-                <div className="pt-4 border-t">
-                  <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Voir la source originale
-                  </Button>
                 </div>
               </CardContent>
             </Card>
 
             {/* Related content */}
-            <Card>
-              <CardContent className="p-6">
-                <h2 className="font-semibold text-lg mb-4">Contenus similaires</h2>
-                <div className="space-y-4">
-                  {relatedContent.map((item) => (
-                    <Link
-                      key={item.id}
-                      href={`/content/${item.id}`}
-                      className="flex gap-3 group"
-                    >
-                      <div className="relative w-16 h-16 bg-muted rounded-lg overflow-hidden flex-shrink-0">
-                        <Image
-                          src={item.imageUrl || "/placeholder.svg"}
-                          alt={item.title}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                          {item.title}
-                        </h3>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {item.brand}
-                        </p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            {relatedContent.length > 0 && (
+              <Card>
+                <CardContent className="p-6">
+                  <h2 className="font-semibold text-lg mb-4">Contenus similaires</h2>
+                  <div className="space-y-4">
+                    {relatedContent.map((item) => (
+                      <Link
+                        key={item.id}
+                        href={`/content/${item.id}`}
+                        className="flex gap-3 group"
+                      >
+                        <div className="relative w-16 h-16 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+                          {item.thumbnail ? (
+                            <Image
+                              src={item.thumbnail}
+                              alt={item.title}
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                              {item.title.substring(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
+                            {item.title}
+                          </h3>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {item.brand || item.category}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </main>

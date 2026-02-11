@@ -224,18 +224,18 @@ export default function GuidePage() {
 
       {/* Tips */}
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-white font-[family-name:var(--font-heading)]">
+        <h2 className="text-xl font-semibold text-gray-900 font-[family-name:var(--font-heading)]">
           Conseils pratiques
         </h2>
         <div className="grid md:grid-cols-3 gap-4">
           {tips.map((tip) => (
-            <Card key={tip.title} className="bg-[#122a52] border-[#1a3a6e]">
+            <Card key={tip.title} className="bg-white border-gray-200 shadow-sm">
               <CardContent className="p-5">
-                <div className="w-10 h-10 rounded-lg bg-[#1a3a6e] flex items-center justify-center mb-3">
+                <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center mb-3">
                   <tip.icon className="h-5 w-5 text-[#FF6B35]" />
                 </div>
-                <h3 className="text-white font-medium mb-2">{tip.title}</h3>
-                <p className="text-[#9CA3AF] text-sm">{tip.description}</p>
+                <h3 className="text-gray-900 font-medium mb-2">{tip.title}</h3>
+                <p className="text-gray-600 text-sm">{tip.description}</p>
               </CardContent>
             </Card>
           ))}
@@ -243,10 +243,10 @@ export default function GuidePage() {
       </div>
 
       {/* Structure Explanation */}
-      <Card className="bg-[#122a52] border-[#1a3a6e]">
+      <Card className="bg-white border-gray-200 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-400" />
+          <CardTitle className="text-gray-900 flex items-center gap-2">
+            <CheckCircle className="h-5 w-5 text-green-500" />
             Structure d&apos;une campagne
           </CardTitle>
         </CardHeader>
@@ -254,77 +254,77 @@ export default function GuidePage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-[#1a3a6e]">
-                  <th className="text-left py-3 pr-4 text-[#9CA3AF] font-medium">Champ</th>
-                  <th className="text-left py-3 pr-4 text-[#9CA3AF] font-medium">Obligatoire</th>
-                  <th className="text-left py-3 text-[#9CA3AF] font-medium">Description</th>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 pr-4 text-gray-600 font-medium">Champ</th>
+                  <th className="text-left py-3 pr-4 text-gray-600 font-medium">Obligatoire</th>
+                  <th className="text-left py-3 text-gray-600 font-medium">Description</th>
                 </tr>
               </thead>
-              <tbody className="text-[#9CA3AF]">
-                <tr className="border-b border-[#1a3a6e]/50">
-                  <td className="py-2.5 pr-4 text-white">Titre</td>
-                  <td className="py-2.5 pr-4 text-green-400">Oui</td>
+              <tbody className="text-gray-600">
+                <tr className="border-b border-gray-100">
+                  <td className="py-2.5 pr-4 text-gray-900">Titre</td>
+                  <td className="py-2.5 pr-4 text-green-600">Oui</td>
                   <td className="py-2.5">Nom complet de la campagne</td>
                 </tr>
-                <tr className="border-b border-[#1a3a6e]/50">
-                  <td className="py-2.5 pr-4 text-white">Description</td>
+                <tr className="border-b border-gray-100">
+                  <td className="py-2.5 pr-4 text-gray-900">Description</td>
                   <td className="py-2.5 pr-4">Non</td>
-                  <td className="py-2.5">Description detaillee de la campagne</td>
+                  <td className="py-2.5">Description détaillée de la campagne</td>
                 </tr>
-                <tr className="border-b border-[#1a3a6e]/50">
-                  <td className="py-2.5 pr-4 text-white">Marque</td>
+                <tr className="border-b border-gray-100">
+                  <td className="py-2.5 pr-4 text-gray-900">Marque</td>
                   <td className="py-2.5 pr-4">Non</td>
                   <td className="py-2.5">Nom de la marque annonceur</td>
                 </tr>
-                <tr className="border-b border-[#1a3a6e]/50">
-                  <td className="py-2.5 pr-4 text-white">Agence</td>
+                <tr className="border-b border-gray-100">
+                  <td className="py-2.5 pr-4 text-gray-900">Agence</td>
                   <td className="py-2.5 pr-4">Non</td>
                   <td className="py-2.5">Nom de l&apos;agence de communication</td>
                 </tr>
-                <tr className="border-b border-[#1a3a6e]/50">
-                  <td className="py-2.5 pr-4 text-white">Image URL</td>
+                <tr className="border-b border-gray-100">
+                  <td className="py-2.5 pr-4 text-gray-900">Image URL</td>
                   <td className="py-2.5 pr-4">Non</td>
                   <td className="py-2.5">Lien vers l&apos;image illustrative</td>
                 </tr>
-                <tr className="border-b border-[#1a3a6e]/50">
-                  <td className="py-2.5 pr-4 text-white">Plateforme</td>
-                  <td className="py-2.5 pr-4 text-green-400">Oui</td>
-                  <td className="py-2.5">Reseau social principal</td>
+                <tr className="border-b border-gray-100">
+                  <td className="py-2.5 pr-4 text-gray-900">Plateforme</td>
+                  <td className="py-2.5 pr-4 text-green-600">Oui</td>
+                  <td className="py-2.5">Réseau social principal</td>
                 </tr>
-                <tr className="border-b border-[#1a3a6e]/50">
-                  <td className="py-2.5 pr-4 text-white">Pays</td>
-                  <td className="py-2.5 pr-4 text-green-400">Oui</td>
+                <tr className="border-b border-gray-100">
+                  <td className="py-2.5 pr-4 text-gray-900">Pays</td>
+                  <td className="py-2.5 pr-4 text-green-600">Oui</td>
                   <td className="py-2.5">Pays de diffusion</td>
                 </tr>
-                <tr className="border-b border-[#1a3a6e]/50">
-                  <td className="py-2.5 pr-4 text-white">Secteur</td>
-                  <td className="py-2.5 pr-4 text-green-400">Oui</td>
-                  <td className="py-2.5">Secteur d&apos;activite</td>
+                <tr className="border-b border-gray-100">
+                  <td className="py-2.5 pr-4 text-gray-900">Secteur</td>
+                  <td className="py-2.5 pr-4 text-green-600">Oui</td>
+                  <td className="py-2.5">Secteur d&apos;activité</td>
                 </tr>
-                <tr className="border-b border-[#1a3a6e]/50">
-                  <td className="py-2.5 pr-4 text-white">Format</td>
-                  <td className="py-2.5 pr-4 text-green-400">Oui</td>
+                <tr className="border-b border-gray-100">
+                  <td className="py-2.5 pr-4 text-gray-900">Format</td>
+                  <td className="py-2.5 pr-4 text-green-600">Oui</td>
                   <td className="py-2.5">Type de contenu publicitaire</td>
                 </tr>
-                <tr className="border-b border-[#1a3a6e]/50">
-                  <td className="py-2.5 pr-4 text-white">Date</td>
+                <tr className="border-b border-gray-100">
+                  <td className="py-2.5 pr-4 text-gray-900">Date</td>
                   <td className="py-2.5 pr-4">Non</td>
-                  <td className="py-2.5">Mois et annee de publication</td>
+                  <td className="py-2.5">Mois et année de publication</td>
                 </tr>
-                <tr className="border-b border-[#1a3a6e]/50">
-                  <td className="py-2.5 pr-4 text-white">Annee</td>
+                <tr className="border-b border-gray-100">
+                  <td className="py-2.5 pr-4 text-gray-900">Année</td>
                   <td className="py-2.5 pr-4">Non</td>
-                  <td className="py-2.5">Annee de la campagne</td>
+                  <td className="py-2.5">Année de la campagne</td>
                 </tr>
-                <tr className="border-b border-[#1a3a6e]/50">
-                  <td className="py-2.5 pr-4 text-white">Video</td>
+                <tr className="border-b border-gray-100">
+                  <td className="py-2.5 pr-4 text-gray-900">Vidéo</td>
                   <td className="py-2.5 pr-4">Non</td>
-                  <td className="py-2.5">Indique si la campagne inclut une video</td>
+                  <td className="py-2.5">Indique si la campagne inclut une vidéo</td>
                 </tr>
                 <tr>
-                  <td className="py-2.5 pr-4 text-white">Tags</td>
+                  <td className="py-2.5 pr-4 text-gray-900">Tags</td>
                   <td className="py-2.5 pr-4">Non</td>
-                  <td className="py-2.5">Mots-cles pour le filtrage</td>
+                  <td className="py-2.5">Mots-clés pour le filtrage</td>
                 </tr>
               </tbody>
             </table>

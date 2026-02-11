@@ -4,10 +4,10 @@ import { Questrial, Montserrat } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const questrial = Questrial({ 
-  subsets: ["latin"], 
+const questrial = Questrial({
+  subsets: ["latin"],
   weight: "400",
-  variable: "--font-questrial" 
+  variable: "--font-questrial"
 });
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -16,8 +16,8 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: 'Big Five Bootcamp - Trouvez l\'inspiration créative',
-  description: 'Des milliers de campagnes marketing réelles, organisées pour vous. Trouvez l\'inspiration créative en quelques clics.',
+  title: 'Big Five Creative Library - La référence créative',
+  description: 'Benchmarkez, analysez et créez des concepts gagnants en quelques minutes.',
   icons: {
     icon: [
       {

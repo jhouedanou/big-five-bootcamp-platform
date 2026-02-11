@@ -17,17 +17,15 @@ model User {
   emailVerified DateTime?
   password      String?
   image         String?
-  role          String    @default("user") // "user" | "admin" | "moderator"
-  plan          String    @default("free") // "free" | "premium" | "enterprise"
-  status        String    @default("active") // "active" | "inactive" | "suspended"
+  role          String    @default("user") // "user" | "admin"
+  subscriptionStatus String @default("active") // "active" | "inactive" | "expired"
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
   accounts      Account[]
   sessions      Session[]
   subscription  Subscription?
-  favorites     Favorite[]
-  contentViews  ContentView[]
+  favorites     SavedCreative[]
 }
 
 model Account {
@@ -68,8 +66,8 @@ model VerificationToken {
 model Subscription {
   id              String    @id @default(cuid())
   userId          String    @unique
-  plan            String    // "free" | "premium" | "enterprise"
-  status          String    @default("active") // "active" | "cancelled" | "expired"
+  plan            String    // "free" | "premium"
+  status          String    @default("active")
   currentPeriodStart DateTime
   currentPeriodEnd   DateTime
   cancelAtPeriodEnd  Boolean  @default(false)
@@ -81,92 +79,49 @@ model Subscription {
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model Content {
+// Renamed from Content to Creative
+model Creative {
   id          String   @id @default(cuid())
   title       String
-  description String?
-  imageUrl    String?
-  videoUrl    String?
+  thumbnail   String   // URL de l'image/miniature
+  videoUrl    String?  // URL de la vidéo (optionnel)
   
-  // Taxonomie
-  brand       String?  // Marque
-  advertiser  String?  // Annonceur
-  agency      String?  // Agence
-  productionCompany String? // Société de production
+  // Classification principale
+  platform    String   // "Facebook" | "LinkedIn"
+  format      String   // "Image unique", "Carrousel", "Vidéo courte", etc.
+  sector      String   // "E-commerce", "Finance", etc.
+  objective   String   // "Notoriété", "Trafic", etc.
   
-  // Classification
-  country     String
-  sector      String   // Secteur d'activité
-  platform    String   // Plateforme
-  format      String   // Format de contenu
-  media       String?  // Type de média
+  // Analyse & Détails
+  whyItWorks  String?  @db.Text // Pourquoi ça marche
+  howToUse    String?  @db.Text // Comment réutiliser
   
-  // Métadonnées
-  year        Int?
-  award       String?  // Award reçu
-  contributors String? // Contributeurs/personnes
-  keywords    String?  // Mots-clés séparés par virgule
-  
-  // Statut
-  status      String   @default("draft") // "draft" | "pending" | "published"
-  featured    Boolean  @default(false)
-  
+  // Meta
+  status      String   @default("published") // "draft" | "published"
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  publishedAt DateTime?
   
-  tags        ContentTag[]
-  favorites   Favorite[]
-  views       ContentView[]
+  favorites   SavedCreative[]
 }
 
-model Tag {
-  id       String       @id @default(cuid())
-  name     String       @unique
-  slug     String       @unique
-  color    String?
-  contents ContentTag[]
-}
-
-model ContentTag {
-  contentId String
-  tagId     String
-  content   Content @relation(fields: [contentId], references: [id], onDelete: Cascade)
-  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
-
-  @@id([contentId, tagId])
-}
-
-model Favorite {
+model SavedCreative {
   id        String   @id @default(cuid())
   userId    String
-  contentId String
+  creativeId String
   createdAt DateTime @default(now())
   
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  content   Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  creative  Creative @relation(fields: [creativeId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, contentId])
+  @@unique([userId, creativeId])
 }
 
-model ContentView {
-  id        String   @id @default(cuid())
-  userId    String?
-  contentId String
-  viewedAt  DateTime @default(now())
-  duration  Int?     // Durée de visionnage en secondes
-  
-  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  content   Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
-}
-
-// Modèle pour les filtres de recherche
+// Modèle pour les filtres (optionnel, peut être en dur dans le code)
 model SearchFilter {
   id       String @id @default(cuid())
-  type     String // "country" | "sector" | "platform" | "format" | "media" | "award"
+  type     String //Key
   value    String
   label    String
-  icon     String?
   order    Int    @default(0)
   isActive Boolean @default(true)
 }

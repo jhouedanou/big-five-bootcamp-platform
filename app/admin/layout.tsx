@@ -8,15 +8,12 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAdmin } from "./AdminContext";
 import {
   LayoutDashboard,
-  FolderOpen,
   Users,
-  Settings,
   LogOut,
   Menu,
   X,
-  Megaphone,
-  BookOpen,
   ShieldAlert,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -24,11 +21,8 @@ import Image from "next/image";
 
 const sidebarLinks = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/admin/campaigns", label: "Campagnes", icon: Megaphone },
-  { href: "/admin/content", label: "Contenus", icon: FolderOpen },
+  { href: "/admin/creatives", label: "Créatives", icon: ImageIcon },
   { href: "/admin/users", label: "Utilisateurs", icon: Users },
-  { href: "/admin/guide", label: "Guide", icon: BookOpen },
-  { href: "/admin/settings", label: "Parametres", icon: Settings },
 ];
 
 export default function AdminLayout({
@@ -59,7 +53,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   }, [isAuthenticated, isAdmin, isLoading, pathname, router]);
 
   if (isLoading) {
-    return <div className="min-h-screen bg-[#0A1F44] flex items-center justify-center">
+    return <div className="min-h-screen bg-secondary flex items-center justify-center">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
     </div>;
   }
@@ -72,14 +66,14 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   // If not authenticated or not admin, don't render anything (will redirect)
   if (!isAuthenticated || !isAdmin) {
     return (
-      <div className="min-h-screen bg-[#0A1F44] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-secondary flex items-center justify-center p-4">
         <div className="text-center">
-          <ShieldAlert className="h-12 w-12 text-red-400 mx-auto mb-4" />
-          <h2 className="text-white text-xl font-bold mb-2">Acces refuse</h2>
-          <p className="text-[#9CA3AF] mb-4">Vous devez etre administrateur pour acceder a cette page.</p>
+          <ShieldAlert className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h2 className="text-white text-xl font-bold mb-2">Accès refusé</h2>
+          <p className="text-white/70 mb-4">Vous devez être administrateur pour accéder à cette page.</p>
           <Button
             onClick={() => router.push("/admin/login")}
-            className="bg-[#FF6B35] hover:bg-[#e55a2b] text-white"
+            className="bg-primary hover:bg-primary/90 text-white"
           >
             Se connecter
           </Button>
@@ -94,25 +88,26 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A1F44]">
+    <div className="min-h-screen bg-muted/20">
       {/* Mobile header */}
-      <div className="lg:hidden bg-[#071428] border-b border-[#1a3a6e] p-4 flex items-center justify-between">
+      <div className="lg:hidden bg-secondary p-4 flex items-center justify-between text-white">
         <Link href="/admin" className="flex items-center gap-2">
-          <Image
-            src="/logo.png"
-            alt="Big Five Bootcamp"
-            width={32}
-            height={32}
-            className="h-8 w-8"
-            priority
-          />
-          <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-white">Big Five</span>
+          <div className="bg-white/10 p-1 rounded">
+            <Image
+              src="/logo.png"
+              alt="Big Five"
+              width={24}
+              height={24}
+              className="h-6 w-6"
+            />
+          </div>
+          <span className="font-heading text-lg font-bold">Big Five Admin</span>
         </Link>
         <Button
           variant="ghost"
           size="icon"
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="text-white hover:bg-[#1a3a6e]"
+          className="text-white hover:bg-white/10"
         >
           {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </Button>
@@ -122,26 +117,28 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         {/* Sidebar */}
         <aside
           className={`
-            fixed lg:sticky top-0 left-0 z-40 h-screen w-64 bg-[#071428] border-r border-[#1a3a6e]
+            fixed lg:sticky top-0 left-0 z-40 h-screen w-64 bg-secondary text-white border-r border-white/10
             transform transition-transform duration-200 ease-in-out
             ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
           `}
         >
           <div className="flex flex-col h-full">
             {/* Logo */}
-            <div className="p-6 border-b border-[#1a3a6e] hidden lg:block">
+            <div className="p-6 border-b border-white/10 hidden lg:block">
               <Link href="/admin" className="flex items-center gap-3">
-                <Image
-                  src="/logo.png"
-                  alt="Big Five Bootcamp"
-                  width={40}
-                  height={40}
-                  className="h-10 w-10"
-                  priority
-                />
+                <div className="bg-white rounded-lg p-1.5">
+                  <Image
+                    src="/logo.png"
+                    alt="Big Five Creative Library"
+                    width={32}
+                    height={32}
+                    className="h-8 w-8 object-contain"
+                    priority
+                  />
+                </div>
                 <div className="flex flex-col">
-                  <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-white">Big Five</span>
-                  <span className="text-[#9CA3AF] text-xs">Back-office</span>
+                  <span className="font-heading text-lg font-bold text-white">Big Five</span>
+                  <span className="text-white/60 text-xs">Administration</span>
                 </div>
               </Link>
             </div>
@@ -149,7 +146,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             {/* Navigation */}
             <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
               {sidebarLinks.map((link) => {
-                const isActive = pathname === link.href;
+                const isActive = pathname.startsWith(link.href) && (link.href === "/admin" ? pathname === "/admin" : true);
                 return (
                   <Link
                     key={link.href}
@@ -157,10 +154,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                     onClick={() => setSidebarOpen(false)}
                     className={`
                       flex items-center gap-3 px-4 py-3 rounded-lg transition-colors
-                      ${
-                        isActive
-                          ? "bg-[#FF6B35] text-white"
-                          : "text-[#9CA3AF] hover:bg-[#1a3a6e] hover:text-white"
+                      ${isActive
+                        ? "bg-primary text-white shadow-lg"
+                        : "text-white/70 hover:bg-white/10 hover:text-white"
                       }
                     `}
                   >
@@ -172,13 +168,13 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             </nav>
 
             {/* Footer */}
-            <div className="p-4 border-t border-[#1a3a6e]">
+            <div className="p-4 border-t border-white/10">
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[#9CA3AF] hover:bg-[#1a3a6e] hover:text-white transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-white/70 hover:bg-white/10 hover:text-white transition-colors"
               >
                 <LogOut className="h-5 w-5" />
-                <span className="font-medium">Deconnexion</span>
+                <span className="font-medium">Déconnexion</span>
               </button>
             </div>
           </div>
@@ -193,7 +189,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Main content */}
-        <main className="flex-1 min-h-screen">{children}</main>
+        <main className="flex-1 max-w-7xl mx-auto p-4 lg:p-8 min-h-screen w-full">
+          {children}
+        </main>
       </div>
     </div>
   );

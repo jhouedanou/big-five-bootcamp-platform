@@ -24,6 +24,7 @@ export interface ContentItem {
   agency?: string
   year?: number
   award?: string
+  status?: 'Publié' | 'Brouillon' | 'En attente'
 }
 
 interface ContentCardProps {

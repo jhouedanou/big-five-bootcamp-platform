@@ -125,6 +125,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         images: campaign.images || [],
         videoUrl: campaign.video_url || undefined,
         brand: campaign.brand || '',
+        status: campaign.status || 'Brouillon',
       }));
 
       setCampaigns(formattedCampaigns);
@@ -194,7 +195,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
           video_url: campaignData.videoUrl,
           platforms: [campaignData.platform],
           tags: campaignData.tags,
-          status: 'Brouillon',
+          status: campaignData.status || 'Brouillon',
           author_id: session?.user?.id,
           author_name: session?.user?.name,
         }),
@@ -228,6 +229,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
           video_url: updatedData.videoUrl,
           platforms: updatedData.platform ? [updatedData.platform] : undefined,
           tags: updatedData.tags,
+          status: updatedData.status,
         }),
       });
 

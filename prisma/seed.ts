@@ -4,22 +4,21 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const hashedPassword = await bcrypt.hash("admin2014!k", 12);
+  const hashedPassword = await bcrypt.hash("BigFive2026!Secure", 12);
 
   const admin = await prisma.user.upsert({
-    where: { email: "jeffrey@bigfive.com" },
+    where: { email: "cossi@bigfiveabidjan.com" },
     update: {
       password: hashedPassword,
       role: "admin",
-      status: "active",
+      subscriptionStatus: "active",
     },
     create: {
-      name: "Jeffrey",
-      email: "jeffrey@bigfive.com",
+      name: "Admin BigFive",
+      email: "cossi@bigfiveabidjan.com",
       password: hashedPassword,
       role: "admin",
-      plan: "premium",
-      status: "active",
+      subscriptionStatus: "active",
     },
   });
 

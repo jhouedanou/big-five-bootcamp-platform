@@ -1,21 +1,68 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { FiltersSidebar } from "@/components/dashboard/filters-sidebar"
-import { ContentCard } from "@/components/dashboard/content-card"
+import { ContentCard, ContentItem } from "@/components/dashboard/content-card"
 import { sampleContent } from "@/lib/sample-content"
+import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
-import { Filter, Grid3X3, LayoutList, ChevronLeft, ChevronRight } from "lucide-react"
+import { Filter, Grid3X3, LayoutList, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import { ParticlesBackground } from "@/components/ui/particles-background"
 
 export default function DashboardPage() {
+  const [campaigns, setCampaigns] = useState<ContentItem[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({})
   const [showMobileFilters, setShowMobileFilters] = useState(false)
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [currentPage, setCurrentPage] = useState(1)
   const [activeQuickFilter, setActiveQuickFilter] = useState("Tous")
   const itemsPerPage = 9
+
+  // Charger les campagnes publiées depuis Supabase
+  useEffect(() => {
+    const loadCampaigns = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('campaigns')
+          .select('*')
+          .eq('status', 'Publié')
+          .order('created_at', { ascending: false })
+
+        if (error) throw error
+
+        // Convertir les données Supabase au format ContentItem
+        const formattedCampaigns: ContentItem[] = (data || []).map((campaign: any) => ({
+          id: campaign.id,
+          title: campaign.title,
+          description: campaign.description || '',
+          imageUrl: campaign.thumbnail || '',
+          platform: campaign.platforms?.[0] || 'Facebook',
+          country: 'Côte d\'Ivoire',
+          sector: campaign.category || 'Marketing',
+          format: campaign.video_url ? 'Video' : 'Image',
+          tags: campaign.tags || [],
+          date: new Date(campaign.created_at).toISOString().split('T')[0],
+          isVideo: !!campaign.video_url,
+          images: campaign.images || [],
+          videoUrl: campaign.video_url || undefined,
+          brand: campaign.brand || '',
+          status: campaign.status,
+        }))
+
+        setCampaigns(formattedCampaigns.length > 0 ? formattedCampaigns : sampleContent)
+      } catch (error) {
+        console.error('Error loading campaigns:', error)
+        // Fallback to sample content
+        setCampaigns(sampleContent)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadCampaigns()
+  }, [])
 
   const quickFilters = [
     { label: "Tous", type: "all", value: "all", color: "bg-primary text-primary-foreground shadow-primary/25" },
@@ -39,7 +86,7 @@ export default function DashboardPage() {
   }
 
   const filteredContent = useMemo(() => {
-    return sampleContent.filter((content) => {
+    return campaigns.filter((content) => {
       const countryFilter = selectedFilters["Pays"] || []
       const sectorFilter = selectedFilters["Secteur"] || []
       const formatFilter = selectedFilters["Format"] || []
@@ -54,7 +101,7 @@ export default function DashboardPage() {
 
       return true
     })
-  }, [selectedFilters])
+  }, [selectedFilters, campaigns])
 
   const totalPages = Math.ceil(filteredContent.length / itemsPerPage)
   const paginatedContent = filteredContent.slice(
@@ -164,7 +211,12 @@ export default function DashboardPage() {
 
             {/* Content Grid */}
             <div className="flex-1">
-              {paginatedContent.length > 0 ? (
+              {isLoading ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <Loader2 className="h-8 w-8 animate-spin text-[#80368D]" />
+                  <p className="mt-4 text-sm text-muted-foreground">Chargement des campagnes...</p>
+                </div>
+              ) : paginatedContent.length > 0 ? (
                 <>
                   <div className={`grid gap-6 ${viewMode === "grid"
                     ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"

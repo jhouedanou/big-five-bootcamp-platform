@@ -38,6 +38,7 @@ import {
   Video,
   ChevronLeft,
   ChevronRight,
+  Send,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -51,6 +52,7 @@ const platforms = ["Facebook", "Instagram", "TikTok", "YouTube", "LinkedIn", "Tw
 const countries = ["Cote d'Ivoire", "Nigeria", "Kenya", "Ghana", "Senegal", "Maroc", "Afrique du Sud"];
 const sectors = ["Telecoms", "E-commerce", "Banque/Finance", "FMCG", "Tech", "Energie", "Industrie"];
 const formats = ["Video Ad", "Story", "Carousel", "Post Social", "Campagne 360"];
+const statuses = ["Brouillon", "En attente", "Publié"] as const;
 
 const defaultFormData: Omit<ContentItem, "id"> = {
   title: "",
@@ -68,6 +70,7 @@ const defaultFormData: Omit<ContentItem, "id"> = {
   agency: "",
   year: new Date().getFullYear(),
   isVideo: false,
+  status: "Brouillon",
 };
 
 export default function CampaignsPage() {
@@ -117,6 +120,7 @@ export default function CampaignsPage() {
       agency: item.agency || "",
       year: item.year || new Date().getFullYear(),
       isVideo: item.isVideo || false,
+      status: item.status || "Brouillon",
     });
     setTagInput("");
     setImageInput("");
@@ -166,6 +170,16 @@ export default function CampaignsPage() {
   const handleDelete = (id: string, title: string) => {
     deleteCampaign(id);
     toast.success(`"${title}" supprimee`);
+  };
+
+  const handlePublish = (item: ContentItem) => {
+    const newStatus = item.status === "Publié" ? "Brouillon" : "Publié";
+    updateCampaign(item.id, { ...item, status: newStatus });
+    toast.success(
+      newStatus === "Publié" 
+        ? `"${item.title}" publiée avec succès` 
+        : `"${item.title}" dépubliée`
+    );
   };
 
   const sectorColor = (sector: string) => {
@@ -263,6 +277,19 @@ export default function CampaignsPage() {
                         {item.agency && <span> - {item.agency}</span>}
                       </p>
                       <div className="flex flex-wrap gap-2 mt-2">
+                        {/* Badge de statut */}
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                          item.status === "Publié" ? "bg-green-500/20 text-green-400" :
+                          item.status === "En attente" ? "bg-yellow-500/20 text-yellow-400" :
+                          "bg-gray-500/20 text-gray-400"
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${
+                            item.status === "Publié" ? "bg-green-400" :
+                            item.status === "En attente" ? "bg-yellow-400" :
+                            "bg-gray-400"
+                          }`}></span>
+                          {item.status || "Brouillon"}
+                        </span>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${sectorColor(item.sector)}`}>
                           {item.sector}
                         </span>
@@ -310,6 +337,15 @@ export default function CampaignsPage() {
                       >
                         <Eye className="h-4 w-4 mr-2" />
                         Apercu
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handlePublish(item)}
+                        className={`hover:bg-[#1a3a6e] cursor-pointer ${
+                          item.status === "Publié" ? "text-yellow-400" : "text-green-400"
+                        }`}
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        {item.status === "Publié" ? "Dépublier" : "Publier"}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handleOpenEdit(item)}
@@ -691,6 +727,37 @@ export default function CampaignsPage() {
               <Label htmlFor="camp-video" className="cursor-pointer">
                 Cette campagne contient une video
               </Label>
+            </div>
+
+            {/* Statut de publication */}
+            <div className="space-y-2">
+              <Label>Statut de publication</Label>
+              <Select
+                value={formData.status || "Brouillon"}
+                onValueChange={(value: "Brouillon" | "En attente" | "Publié") => setFormData({ ...formData, status: value })}
+              >
+                <SelectTrigger className="bg-[#071428] border-[#1a3a6e] text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#071428] border-[#1a3a6e] text-white">
+                  {statuses.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      <span className={`inline-flex items-center gap-2 ${
+                        s === "Publié" ? "text-green-400" : 
+                        s === "En attente" ? "text-yellow-400" : 
+                        "text-gray-400"
+                      }`}>
+                        <span className={`w-2 h-2 rounded-full ${
+                          s === "Publié" ? "bg-green-400" : 
+                          s === "En attente" ? "bg-yellow-400" : 
+                          "bg-gray-400"
+                        }`}></span>
+                        {s}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Tags */}

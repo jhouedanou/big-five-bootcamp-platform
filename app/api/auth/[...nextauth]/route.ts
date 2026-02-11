@@ -1,6 +1,6 @@
 import NextAuth, { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
-import GoogleProvider from "next-auth/providers/google"
+
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { prisma } from "@/lib/db"
 import bcrypt from "bcryptjs"
@@ -47,14 +47,6 @@ export const authOptions: NextAuthOptions = {
         }
       }
     }),
-    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
-      ? [
-          GoogleProvider({
-            clientId: process.env.GOOGLE_CLIENT_ID,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-          }),
-        ]
-      : []),
   ],
   session: {
     strategy: "jwt",
@@ -71,13 +63,13 @@ export const authOptions: NextAuthOptions = {
         token.role = (user as any).role
         token.plan = (user as any).plan
       }
-      
+
       // Permettre la mise à jour de la session
       if (trigger === "update" && session) {
         token.name = session.name
         token.plan = session.plan
       }
-      
+
       return token
     },
     async session({ session, token }) {

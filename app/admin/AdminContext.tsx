@@ -50,38 +50,33 @@ export function AdminProvider({ children }: { children: ReactNode }) {
             return;
           }
 
-          // Ensuite essayer de récupérer le rôle depuis la table users
+          // Liste des emails admin autorisés (fallback principal)
+          const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannickj@bigfiveabidjan.com'];
+          
+          // Vérifier d'abord si l'email est dans la liste admin connue
+          if (adminEmails.includes(session.user.email)) {
+            setUserRole('admin');
+            setAuthLoading(false);
+            return;
+          }
+
+          // Ensuite essayer de récupérer le rôle depuis la table users (optionnel)
           try {
             const { data: dbUser, error } = await supabase
               .from('users')
               .select('role')
               .eq('email', session.user.email)
-              .single();
+              .maybeSingle(); // Utiliser maybeSingle au lieu de single pour éviter l'erreur 406
 
-            if (error) {
-              // Si erreur 500 ou table non existante, utiliser les métadonnées ou fallback
-              console.warn("Impossible de récupérer le rôle depuis la table users:", error.message);
-              // Vérifier si l'email est un admin connu
-              const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannickj@bigfiveabidjan.com'];
-              if (adminEmails.includes(session.user.email)) {
-                setUserRole('admin');
-              } else {
-                setUserRole('user');
-              }
-            } else if (dbUser) {
+            if (!error && dbUser?.role) {
               setUserRole(dbUser.role);
             } else {
+              // Par défaut, utilisateur normal
               setUserRole('user');
             }
           } catch (dbError) {
             console.warn("Erreur DB, utilisation du fallback:", dbError);
-            // Fallback sur les emails admin connus
-            const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannickj@bigfiveabidjan.com'];
-            if (adminEmails.includes(session.user.email)) {
-              setUserRole('admin');
-            } else {
-              setUserRole('user');
-            }
+            setUserRole('user');
           }
         }
       } catch (error) {
@@ -104,24 +99,31 @@ export function AdminProvider({ children }: { children: ReactNode }) {
           return;
         }
         
-        // Essayer la table users avec gestion d'erreur
+        // Liste des emails admin autorisés
+        const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannickj@bigfiveabidjan.com'];
+        
+        // Vérifier si l'email est dans la liste admin connue
+        if (adminEmails.includes(session.user.email)) {
+          setUserRole('admin');
+          setAuthLoading(false);
+          return;
+        }
+        
+        // Essayer la table users avec gestion d'erreur (optionnel)
         try {
           const { data: dbUser, error } = await supabase
             .from('users')
             .select('role')
             .eq('email', session.user.email)
-            .single();
+            .maybeSingle();
           
-          if (error) {
-            // Fallback sur les emails admin connus
-            const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannickj@bigfiveabidjan.com'];
-            setUserRole(adminEmails.includes(session.user.email) ? 'admin' : 'user');
-          } else if (dbUser) {
+          if (!error && dbUser?.role) {
             setUserRole(dbUser.role);
+          } else {
+            setUserRole('user');
           }
         } catch {
-          const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannickj@bigfiveabidjan.com'];
-          setUserRole(adminEmails.includes(session.user.email) ? 'admin' : 'user');
+          setUserRole('user');
         }
       } else {
         setUserRole(null);
@@ -203,23 +205,33 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   const loadCampaignsFromSupabase = async () => {
     try {
-      const { data, error } = await supabase
-        .from('campaigns')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Utiliser l'API admin qui bypass RLS
+      const response = await fetch('/api/admin/campaigns', {
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.warn('API admin/campaigns non disponible:', errorData.error);
+        setCampaigns(getSampleCampaigns());
+        setIsUsingLocalData(true);
+        return;
+      }
+      
+      const { campaigns: data, error } = await response.json();
 
       if (error) {
         // Table campaigns n'existe pas encore
-        console.warn('Table campaigns non disponible:', error.message);
+        console.warn('Table campaigns non disponible:', error);
         setCampaigns(getSampleCampaigns());
         setIsUsingLocalData(true);
         return;
       }
 
       if (!data || data.length === 0) {
-        // Pas de campagnes, utiliser des données d'exemple
-        setCampaigns(getSampleCampaigns());
-        setIsUsingLocalData(true);
+        // Pas de campagnes, mais la table existe - ne pas utiliser de données d'exemple
+        setCampaigns([]);
+        setIsUsingLocalData(false);
         return;
       }
 
@@ -298,10 +310,20 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     try {
       const record = mapToDbRecord(campaignData);
       if (!record.status) record.status = 'Brouillon';
-      const { error } = await supabase.from('campaigns').insert(record);
-      if (error) {
+      
+      // Utiliser l'API admin
+      const response = await fetch('/api/admin/campaigns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(record),
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok || result.error) {
         // Si erreur DB, basculer en mode local
-        console.warn('DB non disponible, ajout local:', error.message);
+        console.warn('DB non disponible, ajout local:', result.error);
         const newCampaign: ContentItem = {
           ...campaignData,
           id: `local-${Date.now()}`,
@@ -342,8 +364,18 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
     try {
       const record = mapToDbRecord(updatedData);
-      const { error } = await supabase.from('campaigns').update(record).eq('id', id);
-      if (error) {
+      
+      // Utiliser l'API admin
+      const response = await fetch('/api/admin/campaigns', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ id, ...record }),
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok || result.error) {
         // Fallback local
         setCampaigns(prev => prev.map(c => 
           c.id === id ? { ...c, ...updatedData } : c
@@ -371,8 +403,15 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const { error } = await supabase.from('campaigns').delete().eq('id', id);
-      if (error) {
+      // Utiliser l'API admin
+      const response = await fetch(`/api/admin/campaigns?id=${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok || result.error) {
         setCampaigns(prev => prev.filter(c => c.id !== id));
         toast.success("Campagne supprimée localement");
         return;

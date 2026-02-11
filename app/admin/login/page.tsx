@@ -80,13 +80,13 @@ export default function AdminLoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background decorations */}
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-orange-500/10 to-transparent rounded-full blur-3xl"></div>
         <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-blue-500/10 to-transparent rounded-full blur-3xl"></div>
       </div>
       
       {/* Grid pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:64px_64px]"></div>
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none"></div>
 
       <div className="relative w-full max-w-md">
         {/* Floating badge */}
@@ -100,7 +100,7 @@ export default function AdminLoginPage() {
         <Card className="w-full bg-white/5 backdrop-blur-xl border-white/10 shadow-2xl">
           <CardHeader className="space-y-1 flex flex-col items-center pt-10 pb-6">
             <div className="relative mb-6">
-              <div className="absolute inset-0 bg-orange-500/30 rounded-2xl blur-xl"></div>
+              <div className="absolute inset-0 bg-orange-500/30 rounded-2xl blur-xl pointer-events-none"></div>
               <div className="relative w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30">
                 <Image
                   src="/logo.png"

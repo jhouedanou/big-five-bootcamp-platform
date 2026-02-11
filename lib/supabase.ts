@@ -1,4 +1,3 @@
-
 import { createBrowserClient } from '@supabase/ssr'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
@@ -23,9 +22,6 @@ export const createClient = () => {
   return browserClient
 }
 
-// Alias pour compatibilité - sera initialisé seulement côté client
-export const supabase = typeof window !== 'undefined' ? createClient() : null!
-
 // Client Supabase admin (avec la service role key pour les opérations côté serveur)
 // Note: Ne pas utiliser côté client, seulement dans les API routes
 // Créé paresseusement pour éviter les instances multiples
@@ -41,5 +37,11 @@ export const getSupabaseAdmin = () => {
   return adminClient
 }
 
-// Pour la compatibilité avec le code existant
+// Pour la compatibilité avec le code existant côté serveur (API routes)
 export const supabaseAdmin = getSupabaseAdmin()
+
+// Alias pour compatibilité - utilise le client admin côté serveur
+// Cela garantit que les API routes ont toujours un client valide
+export const supabase = typeof window !== 'undefined' 
+  ? createClient() 
+  : getSupabaseAdmin()

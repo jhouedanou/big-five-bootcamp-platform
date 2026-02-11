@@ -160,9 +160,9 @@ export default function AdminDashboardPage() {
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {statsCards.map((stat, index) => (
-            <Card key={index} className="border-0 bg-white dark:bg-slate-800/50 overflow-hidden group hover:shadow-lg transition-all">
+            <Card key={index} className="border-0 bg-white dark:bg-slate-800/50 overflow-hidden group hover:shadow-lg transition-all relative">
               <CardContent className="p-6">
-                <div className={`absolute inset-0 bg-gradient-to-br ${stat.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity`}></div>
+                <div className={`absolute inset-0 bg-gradient-to-br ${stat.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none`}></div>
                 <div className="relative">
                   <div className="flex items-center justify-between mb-4">
                     <div className={`p-2.5 rounded-xl bg-gradient-to-br ${stat.gradient} text-white shadow-lg`}>

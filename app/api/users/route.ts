@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
-import { prisma } from "@/lib/db"
-import bcrypt from "bcryptjs"
+import { getAuthenticatedUser, getSupabaseAdmin } from "@/lib/supabase-server"
 import { z } from "zod"
 
 // Schéma de validation
@@ -10,23 +7,24 @@ const userCreateSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(8).optional(),
-  role: z.enum(["user", "admin", "moderator"]).optional(),
-  plan: z.enum(["free", "premium", "enterprise"]).optional(),
-  status: z.enum(["active", "inactive", "suspended"]).optional(),
+  role: z.enum(["user", "admin"]).optional(),
+  plan: z.enum(["Free", "Premium"]).optional(),
+  status: z.enum(["active", "inactive"]).optional(),
 })
 
 // GET - Liste des utilisateurs (admin uniquement)
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
+    const currentUser = await getAuthenticatedUser()
     
-    if (!session || session.user.role !== "admin") {
+    if (!currentUser || !currentUser.isAdmin) {
       return NextResponse.json(
         { error: "Non autorisé" },
         { status: 401 }
       )
     }
 
+    const supabase = getSupabaseAdmin()
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get("page") || "1")
     const limit = parseInt(searchParams.get("limit") || "20")
@@ -35,52 +33,30 @@ export async function GET(request: Request) {
     const plan = searchParams.get("plan")
     const status = searchParams.get("status")
 
-    const where: any = {}
-    
-    if (search) {
-      where.OR = [
-        { name: { contains: search } },
-        { email: { contains: search } },
-      ]
-    }
-    
-    if (role) where.role = role
-    if (plan) where.plan = plan
-    if (status) where.status = status
+    let query = supabase
+      .from('users')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+      .range((page - 1) * limit, page * limit - 1)
 
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({
-        where,
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-          plan: true,
-          status: true,
-          createdAt: true,
-          image: true,
-          _count: {
-            select: {
-              favorites: true,
-              contentViews: true,
-            }
-          }
-        },
-        orderBy: { createdAt: "desc" },
-        skip: (page - 1) * limit,
-        take: limit,
-      }),
-      prisma.user.count({ where })
-    ])
+    if (search) {
+      query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`)
+    }
+    if (role) query = query.eq('role', role)
+    if (plan) query = query.eq('plan', plan)
+    if (status) query = query.eq('status', status)
+
+    const { data: users, error, count } = await query
+
+    if (error) throw error
 
     return NextResponse.json({
-      users,
+      users: users || [],
       pagination: {
         page,
         limit,
-        total,
-        totalPages: Math.ceil(total / limit)
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit)
       }
     })
 
@@ -96,9 +72,9 @@ export async function GET(request: Request) {
 // POST - Créer un utilisateur (admin uniquement)
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
+    const currentUser = await getAuthenticatedUser()
     
-    if (!session || session.user.role !== "admin") {
+    if (!currentUser || !currentUser.isAdmin) {
       return NextResponse.json(
         { error: "Non autorisé" },
         { status: 401 }
@@ -116,40 +92,41 @@ export async function POST(request: Request) {
     }
 
     const { name, email, password, role, plan, status } = validation.data
+    const supabase = getSupabaseAdmin()
 
-    // Vérifier si l'utilisateur existe
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
+    // Créer l'utilisateur dans Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email,
+      password: password || 'TempPass123!',
+      email_confirm: true,
+      user_metadata: { name },
     })
 
-    if (existingUser) {
-      return NextResponse.json(
-        { error: "Cet email est déjà utilisé" },
-        { status: 400 }
-      )
+    if (authError) {
+      if (authError.message.includes('already been registered')) {
+        return NextResponse.json(
+          { error: "Cet email est déjà utilisé" },
+          { status: 400 }
+        )
+      }
+      throw authError
     }
 
-    const hashedPassword = password ? await bcrypt.hash(password, 12) : null
-
-    const user = await prisma.user.create({
-      data: {
-        name,
+    // Créer le profil dans la table users
+    const { data: user, error: profileError } = await supabase
+      .from('users')
+      .insert({
+        id: authData.user.id,
         email,
-        password: hashedPassword,
-        role: role || "user",
-        plan: plan || "free",
-        status: status || "active",
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        plan: true,
-        status: true,
-        createdAt: true,
-      }
-    })
+        name,
+        role: role || 'user',
+        plan: plan || 'Free',
+        status: status || 'active',
+      })
+      .select()
+      .single()
+
+    if (profileError) throw profileError
 
     return NextResponse.json({ user }, { status: 201 })
 

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server"
-import { prisma } from "@/lib/db"
-import bcrypt from "bcryptjs"
 import { z } from "zod"
+import { createClient } from '@supabase/supabase-js'
 
 const registerSchema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
@@ -23,44 +22,59 @@ export async function POST(request: Request) {
 
     const { name, email, password } = validation.data
 
-    // Vérifier si l'utilisateur existe déjà
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
+    // Utiliser le client Supabase avec la clé anon (l'inscription est ouverte)
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+
+    // Créer l'utilisateur dans Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name },
+      },
     })
 
-    if (existingUser) {
-      return NextResponse.json(
-        { error: "Un compte avec cet email existe déjà" },
-        { status: 400 }
-      )
+    if (authError) {
+      if (authError.message.includes('already registered')) {
+        return NextResponse.json(
+          { error: "Un compte avec cet email existe déjà" },
+          { status: 400 }
+        )
+      }
+      throw authError
     }
 
-    // Hasher le mot de passe
-    const hashedPassword = await bcrypt.hash(password, 12)
+    if (!authData.user) {
+      throw new Error("Erreur lors de la création du compte")
+    }
 
-    // Créer l'utilisateur
-    const user = await prisma.user.create({
-      data: {
-        name,
+    // Créer le profil dans la table users
+    const { error: profileError } = await supabase
+      .from('users')
+      .insert({
+        id: authData.user.id,
         email,
-        password: hashedPassword,
-        role: "user",
-        plan: "free",
-        status: "active",
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        plan: true,
-        createdAt: true,
-      }
-    })
+        name,
+        role: 'user',
+        plan: 'Free',
+        status: 'active',
+      })
+
+    if (profileError) {
+      console.error("Profile creation error:", profileError)
+      // L'utilisateur auth est créé mais le profil a échoué - pas bloquant
+    }
 
     return NextResponse.json({
       message: "Compte créé avec succès",
-      user
+      user: {
+        id: authData.user.id,
+        email,
+        name,
+      }
     }, { status: 201 })
 
   } catch (error) {

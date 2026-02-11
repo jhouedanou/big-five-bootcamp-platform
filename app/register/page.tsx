@@ -3,7 +3,7 @@
 import React from "react"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, Sparkles, Check, Shield, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,13 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
+
+function formatNumber(n: number): string {
+  if (n >= 1000) {
+    return new Intl.NumberFormat("fr-FR").format(n)
+  }
+  return n.toString()
+}
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -20,6 +27,14 @@ export default function RegisterPage() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [stats, setStats] = useState({ users: 0, campaigns: 0, brands: 0, countries: 0 })
+
+  useEffect(() => {
+    fetch("/api/stats")
+      .then((res) => res.json())
+      .then((data) => setStats(data))
+      .catch(() => setStats({ users: 0, campaigns: 0, brands: 0, countries: 0 }))
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -104,7 +119,7 @@ export default function RegisterPage() {
                   ))}
                 </div>
                 <div className="text-sm text-[#1A1F2B]/80">
-                  <span className="font-semibold text-[#1A1F2B]">+2,500</span> marketeurs actifs
+                  <span className="font-semibold text-[#1A1F2B]">{stats.users > 0 ? `+${formatNumber(stats.users)}` : '...'}</span> marketeurs actifs
                 </div>
               </div>
             </div>

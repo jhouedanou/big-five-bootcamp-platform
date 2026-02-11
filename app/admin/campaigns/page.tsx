@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAdmin } from "../AdminContext";
 import type { ContentItem } from "@/components/dashboard/content-card";
 import { Button } from "@/components/ui/button";
@@ -75,6 +76,7 @@ const defaultFormData: Omit<ContentItem, "id"> = {
 
 export default function CampaignsPage() {
   const { campaigns, addCampaign, updateCampaign, deleteCampaign } = useAdmin();
+  const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterSector, setFilterSector] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -84,6 +86,17 @@ export default function CampaignsPage() {
   const [imageInput, setImageInput] = useState("");
   const [previewCampaign, setPreviewCampaign] = useState<ContentItem | null>(null);
   const [previewImageIndex, setPreviewImageIndex] = useState(0);
+
+  // Ouvrir automatiquement le formulaire si ?action=new
+  useEffect(() => {
+    if (searchParams.get("action") === "new") {
+      setEditingCampaign(null);
+      setFormData(defaultFormData);
+      setTagInput("");
+      setImageInput("");
+      setIsDialogOpen(true);
+    }
+  }, [searchParams]);
 
   const filteredCampaigns = campaigns.filter((item) => {
     const matchesSearch =

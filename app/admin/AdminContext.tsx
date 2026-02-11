@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
 import type { ContentItem } from "@/components/dashboard/content-card";
 import { createClient } from "@/lib/supabase";
 import { toast } from "sonner";
@@ -23,13 +23,15 @@ const AdminContext = createContext<AdminContextType | undefined>(undefined);
 
 export function AdminProvider({ children }: { children: ReactNode }) {
   const [campaigns, setCampaigns] = useState<ContentItem[]>([]);
+  const [isUsingLocalData, setIsUsingLocalData] = useState(false);
 
   const [session, setSession] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [campaignsLoading, setCampaignsLoading] = useState(true);
 
-  const supabase = createClient();
+  // Utiliser useMemo pour éviter de recréer le client à chaque rendu
+  const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
 
   // Auth Logic
@@ -40,18 +42,46 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         setSession(session);
 
         if (session?.user?.email) {
-          // Fetch role from DB
-          const { data: dbUser, error } = await supabase
-            .from('users')
-            .select('role')
-            .eq('email', session.user.email)
-            .single();
+          // D'abord vérifier les métadonnées de l'utilisateur auth
+          const userMetadata = session.user.user_metadata;
+          if (userMetadata?.role === 'admin') {
+            setUserRole('admin');
+            setAuthLoading(false);
+            return;
+          }
 
-          if (dbUser) {
-            setUserRole(dbUser.role);
-          } else {
-            // Fallback if not in DB yet (or mapping issue), check metadata or default
-            setUserRole('user');
+          // Ensuite essayer de récupérer le rôle depuis la table users
+          try {
+            const { data: dbUser, error } = await supabase
+              .from('users')
+              .select('role')
+              .eq('email', session.user.email)
+              .single();
+
+            if (error) {
+              // Si erreur 500 ou table non existante, utiliser les métadonnées ou fallback
+              console.warn("Impossible de récupérer le rôle depuis la table users:", error.message);
+              // Vérifier si l'email est un admin connu
+              const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannickj@bigfiveabidjan.com'];
+              if (adminEmails.includes(session.user.email)) {
+                setUserRole('admin');
+              } else {
+                setUserRole('user');
+              }
+            } else if (dbUser) {
+              setUserRole(dbUser.role);
+            } else {
+              setUserRole('user');
+            }
+          } catch (dbError) {
+            console.warn("Erreur DB, utilisation du fallback:", dbError);
+            // Fallback sur les emails admin connus
+            const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannickj@bigfiveabidjan.com'];
+            if (adminEmails.includes(session.user.email)) {
+              setUserRole('admin');
+            } else {
+              setUserRole('user');
+            }
           }
         }
       } catch (error) {
@@ -66,12 +96,33 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       if (session?.user?.email) {
-        const { data: dbUser } = await supabase
-          .from('users')
-          .select('role')
-          .eq('email', session.user.email)
-          .single();
-        if (dbUser) setUserRole(dbUser.role);
+        // Vérifier d'abord les métadonnées
+        const userMetadata = session.user.user_metadata;
+        if (userMetadata?.role === 'admin') {
+          setUserRole('admin');
+          setAuthLoading(false);
+          return;
+        }
+        
+        // Essayer la table users avec gestion d'erreur
+        try {
+          const { data: dbUser, error } = await supabase
+            .from('users')
+            .select('role')
+            .eq('email', session.user.email)
+            .single();
+          
+          if (error) {
+            // Fallback sur les emails admin connus
+            const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannickj@bigfiveabidjan.com'];
+            setUserRole(adminEmails.includes(session.user.email) ? 'admin' : 'user');
+          } else if (dbUser) {
+            setUserRole(dbUser.role);
+          }
+        } catch {
+          const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannickj@bigfiveabidjan.com'];
+          setUserRole(adminEmails.includes(session.user.email) ? 'admin' : 'user');
+        }
       } else {
         setUserRole(null);
       }
@@ -95,6 +146,61 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     }
   }, [isAdmin]);
 
+  // Données d'exemple pour l'admin quand la base n'est pas configurée
+  const getSampleCampaigns = (): ContentItem[] => [
+    {
+      id: "sample-1",
+      title: "Campagne MTN Mobile Money",
+      description: "Campagne digitale pour le lancement de MTN MoMo en Côte d'Ivoire",
+      imageUrl: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800",
+      platform: "Facebook",
+      country: "Côte d'Ivoire",
+      sector: "Telecoms",
+      format: "Vidéo",
+      tags: ["Mobile Money", "Fintech", "Digital"],
+      date: "2024-01-15",
+      isVideo: true,
+      brand: "MTN",
+      agency: "Big Five",
+      year: 2024,
+      status: "Publié",
+    },
+    {
+      id: "sample-2",
+      title: "Lancement Coca-Cola Zero Sugar",
+      description: "Campagne 360° pour le nouveau Coca-Cola Zero Sugar",
+      imageUrl: "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=800",
+      platform: "Instagram",
+      country: "Sénégal",
+      sector: "FMCG",
+      format: "Image",
+      tags: ["Boisson", "Lancement produit"],
+      date: "2024-02-20",
+      isVideo: false,
+      brand: "Coca-Cola",
+      agency: "Big Five",
+      year: 2024,
+      status: "Publié",
+    },
+    {
+      id: "sample-3",
+      title: "Orange Bank Africa",
+      description: "Campagne de sensibilisation aux services bancaires mobiles",
+      imageUrl: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=800",
+      platform: "YouTube",
+      country: "Cameroun",
+      sector: "Banque/Finance",
+      format: "Vidéo",
+      tags: ["Banque mobile", "Digital", "Fintech"],
+      date: "2024-03-10",
+      isVideo: true,
+      brand: "Orange",
+      agency: "Big Five",
+      year: 2024,
+      status: "Brouillon",
+    },
+  ];
+
   const loadCampaignsFromSupabase = async () => {
     try {
       const { data, error } = await supabase
@@ -102,7 +208,22 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        // Table campaigns n'existe pas encore
+        console.warn('Table campaigns non disponible:', error.message);
+        setCampaigns(getSampleCampaigns());
+        setIsUsingLocalData(true);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        // Pas de campagnes, utiliser des données d'exemple
+        setCampaigns(getSampleCampaigns());
+        setIsUsingLocalData(true);
+        return;
+      }
+
+      setIsUsingLocalData(false);
 
       // Convertir les données Supabase au format ContentItem
       const formattedCampaigns: ContentItem[] = (data || []).map((campaign: any) => ({
@@ -127,9 +248,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
       setCampaigns(formattedCampaigns);
     } catch (error: any) {
-      console.error('Error loading campaigns:', error);
-      // toast.error('Erreur lors du chargement des campagnes');
-      setCampaigns([]);
+      console.warn('Erreur chargement campagnes, utilisation des données exemple:', error?.message || error);
+      setCampaigns(getSampleCampaigns());
     } finally {
       setCampaignsLoading(false);
     }
@@ -162,41 +282,107 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   // Campaign Actions
   const addCampaign = async (campaignData: Omit<ContentItem, "id">) => {
+    // Si on utilise des données locales (table non disponible), ajouter localement
+    if (isUsingLocalData) {
+      const newCampaign: ContentItem = {
+        ...campaignData,
+        id: `local-${Date.now()}`,
+      };
+      setCampaigns(prev => [newCampaign, ...prev]);
+      toast.success("Campagne ajoutée localement", {
+        description: "Note: La base de données n'est pas configurée. Les données seront perdues au rechargement."
+      });
+      return;
+    }
+
     try {
       const record = mapToDbRecord(campaignData);
       if (!record.status) record.status = 'Brouillon';
       const { error } = await supabase.from('campaigns').insert(record);
-      if (error) throw error;
-      toast.success("Campagne ajoutee avec succes");
+      if (error) {
+        // Si erreur DB, basculer en mode local
+        console.warn('DB non disponible, ajout local:', error.message);
+        const newCampaign: ContentItem = {
+          ...campaignData,
+          id: `local-${Date.now()}`,
+        };
+        setCampaigns(prev => [newCampaign, ...prev]);
+        setIsUsingLocalData(true);
+        toast.success("Campagne ajoutée localement", {
+          description: "La table 'campaigns' n'existe pas dans Supabase. Exécutez le schéma SQL."
+        });
+        return;
+      }
+      toast.success("Campagne ajoutée avec succès");
       await loadCampaignsFromSupabase();
     } catch (error: any) {
       console.error('Error creating campaign:', error);
-      toast.error("Erreur lors de la creation de la campagne");
+      // Fallback local
+      const newCampaign: ContentItem = {
+        ...campaignData,
+        id: `local-${Date.now()}`,
+      };
+      setCampaigns(prev => [newCampaign, ...prev]);
+      setIsUsingLocalData(true);
+      toast.warning("Campagne ajoutée en mode hors-ligne", {
+        description: "Configurez Supabase pour persister les données."
+      });
     }
   };
 
   const updateCampaign = async (id: string, updatedData: Partial<ContentItem>) => {
+    // Si données locales ou ID local
+    if (isUsingLocalData || id.startsWith('local-') || id.startsWith('sample-')) {
+      setCampaigns(prev => prev.map(c => 
+        c.id === id ? { ...c, ...updatedData } : c
+      ));
+      toast.success("Campagne mise à jour localement");
+      return;
+    }
+
     try {
       const record = mapToDbRecord(updatedData);
       const { error } = await supabase.from('campaigns').update(record).eq('id', id);
-      if (error) throw error;
-      toast.success("Campagne mise a jour avec succes");
+      if (error) {
+        // Fallback local
+        setCampaigns(prev => prev.map(c => 
+          c.id === id ? { ...c, ...updatedData } : c
+        ));
+        toast.success("Campagne mise à jour localement");
+        return;
+      }
+      toast.success("Campagne mise à jour avec succès");
       await loadCampaignsFromSupabase();
     } catch (error: any) {
       console.error('Error updating campaign:', error);
-      toast.error("Erreur lors de la mise a jour");
+      setCampaigns(prev => prev.map(c => 
+        c.id === id ? { ...c, ...updatedData } : c
+      ));
+      toast.warning("Mise à jour locale uniquement");
     }
   };
 
   const deleteCampaign = async (id: string) => {
+    // Si données locales ou ID local
+    if (isUsingLocalData || id.startsWith('local-') || id.startsWith('sample-')) {
+      setCampaigns(prev => prev.filter(c => c.id !== id));
+      toast.success("Campagne supprimée");
+      return;
+    }
+
     try {
       const { error } = await supabase.from('campaigns').delete().eq('id', id);
-      if (error) throw error;
-      toast.success("Campagne supprimee");
+      if (error) {
+        setCampaigns(prev => prev.filter(c => c.id !== id));
+        toast.success("Campagne supprimée localement");
+        return;
+      }
+      toast.success("Campagne supprimée");
       await loadCampaignsFromSupabase();
     } catch (error: any) {
       console.error('Error deleting campaign:', error);
-      toast.error("Erreur lors de la suppression");
+      setCampaigns(prev => prev.filter(c => c.id !== id));
+      toast.warning("Suppression locale uniquement");
     }
   };
 

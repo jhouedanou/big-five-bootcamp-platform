@@ -6,13 +6,13 @@ import { Button } from "@/components/ui/button"
 import { ArrowRight, Play, Target, BarChart3, Search, CheckCircle, Zap, RefreshCw, Globe, Layers, Sparkles } from "lucide-react"
 
 function useStats() {
-  const [stats, setStats] = useState({ users: 0, campaigns: 0 })
+  const [stats, setStats] = useState({ users: 0, campaigns: 0, brands: 0, countries: 0 })
 
   useEffect(() => {
     fetch("/api/stats")
       .then((res) => res.json())
       .then((data) => setStats(data))
-      .catch(() => setStats({ users: 0, campaigns: 0 }))
+      .catch(() => setStats({ users: 0, campaigns: 0, brands: 0, countries: 0 }))
   }, [])
 
   return stats
@@ -62,7 +62,7 @@ export function HeroSection() {
               </span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-[#D0E4F2] px-4 py-1.5 text-xs font-semibold text-[#1A1F2B] ring-1 ring-[#D0E4F2] hover-lift cursor-default">
                 <Globe className="h-3.5 w-3.5 text-[#29358B]" />
-                15+ Pays Africains
+                {stats.countries > 0 ? `${stats.countries}+` : '...'} Pays Africains
               </span>
             </div>
 

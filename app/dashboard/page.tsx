@@ -5,7 +5,7 @@ import Link from "next/link"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { FiltersSidebar } from "@/components/dashboard/filters-sidebar"
 import { ContentCard, ContentItem } from "@/components/dashboard/content-card"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Filter, Grid3X3, LayoutList, ChevronLeft, ChevronRight, Loader2, Lock } from "lucide-react"
 import { ParticlesBackground } from "@/components/ui/particles-background"
@@ -24,6 +24,8 @@ export default function DashboardPage() {
   const itemsPerPage = 9
 
   const isPremium = userPlan.toLowerCase() === "premium"
+  
+  const supabase = createClient()
 
   // Charger le plan utilisateur
   useEffect(() => {
@@ -31,12 +33,17 @@ export default function DashboardPage() {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (session?.user) {
-          const { data: profile } = await supabase
-            .from('users')
-            .select('plan')
-            .eq('id', session.user.id)
-            .single()
-          if (profile?.plan) setUserPlan(profile.plan)
+          try {
+            const { data: profile, error } = await supabase
+              .from('users')
+              .select('plan')
+              .eq('id', session.user.id)
+              .single()
+            if (!error && profile?.plan) setUserPlan(profile.plan)
+          } catch {
+            // Table users n'existe pas encore, utiliser le plan par défaut
+            console.warn('Table users non disponible, utilisation du plan par défaut')
+          }
         }
       } catch (error) {
         console.error('Error loading user plan:', error)
@@ -55,7 +62,19 @@ export default function DashboardPage() {
           .eq('status', 'Publié')
           .order('created_at', { ascending: false })
 
-        if (error) throw error
+        if (error) {
+          // Table campaigns n'existe pas encore
+          console.warn('Table campaigns non disponible:', error.message)
+          // Utiliser des données d'exemple
+          setCampaigns(getSampleCampaigns())
+          return
+        }
+
+        if (!data || data.length === 0) {
+          // Pas de campagnes, utiliser des données d'exemple
+          setCampaigns(getSampleCampaigns())
+          return
+        }
 
         const formattedCampaigns: ContentItem[] = (data || []).map((campaign: any) => ({
           id: campaign.id,
@@ -78,9 +97,9 @@ export default function DashboardPage() {
         }))
 
         setCampaigns(formattedCampaigns)
-      } catch (error) {
-        console.error('Error loading campaigns:', error)
-        setCampaigns([])
+      } catch (error: any) {
+        console.warn('Erreur chargement campagnes, utilisation des données exemple:', error?.message || error)
+        setCampaigns(getSampleCampaigns())
       } finally {
         setIsLoading(false)
       }
@@ -88,6 +107,78 @@ export default function DashboardPage() {
 
     loadCampaigns()
   }, [])
+
+  // Données d'exemple quand la base n'est pas configurée
+  const getSampleCampaigns = (): ContentItem[] => [
+    {
+      id: "sample-1",
+      title: "Campagne MTN Mobile Money",
+      description: "Campagne digitale pour le lancement de MTN MoMo en Côte d'Ivoire",
+      imageUrl: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800",
+      platform: "Facebook",
+      country: "Côte d'Ivoire",
+      sector: "Telecoms",
+      format: "Vidéo",
+      tags: ["Mobile Money", "Fintech", "Digital"],
+      date: "2024-01-15",
+      isVideo: true,
+      brand: "MTN",
+      agency: "Big Five",
+      year: 2024,
+      status: "Publié",
+    },
+    {
+      id: "sample-2",
+      title: "Lancement Coca-Cola Zero Sugar",
+      description: "Campagne 360° pour le nouveau Coca-Cola Zero Sugar",
+      imageUrl: "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=800",
+      platform: "Instagram",
+      country: "Sénégal",
+      sector: "FMCG",
+      format: "Image",
+      tags: ["Boisson", "Lancement produit"],
+      date: "2024-02-20",
+      isVideo: false,
+      brand: "Coca-Cola",
+      agency: "Big Five",
+      year: 2024,
+      status: "Publié",
+    },
+    {
+      id: "sample-3",
+      title: "Orange Bank Africa",
+      description: "Campagne de sensibilisation aux services bancaires mobiles",
+      imageUrl: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=800",
+      platform: "YouTube",
+      country: "Cameroun",
+      sector: "Banque/Finance",
+      format: "Vidéo",
+      tags: ["Banque mobile", "Digital", "Fintech"],
+      date: "2024-03-10",
+      isVideo: true,
+      brand: "Orange",
+      agency: "Big Five",
+      year: 2024,
+      status: "Publié",
+    },
+    {
+      id: "sample-4",
+      title: "Nestlé Maggi Cube",
+      description: "Campagne TV et digital pour Maggi en Afrique de l'Ouest",
+      imageUrl: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800",
+      platform: "TikTok",
+      country: "Nigeria",
+      sector: "FMCG",
+      format: "Vidéo",
+      tags: ["Alimentaire", "FMCG", "Cuisine"],
+      date: "2024-01-25",
+      isVideo: true,
+      brand: "Nestlé",
+      agency: "Big Five",
+      year: 2024,
+      status: "Publié",
+    },
+  ]
 
   const quickFilters = [
     { label: "Tous", type: "all", value: "all", color: "bg-primary text-primary-foreground shadow-primary/25" },

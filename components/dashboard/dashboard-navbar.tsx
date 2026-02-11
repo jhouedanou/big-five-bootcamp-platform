@@ -5,7 +5,7 @@ import { useState, useEffect } from "react"
 import { Menu, X, Search, Bell, User, LogOut, Settings, CreditCard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +20,8 @@ export function DashboardNavbar() {
   const [userName, setUserName] = useState("")
   const [userEmail, setUserEmail] = useState("")
   const [userPlan, setUserPlan] = useState("Free")
+  
+  const supabase = createClient()
 
   useEffect(() => {
     const loadUser = async () => {

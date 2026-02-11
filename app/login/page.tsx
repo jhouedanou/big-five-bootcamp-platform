@@ -3,14 +3,21 @@
 import React from "react"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { supabase } from "@/lib/supabase"
+import { createClient } from "@/lib/supabase"
+
+function formatNumber(n: number): string {
+  if (n >= 1000) {
+    return new Intl.NumberFormat("fr-FR").format(n)
+  }
+  return n.toString()
+}
 
 export default function LoginPage() {
   const router = useRouter()
@@ -18,12 +25,21 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [stats, setStats] = useState({ users: 0, campaigns: 0, brands: 0, countries: 0 })
+
+  useEffect(() => {
+    fetch("/api/stats")
+      .then((res) => res.json())
+      .then((data) => setStats(data))
+      .catch(() => setStats({ users: 0, campaigns: 0, brands: 0, countries: 0 }))
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
+      const supabase = createClient()
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -50,7 +66,9 @@ export default function LoginPage() {
       toast.success("Connexion réussie !", {
         description: "Redirection vers votre tableau de bord...",
       })
-      router.push("/dashboard")
+      
+      // Forcer le rechargement complet pour que le middleware détecte la session
+      window.location.href = "/dashboard"
     } catch (err) {
       toast.error("Une erreur inattendue est survenue", {
         description: "Veuillez réessayer plus tard.",
@@ -199,17 +217,17 @@ export default function LoginPage() {
               {/* Stats */}
               <div className="mt-10 flex items-center justify-center gap-8">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-[#1A1F2B]">1000+</div>
+                  <div className="text-2xl font-bold text-[#1A1F2B]">{stats.campaigns > 0 ? `${formatNumber(stats.campaigns)}+` : '...'}</div>
                   <div className="text-xs text-[#1A1F2B]/60">Campagnes</div>
                 </div>
                 <div className="h-8 w-px bg-[#D0E4F2]" />
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-[#1A1F2B]">100+</div>
+                  <div className="text-2xl font-bold text-[#1A1F2B]">{stats.brands > 0 ? `${formatNumber(stats.brands)}+` : '...'}</div>
                   <div className="text-xs text-[#1A1F2B]/60">Marques</div>
                 </div>
                 <div className="h-8 w-px bg-[#D0E4F2]" />
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-[#1A1F2B]">15+</div>
+                  <div className="text-2xl font-bold text-[#1A1F2B]">{stats.countries > 0 ? `${formatNumber(stats.countries)}+` : '...'}</div>
                   <div className="text-xs text-[#1A1F2B]/60">Pays</div>
                 </div>
               </div>

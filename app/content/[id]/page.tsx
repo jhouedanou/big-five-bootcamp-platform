@@ -194,12 +194,16 @@ export default function ContentDetailPage({
                   <button
                     onClick={prevImage}
                     className="absolute left-4 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Image précédente"
+                    aria-label="Image précédente"
                   >
                     <ChevronLeft className="h-5 w-5" />
                   </button>
                   <button
                     onClick={nextImage}
                     className="absolute right-4 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Image suivante"
+                    aria-label="Image suivante"
                   >
                     <ChevronRight className="h-5 w-5" />
                   </button>
@@ -215,6 +219,8 @@ export default function ContentDetailPage({
                             ? "bg-[#FF6B35]"
                             : "bg-background/60"
                         }`}
+                        title={`Image ${index + 1}`}
+                        aria-label={`Voir image ${index + 1}`}
                       />
                     ))}
                   </div>

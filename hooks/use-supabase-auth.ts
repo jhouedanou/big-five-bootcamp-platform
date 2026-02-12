@@ -40,14 +40,43 @@ export function useSupabaseAuth() {
 
   const fetchUserProfile = async (userId: string) => {
     try {
+      // Essayer de récupérer le profil existant
       const { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single()
 
-      if (error) throw error
-      setUserProfile(data)
+      if (error?.code === 'PGRST116') {
+        // L'utilisateur n'existe pas dans la table users, le créer
+        console.log('Profil non trouvé, création automatique...')
+        
+        const authUser = user
+        if (authUser) {
+          const { data: newProfile, error: createError } = await supabase
+            .from('users')
+            .insert({
+              id: authUser.id,
+              email: authUser.email!,
+              name: authUser.user_metadata?.name || authUser.email!.split('@')[0],
+              role: 'user',
+              plan: 'Free',
+              status: 'active',
+            })
+            .select('*')
+            .single()
+
+          if (createError) {
+            console.error('Error creating user profile:', createError)
+          } else {
+            setUserProfile(newProfile)
+          }
+        }
+      } else if (error) {
+        throw error
+      } else {
+        setUserProfile(data)
+      }
     } catch (error) {
       console.error('Error fetching user profile:', error)
     } finally {

@@ -1,8 +1,8 @@
 import { Suspense } from "react"
 import { createClient } from "@supabase/supabase-js"
-import { CreativeCard } from "@/components/library/creative-card"
 import { FilterBar } from "@/components/library/filter-bar"
 import { Metadata } from "next"
+import { LibraryGrid } from "@/components/library/library-grid"
 
 export const metadata: Metadata = {
     title: "Bibliothèque Créative - Big Five",
@@ -83,11 +83,7 @@ export default async function LibraryPage({ searchParams }: LibraryPageProps) {
 
             <div className="mt-8">
                 {creatives.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                        {creatives.map((creative) => (
-                            <CreativeCard key={creative.id} creative={creative} />
-                        ))}
-                    </div>
+                    <LibraryGrid creatives={creatives} />
                 ) : (
                     <div className="flex min-h-[400px] flex-col items-center justify-center rounded-lg border border-dashed bg-muted/50 p-8 text-center animate-in fade-in-50">
                         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-muted">

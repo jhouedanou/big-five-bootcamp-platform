@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState } from "react"
-import { Menu, X, ArrowRight } from "lucide-react"
+import { Menu, X, ArrowRight, Heart, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 
@@ -30,6 +30,22 @@ export function Navbar() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
+          <Link
+            href="/library"
+            className="relative px-4 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-all duration-300 hover:text-[#1A1F2B] group flex items-center gap-1.5"
+          >
+            <BookOpen className="h-4 w-4" />
+            Bibliothèque
+            <span className="absolute bottom-0 left-1/2 h-0.5 w-0 bg-[#80368D] transition-all duration-300 group-hover:left-4 group-hover:w-[calc(100%-32px)]" />
+          </Link>
+          <Link
+            href="/favorites"
+            className="relative px-4 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-all duration-300 hover:text-[#1A1F2B] group flex items-center gap-1.5"
+          >
+            <Heart className="h-4 w-4" />
+            Favoris
+            <span className="absolute bottom-0 left-1/2 h-0.5 w-0 bg-[#80368D] transition-all duration-300 group-hover:left-4 group-hover:w-[calc(100%-32px)]" />
+          </Link>
           <Link
             href="/#features"
             className="relative px-4 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-all duration-300 hover:text-[#1A1F2B] group"
@@ -79,6 +95,22 @@ export function Navbar() {
       <div className={`md:hidden overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
         <div className="border-t border-[#D0E4F2] bg-white/95 backdrop-blur-xl">
           <nav className="flex flex-col gap-1 px-4 py-4">
+            <Link
+              href="/library"
+              className="rounded-xl px-4 py-3 text-sm font-medium text-[#1A1F2B]/70 transition-all duration-300 hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] hover:translate-x-1 flex items-center gap-2"
+              onClick={() => setIsOpen(false)}
+            >
+              <BookOpen className="h-4 w-4" />
+              Bibliothèque
+            </Link>
+            <Link
+              href="/favorites"
+              className="rounded-xl px-4 py-3 text-sm font-medium text-[#1A1F2B]/70 transition-all duration-300 hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] hover:translate-x-1 flex items-center gap-2"
+              onClick={() => setIsOpen(false)}
+            >
+              <Heart className="h-4 w-4" />
+              Favoris
+            </Link>
             <Link
               href="/#features"
               className="rounded-xl px-4 py-3 text-sm font-medium text-[#1A1F2B]/70 transition-all duration-300 hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] hover:translate-x-1"

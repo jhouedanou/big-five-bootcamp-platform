@@ -57,6 +57,16 @@ const ADMIN_USERS = [
     name: 'Yannick J',
     password: 'BigFive@Admin2024!',
   },
+  {
+    email: 'franck@bigfiveabidjan.com',
+    name: 'Franck',
+    password: 'BigFive@Admin2024!',
+  },
+  {
+    email: 'stephanie@bigfiveabidjan.com',
+    name: 'Stéphanie',
+    password: 'BigFive@Admin2024!',
+  },
 ]
 
 async function createAdminUser(user: { email: string; name: string; password: string }) {

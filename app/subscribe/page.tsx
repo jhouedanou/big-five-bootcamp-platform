@@ -7,18 +7,100 @@ import { ArrowLeft, Smartphone, CreditCard, Check, Lock, Sparkles, ChevronRight 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
 
 type PaymentMethod = "mobile" | "card"
-type MobileOperator = "orange" | "mtn" | "moov" | "wave"
+type MobileOperator = "orange" | "orange_ci" | "mtn" | "moov" | "moov_ci" | "wave" | null
+type Country = "CI" | "SN" | "BJ"
+
+// Configuration des pays
+const countries = [
+  { code: "CI" as Country, name: "Côte d'Ivoire", flag: "🇨🇮", dialCode: "+225" },
+  { code: "SN" as Country, name: "Sénégal", flag: "🇸🇳", dialCode: "+221" },
+  { code: "BJ" as Country, name: "Bénin", flag: "🇧🇯", dialCode: "+229" },
+]
+
+// Configuration des opérateurs par pays avec préfixes
+const operatorsByCountry = {
+  CI: [
+    { 
+      id: "orange_ci", 
+      name: "Orange Money", 
+      color: "bg-orange-500",
+      prefixes: ["07", "08", "09"],
+      paytechName: "Orange Money CI"
+    },
+    { 
+      id: "mtn", 
+      name: "MTN Mobile Money", 
+      color: "bg-yellow-400",
+      prefixes: ["05", "06"],
+      paytechName: "Mtn Money CI"
+    },
+    { 
+      id: "moov_ci", 
+      name: "Moov Money", 
+      color: "bg-blue-600",
+      prefixes: ["01"],
+      paytechName: "Moov Money CI"
+    },
+    { 
+      id: "wave", 
+      name: "Wave", 
+      color: "bg-cyan-500",
+      prefixes: [],
+      paytechName: "Wave CI"
+    },
+  ],
+  SN: [
+    { 
+      id: "orange", 
+      name: "Orange Money", 
+      color: "bg-orange-500",
+      prefixes: ["77", "78", "76"],
+      paytechName: "Orange Money"
+    },
+    { 
+      id: "wave", 
+      name: "Wave", 
+      color: "bg-cyan-500",
+      prefixes: ["70"],
+      paytechName: "Wave"
+    },
+    { 
+      id: "moov", 
+      name: "Free Money", 
+      color: "bg-red-500",
+      prefixes: ["75", "76"],
+      paytechName: "Free Money"
+    },
+  ],
+  BJ: [
+    { 
+      id: "mtn", 
+      name: "MTN Mobile Money", 
+      color: "bg-yellow-400",
+      prefixes: ["96", "97", "90", "91"],
+      paytechName: "Mtn Money BJ"
+    },
+    { 
+      id: "moov", 
+      name: "Moov Money", 
+      color: "bg-blue-600",
+      prefixes: ["99", "98"],
+      paytechName: "Moov Money BJ"
+    },
+  ],
+}
 
 export default function SubscribePage() {
   const router = useRouter()
   const { user, loading } = useSupabaseAuth()
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mobile")
-  const [selectedOperator, setSelectedOperator] = useState<MobileOperator>("orange")
+  const [country, setCountry] = useState<Country>("CI")
+  const [selectedOperator, setSelectedOperator] = useState<MobileOperator>(null)
   const [phoneNumber, setPhoneNumber] = useState("")
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -30,12 +112,74 @@ export default function SubscribePage() {
     }
   }, [user, loading, router])
 
-  const mobileOperators = [
-    { id: "orange", name: "Orange Money", color: "bg-orange-500" },
-    { id: "mtn", name: "MTN Mobile Money", color: "bg-yellow-400" },
-    { id: "moov", name: "Moov Money", color: "bg-blue-600" },
-    { id: "wave", name: "Wave", color: "bg-cyan-500" },
-  ]
+  // Détecter automatiquement l'opérateur en fonction du numéro
+  const detectOperator = (number: string, countryCode: Country) => {
+    // Nettoyer le numéro (enlever espaces, tirets, etc.)
+    const cleanNumber = number.replace(/\s|-|\./g, "")
+    
+    // Extraire les 2 premiers chiffres
+    const prefix = cleanNumber.substring(0, 2)
+    
+    // Chercher l'opérateur correspondant
+    const operators = operatorsByCountry[countryCode]
+    const detectedOperator = operators.find(op => 
+      op.prefixes.some(p => prefix.startsWith(p))
+    )
+    
+    if (detectedOperator) {
+      setSelectedOperator(detectedOperator.id as MobileOperator)
+    }
+  }
+
+  // Formater le numéro de téléphone avec masque
+  const formatPhoneNumber = (value: string, countryCode: Country) => {
+    // Enlever tout sauf les chiffres
+    const numbers = value.replace(/\D/g, "")
+    
+    // Appliquer le masque selon le pays
+    let formatted = ""
+    if (countryCode === "CI") {
+      // Format CI: XX XX XX XX XX (10 chiffres)
+      if (numbers.length <= 2) formatted = numbers
+      else if (numbers.length <= 4) formatted = `${numbers.slice(0, 2)} ${numbers.slice(2)}`
+      else if (numbers.length <= 6) formatted = `${numbers.slice(0, 2)} ${numbers.slice(2, 4)} ${numbers.slice(4)}`
+      else if (numbers.length <= 8) formatted = `${numbers.slice(0, 2)} ${numbers.slice(2, 4)} ${numbers.slice(4, 6)} ${numbers.slice(6)}`
+      else formatted = `${numbers.slice(0, 2)} ${numbers.slice(2, 4)} ${numbers.slice(4, 6)} ${numbers.slice(6, 8)} ${numbers.slice(8, 10)}`
+    } else if (countryCode === "SN") {
+      // Format SN: XX XXX XX XX (9 chiffres)
+      if (numbers.length <= 2) formatted = numbers
+      else if (numbers.length <= 5) formatted = `${numbers.slice(0, 2)} ${numbers.slice(2)}`
+      else if (numbers.length <= 7) formatted = `${numbers.slice(0, 2)} ${numbers.slice(2, 5)} ${numbers.slice(5)}`
+      else formatted = `${numbers.slice(0, 2)} ${numbers.slice(2, 5)} ${numbers.slice(5, 7)} ${numbers.slice(7, 9)}`
+    } else if (countryCode === "BJ") {
+      // Format BJ: XX XX XX XX (8 chiffres)
+      if (numbers.length <= 2) formatted = numbers
+      else if (numbers.length <= 4) formatted = `${numbers.slice(0, 2)} ${numbers.slice(2)}`
+      else if (numbers.length <= 6) formatted = `${numbers.slice(0, 2)} ${numbers.slice(2, 4)} ${numbers.slice(4)}`
+      else formatted = `${numbers.slice(0, 2)} ${numbers.slice(2, 4)} ${numbers.slice(4, 6)} ${numbers.slice(6, 8)}`
+    }
+    
+    return formatted
+  }
+
+  // Gérer le changement de numéro
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    const formatted = formatPhoneNumber(value, country)
+    setPhoneNumber(formatted)
+    
+    // Détecter l'opérateur après 2 chiffres
+    const numbers = value.replace(/\D/g, "")
+    if (numbers.length >= 2) {
+      detectOperator(numbers, country)
+    }
+  }
+
+  // Réinitialiser le numéro quand on change de pays
+  useEffect(() => {
+    setPhoneNumber("")
+    setSelectedOperator(null)
+  }, [country])
 
   const handlePayment = async () => {
     if (!user?.email) {
@@ -46,17 +190,20 @@ export default function SubscribePage() {
     setIsProcessing(true)
 
     try {
-      // Mapper les opérateurs vers les noms PayTech
-      const operatorMap: Record<MobileOperator, string> = {
-        orange: "Orange Money",
-        mtn: "Mtn Money CI",
-        moov: "Moov Money CI",
-        wave: "Wave"
-      }
+      // Trouver le nom PayTech de l'opérateur sélectionné
+      const operators = operatorsByCountry[country]
+      const operator = operators.find(op => op.id === selectedOperator)
+      const paytechName = operator?.paytechName || "Orange Money"
 
       const targetPayment = paymentMethod === "mobile" 
-        ? operatorMap[selectedOperator]
+        ? paytechName
         : "Carte Bancaire"
+
+      // Construire le numéro complet avec indicatif
+      const selectedCountry = countries.find(c => c.code === country)
+      const fullPhoneNumber = paymentMethod === "mobile" 
+        ? `${selectedCountry?.dialCode}${phoneNumber.replace(/\s/g, "")}`
+        : undefined
 
       // Appel à l'API de paiement
       const response = await fetch('/api/payment/subscribe', {
@@ -65,7 +212,7 @@ export default function SubscribePage() {
         body: JSON.stringify({
           userEmail: user.email,
           paymentMethod: targetPayment,
-          phoneNumber: paymentMethod === "mobile" ? phoneNumber : undefined,
+          phoneNumber: fullPhoneNumber,
         }),
       })
 
@@ -199,42 +346,121 @@ export default function SubscribePage() {
 
               {paymentMethod === "mobile" ? (
                 <div className="mt-6 space-y-6">
+                  {/* Sélection du pays */}
                   <div>
-                    <Label className="text-sm font-medium">Operateur</Label>
-                    <RadioGroup 
-                      value={selectedOperator} 
-                      onValueChange={(v) => setSelectedOperator(v as MobileOperator)}
-                      className="mt-2 grid grid-cols-2 gap-3"
-                    >
-                      {mobileOperators.map((op) => (
-                        <Label
-                          key={op.id}
-                          htmlFor={op.id}
-                          className={`flex cursor-pointer items-center gap-3 rounded-lg border-2 p-3 transition-all ${
-                            selectedOperator === op.id 
-                              ? "border-primary bg-primary/5" 
-                              : "border-border hover:border-primary/50"
-                          }`}
-                        >
-                          <RadioGroupItem value={op.id} id={op.id} className="sr-only" />
-                          <div className={`h-8 w-8 rounded-full ${op.color}`} />
-                          <span className="text-sm font-medium">{op.name}</span>
-                        </Label>
-                      ))}
-                    </RadioGroup>
+                    <Label className="text-sm font-medium">Pays</Label>
+                    <Select value={country} onValueChange={(v) => setCountry(v as Country)}>
+                      <SelectTrigger className="mt-1.5 h-11">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countries.map((c) => (
+                          <SelectItem key={c.code} value={c.code}>
+                            <span className="flex items-center gap-2">
+                              <span>{c.flag}</span>
+                              <span>{c.name}</span>
+                              <span className="text-[#1A1F2B]/50">({c.dialCode})</span>
+                            </span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
+                  {/* Numéro de téléphone avec indicatif */}
                   <div>
-                    <Label htmlFor="phone">Numero de telephone</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="+225 XX XX XX XX XX"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      className="mt-1.5 h-11"
-                    />
+                    <Label htmlFor="phone">Numéro de téléphone</Label>
+                    <div className="mt-1.5 flex gap-2">
+                      <div className="flex h-11 w-20 items-center justify-center rounded-md border border-border bg-[#D0E4F2]/20 px-3 text-sm font-medium">
+                        {countries.find(c => c.code === country)?.dialCode}
+                      </div>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder={
+                          country === "CI" ? "XX XX XX XX XX" :
+                          country === "SN" ? "XX XXX XX XX" :
+                          "XX XX XX XX"
+                        }
+                        value={phoneNumber}
+                        onChange={handlePhoneChange}
+                        className="h-11 flex-1"
+                        maxLength={
+                          country === "CI" ? 14 : // 10 chiffres + 4 espaces
+                          country === "SN" ? 12 : // 9 chiffres + 3 espaces
+                          11 // 8 chiffres + 3 espaces
+                        }
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-[#1A1F2B]/50">
+                      {country === "CI" ? "Format: 10 chiffres" :
+                       country === "SN" ? "Format: 9 chiffres" :
+                       "Format: 8 chiffres"}
+                    </p>
                   </div>
+
+                  {/* Opérateur détecté automatiquement */}
+                  {selectedOperator && (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-sm font-medium">
+                          Opérateur détecté automatiquement
+                        </Label>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedOperator(null)}
+                          className="h-auto p-0 text-xs text-[#80368D] hover:text-[#80368D]/80 hover:bg-transparent"
+                        >
+                          Changer d'opérateur
+                        </Button>
+                      </div>
+                      <div className="mt-2 flex items-center gap-3 rounded-lg border-2 border-[#F2B33D] bg-[#F2B33D]/5 p-3">
+                        <div className={`h-10 w-10 rounded-full ${
+                          operatorsByCountry[country].find(op => op.id === selectedOperator)?.color
+                        }`} />
+                        <div className="flex-1">
+                          <p className="font-medium text-[#1A1F2B]">
+                            {operatorsByCountry[country].find(op => op.id === selectedOperator)?.name}
+                          </p>
+                          <p className="text-xs text-[#1A1F2B]/60">
+                            Détecté à partir de votre numéro
+                          </p>
+                        </div>
+                        <Check className="h-5 w-5 text-[#10B981]" />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Liste des opérateurs - Afficher toujours si numéro saisi et pas d'opérateur sélectionné */}
+                  {!selectedOperator && phoneNumber.length >= 2 && (
+                    <div>
+                      <Label className="text-sm font-medium">
+                        Sélectionner votre opérateur mobile
+                      </Label>
+                      <p className="mt-1 mb-3 text-xs text-[#1A1F2B]/60">
+                        Choisissez l'opérateur que vous utilisez pour le paiement
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        {operatorsByCountry[country].map((op) => (
+                          <button
+                            key={op.id}
+                            type="button"
+                            onClick={() => setSelectedOperator(op.id as MobileOperator)}
+                            className={`flex items-center gap-3 rounded-lg border-2 p-3 transition-all hover:border-[#80368D] hover:bg-[#80368D]/5 ${
+                              selectedOperator === op.id 
+                                ? "border-[#80368D] bg-[#80368D]/5" 
+                                : "border-border"
+                            }`}
+                          >
+                            <div className={`h-8 w-8 rounded-full flex-shrink-0 ${op.color}`} />
+                            <span className="text-sm font-medium text-left">{op.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="mt-6 space-y-4">

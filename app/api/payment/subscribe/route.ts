@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
 
     const { data: payment, error: paymentError } = await supabaseAdmin
       .from('payments')
-      .insert(paymentInsert)
+      .insert(paymentInsert as any)
       .select()
       .single();
 

@@ -212,6 +212,13 @@ export function DashboardNavbar({
             >
               Abonnement
             </Link>
+            <Link
+              href="/settings"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B]"
+              onClick={() => setIsOpen(false)}
+            >
+              Paramètres
+            </Link>
           </nav>
         </div>
       )}

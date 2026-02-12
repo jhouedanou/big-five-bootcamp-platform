@@ -7,7 +7,7 @@ import { cookies } from 'next/headers'
 const ADMIN_EMAILS = [
   'jeanluc@bigfiveabidjan.com', 
   'cossi@bigfiveabidjan.com', 
-  'yannickj@bigfiveabidjan.com', 
+  'yannick@bigfiveabidjan.com', 
   'franck@bigfiveabidjan.com', 
   'stephanie@bigfiveabidjan.com'
 ]

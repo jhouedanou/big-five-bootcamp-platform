@@ -33,7 +33,7 @@ https://v0-big-five-bootcamp-platform.vercel.app/login
 Les emails suivants ont accès à l'administration :
 - `jeanluc@bigfiveabidjan.com`
 - `cossi@bigfiveabidjan.com`
-- `yannickj@bigfiveabidjan.com`
+- `yannick@bigfiveabidjan.com`
 - `franck@bigfiveabidjan.com`
 - `stephanie@bigfiveabidjan.com`
 Votre mot de passe a été envoyé par message message

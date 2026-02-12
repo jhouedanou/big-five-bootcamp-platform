@@ -54,7 +54,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
           }
 
           // Liste des emails admin autorisés (fallback principal)
-          const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannickj@bigfiveabidjan.com', 'franck@bigfiveabidjan.com', 'stephanie@bigfiveabidjan.com'];
+          const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannick@bigfiveabidjan.com', 'franck@bigfiveabidjan.com', 'stephanie@bigfiveabidjan.com'];
           
           // Vérifier d'abord si l'email est dans la liste admin connue
           if (adminEmails.includes(session.user.email)) {
@@ -103,7 +103,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         }
         
         // Liste des emails admin autorisés
-        const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannickj@bigfiveabidjan.com', 'franck@bigfiveabidjan.com', 'stephanie@bigfiveabidjan.com'];
+        const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannick@bigfiveabidjan.com', 'franck@bigfiveabidjan.com', 'stephanie@bigfiveabidjan.com'];
         
         // Vérifier si l'email est dans la liste admin connue
         if (adminEmails.includes(session.user.email)) {

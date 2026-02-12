@@ -57,7 +57,7 @@ ON CONFLICT (id) DO UPDATE SET
 INSERT INTO public.users (id, email, name, role, plan, status)
 VALUES (
   '00000000-0000-0000-0000-000000000003', -- REMPLACER par le vrai UUID de yannickj
-  'yannickj@bigfiveabidjan.com',
+  'yannick@bigfiveabidjan.com',
   'Yannick J',
   'admin',
   'Premium',
@@ -119,7 +119,7 @@ UPDATE public.users SET role = 'admin', plan = 'Premium', status = 'active', upd
 WHERE email IN (
   'jeanluc@bigfiveabidjan.com',
   'cossi@bigfiveabidjan.com',
-  'yannickj@bigfiveabidjan.com',
+  'yannick@bigfiveabidjan.com',
   'franck@bigfiveabidjan.com',
   'stephanie@bigfiveabidjan.com'
 );

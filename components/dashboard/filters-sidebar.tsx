@@ -43,10 +43,10 @@ const defaultFilterGroups: FilterGroup[] = [
 ]
 
 const platformIcons: Record<string, React.ReactNode> = {
-  "Facebook": <Facebook className="h-3 w-3" />,
-  "Instagram": <Instagram className="h-3 w-3" />,
-  "LinkedIn": <Linkedin className="h-3 w-3" />,
-  "YouTube": <Youtube className="h-3 w-3" />,
+  "Facebook": <Facebook className="h-4 w-4" />,
+  "Instagram": <Instagram className="h-4 w-4" />,
+  "LinkedIn": <Linkedin className="h-4 w-4" />,
+  "YouTube": <Youtube className="h-4 w-4" />,
 }
 
 // Interface pour les options dynamiques
@@ -139,51 +139,54 @@ export function FiltersSidebar({ selectedFilters, onFilterChange, className, dyn
   return (
     <aside className={className}>
       <div className="sticky top-20">
-        <div className="flex items-center justify-between pb-4">
-          <h2 className="font-[family-name:var(--font-heading)] text-sm font-semibold uppercase tracking-wider text-[#1A1F2B]">Filtres</h2>
+        {/* En-tête des filtres */}
+        <div className="flex items-center justify-between pb-5 mb-2 border-b-2 border-[#80368D]/20">
+          <h2 className="font-[family-name:var(--font-heading)] text-base font-bold uppercase tracking-wide text-[#1A1F2B]">
+            Filtres
+          </h2>
           {totalFilters > 0 && (
             <Button
               variant="ghost"
               size="sm"
               onClick={clearAllFilters}
-              className="h-auto px-2 py-1 text-xs text-[#80368D] hover:text-[#80368D]/80"
+              className="h-auto px-3 py-1.5 text-sm font-semibold text-[#80368D] hover:text-white hover:bg-[#80368D] rounded-full transition-all"
             >
               Réinitialiser ({totalFilters})
             </Button>
           )}
         </div>
 
-        <div className="space-y-1">
+        <div className="space-y-2">
           {filterGroups.map((group) => (
-            <div key={group.name} className="border-b border-[#D0E4F2] pb-2">
+            <div key={group.name} className="rounded-xl border-2 border-[#D0E4F2] bg-white/50 overflow-hidden transition-all hover:border-[#80368D]/30">
               <button
                 type="button"
                 onClick={() => toggleGroup(group.name)}
-                className="flex w-full items-center justify-between py-2.5 text-left text-sm font-medium text-[#1A1F2B] transition-colors hover:text-[#80368D]"
+                className="flex w-full items-center justify-between px-4 py-3.5 text-left transition-colors hover:bg-[#D0E4F2]/30"
               >
-                <span className="flex items-center gap-2">
-                  {group.name}
+                <span className="flex items-center gap-2.5">
+                  <span className="text-base font-bold text-[#1A1F2B]">{group.name}</span>
                   {(selectedFilters[group.name]?.length ?? 0) > 0 && (
-                    <Badge className="h-5 rounded-full bg-[#80368D] px-1.5 text-xs text-white">
+                    <Badge className="h-6 rounded-full bg-[#80368D] px-2.5 text-sm font-bold text-white shadow-md shadow-[#80368D]/25">
                       {selectedFilters[group.name]?.length}
                     </Badge>
                   )}
                   {/* Indicateur du nombre d'options disponibles */}
-                  <span className="text-xs text-[#1A1F2B]/40">
+                  <span className="text-sm font-medium text-[#1A1F2B]/50">
                     ({group.options.length})
                   </span>
                 </span>
                 {expandedGroups.includes(group.name) ? (
-                  <ChevronUp className="h-4 w-4 text-[#1A1F2B]/60" />
+                  <ChevronUp className="h-5 w-5 text-[#80368D]" />
                 ) : (
-                  <ChevronDown className="h-4 w-4 text-[#1A1F2B]/60" />
+                  <ChevronDown className="h-5 w-5 text-[#1A1F2B]/50" />
                 )}
               </button>
               
               {expandedGroups.includes(group.name) && (
-                <div className="flex flex-col gap-1 pb-2 pt-1 max-h-48 overflow-y-auto">
+                <div className="flex flex-col gap-1.5 px-3 pb-4 pt-1 max-h-56 overflow-y-auto border-t border-[#D0E4F2]">
                   {group.options.length === 0 ? (
-                    <p className="text-xs text-[#1A1F2B]/50 italic px-2 py-1">
+                    <p className="text-sm font-medium text-[#1A1F2B]/50 italic px-2 py-2">
                       Aucune option disponible
                     </p>
                   ) : (
@@ -194,27 +197,27 @@ export function FiltersSidebar({ selectedFilters, onFilterChange, className, dyn
                           key={option}
                           type="button"
                           onClick={() => toggleFilter(group.name, option)}
-                          className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                          className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all ${
                             isSelected
-                              ? "bg-[#80368D]/10 text-[#80368D]"
-                              : "text-[#1A1F2B]/70 hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B]"
+                              ? "bg-[#80368D] text-white shadow-md shadow-[#80368D]/25"
+                              : "bg-white text-[#1A1F2B] hover:bg-[#D0E4F2]/50 border border-[#D0E4F2] hover:border-[#80368D]/30"
                           }`}
                         >
-                          <div className={`flex h-4 w-4 items-center justify-center rounded border ${
+                          <div className={`flex h-5 w-5 items-center justify-center rounded-md border-2 transition-all ${
                             isSelected 
-                              ? "border-[#80368D] bg-[#80368D]" 
+                              ? "border-white bg-white" 
                               : "border-[#D0E4F2] bg-white"
                           }`}>
                             {isSelected && (
-                              <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <svg className="h-3.5 w-3.5 text-[#80368D]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                               </svg>
                             )}
                           </div>
                           {group.hasIcons && platformIcons[option] && (
-                            <span className="text-[#1A1F2B]/60">{platformIcons[option]}</span>
+                            <span className={isSelected ? "text-white" : "text-[#1A1F2B]/70"}>{platformIcons[option]}</span>
                           )}
-                          <span className="truncate">{option}</span>
+                          <span className="text-sm font-semibold truncate">{option}</span>
                         </button>
                       )
                     })
@@ -227,9 +230,9 @@ export function FiltersSidebar({ selectedFilters, onFilterChange, className, dyn
 
         {/* Indicateur de filtres dynamiques */}
         {dynamicOptions && (
-          <div className="mt-4 pt-4 border-t border-[#D0E4F2]">
-            <p className="text-xs text-[#1A1F2B]/50 text-center">
-              Filtres basés sur vos campagnes
+          <div className="mt-5 pt-4 border-t-2 border-[#D0E4F2]">
+            <p className="text-sm font-medium text-[#1A1F2B]/50 text-center">
+              ✨ Filtres basés sur vos campagnes
             </p>
           </div>
         )}

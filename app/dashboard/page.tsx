@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
-import { FiltersSidebar } from "@/components/dashboard/filters-sidebar"
+import { FiltersSidebar, DynamicFilterOptions } from "@/components/dashboard/filters-sidebar"
 import { ContentCard, ContentItem } from "@/components/dashboard/content-card"
 import { createClient } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
@@ -21,11 +21,44 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [currentPage, setCurrentPage] = useState(1)
   const [activeQuickFilter, setActiveQuickFilter] = useState("Tous")
+  const [searchQuery, setSearchQuery] = useState("")
   const itemsPerPage = 9
 
   const isPremium = userPlan.toLowerCase() === "premium"
   
   const supabase = createClient()
+
+  // Extraire les options de filtres dynamiquement depuis les campagnes
+  const dynamicFilterOptions = useMemo<DynamicFilterOptions>(() => {
+    const countries = new Set<string>()
+    const sectors = new Set<string>()
+    const formats = new Set<string>()
+    const platforms = new Set<string>()
+    const tags = new Set<string>()
+    const years = new Set<number>()
+
+    campaigns.forEach((campaign) => {
+      if (campaign.country) countries.add(campaign.country)
+      if (campaign.sector) sectors.add(campaign.sector)
+      if (campaign.format) formats.add(campaign.format)
+      if (campaign.platform) platforms.add(campaign.platform)
+      if (campaign.year) years.add(campaign.year)
+      if (campaign.tags && Array.isArray(campaign.tags)) {
+        campaign.tags.forEach((tag) => {
+          if (tag) tags.add(tag)
+        })
+      }
+    })
+
+    return {
+      countries: Array.from(countries),
+      sectors: Array.from(sectors),
+      formats: Array.from(formats),
+      platforms: Array.from(platforms),
+      tags: Array.from(tags),
+      years: Array.from(years),
+    }
+  }, [campaigns])
 
   // Charger le plan utilisateur
   useEffect(() => {
@@ -181,15 +214,45 @@ export default function DashboardPage() {
     },
   ]
 
-  const quickFilters = [
-    { label: "Tous", type: "all", value: "all", color: "bg-primary text-primary-foreground shadow-primary/25" },
-    { label: "Télécoms", type: "sector", value: "Telecoms", color: "bg-blue-600 text-white shadow-blue-600/25" },
-    { label: "FMCG", type: "sector", value: "FMCG", color: "bg-orange-500 text-white shadow-orange-500/25" },
-    { label: "Fintech", type: "tag", value: "Fintech", color: "bg-emerald-500 text-white shadow-emerald-500/25" },
-    { label: "Banque", type: "sector", value: "Banque/Finance", color: "bg-purple-600 text-white shadow-purple-600/25" },
-  ]
+  // Générer les quick filters dynamiquement à partir des secteurs les plus utilisés
+  const quickFilters = useMemo(() => {
+    // Couleurs disponibles pour les filtres rapides
+    const colors = [
+      "bg-blue-600 text-white shadow-blue-600/25",
+      "bg-orange-500 text-white shadow-orange-500/25",
+      "bg-emerald-500 text-white shadow-emerald-500/25",
+      "bg-purple-600 text-white shadow-purple-600/25",
+      "bg-pink-500 text-white shadow-pink-500/25",
+      "bg-cyan-500 text-white shadow-cyan-500/25",
+    ]
 
-  const handleQuickFilter = (filter: typeof quickFilters[0]) => {
+    // Compter les occurrences de chaque secteur
+    const sectorCounts: Record<string, number> = {}
+    campaigns.forEach((campaign) => {
+      if (campaign.sector) {
+        sectorCounts[campaign.sector] = (sectorCounts[campaign.sector] || 0) + 1
+      }
+    })
+
+    // Trier les secteurs par fréquence et prendre les 5 premiers
+    const topSectors = Object.entries(sectorCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([sector], index) => ({
+        label: sector,
+        type: "sector" as const,
+        value: sector,
+        color: colors[index % colors.length],
+      }))
+
+    // Toujours commencer par "Tous"
+    return [
+      { label: "Tous", type: "all" as const, value: "all", color: "bg-primary text-primary-foreground shadow-primary/25" },
+      ...topSectors,
+    ]
+  }, [campaigns])
+
+  const handleQuickFilter = (filter: { label: string; type: string; value: string; color: string }) => {
     setActiveQuickFilter(filter.label)
     setCurrentPage(1)
 
@@ -204,21 +267,38 @@ export default function DashboardPage() {
 
   const filteredContent = useMemo(() => {
     return campaigns.filter((content) => {
+      // Filtre de recherche textuelle
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase()
+        const matchesSearch = 
+          content.title.toLowerCase().includes(query) ||
+          content.description?.toLowerCase().includes(query) ||
+          content.brand?.toLowerCase().includes(query) ||
+          content.agency?.toLowerCase().includes(query) ||
+          content.sector?.toLowerCase().includes(query) ||
+          content.platform?.toLowerCase().includes(query) ||
+          content.country?.toLowerCase().includes(query) ||
+          content.tags?.some(tag => tag.toLowerCase().includes(query))
+        if (!matchesSearch) return false
+      }
+
       const countryFilter = selectedFilters["Pays"] || []
       const sectorFilter = selectedFilters["Secteur"] || []
       const formatFilter = selectedFilters["Format"] || []
       const platformFilter = selectedFilters["Plateforme"] || []
       const tagsFilter = selectedFilters["Tags"] || []
+      const yearFilter = selectedFilters["Année"] || []
 
       if (countryFilter.length > 0 && !countryFilter.includes(content.country)) return false
       if (sectorFilter.length > 0 && !sectorFilter.includes(content.sector)) return false
       if (formatFilter.length > 0 && !formatFilter.includes(content.format)) return false
       if (platformFilter.length > 0 && !platformFilter.includes(content.platform)) return false
       if (tagsFilter.length > 0 && !content.tags.some(tag => tagsFilter.includes(tag))) return false
+      if (yearFilter.length > 0 && content.year && !yearFilter.includes(String(content.year))) return false
 
       return true
     })
-  }, [selectedFilters, campaigns])
+  }, [selectedFilters, campaigns, searchQuery])
 
   // Filtrer les campagnes premium pour les utilisateurs Free
   const visibleContent = isPremium
@@ -245,7 +325,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gradient-to-br from-white via-white to-[#D0E4F2]/20 relative">
       <ParticlesBackground color="#80368D" particleCount={40} />
       <div className="relative z-10">
-        <DashboardNavbar />
+        <DashboardNavbar searchQuery={searchQuery} onSearchChange={(q) => { setSearchQuery(q); setCurrentPage(1); }} />
 
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
@@ -314,6 +394,7 @@ export default function DashboardPage() {
               selectedFilters={selectedFilters}
               onFilterChange={handleFilterChange}
               className="hidden w-64 shrink-0 lg:block"
+              dynamicOptions={dynamicFilterOptions}
             />
 
             {/* Mobile Filters */}
@@ -330,6 +411,7 @@ export default function DashboardPage() {
                   <FiltersSidebar
                     selectedFilters={selectedFilters}
                     onFilterChange={handleFilterChange}
+                    dynamicOptions={dynamicFilterOptions}
                   />
                 </div>
               </div>

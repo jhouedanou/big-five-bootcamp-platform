@@ -309,6 +309,24 @@ function PaymentSuccessContent() {
             </Link>
           </p>
         </div>
+
+        {/* Informations de contact support */}
+        <Card className="mt-6 bg-gray-50">
+          <CardContent className="pt-6">
+            <div className="text-center space-y-2">
+              <p className="text-sm font-semibold">Service Client Big Five</p>
+              <p className="text-sm text-gray-600">
+                📞 +225 27 21 59 42 28
+              </p>
+              <p className="text-sm text-gray-600">
+                📧 contacts@bigfive.solutions
+              </p>
+              <p className="text-xs text-gray-500 mt-3">
+                Disponible du lundi au vendredi, 9h - 18h
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAdmin } from "../AdminContext";
 import type { ContentItem } from "@/components/dashboard/content-card";
@@ -59,6 +59,7 @@ import { toast } from "sonner";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { CSVImporter } from "@/components/admin/csv-importer";
 import { cn } from "@/lib/utils";
+import { DatePicker } from "@/components/ui/date-picker";
 
 const platforms = ["Facebook", "Instagram", "TikTok", "YouTube", "LinkedIn", "Twitter/X"];
 const countries = ["Cote d'Ivoire", "Nigeria", "Kenya", "Ghana", "Senegal", "Maroc", "Afrique du Sud"];
@@ -134,7 +135,7 @@ const defaultFormData: Omit<ContentItem, "id"> = {
 };
 
 function CampaignsPageContent() {
-  const { campaigns, addCampaign, updateCampaign, deleteCampaign } = useAdmin();
+  const { campaigns, addCampaign, updateCampaign, deleteCampaign, isUsingLocalData, refreshCampaigns, userEmail } = useAdmin();
   const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterSector, setFilterSector] = useState<string>("all");
@@ -146,6 +147,29 @@ function CampaignsPageContent() {
   const [previewCampaign, setPreviewCampaign] = useState<ContentItem | null>(null);
   const [previewImageIndex, setPreviewImageIndex] = useState(0);
   const [currentStep, setCurrentStep] = useState(1);
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+
+  // Extraire tous les tags existants des campagnes pour les suggestions
+  const existingTags = useMemo(() => {
+    const allTags = new Set<string>();
+    campaigns.forEach((campaign) => {
+      campaign.tags?.forEach((tag) => {
+        if (tag) allTags.add(tag);
+      });
+    });
+    return Array.from(allTags).sort();
+  }, [campaigns]);
+
+  // Filtrer les suggestions de tags basées sur l'input
+  const filteredTagSuggestions = useMemo(() => {
+    if (!tagInput.trim()) return existingTags.slice(0, 10);
+    return existingTags
+      .filter((tag) => 
+        tag.toLowerCase().includes(tagInput.toLowerCase()) &&
+        !formData.tags.includes(tag)
+      )
+      .slice(0, 10);
+  }, [tagInput, existingTags, formData.tags]);
 
   // Ouvrir automatiquement le formulaire si ?action=new
   useEffect(() => {
@@ -273,6 +297,53 @@ function CampaignsPageContent() {
 
   return (
     <div className="space-y-6">
+      {/* Avertissement si données de test */}
+      {isUsingLocalData && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-medium text-amber-800">Mode démonstration</h3>
+            <p className="text-sm text-amber-700 mt-1">
+              Vous voyez des données d'exemple car la connexion à la base de données n'est pas disponible.
+              {userEmail && (
+                <span className="block mt-1">
+                  <strong>Connecté avec :</strong> {userEmail}
+                </span>
+              )}
+              {!userEmail && (
+                <span className="block mt-1 text-red-600">
+                  ⚠️ Aucune session détectée. Veuillez vous reconnecter.
+                </span>
+              )}
+            </p>
+            <div className="flex gap-2 mt-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-amber-700 border-amber-300 hover:bg-amber-100"
+                onClick={() => refreshCampaigns()}
+              >
+                Réessayer la connexion
+              </Button>
+              {!userEmail && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-blue-700 border-blue-300 hover:bg-blue-100"
+                  onClick={() => window.location.href = '/admin/login'}
+                >
+                  Se reconnecter
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-[family-name:var(--font-heading)]">
@@ -771,13 +842,24 @@ function CampaignsPageContent() {
                 {/* Date & Year */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="camp-date" className="text-gray-700">Date</Label>
-                    <Input
-                      id="camp-date"
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
-                      placeholder="Ex: Jan 2024"
+                    <Label htmlFor="camp-date" className="text-gray-700">Date de la campagne</Label>
+                    <DatePicker
+                      date={formData.date ? new Date(formData.date) : undefined}
+                      onDateChange={(date) => {
+                        if (date) {
+                          const formattedDate = date.toISOString().split('T')[0];
+                          setFormData({ 
+                            ...formData, 
+                            date: formattedDate,
+                            year: date.getFullYear()
+                          });
+                        } else {
+                          setFormData({ ...formData, date: "" });
+                        }
+                      }}
+                      placeholder="Sélectionner une date"
+                      displayFormat="dd MMM yyyy"
+                      className="bg-white border-gray-300 text-gray-900"
                     />
                   </div>
                   <div className="space-y-2">
@@ -1073,28 +1155,88 @@ function CampaignsPageContent() {
                 {/* Tags */}
                 <div className="space-y-2">
                   <Label className="text-gray-700">Tags</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
+                  <div className="relative">
+                    <div className="flex gap-2">
+                      <Input
+                        value={tagInput}
+                        onChange={(e) => {
+                          setTagInput(e.target.value);
+                          setShowTagSuggestions(true);
+                        }}
+                        onFocus={() => setShowTagSuggestions(true)}
+                        onBlur={() => {
+                          // Délai pour permettre le clic sur les suggestions
+                          setTimeout(() => setShowTagSuggestions(false), 200);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddTag();
+                            setShowTagSuggestions(false);
+                          }
+                          if (e.key === "Escape") {
+                            setShowTagSuggestions(false);
+                          }
+                        }}
+                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
+                        placeholder="Ajouter un tag ou sélectionner..."
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => {
                           handleAddTag();
-                        }
-                      }}
-                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
-                      placeholder="Ajouter un tag..."
-                    />
-                    <Button
-                      type="button"
-                      onClick={handleAddTag}
-                      variant="outline"
-                      className="border-gray-300 text-gray-700 hover:bg-gray-100"
-                    >
-                      +
-                    </Button>
+                          setShowTagSuggestions(false);
+                        }}
+                        variant="outline"
+                        className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                      >
+                        +
+                      </Button>
+                    </div>
+                    
+                    {/* Suggestions de tags */}
+                    {showTagSuggestions && filteredTagSuggestions.length > 0 && (
+                      <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        <div className="p-2 text-xs text-gray-500 border-b border-gray-100">
+                          💡 Tags existants (cliquez pour ajouter)
+                        </div>
+                        {filteredTagSuggestions.map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between group"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              if (!formData.tags.includes(tag)) {
+                                setFormData({ ...formData, tags: [...formData.tags, tag] });
+                              }
+                              setTagInput("");
+                              setShowTagSuggestions(false);
+                            }}
+                          >
+                            <span className="text-gray-700">{tag}</span>
+                            <span className="text-xs text-gray-400 group-hover:text-primary">+ Ajouter</span>
+                          </button>
+                        ))}
+                        {tagInput.trim() && !existingTags.includes(tagInput.trim()) && (
+                          <button
+                            type="button"
+                            className="w-full text-left px-3 py-2 text-sm bg-primary/5 hover:bg-primary/10 flex items-center gap-2 border-t border-gray-100"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleAddTag();
+                              setShowTagSuggestions(false);
+                            }}
+                          >
+                            <Plus className="h-3 w-3 text-primary" />
+                            <span className="text-primary">Créer "{tagInput.trim()}"</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
+                  
+                  {/* Tags sélectionnés */}
                   {formData.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
                       {formData.tags.map((tag) => (
@@ -1109,12 +1251,16 @@ function CampaignsPageContent() {
                             className="hover:text-primary/70 ml-1"
                             title="Supprimer le tag"
                           >
-                            x
+                            <X className="h-3 w-3" />
                           </button>
                         </span>
                       ))}
                     </div>
                   )}
+                  
+                  <p className="text-xs text-gray-500">
+                    💡 Tapez pour filtrer les tags existants ou créez-en un nouveau en appuyant sur Entrée.
+                  </p>
                 </div>
               </div>
             )}

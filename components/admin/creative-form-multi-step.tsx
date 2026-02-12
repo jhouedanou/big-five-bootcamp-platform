@@ -15,7 +15,7 @@ import { useRouter } from "next/navigation"
 import { createCreative, updateCreative } from "@/app/actions/creative"
 import { toast } from "sonner"
 import { SUPPORTED_PLATFORMS, FILTERS } from "@/lib/constants"
-import { Loader2, ChevronLeft, ChevronRight, Check, FileText, Image, Sparkles } from "lucide-react"
+import { Loader2, ChevronLeft, ChevronRight, Check, FileText, Image, Sparkles, CalendarDays } from "lucide-react"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { cn } from "@/lib/utils"
 
@@ -44,6 +44,7 @@ export function CreativeFormMultiStep({ creative, isEdit = false }: CreativeForm
         objective: creative?.tags?.[1] || creative?.objective || "",
         thumbnail: creative?.thumbnail || "",
         videoUrl: creative?.video_url || creative?.videoUrl || "",
+        campaignDate: creative?.campaign_date || creative?.campaignDate || "",
         whyItWorks: creative?.description?.split('\n\n')[0] || creative?.whyItWorks || "",
         howToUse: creative?.description?.split('\n\n')[1] || creative?.howToUse || "",
     })
@@ -227,8 +228,8 @@ export function CreativeFormMultiStep({ creative, isEdit = false }: CreativeForm
 
                             <div className="grid gap-2">
                                 <Label htmlFor="objective">Objectif *</Label>
-                                <Select 
-                                    value={formData.objective} 
+                                <Select
+                                    value={formData.objective}
                                     onValueChange={(v) => updateField("objective", v)}
                                 >
                                     <SelectTrigger>
@@ -240,6 +241,20 @@ export function CreativeFormMultiStep({ creative, isEdit = false }: CreativeForm
                                         ))}
                                     </SelectContent>
                                 </Select>
+                            </div>
+                        </div>
+
+                        <div className="grid gap-2">
+                            <Label htmlFor="campaignDate">Date de la campagne</Label>
+                            <div className="relative">
+                                <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                <Input
+                                    id="campaignDate"
+                                    type="date"
+                                    value={formData.campaignDate}
+                                    onChange={(e) => updateField("campaignDate", e.target.value)}
+                                    className="pl-10"
+                                />
                             </div>
                         </div>
                     </div>

@@ -10,6 +10,7 @@ export interface ContentItem {
   id: string
   title: string
   description: string
+  summary?: string // Résumé court de la campagne
   imageUrl: string
   platform: string
   country: string
@@ -115,6 +116,13 @@ export function ContentCard({ content }: ContentCardProps) {
           <h3 className="line-clamp-2 font-[family-name:var(--font-heading)] text-sm font-semibold text-[#1A1F2B] transition-colors group-hover:text-[#80368D]">
             {content.title}
           </h3>
+
+          {/* Résumé de la campagne */}
+          {content.summary && (
+            <p className="mt-1.5 line-clamp-2 text-xs text-[#1A1F2B]/70">
+              {content.summary}
+            </p>
+          )}
 
           <div className="mt-2 flex flex-wrap gap-1.5">
             <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${sectorColor}`}>

@@ -7,12 +7,19 @@ import Link from '@tiptap/extension-link'
 import TextAlign from '@tiptap/extension-text-align'
 import Placeholder from '@tiptap/extension-placeholder'
 import { Button } from '@/components/ui/button'
-import { 
-    Bold, 
-    Italic, 
-    Underline as UnderlineIcon, 
-    List, 
-    ListOrdered, 
+import {
+    Bold,
+    Italic,
+    Underline as UnderlineIcon,
+    Strikethrough,
+    Code,
+    FileCode,
+    Minus,
+    Heading1,
+    Heading2,
+    Heading3,
+    List,
+    ListOrdered,
     Quote,
     AlignLeft,
     AlignCenter,
@@ -31,9 +38,9 @@ interface RichTextEditorProps {
     name?: string
 }
 
-export function RichTextEditor({ 
-    content = '', 
-    onChange, 
+export function RichTextEditor({
+    content = '',
+    onChange,
     placeholder = 'Commencez à écrire...',
     className,
     name
@@ -43,7 +50,7 @@ export function RichTextEditor({
         extensions: [
             StarterKit.configure({
                 heading: {
-                    levels: [2, 3]
+                    levels: [1, 2, 3]
                 }
             }),
             Underline,
@@ -63,7 +70,7 @@ export function RichTextEditor({
         content,
         editorProps: {
             attributes: {
-                class: 'prose prose-sm dark:prose-invert max-w-none min-h-[150px] p-4 focus:outline-none'
+                class: 'prose prose-sm dark:prose-invert max-w-none min-h-[150px] p-4 focus:outline-none [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-3 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mb-2 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mb-2'
             }
         },
         onUpdate: ({ editor }) => {
@@ -108,6 +115,37 @@ export function RichTextEditor({
 
                 <div className="w-px h-6 bg-border mx-1 self-center" />
 
+                {/* Headings */}
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                    className={cn("h-8 w-8 p-0", editor.isActive('heading', { level: 1 }) && 'bg-accent')}
+                >
+                    <Heading1 className="h-4 w-4" />
+                </Button>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                    className={cn("h-8 w-8 p-0", editor.isActive('heading', { level: 2 }) && 'bg-accent')}
+                >
+                    <Heading2 className="h-4 w-4" />
+                </Button>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                    className={cn("h-8 w-8 p-0", editor.isActive('heading', { level: 3 }) && 'bg-accent')}
+                >
+                    <Heading3 className="h-4 w-4" />
+                </Button>
+
+                <div className="w-px h-6 bg-border mx-1 self-center" />
+
                 {/* Text formatting */}
                 <Button
                     type="button"
@@ -136,10 +174,28 @@ export function RichTextEditor({
                 >
                     <UnderlineIcon className="h-4 w-4" />
                 </Button>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => editor.chain().focus().toggleStrike().run()}
+                    className={cn("h-8 w-8 p-0", editor.isActive('strike') && 'bg-accent')}
+                >
+                    <Strikethrough className="h-4 w-4" />
+                </Button>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => editor.chain().focus().toggleCode().run()}
+                    className={cn("h-8 w-8 p-0", editor.isActive('code') && 'bg-accent')}
+                >
+                    <Code className="h-4 w-4" />
+                </Button>
 
                 <div className="w-px h-6 bg-border mx-1 self-center" />
 
-                {/* Lists */}
+                {/* Lists & Blocks */}
                 <Button
                     type="button"
                     variant="ghost"
@@ -166,6 +222,24 @@ export function RichTextEditor({
                     className={cn("h-8 w-8 p-0", editor.isActive('blockquote') && 'bg-accent')}
                 >
                     <Quote className="h-4 w-4" />
+                </Button>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+                    className={cn("h-8 w-8 p-0", editor.isActive('codeBlock') && 'bg-accent')}
+                >
+                    <FileCode className="h-4 w-4" />
+                </Button>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => editor.chain().focus().setHorizontalRule().run()}
+                    className="h-8 w-8 p-0"
+                >
+                    <Minus className="h-4 w-4" />
                 </Button>
 
                 <div className="w-px h-6 bg-border mx-1 self-center" />

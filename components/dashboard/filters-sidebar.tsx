@@ -13,7 +13,8 @@ interface FilterGroup {
   hasIcons?: boolean
 }
 
-const filterGroups: FilterGroup[] = [
+// Valeurs par défaut (fallback si pas de données dynamiques)
+const defaultFilterGroups: FilterGroup[] = [
   {
     name: "Pays",
     options: ["Cote d'Ivoire", "Senegal", "Nigeria", "Afrique du Sud", "Ghana", "Kenya", "Maroc", "France", "USA"]
@@ -36,8 +37,8 @@ const filterGroups: FilterGroup[] = [
     options: ["Humour", "Emotion", "Storytelling", "Promo", "Cause sociale", "Viral", "UGC", "Influenceur", "Corporate"]
   },
   {
-    name: "Date",
-    options: ["7 derniers jours", "30 derniers jours", "3 derniers mois", "6 derniers mois", "1 an", "Tout"]
+    name: "Année",
+    options: ["2026", "2025", "2024", "2023", "2022"]
   }
 ]
 
@@ -48,14 +49,66 @@ const platformIcons: Record<string, React.ReactNode> = {
   "YouTube": <Youtube className="h-3 w-3" />,
 }
 
+// Interface pour les options dynamiques
+export interface DynamicFilterOptions {
+  countries?: string[]
+  sectors?: string[]
+  formats?: string[]
+  platforms?: string[]
+  tags?: string[]
+  years?: number[]
+}
+
 interface FiltersSidebarProps {
   selectedFilters: Record<string, string[]>
   onFilterChange: (filters: Record<string, string[]>) => void
   className?: string
+  dynamicOptions?: DynamicFilterOptions
 }
 
-export function FiltersSidebar({ selectedFilters, onFilterChange, className }: FiltersSidebarProps) {
-  const [expandedGroups, setExpandedGroups] = useState<string[]>(["Pays", "Secteur", "Plateforme"])
+export function FiltersSidebar({ selectedFilters, onFilterChange, className, dynamicOptions }: FiltersSidebarProps) {
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(["Pays", "Secteur", "Plateforme", "Tags"])
+
+  // Construire les groupes de filtres dynamiquement
+  const filterGroups: FilterGroup[] = [
+    {
+      name: "Pays",
+      options: dynamicOptions?.countries?.length 
+        ? [...dynamicOptions.countries].sort() 
+        : defaultFilterGroups[0].options
+    },
+    {
+      name: "Secteur",
+      options: dynamicOptions?.sectors?.length 
+        ? [...dynamicOptions.sectors].sort() 
+        : defaultFilterGroups[1].options
+    },
+    {
+      name: "Format",
+      options: dynamicOptions?.formats?.length 
+        ? [...dynamicOptions.formats].sort() 
+        : defaultFilterGroups[2].options
+    },
+    {
+      name: "Plateforme",
+      options: dynamicOptions?.platforms?.length 
+        ? [...dynamicOptions.platforms].sort() 
+        : defaultFilterGroups[3].options,
+      hasIcons: true
+    },
+    {
+      name: "Tags",
+      options: dynamicOptions?.tags?.length 
+        ? [...dynamicOptions.tags].sort() 
+        : defaultFilterGroups[4].options
+    },
+    {
+      name: "Année",
+      options: dynamicOptions?.years?.length 
+        ? dynamicOptions.years.sort((a, b) => b - a).map(String) 
+        : defaultFilterGroups[5].options
+    }
+  ]
 
   const toggleGroup = (groupName: string) => {
     setExpandedGroups(prev =>
@@ -95,7 +148,7 @@ export function FiltersSidebar({ selectedFilters, onFilterChange, className }: F
               onClick={clearAllFilters}
               className="h-auto px-2 py-1 text-xs text-[#80368D] hover:text-[#80368D]/80"
             >
-              Reinitialiser ({totalFilters})
+              Réinitialiser ({totalFilters})
             </Button>
           )}
         </div>
@@ -115,6 +168,10 @@ export function FiltersSidebar({ selectedFilters, onFilterChange, className }: F
                       {selectedFilters[group.name]?.length}
                     </Badge>
                   )}
+                  {/* Indicateur du nombre d'options disponibles */}
+                  <span className="text-xs text-[#1A1F2B]/40">
+                    ({group.options.length})
+                  </span>
                 </span>
                 {expandedGroups.includes(group.name) ? (
                   <ChevronUp className="h-4 w-4 text-[#1A1F2B]/60" />
@@ -124,43 +181,58 @@ export function FiltersSidebar({ selectedFilters, onFilterChange, className }: F
               </button>
               
               {expandedGroups.includes(group.name) && (
-                <div className="flex flex-col gap-1 pb-2 pt-1">
-                  {group.options.map((option) => {
-                    const isSelected = selectedFilters[group.name]?.includes(option)
-                    return (
-                      <button
-                        key={option}
-                        type="button"
-                        onClick={() => toggleFilter(group.name, option)}
-                        className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
-                          isSelected
-                            ? "bg-[#80368D]/10 text-[#80368D]"
-                            : "text-[#1A1F2B]/70 hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B]"
-                        }`}
-                      >
-                        <div className={`flex h-4 w-4 items-center justify-center rounded border ${
-                          isSelected 
-                            ? "border-[#80368D] bg-[#80368D]" 
-                            : "border-[#D0E4F2] bg-white"
-                        }`}>
-                          {isSelected && (
-                            <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                            </svg>
+                <div className="flex flex-col gap-1 pb-2 pt-1 max-h-48 overflow-y-auto">
+                  {group.options.length === 0 ? (
+                    <p className="text-xs text-[#1A1F2B]/50 italic px-2 py-1">
+                      Aucune option disponible
+                    </p>
+                  ) : (
+                    group.options.map((option) => {
+                      const isSelected = selectedFilters[group.name]?.includes(option)
+                      return (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => toggleFilter(group.name, option)}
+                          className={`flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors ${
+                            isSelected
+                              ? "bg-[#80368D]/10 text-[#80368D]"
+                              : "text-[#1A1F2B]/70 hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B]"
+                          }`}
+                        >
+                          <div className={`flex h-4 w-4 items-center justify-center rounded border ${
+                            isSelected 
+                              ? "border-[#80368D] bg-[#80368D]" 
+                              : "border-[#D0E4F2] bg-white"
+                          }`}>
+                            {isSelected && (
+                              <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                          {group.hasIcons && platformIcons[option] && (
+                            <span className="text-[#1A1F2B]/60">{platformIcons[option]}</span>
                           )}
-                        </div>
-                        {group.hasIcons && platformIcons[option] && (
-                          <span className="text-[#1A1F2B]/60">{platformIcons[option]}</span>
-                        )}
-                        {option}
-                      </button>
-                    )
-                  })}
+                          <span className="truncate">{option}</span>
+                        </button>
+                      )
+                    })
+                  )}
                 </div>
               )}
             </div>
           ))}
         </div>
+
+        {/* Indicateur de filtres dynamiques */}
+        {dynamicOptions && (
+          <div className="mt-4 pt-4 border-t border-[#D0E4F2]">
+            <p className="text-xs text-[#1A1F2B]/50 text-center">
+              Filtres basés sur vos campagnes
+            </p>
+          </div>
+        )}
       </div>
     </aside>
   )

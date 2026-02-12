@@ -14,12 +14,28 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-export function DashboardNavbar() {
+export function DashboardNavbar({ 
+  searchQuery: externalSearchQuery, 
+  onSearchChange 
+}: { 
+  searchQuery?: string; 
+  onSearchChange?: (query: string) => void 
+} = {}) {
   const [isOpen, setIsOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
+  const [internalSearchQuery, setInternalSearchQuery] = useState("")
   const [userName, setUserName] = useState("")
   const [userEmail, setUserEmail] = useState("")
   const [userPlan, setUserPlan] = useState("Free")
+  
+  // Utiliser la recherche externe si fournie, sinon interne
+  const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : internalSearchQuery
+  const setSearchQuery = (value: string) => {
+    if (onSearchChange) {
+      onSearchChange(value)
+    } else {
+      setInternalSearchQuery(value)
+    }
+  }
   
   const supabase = createClient()
 

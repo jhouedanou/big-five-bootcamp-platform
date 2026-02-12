@@ -158,10 +158,10 @@ export default function PaymentCancelPage() {
             <div className="text-center space-y-2">
               <p className="text-sm font-semibold">Service Client Big Five</p>
               <p className="text-sm text-gray-600">
-                📞 +225 XX XX XX XX XX
+                📞 +225 27 21 59 42 28
               </p>
               <p className="text-sm text-gray-600">
-                📧 support@bigfive.ci
+                📧 contacts@bigfive.solutions
               </p>
               <p className="text-xs text-gray-500 mt-3">
                 Disponible du lundi au vendredi, 9h - 18h

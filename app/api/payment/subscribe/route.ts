@@ -47,14 +47,17 @@ export async function POST(request: NextRequest) {
     // Si l'utilisateur n'existe pas dans la table users, le créer
     if (!existingUser || userError?.code === 'PGRST116') {
       console.log('👤 Utilisateur non trouvé dans la table users, création...');
-      
-      // Récupérer les infos depuis Supabase Auth
-      const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
-      const authUser = authUsers?.users?.find(u => u.email === userEmail);
-      
-      if (!authUser) {
+
+      // Chercher l'utilisateur par email dans Supabase Auth (via filtre)
+      const { data: authListData, error: authListError } = await supabaseAdmin.auth.admin.listUsers({
+        filter: userEmail,
+      });
+      const authUser = authListData?.users?.[0];
+
+      if (authListError || !authUser) {
+        console.error('❌ Utilisateur non trouvé dans Auth:', authListError);
         return NextResponse.json(
-          { error: 'User not found in authentication system. Please register first.' },
+          { error: 'Utilisateur non trouvé. Veuillez vous inscrire d\'abord.' },
           { status: 404 }
         );
       }
@@ -62,21 +65,21 @@ export async function POST(request: NextRequest) {
       // Créer l'utilisateur dans la table users
       const { data: newUser, error: createError } = await supabaseAdmin
         .from('users')
-        .insert({
+        .upsert({
           id: authUser.id,
           email: authUser.email!,
           name: authUser.user_metadata?.name || authUser.email!.split('@')[0],
           role: 'user',
           plan: 'Free',
           status: 'active',
-        })
+        }, { onConflict: 'id' })
         .select('id, email, name, subscription_status, subscription_end_date')
         .single();
 
       if (createError) {
         console.error('❌ Erreur création utilisateur:', createError);
         return NextResponse.json(
-          { error: 'Failed to create user record', details: createError.message },
+          { error: 'Impossible de créer le profil utilisateur', details: createError.message },
           { status: 500 }
         );
       }

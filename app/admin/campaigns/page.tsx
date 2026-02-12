@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAdmin } from "../AdminContext";
 import type { ContentItem } from "@/components/dashboard/content-card";
@@ -87,7 +87,7 @@ const defaultFormData: Omit<ContentItem, "id"> = {
   status: "Brouillon",
 };
 
-export default function CampaignsPage() {
+function CampaignsPageContent() {
   const { campaigns, addCampaign, updateCampaign, deleteCampaign } = useAdmin();
   const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
@@ -948,5 +948,20 @@ export default function CampaignsPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function CampaignsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    }>
+      <CampaignsPageContent />
+    </Suspense>
   );
 }

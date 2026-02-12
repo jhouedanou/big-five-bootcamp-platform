@@ -66,16 +66,35 @@ export interface PaytechStatusResponse {
 }
 
 /**
+ * Récupère l'URL de base de l'application
+ * Essaie plusieurs variables d'environnement pour plus de robustesse
+ */
+function getAppBaseUrl(): string {
+  const url = process.env.NEXT_PUBLIC_APP_URL 
+    || process.env.NEXTAUTH_URL 
+    || process.env.VERCEL_URL 
+    || 'http://localhost:3000';
+  
+  // S'assurer que l'URL commence par https en production
+  if (url.includes('vercel.app') && !url.startsWith('https://')) {
+    return `https://${url.replace(/^https?:\/\//, '')}`;
+  }
+  return url;
+}
+
+/**
  * Configuration PayTech depuis les variables d'environnement
  */
+const APP_BASE_URL = getAppBaseUrl();
+
 const PAYTECH_CONFIG = {
   API_KEY: process.env.PAYTECH_API_KEY || '',
   API_SECRET: process.env.PAYTECH_API_SECRET || '',
   BASE_URL: 'https://paytech.sn/api',
   ENV: (process.env.PAYTECH_ENV || 'test') as 'test' | 'prod',
-  IPN_URL: `${process.env.NEXTAUTH_URL}/api/payment/ipn`,
-  SUCCESS_URL: `${process.env.NEXTAUTH_URL}/payment/success`,
-  CANCEL_URL: `${process.env.NEXTAUTH_URL}/payment/cancel`,
+  IPN_URL: `${APP_BASE_URL}/api/payment/ipn`,
+  SUCCESS_URL: `${APP_BASE_URL}/payment/success`,
+  CANCEL_URL: `${APP_BASE_URL}/payment/cancel`,
 };
 
 console.log('PayTech Config:', {
@@ -83,6 +102,8 @@ console.log('PayTech Config:', {
   API_SECRET: PAYTECH_CONFIG.API_SECRET ? '✓ Configuré' : '✗ Manquant',
   ENV: PAYTECH_CONFIG.ENV,
   BASE_URL: PAYTECH_CONFIG.BASE_URL,
+  APP_BASE_URL: APP_BASE_URL,
+  IPN_URL: PAYTECH_CONFIG.IPN_URL,
 });
 
 /**
@@ -102,6 +123,9 @@ export async function requestPayment(
     }
 
     // Préparation des données avec valeurs par défaut
+    // Ajouter ref_command dans l'URL de succès pour que la page puisse vérifier le paiement
+    const successUrlWithRef = `${params.success_url || PAYTECH_CONFIG.SUCCESS_URL}?ref_command=${encodeURIComponent(params.ref_command)}`;
+    
     const paymentData: PaytechPaymentRequest = {
       item_name: params.item_name,
       item_price: params.item_price,
@@ -110,7 +134,7 @@ export async function requestPayment(
       command_name: params.command_name,
       env: params.env || PAYTECH_CONFIG.ENV,
       ipn_url: params.ipn_url || PAYTECH_CONFIG.IPN_URL,
-      success_url: params.success_url || PAYTECH_CONFIG.SUCCESS_URL,
+      success_url: successUrlWithRef,
       cancel_url: params.cancel_url || PAYTECH_CONFIG.CANCEL_URL,
       custom_field: params.custom_field,
       target_payment: params.target_payment,
@@ -124,6 +148,8 @@ export async function requestPayment(
       item_price: paymentData.item_price,
       ref_command: paymentData.ref_command,
       env: paymentData.env,
+      ipn_url: paymentData.ipn_url,
+      success_url: paymentData.success_url,
     });
 
     const response = await fetch(`${PAYTECH_CONFIG.BASE_URL}/payment/request-payment`, {

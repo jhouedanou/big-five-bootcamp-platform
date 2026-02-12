@@ -7,8 +7,10 @@ import { FiltersSidebar, DynamicFilterOptions } from "@/components/dashboard/fil
 import { ContentCard, ContentItem } from "@/components/dashboard/content-card"
 import { createClient } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
-import { Filter, Grid3X3, LayoutList, ChevronLeft, ChevronRight, Loader2, Lock } from "lucide-react"
+import { Filter, Grid3X3, LayoutList, ChevronLeft, ChevronRight, Loader2, Lock, CalendarDays } from "lucide-react"
 import { ParticlesBackground } from "@/components/ui/particles-background"
+import { format, parseISO } from "date-fns"
+import { fr } from "date-fns/locale"
 
 const FREE_CAMPAIGN_LIMIT = 4
 
@@ -112,6 +114,7 @@ export default function DashboardPage() {
         const formattedCampaigns: ContentItem[] = (data || []).map((campaign: any) => ({
           id: campaign.id,
           title: campaign.title,
+          summary: campaign.summary || '',
           description: campaign.description || '',
           imageUrl: campaign.thumbnail || '',
           platform: campaign.platforms?.[0] || 'Facebook',
@@ -315,6 +318,52 @@ export default function DashboardPage() {
     currentPage * itemsPerPage
   )
 
+  // Grouper les campagnes par mois/année
+  const groupedContent = useMemo(() => {
+    const groups: Record<string, ContentItem[]> = {}
+    
+    paginatedContent.forEach((content) => {
+      let monthKey: string
+      try {
+        const date = parseISO(content.date)
+        monthKey = format(date, "MMMM yyyy", { locale: fr })
+      } catch {
+        monthKey = content.year ? `Année ${content.year}` : "Non daté"
+      }
+      
+      if (!groups[monthKey]) {
+        groups[monthKey] = []
+      }
+      groups[monthKey].push(content)
+    })
+
+    // Trier les groupes par date décroissante
+    const sortedKeys = Object.keys(groups).sort((a, b) => {
+      // Extraire l'année pour la comparaison
+      const getYear = (key: string) => {
+        const match = key.match(/\d{4}/)
+        return match ? parseInt(match[0]) : 0
+      }
+      const getMonth = (key: string) => {
+        const months = ["janvier", "février", "mars", "avril", "mai", "juin", 
+                       "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
+        const lowerKey = key.toLowerCase()
+        const idx = months.findIndex(m => lowerKey.includes(m))
+        return idx >= 0 ? idx : 0
+      }
+      
+      const yearA = getYear(a)
+      const yearB = getYear(b)
+      if (yearA !== yearB) return yearB - yearA
+      return getMonth(b) - getMonth(a)
+    })
+
+    return sortedKeys.map(key => ({
+      monthYear: key,
+      campaigns: groups[key]
+    }))
+  }, [paginatedContent])
+
   const handleFilterChange = (filters: Record<string, string[]>) => {
     setSelectedFilters(filters)
     setActiveQuickFilter("") // Reset quick filter active state when manual filters are used
@@ -330,11 +379,11 @@ export default function DashboardPage() {
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div className="animate-fade-in-up">
-              <h1 className="font-[family-name:var(--font-heading)] text-3xl font-bold text-[#1A1F2B]">
+              <h1 className="font-[family-name:var(--font-heading)] text-4xl font-bold tracking-tight text-[#1A1F2B]">
                 Bibliothèque
               </h1>
-              <p className="mt-2 text-sm text-[#1A1F2B]/70">
-                <span className="font-semibold text-[#80368D]">{filteredContent.length}</span> campagne{filteredContent.length > 1 ? "s" : ""} trouvée{filteredContent.length > 1 ? "s" : ""}
+              <p className="mt-2 text-base font-medium text-[#1A1F2B]/70">
+                <span className="text-lg font-bold text-[#80368D]">{filteredContent.length}</span> campagne{filteredContent.length > 1 ? "s" : ""} trouvée{filteredContent.length > 1 ? "s" : ""}
               </p>
             </div>
 
@@ -421,41 +470,66 @@ export default function DashboardPage() {
             <div className="flex-1">
               {isLoading ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-[#80368D]" />
-                  <p className="mt-4 text-sm text-muted-foreground">Chargement des campagnes...</p>
+                  <Loader2 className="h-10 w-10 animate-spin text-[#80368D]" />
+                  <p className="mt-4 text-base font-medium text-muted-foreground">Chargement des campagnes...</p>
                 </div>
               ) : paginatedContent.length > 0 ? (
                 <>
-                  <div className={`grid gap-6 ${viewMode === "grid"
-                    ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
-                    : "grid-cols-1"
-                    }`}>
-                    {paginatedContent.map((content) => (
-                      <ContentCard key={content.id} content={content} />
+                  {/* Campagnes groupées par mois/année */}
+                  <div className="space-y-10">
+                    {groupedContent.map((group) => (
+                      <section key={group.monthYear} className="animate-fade-in-up">
+                        {/* En-tête du mois */}
+                        <div className="mb-6 flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#80368D] to-[#a855f7] shadow-lg shadow-[#80368D]/25">
+                            <CalendarDays className="h-5 w-5 text-white" />
+                          </div>
+                          <div>
+                            <h2 className="font-[family-name:var(--font-heading)] text-xl font-bold capitalize text-[#1A1F2B]">
+                              {group.monthYear}
+                            </h2>
+                            <p className="text-sm font-medium text-[#1A1F2B]/60">
+                              {group.campaigns.length} campagne{group.campaigns.length > 1 ? "s" : ""}
+                            </p>
+                          </div>
+                          <div className="ml-4 flex-1 border-b-2 border-dashed border-[#D0E4F2]" />
+                        </div>
+
+                        {/* Grille de campagnes */}
+                        <div className={`grid gap-6 ${viewMode === "grid"
+                          ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
+                          : "grid-cols-1"
+                          }`}>
+                          {group.campaigns.map((content) => (
+                            <ContentCard key={content.id} content={content} />
+                          ))}
+                        </div>
+                      </section>
                     ))}
                   </div>
 
                   {/* Pagination */}
                   {totalPages > 1 && (
-                    <div className="mt-8 flex items-center justify-center gap-2">
+                    <div className="mt-10 flex items-center justify-center gap-3">
                       <Button
                         variant="outline"
                         size="sm"
+                        className="h-10 w-10 border-2 border-[#D0E4F2] bg-white p-0 hover:bg-[#D0E4F2] hover:border-[#80368D]/30"
                         onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                         disabled={currentPage === 1}
                       >
-                        <ChevronLeft className="h-4 w-4" />
+                        <ChevronLeft className="h-5 w-5" />
                       </Button>
 
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-2">
                         {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                           <button
                             key={page}
                             type="button"
                             onClick={() => setCurrentPage(page)}
-                            className={`h-8 w-8 rounded text-sm font-medium ${currentPage === page
-                              ? "bg-primary text-primary-foreground"
-                              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                            className={`h-10 w-10 rounded-lg text-sm font-bold transition-all duration-200 ${currentPage === page
+                              ? "bg-[#80368D] text-white shadow-lg shadow-[#80368D]/30 scale-110"
+                              : "bg-white border-2 border-[#D0E4F2] text-[#1A1F2B]/70 hover:bg-[#D0E4F2] hover:text-[#1A1F2B] hover:border-[#80368D]/30"
                               }`}
                           >
                             {page}
@@ -466,26 +540,27 @@ export default function DashboardPage() {
                       <Button
                         variant="outline"
                         size="sm"
+                        className="h-10 w-10 border-2 border-[#D0E4F2] bg-white p-0 hover:bg-[#D0E4F2] hover:border-[#80368D]/30"
                         onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                         disabled={currentPage === totalPages}
                       >
-                        <ChevronRight className="h-4 w-4" />
+                        <ChevronRight className="h-5 w-5" />
                       </Button>
                     </div>
                   )}
                 </>
               ) : (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="mb-4 rounded-full bg-muted p-4">
-                    <Filter className="h-8 w-8 text-muted-foreground" />
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="mb-6 rounded-2xl bg-gradient-to-br from-[#D0E4F2] to-[#D0E4F2]/50 p-6 shadow-inner">
+                    <Filter className="h-12 w-12 text-[#80368D]" />
                   </div>
-                  <h3 className="text-lg font-semibold text-foreground">Aucune campagne trouvee</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Essayez de modifier vos filtres pour voir plus de resultats.
+                  <h3 className="text-xl font-bold text-[#1A1F2B]">Aucune campagne trouvée</h3>
+                  <p className="mt-2 max-w-md text-base font-medium text-[#1A1F2B]/60">
+                    Essayez de modifier vos filtres pour voir plus de résultats.
                   </p>
                   <Button
                     variant="outline"
-                    className="mt-4 bg-transparent"
+                    className="mt-6 bg-white border-2 border-[#80368D]/30 text-[#80368D] font-semibold hover:bg-[#80368D]/5 hover:border-[#80368D]"
                     onClick={() => setSelectedFilters({})}
                   >
                     Effacer les filtres
@@ -495,20 +570,20 @@ export default function DashboardPage() {
 
               {/* Paywall pour utilisateurs Free */}
               {showPaywall && (
-                <div className="relative mt-8">
+                <div className="relative mt-12">
                   <div className="absolute inset-x-0 -top-24 h-24 bg-gradient-to-t from-white to-transparent pointer-events-none z-10" />
-                  <div className="text-center py-12 bg-white rounded-xl border border-[#D0E4F2] shadow-sm">
-                    <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#80368D]/10">
-                      <Lock className="h-6 w-6 text-[#80368D]" />
+                  <div className="text-center py-14 bg-gradient-to-br from-white to-[#D0E4F2]/30 rounded-2xl border-2 border-[#D0E4F2] shadow-lg">
+                    <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#80368D] to-[#a855f7] shadow-lg shadow-[#80368D]/30">
+                      <Lock className="h-8 w-8 text-white" />
                     </div>
-                    <h3 className="font-[family-name:var(--font-heading)] text-xl font-bold text-[#1A1F2B]">
-                      Debloquez toute la bibliotheque
+                    <h3 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[#1A1F2B]">
+                      Débloquez toute la bibliothèque
                     </h3>
-                    <p className="mt-2 text-sm text-[#1A1F2B]/70">
-                      {filteredContent.length - FREE_CAMPAIGN_LIMIT} campagnes supplementaires disponibles avec l'abonnement Premium
+                    <p className="mt-3 text-base font-medium text-[#1A1F2B]/70">
+                      <span className="text-lg font-bold text-[#80368D]">{filteredContent.length - FREE_CAMPAIGN_LIMIT}</span> campagnes supplémentaires disponibles avec l'abonnement Premium
                     </p>
                     <Link href="/subscribe">
-                      <Button className="mt-6 bg-[#80368D] hover:bg-[#80368D]/90 text-white shadow-lg shadow-[#80368D]/25">
+                      <Button className="mt-8 h-12 px-8 text-base font-bold bg-gradient-to-r from-[#80368D] to-[#a855f7] hover:from-[#6b2d76] hover:to-[#9333ea] text-white shadow-xl shadow-[#80368D]/30 transition-all duration-300 hover:scale-105">
                         Passer Premium
                       </Button>
                     </Link>

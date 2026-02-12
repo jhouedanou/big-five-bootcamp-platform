@@ -116,6 +116,7 @@ function convertToYouTubeEmbed(url: string): string {
 
 const defaultFormData: Omit<ContentItem, "id"> = {
   title: "",
+  summary: "",
   description: "",
   imageUrl: "",
   images: [],
@@ -204,6 +205,7 @@ function CampaignsPageContent() {
     setEditingCampaign(item);
     setFormData({
       title: item.title,
+      summary: item.summary || "",
       description: item.description,
       imageUrl: item.imageUrl,
       images: item.images || [],
@@ -741,6 +743,22 @@ function CampaignsPageContent() {
                     className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                     placeholder="Ex: MTN Ghana - Mobile Money Campaign"
                   />
+                </div>
+
+                {/* Summary - Résumé */}
+                <div className="space-y-2">
+                  <Label htmlFor="camp-summary" className="text-gray-700">Résumé</Label>
+                  <Input
+                    id="camp-summary"
+                    value={formData.summary || ""}
+                    onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
+                    className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
+                    placeholder="Une phrase qui résume la campagne..."
+                    maxLength={150}
+                  />
+                  <p className="text-xs text-gray-500">
+                    Court résumé affiché sur les cartes (max. 150 caractères)
+                  </p>
                 </div>
 
                 {/* Brand & Agency */}

@@ -259,6 +259,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       const formattedCampaigns: ContentItem[] = (data || []).map((campaign: any) => ({
         id: campaign.id,
         title: campaign.title,
+        summary: campaign.summary || '',
         description: campaign.description || '',
         imageUrl: campaign.thumbnail || '',
         platform: campaign.platforms?.[0] || 'Facebook',
@@ -295,6 +296,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const mapToDbRecord = (data: Partial<ContentItem>) => {
     const record: Record<string, any> = {};
     if (data.title !== undefined) record.title = data.title;
+    if (data.summary !== undefined) record.summary = data.summary;
     if (data.description !== undefined) record.description = data.description;
     if (data.imageUrl !== undefined) record.thumbnail = data.imageUrl;
     if (data.platform !== undefined) record.platforms = [data.platform];

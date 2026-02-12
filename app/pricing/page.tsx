@@ -70,8 +70,8 @@ export default function PricingPage() {
                                 <p className="text-sm text-[#F2B33D] font-medium mb-6">
                                     Après votre essai gratuit de 30 jours
                                 </p>
-                                <Button className="w-full mb-8 font-bold shadow-lg shadow-[#80368D]/25 h-12 text-base bg-[#80368D] hover:bg-[#80368D]/90 text-white">
-                                    Commencer l'essai gratuit
+                                <Button asChild className="w-full mb-8 font-bold shadow-lg shadow-[#80368D]/25 h-12 text-base bg-[#80368D] hover:bg-[#80368D]/90 text-white">
+                                    <a href="/register">Commencer l'essai gratuit</a>
                                 </Button>
                                 <ul className="space-y-4 text-sm flex-1">
                                     <li className="flex items-center gap-2 text-[#1A1F2B]">

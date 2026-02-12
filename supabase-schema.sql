@@ -446,3 +446,128 @@ ON CONFLICT DO NOTHING;
 SELECT 'Schéma créé avec succès!' as message;
 SELECT COUNT(*) as creative_libraries_count FROM creative_libraries;
 SELECT COUNT(*) as sessions_count FROM sessions;
+
+-- ==============================================
+-- PARTIE 3: SYSTÈME DE PAIEMENT PAYTECH
+-- ==============================================
+
+-- Table des transactions PayTech
+CREATE TABLE IF NOT EXISTS payments (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  
+  -- Référence PayTech
+  ref_command VARCHAR(255) UNIQUE NOT NULL, -- Référence unique générée pour PayTech
+  paytech_token VARCHAR(255), -- Token retourné par PayTech
+  
+  -- Informations de paiement
+  amount DECIMAL(10, 2) NOT NULL,
+  currency VARCHAR(10) DEFAULT 'XOF',
+  payment_method VARCHAR(100), -- Ex: "Orange Money", "Wave"
+  client_phone VARCHAR(50),
+  
+  -- Statut
+  status VARCHAR(50) NOT NULL DEFAULT 'pending' 
+    CHECK (status IN ('pending', 'completed', 'failed', 'canceled', 'refunded')),
+  
+  -- Relation avec session et utilisateur
+  session_id UUID REFERENCES sessions(id) ON DELETE SET NULL,
+  user_email VARCHAR(255) NOT NULL, -- Email de l'utilisateur qui paie
+  
+  -- Détails de la transaction
+  item_name VARCHAR(255) NOT NULL, -- Nom du bootcamp
+  item_description TEXT,
+  
+  -- Données PayTech IPN
+  ipn_data JSONB, -- Stocke toutes les données IPN reçues
+  
+  -- Promotions (si applicable)
+  initial_amount DECIMAL(10, 2),
+  final_amount DECIMAL(10, 2),
+  promo_enabled BOOLEAN DEFAULT FALSE,
+  promo_value_percent DECIMAL(5, 2),
+  
+  -- Environnement PayTech (test ou prod)
+  env VARCHAR(10) DEFAULT 'test' CHECK (env IN ('test', 'prod')),
+  
+  -- Dates
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  completed_at TIMESTAMP WITH TIME ZONE,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Index pour performances
+CREATE INDEX IF NOT EXISTS idx_payments_ref_command ON payments(ref_command);
+CREATE INDEX IF NOT EXISTS idx_payments_session_id ON payments(session_id);
+CREATE INDEX IF NOT EXISTS idx_payments_user_email ON payments(user_email);
+CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
+CREATE INDEX IF NOT EXISTS idx_payments_paytech_token ON payments(paytech_token);
+
+-- Trigger updated_at pour payments
+CREATE TRIGGER update_payments_updated_at
+  BEFORE UPDATE ON payments
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- RLS pour payments
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+
+-- Les utilisateurs peuvent voir leurs propres paiements
+CREATE POLICY "Users can view their own payments"
+  ON payments
+  FOR SELECT
+  USING (user_email = auth.jwt()->>'email');
+
+-- Les admins peuvent tout voir
+CREATE POLICY "Admins can view all payments"
+  ON payments
+  FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.users
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
+-- Seul le système (via service_role) peut créer/modifier les payments
+CREATE POLICY "System can manage payments"
+  ON payments
+  FOR ALL
+  USING (auth.role() = 'service_role');
+
+-- Fonction pour vérifier si un paiement est déjà effectué pour une session
+CREATE OR REPLACE FUNCTION check_existing_payment(
+  p_session_id UUID,
+  p_user_email VARCHAR
+) RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM payments
+    WHERE session_id = p_session_id
+      AND user_email = p_user_email
+      AND status IN ('completed', 'pending')
+  );
+END;
+$$ LANGUAGE plpgsql;
+
+-- Vue pour les statistiques de paiement
+CREATE OR REPLACE VIEW payment_stats AS
+SELECT 
+  COUNT(*) FILTER (WHERE status = 'completed') as completed_count,
+  COUNT(*) FILTER (WHERE status = 'pending') as pending_count,
+  COUNT(*) FILTER (WHERE status = 'failed') as failed_count,
+  COUNT(*) FILTER (WHERE status = 'canceled') as canceled_count,
+  SUM(final_amount) FILTER (WHERE status = 'completed') as total_revenue,
+  AVG(final_amount) FILTER (WHERE status = 'completed') as average_transaction,
+  COUNT(DISTINCT user_email) FILTER (WHERE status = 'completed') as unique_customers
+FROM payments;
+
+-- Mettre à jour la table registrations pour lier aux paiements
+ALTER TABLE registrations 
+  ADD COLUMN IF NOT EXISTS payment_id UUID REFERENCES payments(id) ON DELETE SET NULL;
+
+-- Commentaires pour documentation
+COMMENT ON TABLE payments IS 'Transactions PayTech pour les inscriptions aux bootcamps';
+COMMENT ON COLUMN payments.ref_command IS 'Référence unique envoyée à PayTech (format: BOOTCAMP_timestamp_random)';
+COMMENT ON COLUMN payments.paytech_token IS 'Token retourné par PayTech lors de la demande de paiement';
+COMMENT ON COLUMN payments.ipn_data IS 'Données JSON complètes reçues via IPN (webhook PayTech)';
+COMMENT ON COLUMN payments.status IS 'Statut: pending (en attente), completed (payé), failed (échoué), canceled (annulé), refunded (remboursé)';

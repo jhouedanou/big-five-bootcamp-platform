@@ -38,7 +38,7 @@ export default function PaywallPage() {
           
           <p className="mt-3 text-[#1A1F2B]/70">
             Tu as kiffe ces 30 jours ? Continue {"l'aventure"} pour{" "}
-            <span className="font-semibold text-[#1A1F2B]">4 500 FCFA/mois</span> seulement.
+            <span className="font-semibold text-[#1A1F2B]">4 500 XOF/mois</span> seulement.
           </p>
 
           {/* Benefits */}
@@ -57,9 +57,9 @@ export default function PaywallPage() {
           <div className="mt-8 rounded-xl bg-[#80368D] p-6 text-left">
             <div className="flex items-baseline gap-1">
               <span className="font-[family-name:var(--font-heading)] text-4xl font-bold text-white">4 500</span>
-              <span className="text-lg text-white/70">FCFA/mois</span>
+              <span className="text-lg text-white/70">XOF/mois</span>
             </div>
-            <p className="mt-1 text-sm text-white/60">Soit 150 FCFA/jour pour booster ta crea</p>
+            <p className="mt-1 text-sm text-white/60">Soit 150 XOF/jour pour booster ta crea</p>
             
             {/* Payment options */}
             <div className="mt-4 flex items-center gap-3">

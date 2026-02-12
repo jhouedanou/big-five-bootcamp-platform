@@ -78,6 +78,13 @@ const PAYTECH_CONFIG = {
   CANCEL_URL: `${process.env.NEXTAUTH_URL}/payment/cancel`,
 };
 
+console.log('PayTech Config:', {
+  API_KEY: PAYTECH_CONFIG.API_KEY ? '✓ Configuré' : '✗ Manquant',
+  API_SECRET: PAYTECH_CONFIG.API_SECRET ? '✓ Configuré' : '✗ Manquant',
+  ENV: PAYTECH_CONFIG.ENV,
+  BASE_URL: PAYTECH_CONFIG.BASE_URL,
+});
+
 /**
  * MÉTHODE 1: Demande de paiement
  * Crée une demande de paiement et retourne l'URL de redirection vers PayTech
@@ -111,6 +118,14 @@ export async function requestPayment(
     };
 
     // Appel à l'API PayTech
+    console.log('🚀 Envoi requête PayTech:', {
+      url: `${PAYTECH_CONFIG.BASE_URL}/payment/request-payment`,
+      item_name: paymentData.item_name,
+      item_price: paymentData.item_price,
+      ref_command: paymentData.ref_command,
+      env: paymentData.env,
+    });
+
     const response = await fetch(`${PAYTECH_CONFIG.BASE_URL}/payment/request-payment`, {
       method: 'POST',
       headers: {
@@ -121,7 +136,19 @@ export async function requestPayment(
       body: JSON.stringify(paymentData),
     });
 
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Erreur PayTech HTTP:', response.status, errorText);
+      throw new Error(`PayTech API error: ${response.status} - ${errorText}`);
+    }
+
     const result: PaytechPaymentResponse = await response.json();
+    
+    console.log('📥 Réponse PayTech:', {
+      success: result.success,
+      token: result.token ? '✓' : '✗',
+      redirect_url: result.redirect_url || result.redirectUrl ? '✓' : '✗',
+    });
 
     if (result.success !== 1) {
       throw new Error(result.message || 'PayTech payment request failed');

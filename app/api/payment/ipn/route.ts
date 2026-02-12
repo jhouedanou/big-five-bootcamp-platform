@@ -123,27 +123,75 @@ async function handlePaymentSuccess(
       throw updateError;
     }
 
-    // 2. Créer l'inscription dans registrations
-    const { data: registration, error: regError } = await supabaseAdmin
-      .from('registrations')
-      .insert({
-        session_id: payment.session_id,
-        user_email: payment.user_email,
-        first_name: customData.firstName || '',
-        last_name: customData.lastName || '',
-        phone_number: ipnData.client_phone,
-        payment_status: 'Payé',
-        amount: ipnData.final_item_price || ipnData.item_price,
-        payment_id: payment.id,
-      })
-      .select()
-      .single();
+    // 2. Vérifier le type de paiement et traiter en conséquence
+    if (customData.type === 'subscription') {
+      // Activer l'abonnement de l'utilisateur
+      const subscriptionEndDate = customData.subscription_end_date 
+        ? new Date(customData.subscription_end_date) 
+        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 jours par défaut
 
-    if (regError) {
-      console.error('Error creating registration:', regError);
-      // Ne pas throw ici car le paiement est déjà validé
+      const { error: userUpdateError } = await supabaseAdmin
+        .from('users')
+        .update({
+          subscription_status: 'active',
+          subscription_start_date: new Date().toISOString(),
+          subscription_end_date: subscriptionEndDate.toISOString(),
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq('id', customData.userId);
+
+      if (userUpdateError) {
+        console.error('Error updating user subscription:', userUpdateError);
+      } else {
+        console.log('✅ Subscription activated for user:', customData.userId);
+        
+        // Créer une notification de succès de paiement
+        try {
+          await supabaseAdmin.rpc('notify_payment_success', {
+            p_user_id: customData.userId,
+            p_amount: ipnData.final_item_price || ipnData.item_price,
+            p_subscription_end_date: subscriptionEndDate.toISOString(),
+          });
+          console.log('✅ Payment success notification created');
+        } catch (notifError) {
+          console.error('Error creating payment notification:', notifError);
+        }
+
+        // Annuler les rappels premium planifiés pour cet utilisateur
+        try {
+          await supabaseAdmin
+            .from('scheduled_reminders')
+            .delete()
+            .eq('user_id', customData.userId)
+            .eq('sent', false);
+          console.log('✅ Cancelled pending premium reminders');
+        } catch (reminderError) {
+          console.error('Error cancelling reminders:', reminderError);
+        }
+      }
     } else {
-      console.log('✅ Registration created:', registration);
+      // Créer l'inscription dans registrations (pour les bootcamps)
+      const { data: registration, error: regError } = await supabaseAdmin
+        .from('registrations')
+        .insert({
+          session_id: payment.session_id,
+          user_email: payment.user_email,
+          first_name: customData.firstName || '',
+          last_name: customData.lastName || '',
+          phone_number: ipnData.client_phone,
+          payment_status: 'Payé',
+          amount: ipnData.final_item_price || ipnData.item_price,
+          payment_id: payment.id,
+        } as any)
+        .select()
+        .single();
+
+      if (regError) {
+        console.error('Error creating registration:', regError);
+        // Ne pas throw ici car le paiement est déjà validé
+      } else {
+        console.log('✅ Registration created:', registration);
+      }
     }
 
     // 3. TODO: Envoyer email de confirmation
@@ -171,6 +219,23 @@ async function handlePaymentCanceled(payment: any, ipnData: PaytechIPN) {
         ipn_data: ipnData as any,
       })
       .eq('id', payment.id);
+
+    // Créer une notification d'échec
+    try {
+      // Extraire l'userId des métadonnées du paiement
+      const metadata = payment.metadata || {};
+      const userId = metadata.userId;
+      
+      if (userId) {
+        await supabaseAdmin.rpc('notify_payment_failed', {
+          p_user_id: userId,
+          p_reason: 'Paiement annulé',
+        });
+        console.log('✅ Payment canceled notification created');
+      }
+    } catch (notifError) {
+      console.error('Error creating cancelation notification:', notifError);
+    }
 
     console.log('Payment marked as canceled:', payment.ref_command);
 

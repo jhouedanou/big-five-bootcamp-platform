@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Smartphone, CreditCard, Check, Lock, Sparkles, ChevronRight } from "lucide-react"
@@ -8,18 +8,27 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
 
 type PaymentMethod = "mobile" | "card"
 type MobileOperator = "orange" | "mtn" | "moov" | "wave"
 
 export default function SubscribePage() {
   const router = useRouter()
+  const { user, loading } = useSupabaseAuth()
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mobile")
   const [selectedOperator, setSelectedOperator] = useState<MobileOperator>("orange")
   const [phoneNumber, setPhoneNumber] = useState("")
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+
+  // Redirection si non connecté
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login?redirect=/subscribe')
+    }
+  }, [user, loading, router])
 
   const mobileOperators = [
     { id: "orange", name: "Orange Money", color: "bg-orange-500" },
@@ -29,10 +38,54 @@ export default function SubscribePage() {
   ]
 
   const handlePayment = async () => {
+    if (!user?.email) {
+      alert("Vous devez être connecté pour effectuer un paiement")
+      return
+    }
+
     setIsProcessing(true)
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    setStep(3)
-    setIsProcessing(false)
+
+    try {
+      // Mapper les opérateurs vers les noms PayTech
+      const operatorMap: Record<MobileOperator, string> = {
+        orange: "Orange Money",
+        mtn: "Mtn Money CI",
+        moov: "Moov Money CI",
+        wave: "Wave"
+      }
+
+      const targetPayment = paymentMethod === "mobile" 
+        ? operatorMap[selectedOperator]
+        : "Carte Bancaire"
+
+      // Appel à l'API de paiement
+      const response = await fetch('/api/payment/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userEmail: user.email,
+          paymentMethod: targetPayment,
+          phoneNumber: paymentMethod === "mobile" ? phoneNumber : undefined,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erreur lors de la création du paiement')
+      }
+
+      // Redirection vers PayTech
+      if (data.redirect_url || data.redirectUrl) {
+        window.location.href = data.redirect_url || data.redirectUrl
+      } else {
+        throw new Error('URL de redirection manquante')
+      }
+    } catch (error) {
+      console.error('Erreur de paiement:', error)
+      alert(error instanceof Error ? error.message : 'Erreur lors du paiement')
+      setIsProcessing(false)
+    }
   }
 
   return (
@@ -240,7 +293,11 @@ export default function SubscribePage() {
               <div className="mt-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Abonnement mensuel Big Five</span>
-                  <span className="font-medium text-foreground">4 500 FCFA</span>
+                  <span className="font-medium text-foreground">4 500 XOF</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Durée</span>
+                  <span className="text-foreground">1 mois</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Taxes</span>
@@ -251,9 +308,9 @@ export default function SubscribePage() {
               <div className="mt-4 border-t border-border pt-4">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-foreground">Total</span>
-                  <span className="font-[family-name:var(--font-heading)] text-2xl font-bold text-primary">4 500 FCFA</span>
+                  <span className="font-[family-name:var(--font-heading)] text-2xl font-bold text-primary">4 500 XOF</span>
                 </div>
-                <p className="mt-1 text-sm text-muted-foreground">/mois, renouvellement automatique</p>
+                <p className="mt-1 text-sm text-muted-foreground">Valable 1 mois</p>
               </div>
             </div>
           </div>

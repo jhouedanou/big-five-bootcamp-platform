@@ -50,53 +50,61 @@ function PaymentSuccessContent() {
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [manualRef, setManualRef] = useState('');
+  const [showManualInput, setShowManualInput] = useState(false);
+
+  const verifyPayment = async (ref_command: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Vérifier le statut du paiement
+      const response = await fetch(`/api/payment/status/${ref_command}`);
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        setError(data.error || 'Impossible de vérifier le paiement');
+        setLoading(false);
+        setShowManualInput(true);
+        return;
+      }
+
+      if (data.payment.status !== 'completed') {
+        setError('Le paiement n\'est pas encore validé. Veuillez patienter...');
+        // Réessayer après 3 secondes
+        setTimeout(() => verifyPayment(ref_command), 3000);
+        return;
+      }
+
+      setPaymentData(data);
+      setLoading(false);
+
+      // Nettoyer sessionStorage
+      sessionStorage.removeItem('payment_ref');
+      sessionStorage.removeItem('payment_session_id');
+
+    } catch (err) {
+      console.error('Error verifying payment:', err);
+      setError('Une erreur est survenue lors de la vérification');
+      setLoading(false);
+      setShowManualInput(true);
+    }
+  };
 
   useEffect(() => {
-    const verifyPayment = async () => {
-      try {
-        // Récupérer la référence de commande depuis l'URL ou sessionStorage
-        const refFromUrl = searchParams.get('ref_command');
-        const refFromStorage = sessionStorage.getItem('payment_ref');
-        const ref_command = refFromUrl || refFromStorage;
+    // Récupérer la référence de commande depuis l'URL ou sessionStorage
+    const refFromUrl = searchParams.get('ref_command') || searchParams.get('ref');
+    const refFromStorage = sessionStorage.getItem('payment_ref');
+    const ref_command = refFromUrl || refFromStorage;
 
-        if (!ref_command) {
-          setError('Référence de paiement introuvable');
-          setLoading(false);
-          return;
-        }
+    if (!ref_command) {
+      setError('Référence de paiement introuvable');
+      setLoading(false);
+      setShowManualInput(true);
+      return;
+    }
 
-        // Vérifier le statut du paiement
-        const response = await fetch(`/api/payment/status/${ref_command}`);
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-          setError(data.error || 'Impossible de vérifier le paiement');
-          setLoading(false);
-          return;
-        }
-
-        if (data.payment.status !== 'completed') {
-          setError('Le paiement n\'est pas encore validé. Veuillez patienter...');
-          // Réessayer après 3 secondes
-          setTimeout(verifyPayment, 3000);
-          return;
-        }
-
-        setPaymentData(data);
-        setLoading(false);
-
-        // Nettoyer sessionStorage
-        sessionStorage.removeItem('payment_ref');
-        sessionStorage.removeItem('payment_session_id');
-
-      } catch (err) {
-        console.error('Error verifying payment:', err);
-        setError('Une erreur est survenue lors de la vérification');
-        setLoading(false);
-      }
-    };
-
-    verifyPayment();
+    verifyPayment(ref_command);
   }, [searchParams]);
 
   if (loading) {
@@ -113,16 +121,76 @@ function PaymentSuccessContent() {
 
   if (error || !paymentData) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardHeader>
-            <CardTitle className="text-red-600">Erreur</CardTitle>
-            <CardDescription>{error || 'Paiement introuvable'}</CardDescription>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-violet-50 via-blue-50 to-white">
+        <Card className="max-w-md w-full shadow-xl border-2">
+          <CardHeader className="text-center pb-4">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
+              <svg className="h-8 w-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <CardTitle className="text-xl font-bold text-[#1A1F2B]">
+              {error === 'Référence de paiement introuvable' 
+                ? 'Vérification du paiement' 
+                : 'Erreur de vérification'}
+            </CardTitle>
+            <CardDescription className="text-base">
+              {error || 'Paiement introuvable'}
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button onClick={() => router.push('/library')} className="w-full">
-              Retour aux bootcamps
-            </Button>
+          <CardContent className="space-y-4">
+            {showManualInput && (
+              <div className="space-y-3 p-4 bg-gray-50 rounded-xl">
+                <p className="text-sm font-medium text-[#1A1F2B]">
+                  Vous avez une référence de paiement ?
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={manualRef}
+                    onChange={(e) => setManualRef(e.target.value)}
+                    placeholder="Ex: PAY-XXXXX-XXXXX"
+                    className="flex-1 h-11 px-4 rounded-lg border-2 border-gray-200 focus:border-violet-500 focus:outline-none text-sm font-medium"
+                  />
+                  <Button 
+                    onClick={() => {
+                      if (manualRef.trim()) {
+                        verifyPayment(manualRef.trim());
+                      }
+                    }}
+                    disabled={!manualRef.trim() || loading}
+                    className="h-11 px-6 bg-violet-600 hover:bg-violet-700"
+                  >
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Vérifier'}
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500">
+                  La référence vous a été envoyée par SMS ou email lors du paiement
+                </p>
+              </div>
+            )}
+
+            <div className="border-t pt-4 space-y-3">
+              <p className="text-sm text-center text-gray-600">
+                Besoin d'aide ? Contactez-nous
+              </p>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => router.push('/dashboard')} 
+                  className="flex-1 h-11 border-2"
+                >
+                  Bibliothèque
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => router.push('/contact')} 
+                  className="flex-1 h-11 border-2"
+                >
+                  Contact
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

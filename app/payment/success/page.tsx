@@ -90,8 +90,33 @@ function PaymentSuccessContent() {
       setPendingPayment(data.payment);
       setRetryCount(attempt + 1);
 
-      // Si on a atteint le max de tentatives, afficher le message pending
+      // Si on a atteint le max de tentatives, vérifier directement auprès de PayTech
       if (attempt >= maxRetries) {
+        // Tenter une vérification directe auprès de PayTech
+        try {
+          const checkResponse = await fetch(`/api/payment/check/${ref_command}`, {
+            method: 'POST',
+          });
+          const checkData = await checkResponse.json();
+          
+          if (checkData.success && checkData.payment?.status === 'completed') {
+            // PayTech confirme le paiement, re-vérifier notre statut
+            const refreshResponse = await fetch(`/api/payment/status/${ref_command}`);
+            const refreshData = await refreshResponse.json();
+            if (refreshData.success && refreshData.payment?.status === 'completed') {
+              setPaymentData(refreshData);
+              setLoading(false);
+              setPendingPayment(null);
+              setShowPendingMessage(false);
+              sessionStorage.removeItem('payment_ref');
+              sessionStorage.removeItem('payment_session_id');
+              return;
+            }
+          }
+        } catch (checkErr) {
+          console.error('PayTech check error:', checkErr);
+        }
+        
         setLoading(false);
         setShowPendingMessage(true);
         return;
@@ -225,15 +250,51 @@ function PaymentSuccessContent() {
             {/* Actions */}
             <div className="space-y-3 pt-2">
               <Button 
-                onClick={() => {
+                onClick={async () => {
+                  setLoading(true);
                   setShowPendingMessage(false);
+                  
+                  // D'abord vérifier directement auprès de PayTech
+                  try {
+                    const checkResponse = await fetch(`/api/payment/check/${pendingPayment.ref_command}`, {
+                      method: 'POST',
+                    });
+                    const checkData = await checkResponse.json();
+                    
+                    if (checkData.success && checkData.payment?.status === 'completed') {
+                      // Paiement confirmé par PayTech!
+                      const refreshResponse = await fetch(`/api/payment/status/${pendingPayment.ref_command}`);
+                      const refreshData = await refreshResponse.json();
+                      if (refreshData.success) {
+                        setPaymentData(refreshData);
+                        setLoading(false);
+                        setPendingPayment(null);
+                        sessionStorage.removeItem('payment_ref');
+                        return;
+                      }
+                    }
+                  } catch (err) {
+                    console.error('PayTech check error:', err);
+                  }
+                  
+                  // Sinon, reprendre la vérification normale
                   setRetryCount(0);
                   verifyPayment(pendingPayment.ref_command, 0);
                 }}
                 className="w-full h-11 bg-violet-600 hover:bg-violet-700 font-semibold"
+                disabled={loading}
               >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Vérifier à nouveau
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Vérification...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Vérifier à nouveau
+                  </>
+                )}
               </Button>
               
               <div className="grid grid-cols-2 gap-2">

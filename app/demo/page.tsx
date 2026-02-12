@@ -141,6 +141,9 @@ export default function DemoPage() {
 
   const filteredContent = useMemo(() => {
     return sampleContent.filter((content) => {
+      // Exclure les campagnes premium de la page démo (visible uniquement pour les abonnés)
+      if (content.accessLevel === "premium") return false
+      
       // Filtres de recherche texte
       const brandFilter = selectedFilters["brand"]?.[0]?.toLowerCase()
       const agencyFilter = selectedFilters["agency"]?.[0]?.toLowerCase()

@@ -94,6 +94,7 @@ export default function DashboardPage() {
           agency: campaign.agency || '',
           year: campaign.year || undefined,
           status: campaign.status,
+          accessLevel: campaign.access_level || 'free',
         }))
 
         setCampaigns(formattedCampaigns)
@@ -219,11 +220,14 @@ export default function DashboardPage() {
     })
   }, [selectedFilters, campaigns])
 
-  // Limiter l'acces pour les utilisateurs Free
-  const accessibleContent = isPremium
+  // Filtrer les campagnes premium pour les utilisateurs Free
+  const visibleContent = isPremium
     ? filteredContent
-    : filteredContent.slice(0, FREE_CAMPAIGN_LIMIT)
-  const showPaywall = !isPremium && filteredContent.length > FREE_CAMPAIGN_LIMIT
+    : filteredContent.filter((c) => c.accessLevel !== 'premium')
+  const accessibleContent = isPremium
+    ? visibleContent
+    : visibleContent.slice(0, FREE_CAMPAIGN_LIMIT)
+  const showPaywall = !isPremium && visibleContent.length > FREE_CAMPAIGN_LIMIT
 
   const totalPages = Math.ceil(accessibleContent.length / itemsPerPage)
   const paginatedContent = accessibleContent.slice(

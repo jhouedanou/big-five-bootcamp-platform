@@ -186,28 +186,65 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Recent Activity Placeholder */}
+      {/* Recent Activity */}
       <div>
         <div className="flex items-center gap-2 mb-4">
           <Eye className="w-5 h-5 text-violet-500" />
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Activité récente</h2>
         </div>
-        <Card className="border-0 bg-white dark:bg-slate-800/50">
-          <CardContent className="p-8 text-center">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
-              <Activity className="w-8 h-8 text-slate-400" />
-            </div>
-            <p className="text-slate-600 dark:text-slate-400 mb-4">
-              L'historique des activités s'affichera ici une fois que vous aurez ajouté des campagnes.
-            </p>
-            <Link href="/admin/campaigns?action=new">
-              <Button className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg shadow-orange-500/25">
-                <PlusCircle className="w-4 h-4 mr-2" />
-                Créer votre première campagne
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+        {campaigns.length === 0 ? (
+          <Card className="border-0 bg-white dark:bg-slate-800/50">
+            <CardContent className="p-8 text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
+                <Activity className="w-8 h-8 text-slate-400" />
+              </div>
+              <p className="text-slate-600 dark:text-slate-400 mb-4">
+                Aucune campagne pour le moment.
+              </p>
+              <Link href="/admin/campaigns?action=new">
+                <Button className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg shadow-orange-500/25">
+                  <PlusCircle className="w-4 h-4 mr-2" />
+                  Créer votre première campagne
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card className="border-0 bg-white dark:bg-slate-800/50">
+            <CardContent className="p-4">
+              <div className="space-y-3">
+                {campaigns.slice(0, 5).map((campaign) => (
+                  <div key={campaign.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                    <div className="p-2 rounded-lg bg-gradient-to-br from-orange-500/10 to-amber-500/10">
+                      <Megaphone className="w-4 h-4 text-orange-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-slate-900 dark:text-white truncate">
+                        {campaign.title}
+                      </p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        {campaign.brand || "Sans marque"} {campaign.sector ? `· ${campaign.sector}` : ""}
+                      </p>
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      {campaign.date ? new Date(campaign.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {campaigns.length > 5 && (
+                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700 text-center">
+                  <Link href="/admin/campaigns">
+                    <Button variant="ghost" className="text-orange-600 hover:text-orange-700">
+                      Voir toutes les campagnes ({campaigns.length})
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </Link>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

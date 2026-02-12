@@ -16,13 +16,12 @@ import {
   Building2,
   Tag,
   Globe,
-  ChevronLeft,
-  ChevronRight,
   Video,
   Loader2,
 } from "lucide-react";
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar";
 import { createClient } from "@/lib/supabase";
+import { ImageGallery } from "@/components/ui/lightbox";
 
 interface Campaign {
   id: string;
@@ -52,7 +51,6 @@ export default function ContentDetailPage({
   const { id } = use(params);
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [content, setContent] = useState<Campaign | null>(null);
   const [relatedContent, setRelatedContent] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -135,16 +133,6 @@ export default function ContentDetailPage({
     );
   }
 
-  const allImages = [content.thumbnail, ...(content.images || [])].filter(Boolean) as string[];
-
-  const prevImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
-  };
-
-  const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % allImages.length);
-  };
-
   // Extraire les infos depuis les champs
   const platform = content.platforms?.[0] || 'N/A';
   const sector = content.category || 'N/A';
@@ -171,62 +159,12 @@ export default function ContentDetailPage({
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main content area */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Image carousel */}
-            <div className="relative aspect-square bg-muted rounded-xl overflow-hidden group">
-              {allImages.length > 0 ? (
-                <Image
-                  src={allImages[currentImageIndex] || "/placeholder.svg"}
-                  alt={content.title}
-                  fill
-                  className="object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center">
-                  <div className="text-4xl font-bold text-muted-foreground/20">
-                    {content.title.substring(0, 2).toUpperCase()}
-                  </div>
-                </div>
-              )}
-
-              {/* Navigation arrows */}
-              {allImages.length > 1 && (
-                <>
-                  <button
-                    onClick={prevImage}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="Image précédente"
-                    aria-label="Image précédente"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={nextImage}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-background/80 backdrop-blur-sm p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="Image suivante"
-                    aria-label="Image suivante"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
-
-                  {/* Image indicators */}
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                    {allImages.map((_, index) => (
-                      <button
-                        key={index}
-                        onClick={() => setCurrentImageIndex(index)}
-                        className={`w-2 h-2 rounded-full transition-colors ${
-                          index === currentImageIndex
-                            ? "bg-[#FF6B35]"
-                            : "bg-background/60"
-                        }`}
-                        title={`Image ${index + 1}`}
-                        aria-label={`Voir image ${index + 1}`}
-                      />
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
+            {/* Image principale + galerie avec lightbox */}
+            <ImageGallery
+              mainImage={content.thumbnail}
+              images={content.images || []}
+              title={content.title}
+            />
 
             {/* Video player */}
             {content.video_url && (

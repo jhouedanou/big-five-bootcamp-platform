@@ -25,6 +25,7 @@ export interface ContentItem {
   year?: number
   award?: string
   status?: 'Publié' | 'Brouillon' | 'En attente'
+  accessLevel?: 'free' | 'premium' // 'free' = visible par tous, 'premium' = réservé aux abonnés
 }
 
 interface ContentCardProps {

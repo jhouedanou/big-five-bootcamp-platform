@@ -10,10 +10,11 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { ref_command: string } }
+  { params }: { params: Promise<{ ref_command: string }> }
 ) {
   try {
-    const { ref_command } = params;
+    // Dans Next.js 15+, params est une Promise
+    const { ref_command } = await params;
 
     if (!ref_command) {
       return NextResponse.json(

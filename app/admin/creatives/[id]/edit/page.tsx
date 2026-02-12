@@ -1,8 +1,10 @@
 import { CreativeFormMultiStep } from "@/components/admin/creative-form-multi-step"
 import { getCreativeById } from "@/app/actions/creative"
 
-export default async function EditCreativePage({ params }: { params: { id: string } }) {
-    const { data: creative, success } = await getCreativeById(params.id)
+export default async function EditCreativePage({ params }: { params: Promise<{ id: string }> }) {
+    // Dans Next.js 15+, params est une Promise
+    const { id } = await params;
+    const { data: creative, success } = await getCreativeById(id)
 
     if (!success || !creative) {
         return <div>Créative non trouvée</div>

@@ -13,9 +13,11 @@ const userUpdateSchema = z.object({
 // GET - Détails d'un utilisateur
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Dans Next.js 15+, params est une Promise
+    const { id } = await params;
     const currentUser = await getAuthenticatedUser()
     
     if (!currentUser) {
@@ -26,7 +28,7 @@ export async function GET(
     }
 
     // Les utilisateurs peuvent voir leur propre profil, les admins peuvent voir tous
-    if (currentUser.id !== params.id && !currentUser.isAdmin) {
+    if (currentUser.id !== id && !currentUser.isAdmin) {
       return NextResponse.json(
         { error: "Non autorisé" },
         { status: 403 }
@@ -37,7 +39,7 @@ export async function GET(
     const { data: user, error } = await supabase
       .from('users')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (error || !user) {
@@ -61,9 +63,11 @@ export async function GET(
 // PATCH - Mettre à jour un utilisateur
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Dans Next.js 15+, params est une Promise
+    const { id } = await params;
     const currentUser = await getAuthenticatedUser()
     
     if (!currentUser) {
@@ -73,7 +77,7 @@ export async function PATCH(
       )
     }
 
-    const isSelf = currentUser.id === params.id
+    const isSelf = currentUser.id === id
 
     if (!currentUser.isAdmin && !isSelf) {
       return NextResponse.json(
@@ -105,7 +109,7 @@ export async function PATCH(
     const { data: user, error } = await supabase
       .from('users')
       .update(data)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single()
 
@@ -125,9 +129,11 @@ export async function PATCH(
 // DELETE - Supprimer un utilisateur (admin uniquement)
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Dans Next.js 15+, params est une Promise
+    const { id } = await params;
     const currentUser = await getAuthenticatedUser()
     
     if (!currentUser || !currentUser.isAdmin) {
@@ -138,7 +144,7 @@ export async function DELETE(
     }
 
     // Empêcher la suppression de son propre compte admin
-    if (currentUser.id === params.id) {
+    if (currentUser.id === id) {
       return NextResponse.json(
         { error: "Vous ne pouvez pas supprimer votre propre compte" },
         { status: 400 }
@@ -151,12 +157,12 @@ export async function DELETE(
     const { error: profileError } = await supabase
       .from('users')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (profileError) throw profileError
 
     // Supprimer l'utilisateur auth
-    const { error: authError } = await supabase.auth.admin.deleteUser(params.id)
+    const { error: authError } = await supabase.auth.admin.deleteUser(id)
     if (authError) console.error("Auth deletion warning:", authError)
 
     return NextResponse.json({ message: "Utilisateur supprimé" })

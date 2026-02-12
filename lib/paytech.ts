@@ -70,10 +70,13 @@ export interface PaytechStatusResponse {
  * Essaie plusieurs variables d'environnement pour plus de robustesse
  */
 function getAppBaseUrl(): string {
-  const url = process.env.NEXT_PUBLIC_APP_URL 
+  let url = process.env.NEXT_PUBLIC_APP_URL 
     || process.env.NEXTAUTH_URL 
     || process.env.VERCEL_URL 
     || 'http://localhost:3000';
+  
+  // Supprimer le trailing slash s'il existe
+  url = url.replace(/\/$/, '');
   
   // S'assurer que l'URL commence par https en production
   if (url.includes('vercel.app') && !url.startsWith('https://')) {

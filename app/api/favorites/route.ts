@@ -1,4 +1,4 @@
-import { getSupabaseServer } from '@/lib/supabase-server'
+import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 
 // GET - Récupérer les favoris de l'utilisateur connecté
@@ -151,7 +151,7 @@ export async function POST(request: Request) {
     // Vérifier que la campagne existe
     const { data: campaign, error: campaignError } = await supabase
       .from('campaigns')
-      .select('id')
+      .select('id, title')
       .eq('id', campaignId)
       .single()
 
@@ -187,6 +187,28 @@ export async function POST(request: Request) {
         { error: 'Erreur lors de l\'ajout aux favoris' },
         { status: 500 }
       )
+    }
+
+    // Créer une notification pour l'utilisateur (via admin pour bypass RLS)
+    try {
+      const supabaseAdmin = getSupabaseAdmin()
+      await (supabaseAdmin as any)
+        .from('notifications')
+        .insert({
+          user_id: user.id,
+          type: 'favorite_added',
+          title: 'Campagne ajoutée aux favoris',
+          message: `Vous avez ajouté "${(campaign as any).title}" à vos favoris.`,
+          read: false,
+          action_url: `/content/${campaignId}`,
+          metadata: {
+            campaign_id: campaignId,
+            campaign_title: (campaign as any).title,
+          }
+        })
+    } catch (notifErr) {
+      // Ne pas bloquer si la notification échoue
+      console.error('Error creating favorite notification:', notifErr)
     }
 
     return NextResponse.json({

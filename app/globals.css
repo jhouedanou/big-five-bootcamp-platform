@@ -171,7 +171,65 @@
   strong, b {
     font-weight: 600;
   }
-  
+  .container p{
+    font-size: 1.2em !important;
+    line-height: 2 !important;
+    margin-bottom: 1em !important;
+}
+.container h1{
+    font-size: 2.5em !important;
+    margin-top: 1.5em !important;
+    margin-bottom: 1.5em !important;
+}
+.container h2{
+    font-size: 1.6em !important;
+    margin-top: 1.5em !important;
+    margin-bottom: 1.5em !important;
+}
+.container h3{
+    font-size: 1.4em !important;
+    margin-top: 1.5em !important;
+    margin-bottom: 1.5em !important;
+}
+.container h4{
+    font-size: 1em !important;
+    margin-top: 1em !important;
+    margin-bottom: 1em !important;
+}
+.container h5{
+    font-size: 0.875em !important;
+    margin-top: 0.875em !important;
+    margin-bottom: 0.5em !important;
+}
+.container h6{
+    font-size: 0.75em !important;
+    margin-top: 0.75em !important;
+    margin-bottom: 0.75em !important;
+}
+.container ul, .container ol{
+    margin-left: 1.5em !important;
+    margin-bottom: 1.5em !important;
+}
+.container ul li{
+    margin-bottom: 1em !important;
+    list-style: disc !important;
+}
+.container ol li{
+    margin-bottom: 0.5em !important;
+    list-style: lower-roman !important;
+}
+
+.container blockquote{
+    border-left: 3px solid var(--primary);
+    padding-left: 1em;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 1em !important;
+    margin-bottom: 1em !important;
+    color: var(--muted-foreground);
+    font-style: italic;
+}
+
   /* Boutons primaires - style arrondi avec violet */
   .button-primary {
     background-color: var(--primary-violet);

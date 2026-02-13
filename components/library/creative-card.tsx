@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from "react"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { PlayCircle, Maximize2, ExternalLink } from "lucide-react"
@@ -85,7 +86,14 @@ interface CreativeCardProps {
 }
 
 export function CreativeCard({ creative }: CreativeCardProps) {
+    const [isVideoPopupOpen, setIsVideoPopupOpen] = useState(false)
+    
+    // Déterminer si c'est une vidéo Facebook/Instagram
+    const videoPlatform = creative.videoUrl ? getVideoPlatform(creative.videoUrl) : null
+    const needsPopup = videoPlatform === 'facebook' || videoPlatform === 'instagram'
+
     return (
+        <>
         <Dialog>
             <DialogTrigger asChild>
                 <div className="group relative cursor-pointer overflow-hidden rounded-xl border bg-card shadow-sm transition-all hover:shadow-lg hover:-translate-y-1">
@@ -164,9 +172,12 @@ export function CreativeCard({ creative }: CreativeCardProps) {
                                 
                                 // Pour Facebook/Instagram - afficher un aperçu cliquable
                                 return (
-                                    <div className="relative w-full h-full min-h-[400px] flex flex-col items-center justify-center">
-                                        {/* Thumbnail comme aperçu */}
-                                        <div className="relative w-full h-64 mb-4">
+                                    <div className="relative w-full h-full min-h-[400px] flex flex-col items-center justify-center p-4">
+                                        {/* Visuel/Thumbnail plein écran */}
+                                        <div 
+                                            className="relative w-full h-80 cursor-pointer group"
+                                            onClick={() => setIsVideoPopupOpen(true)}
+                                        >
                                             <Image
                                                 src={creative.thumbnail || "/placeholder.jpg"}
                                                 alt={creative.title}
@@ -175,25 +186,16 @@ export function CreativeCard({ creative }: CreativeCardProps) {
                                                 sizes="(max-width: 768px) 100vw, 50vw"
                                             />
                                             {/* Overlay play button */}
-                                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
-                                                <PlayCircle className="h-16 w-16 text-white drop-shadow-lg" />
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg group-hover:bg-black/40 transition-colors">
+                                                <div className="bg-white/90 rounded-full p-4 shadow-lg group-hover:scale-110 transition-transform">
+                                                    <PlayCircle className="h-12 w-12 text-violet-600" />
+                                                </div>
                                             </div>
                                         </div>
                                         
-                                        {/* Bouton pour ouvrir sur la plateforme */}
-                                        <a
-                                            href={creative.videoUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-medium rounded-full hover:from-violet-700 hover:to-purple-700 transition-all shadow-lg"
-                                        >
-                                            <PlayCircle className="h-5 w-5" />
-                                            Voir sur {getPlatformLabel(platform)}
-                                            <ExternalLink className="h-4 w-4" />
-                                        </a>
-                                        
-                                        <p className="text-xs text-muted-foreground mt-3 text-center px-4">
-                                            Les vidéos {getPlatformLabel(platform)} s'ouvrent dans un nouvel onglet
+                                        {/* Texte d'indication */}
+                                        <p className="text-sm text-muted-foreground mt-4 text-center">
+                                            Cliquez pour voir la vidéo {getPlatformLabel(platform)}
                                         </p>
                                     </div>
                                 );
@@ -246,5 +248,51 @@ export function CreativeCard({ creative }: CreativeCardProps) {
                 </div>
             </DialogContent>
         </Dialog>
+
+        {/* Popup pour les vidéos Facebook/Instagram */}
+        {needsPopup && creative.videoUrl && (
+            <Dialog open={isVideoPopupOpen} onOpenChange={setIsVideoPopupOpen}>
+                <DialogContent className="max-w-2xl p-0 overflow-hidden">
+                    <div className="relative">
+                        {/* Grande image/visuel */}
+                        <div className="relative w-full aspect-[9/16] max-h-[80vh] bg-black">
+                            <Image
+                                src={creative.thumbnail || "/placeholder.jpg"}
+                                alt={creative.title}
+                                fill
+                                className="object-contain"
+                                sizes="(max-width: 768px) 100vw, 672px"
+                                priority
+                            />
+                        </div>
+                        
+                        {/* Barre d'action en bas */}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/70 to-transparent p-6 pt-16">
+                            <h3 className="text-white font-semibold text-lg mb-3 line-clamp-2">
+                                {creative.title}
+                            </h3>
+                            
+                            <div className="flex gap-3">
+                                <a
+                                    href={creative.videoUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-medium rounded-xl hover:from-violet-700 hover:to-purple-700 transition-all shadow-lg"
+                                >
+                                    <PlayCircle className="h-5 w-5" />
+                                    Voir la vidéo sur {getPlatformLabel(videoPlatform!)}
+                                    <ExternalLink className="h-4 w-4" />
+                                </a>
+                            </div>
+                            
+                            <p className="text-white/60 text-xs mt-3 text-center">
+                                La vidéo s'ouvrira sur {getPlatformLabel(videoPlatform!)} dans un nouvel onglet
+                            </p>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+        )}
+        </>
     )
 }

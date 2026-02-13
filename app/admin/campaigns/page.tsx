@@ -60,6 +60,7 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { CSVImporter } from "@/components/admin/csv-importer";
 import { cn } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
+import { detectVideoPlatform, getEmbedUrl, isSupportedVideoUrl, getYouTubeThumbnail, getVideoPlatformLabel } from "@/lib/video-utils";
 
 const platforms = ["Facebook", "Instagram", "TikTok", "YouTube", "LinkedIn", "Twitter/X"];
 const countries = ["Cote d'Ivoire", "Nigeria", "Kenya", "Ghana", "Senegal", "Maroc", "Afrique du Sud"];
@@ -74,44 +75,11 @@ const FORM_STEPS = [
 ];
 
 /**
- * Convertit une URL YouTube standard en URL embed
- * Supporte: youtube.com/watch?v=xxx, youtu.be/xxx, youtube.com/embed/xxx
+ * Convertit une URL vidéo en URL embed (multi-plateforme)
+ * Supporte: YouTube, Facebook, LinkedIn, Twitter/X
  */
-function convertToYouTubeEmbed(url: string): string {
-  if (!url) return "";
-  
-  // Si c'est déjà une URL embed, la retourner telle quelle
-  if (url.includes("/embed/")) {
-    return url;
-  }
-  
-  // Extraire l'ID de la vidéo
-  let videoId = "";
-  
-  // Format: youtube.com/watch?v=VIDEO_ID
-  const watchMatch = url.match(/[?&]v=([^&]+)/);
-  if (watchMatch) {
-    videoId = watchMatch[1];
-  }
-  
-  // Format: youtu.be/VIDEO_ID
-  const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
-  if (shortMatch) {
-    videoId = shortMatch[1];
-  }
-  
-  // Format: youtube.com/v/VIDEO_ID
-  const vMatch = url.match(/youtube\.com\/v\/([^?&]+)/);
-  if (vMatch) {
-    videoId = vMatch[1];
-  }
-  
-  if (videoId) {
-    return `https://www.youtube.com/embed/${videoId}`;
-  }
-  
-  // Retourner l'URL originale si on ne peut pas la convertir
-  return url;
+function convertToVideoEmbed(url: string): string {
+  return getEmbedUrl(url);
 }
 
 const defaultFormData: Omit<ContentItem, "id"> = {
@@ -260,10 +228,10 @@ function CampaignsPageContent() {
       return;
     }
     
-    // Convertir l'URL YouTube en format embed si nécessaire
+    // Convertir l'URL vidéo en format embed si nécessaire
     const processedFormData = {
       ...formData,
-      videoUrl: formData.videoUrl ? convertToYouTubeEmbed(formData.videoUrl) : "",
+      videoUrl: formData.videoUrl ? convertToVideoEmbed(formData.videoUrl) : "",
     };
     
     if (editingCampaign) {
@@ -542,7 +510,7 @@ function CampaignsPageContent() {
           </DialogHeader>
           {previewCampaign && (() => {
             const allImages = [previewCampaign.imageUrl, ...(previewCampaign.images || [])].filter(Boolean);
-            const embedVideoUrl = previewCampaign.videoUrl ? convertToYouTubeEmbed(previewCampaign.videoUrl) : "";
+            const embedVideoUrl = previewCampaign.videoUrl ? convertToVideoEmbed(previewCampaign.videoUrl) : "";
             return (
               <div className="space-y-4">
                 {allImages.length > 0 && (
@@ -1114,45 +1082,125 @@ function CampaignsPageContent() {
                   </p>
                 </div>
 
-                {/* URL Video */}
-                <div className="space-y-2">
-                  <Label htmlFor="camp-video-url" className="text-gray-700">
-                    <Video className="h-4 w-4 inline mr-1" />
-                    URL de la vidéo YouTube
-                  </Label>
-                  <Input
-                    id="camp-video-url"
-                    value={formData.videoUrl || ""}
-                    onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
-                    className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
-                    placeholder="https://www.youtube.com/watch?v=xxxxx ou https://youtu.be/xxxxx"
-                  />
-                  <p className="text-xs text-gray-500">
-                    💡 Collez simplement le lien YouTube - il sera automatiquement converti en format embed.
+                {/* Video checkbox — Ceci est une publication vidéo */}
+                <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="camp-video"
+                      checked={formData.isVideo || false}
+                      onCheckedChange={(checked) => setFormData({ ...formData, isVideo: !!checked })}
+                    />
+                    <Label htmlFor="camp-video" className="cursor-pointer text-gray-700 font-medium">
+                      <Video className="h-4 w-4 inline mr-1.5" />
+                      Ceci est une publication vidéo
+                    </Label>
+                  </div>
+                  <p className="text-xs text-gray-500 ml-6">
+                    Cochez si la campagne est principalement une vidéo (Facebook, YouTube, LinkedIn, Twitter/X). 
+                    La thumbnail sera récupérée automatiquement depuis le réseau social.
                   </p>
-                  {formData.videoUrl && (
-                    <div className="mt-2 rounded-lg overflow-hidden border border-gray-200">
-                      <iframe
-                        src={convertToYouTubeEmbed(formData.videoUrl)}
-                        title="Aperçu vidéo"
-                        className="w-full aspect-video"
-                        allowFullScreen
-                      />
-                    </div>
-                  )}
                 </div>
 
-                {/* Video checkbox */}
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="camp-video"
-                    checked={formData.isVideo || !!(formData.videoUrl && formData.videoUrl.trim())}
-                    onCheckedChange={(checked) => setFormData({ ...formData, isVideo: !!checked })}
-                  />
-                  <Label htmlFor="camp-video" className="cursor-pointer text-gray-700">
-                    Cette campagne contient une vidéo
-                  </Label>
-                </div>
+                {/* URL Video — Visible uniquement si isVideo est coché */}
+                {formData.isVideo && (
+                  <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <Label htmlFor="camp-video-url" className="text-gray-700">
+                      <Video className="h-4 w-4 inline mr-1" />
+                      URL de la vidéo
+                    </Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="camp-video-url"
+                        value={formData.videoUrl || ""}
+                        onChange={(e) => {
+                          const newUrl = e.target.value;
+                          setFormData({ ...formData, videoUrl: newUrl });
+                        }}
+                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
+                        placeholder="https://facebook.com/.../videos/... ou youtube.com/watch?v=... ou x.com/.../status/..."
+                      />
+                      {formData.videoUrl && formData.videoUrl.trim() && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="border-[#80368D] text-[#80368D] hover:bg-[#80368D]/10 whitespace-nowrap"
+                          onClick={async () => {
+                            const videoUrl = formData.videoUrl?.trim();
+                            if (!videoUrl) return;
+                            
+                            toast.info("Récupération de la thumbnail...");
+                            
+                            try {
+                              // YouTube: thumbnail synchrone
+                              const platform = detectVideoPlatform(videoUrl);
+                              if (platform === "youtube") {
+                                const thumb = getYouTubeThumbnail(videoUrl);
+                                if (thumb) {
+                                  setFormData({ ...formData, imageUrl: thumb });
+                                  toast.success("Thumbnail YouTube récupérée !");
+                                  return;
+                                }
+                              }
+                              
+                              // Autres plateformes: appel API
+                              const res = await fetch(`/api/video-thumbnail?url=${encodeURIComponent(videoUrl)}`);
+                              const data = await res.json();
+                              
+                              if (data.success && data.thumbnailUrl) {
+                                setFormData({ ...formData, imageUrl: data.thumbnailUrl });
+                                toast.success(`Thumbnail ${getVideoPlatformLabel(data.platform)} récupérée !`);
+                              } else {
+                                toast.warning("Impossible de récupérer la thumbnail automatiquement. Ajoutez-la manuellement.");
+                              }
+                            } catch {
+                              toast.error("Erreur lors de la récupération de la thumbnail");
+                            }
+                          }}
+                        >
+                          🖼️ Récupérer thumbnail
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {/* Indicateur de plateforme détectée */}
+                    {formData.videoUrl && formData.videoUrl.trim() && (
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const platform = detectVideoPlatform(formData.videoUrl || "");
+                          const platformStyles: Record<string, string> = {
+                            youtube: "bg-red-100 text-red-700",
+                            facebook: "bg-blue-100 text-blue-700",
+                            twitter: "bg-gray-100 text-gray-700",
+                            linkedin: "bg-sky-100 text-sky-700",
+                            unknown: "bg-yellow-100 text-yellow-700",
+                          };
+                          return (
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${platformStyles[platform]}`}>
+                              {platform === "unknown" ? "⚠️ Plateforme non reconnue" : `✓ ${getVideoPlatformLabel(platform)} détecté`}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    )}
+                    
+                    <p className="text-xs text-gray-500">
+                      💡 Plateformes supportées : YouTube, Facebook, LinkedIn, Twitter/X. Collez le lien de la publication vidéo.
+                    </p>
+                    
+                    {/* Aperçu vidéo embed */}
+                    {formData.videoUrl && formData.videoUrl.trim() && isSupportedVideoUrl(formData.videoUrl) && (
+                      <div className="mt-2 rounded-lg overflow-hidden border border-gray-200">
+                        <iframe
+                          src={convertToVideoEmbed(formData.videoUrl)}
+                          title="Aperçu vidéo"
+                          className="w-full aspect-video"
+                          allowFullScreen
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
 

@@ -7,6 +7,7 @@ import { Play, Calendar, Globe, Facebook, Instagram, Linkedin, Youtube, Crown, H
 import { Badge } from "@/components/ui/badge"
 import { useFavorites } from "@/hooks/use-favorites"
 import { cn } from "@/lib/utils"
+import { detectVideoPlatform } from "@/lib/video-utils"
 
 export interface ContentItem {
   id: string
@@ -116,6 +117,34 @@ export function ContentCard({ content }: ContentCardProps) {
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/90 opacity-0 shadow-lg transition-all group-hover:opacity-100">
                 <Play className="h-6 w-6 text-[#0A1F44]" fill="currentColor" />
               </div>
+            </div>
+          )}
+
+          {/* Video platform badge (bottom-right) */}
+          {content.isVideo && content.videoUrl && (
+            <div className="absolute right-2.5 bottom-2.5">
+              {(() => {
+                const vp = detectVideoPlatform(content.videoUrl || "");
+                const vpStyles: Record<string, string> = {
+                  youtube: "bg-red-600",
+                  facebook: "bg-[#1877F2]",
+                  twitter: "bg-black",
+                  linkedin: "bg-[#0A66C2]",
+                  unknown: "bg-gray-600",
+                };
+                const vpLabels: Record<string, string> = {
+                  youtube: "▶ YT",
+                  facebook: "▶ FB",
+                  twitter: "▶ X",
+                  linkedin: "▶ LI",
+                  unknown: "▶",
+                };
+                return (
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold text-white shadow-lg ${vpStyles[vp]}`}>
+                    {vpLabels[vp]}
+                  </span>
+                );
+              })()}
             </div>
           )}
 

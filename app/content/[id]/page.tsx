@@ -23,6 +23,7 @@ import { createClient } from "@/lib/supabase";
 import { ImageGallery } from "@/components/ui/lightbox";
 import { useFavorites } from "@/hooks/use-favorites";
 import { cn } from "@/lib/utils";
+import { detectVideoPlatform, getEmbedUrl, getVideoPlatformLabel } from "@/lib/video-utils";
 
 interface Campaign {
   id: string;
@@ -167,26 +168,60 @@ export default function ContentDetailPage({
               title={content.title}
             />
 
-            {/* Video player */}
-            {content.video_url && (
-              <Card>
-                <CardContent className="p-4">
-                  <h2 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                    <Video className="h-5 w-5" />
-                    Vidéo
-                  </h2>
-                  <div className="rounded-lg overflow-hidden">
-                    <iframe
-                      src={content.video_url}
-                      className="w-full aspect-video rounded-lg"
-                      allowFullScreen
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      title="Vidéo de la campagne"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            {/* Video player — embed multi-plateforme */}
+            {content.video_url && (() => {
+              const videoPlatform = detectVideoPlatform(content.video_url);
+              const embedUrl = getEmbedUrl(content.video_url);
+              const platformLabel = getVideoPlatformLabel(videoPlatform);
+              
+              // Pour LinkedIn: pas d'embed iframe, on affiche un lien
+              if (videoPlatform === "linkedin") {
+                return (
+                  <Card>
+                    <CardContent className="p-4">
+                      <h2 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                        <Video className="h-5 w-5" />
+                        Vidéo {platformLabel}
+                      </h2>
+                      <a
+                        href={content.video_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 bg-gradient-to-r from-sky-50 to-blue-50 hover:from-sky-100 hover:to-blue-100 transition-colors"
+                      >
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#0A66C2] text-white">
+                          <ExternalLink className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">Voir la vidéo sur LinkedIn</p>
+                          <p className="text-sm text-gray-500">S'ouvre dans un nouvel onglet</p>
+                        </div>
+                      </a>
+                    </CardContent>
+                  </Card>
+                );
+              }
+              
+              return (
+                <Card>
+                  <CardContent className="p-4">
+                    <h2 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                      <Video className="h-5 w-5" />
+                      Vidéo {platformLabel}
+                    </h2>
+                    <div className="rounded-lg overflow-hidden">
+                      <iframe
+                        src={embedUrl}
+                        className="w-full aspect-video rounded-lg"
+                        allowFullScreen
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        title={`Vidéo ${platformLabel} de la campagne`}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
             {/* Title and actions */}
             <div className="flex items-start justify-between gap-4">

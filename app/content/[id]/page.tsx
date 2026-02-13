@@ -23,7 +23,7 @@ import { createClient } from "@/lib/supabase";
 import { ImageGallery } from "@/components/ui/lightbox";
 import { useFavorites } from "@/hooks/use-favorites";
 import { cn } from "@/lib/utils";
-import { detectVideoPlatform, getEmbedUrl, getVideoPlatformLabel } from "@/lib/video-utils";
+import { detectVideoPlatform, getEmbedUrl, getVideoPlatformLabel, getOriginalVideoUrl } from "@/lib/video-utils";
 
 interface Campaign {
   id: string;
@@ -170,12 +170,18 @@ export default function ContentDetailPage({
 
             {/* Video player — embed multi-plateforme */}
             {content.video_url && (() => {
-              const videoPlatform = detectVideoPlatform(content.video_url);
+              const originalVideoUrl = getOriginalVideoUrl(content.video_url);
+              const videoPlatform = detectVideoPlatform(originalVideoUrl);
               const embedUrl = getEmbedUrl(content.video_url);
               const platformLabel = getVideoPlatformLabel(videoPlatform);
               
-              // Pour LinkedIn: pas d'embed iframe, on affiche un lien
-              if (videoPlatform === "linkedin") {
+              // Pour LinkedIn ou Facebook: lien externe (les embeds iframe sont souvent bloqués)
+              if (videoPlatform === "linkedin" || videoPlatform === "facebook") {
+                const bgGradient = videoPlatform === "linkedin" 
+                  ? "from-sky-50 to-blue-50 hover:from-sky-100 hover:to-blue-100" 
+                  : "from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100";
+                const iconBg = videoPlatform === "linkedin" ? "bg-[#0A66C2]" : "bg-[#1877F2]";
+                
                 return (
                   <Card>
                     <CardContent className="p-4">
@@ -183,18 +189,34 @@ export default function ContentDetailPage({
                         <Video className="h-5 w-5" />
                         Vidéo {platformLabel}
                       </h2>
+                      
+                      {/* Essayer l'embed iframe d'abord pour Facebook */}
+                      {videoPlatform === "facebook" && (
+                        <div className="rounded-lg overflow-hidden mb-3">
+                          <iframe
+                            src={embedUrl}
+                            className="w-full aspect-video rounded-lg border-0 overflow-hidden"
+                            allowFullScreen
+                            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                            title={`Vidéo ${platformLabel}`}
+                            scrolling="no"
+                          />
+                        </div>
+                      )}
+                      
+                      {/* Lien direct comme fallback */}
                       <a
-                        href={content.video_url}
+                        href={originalVideoUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 bg-gradient-to-r from-sky-50 to-blue-50 hover:from-sky-100 hover:to-blue-100 transition-colors"
+                        className={`flex items-center gap-3 p-4 rounded-lg border border-gray-200 bg-gradient-to-r ${bgGradient} transition-colors`}
                       >
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#0A66C2] text-white">
+                        <div className={`flex h-12 w-12 items-center justify-center rounded-full text-white ${iconBg}`}>
                           <ExternalLink className="h-5 w-5" />
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">Voir la vidéo sur LinkedIn</p>
-                          <p className="text-sm text-gray-500">S'ouvre dans un nouvel onglet</p>
+                          <p className="font-medium text-gray-900">Voir la vidéo sur {platformLabel}</p>
+                          <p className="text-sm text-gray-500">S&apos;ouvre dans un nouvel onglet</p>
                         </div>
                       </a>
                     </CardContent>
@@ -202,6 +224,7 @@ export default function ContentDetailPage({
                 );
               }
               
+              // YouTube, Twitter/X: embed iframe standard
               return (
                 <Card>
                   <CardContent className="p-4">

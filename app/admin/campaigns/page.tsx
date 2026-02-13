@@ -60,7 +60,7 @@ import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { CSVImporter } from "@/components/admin/csv-importer";
 import { cn } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
-import { detectVideoPlatform, getEmbedUrl, isSupportedVideoUrl, getYouTubeThumbnail, getVideoPlatformLabel } from "@/lib/video-utils";
+import { detectVideoPlatform, getEmbedUrl, isSupportedVideoUrl, getYouTubeThumbnail, getVideoPlatformLabel, getOriginalVideoUrl } from "@/lib/video-utils";
 
 const platforms = ["Facebook", "Instagram", "TikTok", "YouTube", "LinkedIn", "Twitter/X"];
 const countries = ["Cote d'Ivoire", "Nigeria", "Kenya", "Ghana", "Senegal", "Maroc", "Afrique du Sud"];
@@ -76,10 +76,18 @@ const FORM_STEPS = [
 
 /**
  * Convertit une URL vidéo en URL embed (multi-plateforme)
- * Supporte: YouTube, Facebook, LinkedIn, Twitter/X
+ * Wrapper local autour de getEmbedUrl pour lisibilité
  */
 function convertToVideoEmbed(url: string): string {
   return getEmbedUrl(url);
+}
+
+/**
+ * Récupère l'URL Facebook originale à partir d'une URL qui pourrait déjà être embed
+ * Utilisé pour normaliser les URLs collées par les admins
+ */
+function normalizeVideoUrl(url: string): string {
+  return getOriginalVideoUrl(url);
 }
 
 const defaultFormData: Omit<ContentItem, "id"> = {
@@ -228,10 +236,10 @@ function CampaignsPageContent() {
       return;
     }
     
-    // Convertir l'URL vidéo en format embed si nécessaire
+    // Sauvegarder l'URL originale de la vidéo (la conversion embed se fait à l'affichage)
     const processedFormData = {
       ...formData,
-      videoUrl: formData.videoUrl ? convertToVideoEmbed(formData.videoUrl) : "",
+      videoUrl: formData.videoUrl ? getOriginalVideoUrl(formData.videoUrl.trim()) : "",
     };
     
     if (editingCampaign) {

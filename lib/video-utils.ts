@@ -32,6 +32,10 @@ export function detectVideoPlatform(url: string): VideoPlatform {
  * Extrait l'ID vidéo YouTube depuis une URL
  */
 function extractYouTubeId(url: string): string {
+  // youtube.com/embed/VIDEO_ID (déjà en format embed)
+  const embedMatch = url.match(/youtube\.com\/embed\/([^?&/]+)/);
+  if (embedMatch) return embedMatch[1];
+
   // youtube.com/watch?v=VIDEO_ID
   const watchMatch = url.match(/[?&]v=([^&]+)/);
   if (watchMatch) return watchMatch[1];
@@ -39,10 +43,6 @@ function extractYouTubeId(url: string): string {
   // youtu.be/VIDEO_ID
   const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
   if (shortMatch) return shortMatch[1];
-
-  // youtube.com/embed/VIDEO_ID
-  const embedMatch = url.match(/youtube\.com\/embed\/([^?&]+)/);
-  if (embedMatch) return embedMatch[1];
 
   // youtube.com/v/VIDEO_ID
   const vMatch = url.match(/youtube\.com\/v\/([^?&]+)/);
@@ -55,28 +55,52 @@ function extractYouTubeId(url: string): string {
  * Extrait l'ID vidéo Facebook depuis une URL
  * Formats supportés:
  * - facebook.com/watch/?v=VIDEO_ID
+ * - facebook.com/watch?v=VIDEO_ID
  * - facebook.com/PAGE/videos/VIDEO_ID
  * - facebook.com/reel/VIDEO_ID
  * - fb.watch/XXXX
+ * - facebook.com/plugins/video.php?href=... (déjà embed — on extrait l'original)
  */
 function extractFacebookVideoId(url: string): string {
-  // facebook.com/watch/?v=VIDEO_ID
-  const watchMatch = url.match(/facebook\.com\/watch\/?\?v=(\d+)/);
+  // Si c'est une URL embed plugins/video.php, extraire l'URL originale d'abord
+  const originalUrl = extractOriginalFacebookUrl(url);
+  const u = originalUrl || url;
+
+  // facebook.com/watch/?v=VIDEO_ID ou facebook.com/watch?v=VIDEO_ID
+  const watchMatch = u.match(/facebook\.com\/watch\/?\?v=(\d+)/);
   if (watchMatch) return watchMatch[1];
 
   // facebook.com/PAGE/videos/VIDEO_ID
-  const videosMatch = url.match(/facebook\.com\/[^/]+\/videos\/(\d+)/);
+  const videosMatch = u.match(/facebook\.com\/[^/]+\/videos\/(\d+)/);
   if (videosMatch) return videosMatch[1];
 
   // facebook.com/reel/VIDEO_ID
-  const reelMatch = url.match(/facebook\.com\/reel\/(\d+)/);
+  const reelMatch = u.match(/facebook\.com\/reel\/(\d+)/);
   if (reelMatch) return reelMatch[1];
 
   // facebook.com/video.php?v=VIDEO_ID
-  const phpMatch = url.match(/video\.php\?v=(\d+)/);
+  const phpMatch = u.match(/video\.php\?v=(\d+)/);
   if (phpMatch) return phpMatch[1];
 
   return "";
+}
+
+/**
+ * Si l'URL est déjà un embed Facebook (plugins/video.php?href=...),
+ * extrait l'URL originale de la vidéo
+ */
+function extractOriginalFacebookUrl(url: string): string | null {
+  if (!url.includes("plugins/video.php")) return null;
+  
+  const hrefMatch = url.match(/[?&]href=([^&]+)/);
+  if (hrefMatch) {
+    try {
+      return decodeURIComponent(hrefMatch[1]);
+    } catch {
+      return hrefMatch[1];
+    }
+  }
+  return null;
 }
 
 /**
@@ -109,39 +133,64 @@ function extractLinkedInId(url: string): string {
 }
 
 /**
- * Génère l'URL d'embed pour une vidéo
+ * Récupère l'URL originale d'une vidéo à partir d'une URL potentiellement déjà embed.
+ * Si l'URL n'est pas un embed, la retourne telle quelle.
+ */
+export function getOriginalVideoUrl(url: string): string {
+  if (!url) return "";
+
+  // YouTube embed → URL watch standard
+  const ytEmbedMatch = url.match(/youtube\.com\/embed\/([^?&/]+)/);
+  if (ytEmbedMatch) return `https://www.youtube.com/watch?v=${ytEmbedMatch[1]}`;
+
+  // Facebook embed → URL originale
+  const fbOriginal = extractOriginalFacebookUrl(url);
+  if (fbOriginal) return fbOriginal;
+
+  // Twitter embed → URL originale
+  const twEmbedMatch = url.match(/platform\.twitter\.com\/embed\/Tweet\.html\?id=(\d+)/);
+  if (twEmbedMatch) return `https://twitter.com/i/status/${twEmbedMatch[1]}`;
+
+  return url;
+}
+
+/**
+ * Génère l'URL d'embed pour une vidéo.
+ * Gère les cas où l'URL est déjà convertie en embed (ne double-encode pas).
  */
 export function getEmbedUrl(url: string): string {
   if (!url) return "";
 
-  const platform = detectVideoPlatform(url);
+  // D'abord récupérer l'URL originale si c'est déjà un embed
+  const originalUrl = getOriginalVideoUrl(url);
+  const platform = detectVideoPlatform(originalUrl);
 
   switch (platform) {
     case "youtube": {
-      const id = extractYouTubeId(url);
-      return id ? `https://www.youtube.com/embed/${id}` : url;
+      const id = extractYouTubeId(originalUrl);
+      return id ? `https://www.youtube.com/embed/${id}` : originalUrl;
     }
     case "facebook": {
-      // Facebook utilise le plugin embed
-      const encodedUrl = encodeURIComponent(url);
-      return `https://www.facebook.com/plugins/video.php?href=${encodedUrl}&show_text=false&width=560`;
+      const videoId = extractFacebookVideoId(originalUrl);
+      if (videoId) {
+        // Utiliser le format d'embed direct par ID — plus fiable que plugins/video.php
+        return `https://www.facebook.com/video/embed?video_id=${videoId}`;
+      }
+      // Fallback: plugins/video.php avec l'URL originale
+      return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(originalUrl)}&show_text=false&width=560&appId`;
     }
     case "twitter": {
-      // Twitter n'a pas d'embed iframe simple pour les vidéos,
-      // on utilise le tweet embed via publish.twitter.com
-      const tweetId = extractTwitterId(url);
+      const tweetId = extractTwitterId(originalUrl);
       if (tweetId) {
         return `https://platform.twitter.com/embed/Tweet.html?id=${tweetId}`;
       }
-      return url;
+      return originalUrl;
     }
     case "linkedin": {
-      // LinkedIn n'a pas d'embed iframe public simple,
-      // on redirige vers l'URL originale
-      return url;
+      return originalUrl;
     }
     default:
-      return url;
+      return originalUrl;
   }
 }
 
@@ -149,9 +198,9 @@ export function getEmbedUrl(url: string): string {
  * Génère l'URL de la thumbnail pour une vidéo YouTube (synchrone)
  */
 export function getYouTubeThumbnail(url: string): string | null {
-  const id = extractYouTubeId(url);
+  const originalUrl = getOriginalVideoUrl(url);
+  const id = extractYouTubeId(originalUrl);
   if (!id) return null;
-  // maxresdefault est la meilleure qualité, avec fallback sur hqdefault
   return `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
 }
 
@@ -159,32 +208,36 @@ export function getYouTubeThumbnail(url: string): string | null {
  * Analyse une URL vidéo et retourne toutes les infos
  */
 export function parseVideoUrl(url: string): VideoInfo {
-  const platform = detectVideoPlatform(url);
+  const originalUrl = getOriginalVideoUrl(url);
+  const platform = detectVideoPlatform(originalUrl);
 
   let videoId = "";
-  let embedUrl = url;
+  let embedUrl = originalUrl;
   let thumbnailUrl: string | null = null;
 
   switch (platform) {
     case "youtube":
-      videoId = extractYouTubeId(url);
-      embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+      videoId = extractYouTubeId(originalUrl);
+      embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}` : originalUrl;
       thumbnailUrl = videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null;
       break;
     case "facebook":
-      videoId = extractFacebookVideoId(url);
-      embedUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=false&width=560`;
-      // Thumbnail sera récupérée via l'API côté serveur
+      videoId = extractFacebookVideoId(originalUrl);
+      if (videoId) {
+        embedUrl = `https://www.facebook.com/video/embed?video_id=${videoId}`;
+      } else {
+        embedUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(originalUrl)}&show_text=false&width=560&appId`;
+      }
       thumbnailUrl = null;
       break;
     case "twitter":
-      videoId = extractTwitterId(url);
-      embedUrl = videoId ? `https://platform.twitter.com/embed/Tweet.html?id=${videoId}` : url;
+      videoId = extractTwitterId(originalUrl);
+      embedUrl = videoId ? `https://platform.twitter.com/embed/Tweet.html?id=${videoId}` : originalUrl;
       thumbnailUrl = null;
       break;
     case "linkedin":
-      videoId = extractLinkedInId(url);
-      embedUrl = url; // LinkedIn n'a pas d'embed iframe standard
+      videoId = extractLinkedInId(originalUrl);
+      embedUrl = originalUrl;
       thumbnailUrl = null;
       break;
   }
@@ -194,7 +247,7 @@ export function parseVideoUrl(url: string): VideoInfo {
     videoId,
     embedUrl,
     thumbnailUrl,
-    originalUrl: url,
+    originalUrl,
   };
 }
 
@@ -202,7 +255,8 @@ export function parseVideoUrl(url: string): VideoInfo {
  * Vérifie si une URL est une vidéo supportée
  */
 export function isSupportedVideoUrl(url: string): boolean {
-  return detectVideoPlatform(url) !== "unknown";
+  const originalUrl = getOriginalVideoUrl(url);
+  return detectVideoPlatform(originalUrl) !== "unknown";
 }
 
 /**

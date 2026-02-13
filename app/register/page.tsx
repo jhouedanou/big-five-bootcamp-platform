@@ -57,9 +57,16 @@ export default function RegisterPage() {
         return
       }
 
-      toast.success("Compte créé avec succès !", {
-        description: "Vérifie ta boîte mail pour confirmer ton compte, puis connecte-toi.",
-      })
+      if (data.needsEmailConfirmation) {
+        toast.success("Compte créé ! 📧", {
+          description: "Un email de confirmation a été envoyé à " + email + ". Vérifie ta boîte de réception (et les spams).",
+          duration: 8000,
+        })
+      } else {
+        toast.success("Compte créé avec succès !", {
+          description: "Tu peux maintenant te connecter.",
+        })
+      }
       router.push("/login")
     } catch (err) {
       toast.error("Une erreur inattendue est survenue", {

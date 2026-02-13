@@ -3,7 +3,7 @@
 import React from "react"
 
 import Link from "next/link"
-import { Play, Calendar, Globe, Facebook, Instagram, Linkedin, Youtube } from "lucide-react"
+import { Play, Calendar, Globe, Facebook, Instagram, Linkedin, Youtube, Crown } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 
 export interface ContentItem {
@@ -69,10 +69,15 @@ const countryFlags: Record<string, string> = {
 export function ContentCard({ content }: ContentCardProps) {
   const platform = platformConfig[content.platform] || { bg: "bg-gray-500", icon: <span className="text-xs font-bold text-white">?</span> }
   const sectorColor = sectorColors[content.sector] || "bg-muted text-muted-foreground font-semibold"
+  const isPremium = content.accessLevel === 'premium'
 
   return (
     <Link href={`/content/${content.id}`} className="group block">
-      <article className="modern-card overflow-hidden hover-lift transition-all duration-300 hover:shadow-xl hover:shadow-[#80368D]/10">
+      <article className={`modern-card overflow-hidden hover-lift transition-all duration-300 hover:shadow-xl ${
+        isPremium
+          ? "ring-2 ring-amber-400/80 shadow-lg shadow-amber-400/20 hover:shadow-amber-400/30 hover:ring-amber-300"
+          : "hover:shadow-[#80368D]/10"
+      }`}>
         <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-[#0A1F44] to-[#1a3a6e]">
           {content.imageUrl ? (
             <img
@@ -103,6 +108,16 @@ export function ContentCard({ content }: ContentCardProps) {
               {platform.icon}
             </div>
           </div>
+
+          {/* Premium badge */}
+          {isPremium && (
+            <div className="absolute left-2.5 top-2.5">
+              <div className="flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 px-2.5 py-1 shadow-lg shadow-amber-500/30">
+                <Crown className="h-3 w-3 text-white" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white">Premium</span>
+              </div>
+            </div>
+          )}
 
           {/* Hover overlay */}
           <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100">

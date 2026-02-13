@@ -23,7 +23,10 @@ import {
   Sparkles,
   ArrowRight,
   RefreshCw,
-  XCircle
+  XCircle,
+  Download,
+  Receipt,
+  FileText
 } from "lucide-react"
 
 interface UserSubscription {
@@ -33,6 +36,15 @@ interface UserSubscription {
   endDate?: string
   paymentMethod?: string
   amount?: number
+}
+
+interface PaymentRecord {
+  id: string
+  ref_command: string
+  amount: number
+  status: string
+  payment_method?: string
+  created_at: string
 }
 
 export default function SettingsPage() {
@@ -51,6 +63,7 @@ export default function SettingsPage() {
   // États utilisateur
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [payments, setPayments] = useState<PaymentRecord[]>([])
   const [subscription, setSubscription] = useState<UserSubscription>({
     plan: "Free",
     status: "active"
@@ -71,19 +84,23 @@ export default function SettingsPage() {
 
         // Charger les infos d'abonnement depuis la table users
         try {
-          const { data: profile } = await supabase
+          const { data: profile, error: profileError } = await supabase
             .from("users")
-            .select("plan, subscription_status, subscription_start, subscription_end, payment_method")
+            .select("*")
             .eq("id", user.id)
             .single()
+
+          if (profileError) {
+            console.warn("Erreur chargement profil:", profileError.message)
+          }
 
           if (profile) {
             setSubscription({
               plan: profile.plan || "Free",
               status: profile.subscription_status || "active",
-              startDate: profile.subscription_start,
-              endDate: profile.subscription_end,
-              paymentMethod: profile.payment_method,
+              startDate: profile.subscription_start_date || null,
+              endDate: profile.subscription_end_date || null,
+              paymentMethod: undefined, // récupéré depuis la table payments plus bas
             })
           }
         } catch {
@@ -93,20 +110,24 @@ export default function SettingsPage() {
 
         // Charger les paiements récents
         try {
-          const { data: payments } = await supabase
+          const { data: paymentsData } = await supabase
             .from("payments")
-            .select("amount, created_at, status, payment_method")
+            .select("id, ref_command, amount, created_at, status, payment_method")
             .eq("user_id", user.id)
-            .eq("status", "completed")
             .order("created_at", { ascending: false })
-            .limit(1)
+            .limit(20)
 
-          if (payments && payments.length > 0) {
-            setSubscription(prev => ({
-              ...prev,
-              amount: payments[0].amount,
-              paymentMethod: payments[0].payment_method
-            }))
+          if (paymentsData && paymentsData.length > 0) {
+            setPayments(paymentsData)
+            // Utiliser le dernier paiement complété pour les infos d'abonnement
+            const lastCompleted = paymentsData.find((p: PaymentRecord) => p.status === "completed")
+            if (lastCompleted) {
+              setSubscription(prev => ({
+                ...prev,
+                amount: lastCompleted.amount,
+                paymentMethod: lastCompleted.payment_method
+              }))
+            }
           }
         } catch {
           console.warn("Table payments non disponible")
@@ -537,6 +558,87 @@ export default function SettingsPage() {
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+        </section>
+
+        {/* Section Historique & Reçus de paiement */}
+        <section className="mt-6 rounded-2xl border-2 border-[#D0E4F2] bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/25">
+              <Receipt className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h2 className="font-[family-name:var(--font-heading)] text-xl font-bold text-[#1A1F2B]">
+                Historique & Reçus
+              </h2>
+              <p className="text-sm font-medium text-[#1A1F2B]/60">
+                Téléchargez vos reçus de paiement
+              </p>
+            </div>
+          </div>
+
+          {payments.length > 0 ? (
+            <div className="space-y-3">
+              {payments.map((payment) => {
+                const date = new Date(payment.created_at)
+                const isCompleted = payment.status === "completed"
+                return (
+                  <div
+                    key={payment.id}
+                    className={`flex items-center justify-between rounded-xl p-4 transition-colors ${
+                      isCompleted
+                        ? "bg-emerald-50/50 border border-emerald-100"
+                        : "bg-gray-50 border border-gray-100"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
+                        isCompleted ? "bg-emerald-100" : "bg-gray-100"
+                      }`}>
+                        <FileText className={`h-5 w-5 ${isCompleted ? "text-emerald-600" : "text-gray-400"}`} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-[#1A1F2B] truncate">
+                          {payment.amount?.toLocaleString("fr-FR")} FCFA
+                        </p>
+                        <p className="text-xs font-medium text-[#1A1F2B]/50">
+                          {date.toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
+                          {" · "}
+                          {payment.payment_method || "Mobile Money"}
+                          {" · "}
+                          <span className={`font-semibold ${
+                            isCompleted ? "text-emerald-600" : "text-amber-600"
+                          }`}>
+                            {isCompleted ? "Complété" : payment.status === "pending" ? "En attente" : payment.status}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+
+                    {isCompleted && (
+                      <a
+                        href={`/api/payment/receipt/${payment.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex shrink-0 items-center gap-1.5 rounded-lg bg-white border-2 border-emerald-200 px-3 py-2 text-xs font-bold text-emerald-700 transition-all hover:bg-emerald-50 hover:border-emerald-300 hover:shadow-sm"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Reçu
+                      </a>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+                <Receipt className="h-6 w-6 text-gray-400" />
+              </div>
+              <p className="text-sm font-medium text-[#1A1F2B]/50">
+                Aucun paiement enregistré
+              </p>
             </div>
           )}
         </section>

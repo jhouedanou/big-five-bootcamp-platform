@@ -46,11 +46,14 @@ export function DashboardNavbar({
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
         setUserEmail(session.user.email || "")
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('users')
-          .select('name, plan, subscription_status, subscription_end_date')
+          .select('*')
           .eq('id', session.user.id)
           .single()
+        if (profileError) {
+          console.warn('Erreur chargement profil navbar:', profileError.message)
+        }
         if (profile) {
           setUserName(profile.name || "")
           setUserPlan(profile.plan || "Free")
@@ -68,7 +71,7 @@ export function DashboardNavbar({
   // Calcul de la durée restante de l'abonnement
   const getSubscriptionInfo = () => {
     if (!isPremium || !subscriptionEndDate) {
-      return { active: false, daysLeft: 0, label: "", urgent: false }
+      return { active: false, daysLeft: 0, label: "", expiringSoon: false, expired: false }
     }
     
     const endDate = new Date(subscriptionEndDate)
@@ -77,18 +80,12 @@ export function DashboardNavbar({
     const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
     
     if (daysLeft <= 0) {
-      return { active: false, daysLeft: 0, label: "Expiré", urgent: true }
-    }
-    if (daysLeft === 1) {
-      return { active: true, daysLeft, label: "Expire demain", urgent: true }
-    }
-    if (daysLeft <= 3) {
-      return { active: true, daysLeft, label: `${daysLeft}j restants`, urgent: true }
+      return { active: false, daysLeft: 0, label: "Expiré", expiringSoon: false, expired: true }
     }
     if (daysLeft <= 7) {
-      return { active: true, daysLeft, label: `${daysLeft}j restants`, urgent: false }
+      return { active: true, daysLeft, label: `${daysLeft}j`, expiringSoon: true, expired: false }
     }
-    return { active: true, daysLeft, label: `${daysLeft}j restants`, urgent: false }
+    return { active: true, daysLeft, label: `${daysLeft}j`, expiringSoon: false, expired: false }
   }
 
   const subInfo = getSubscriptionInfo()
@@ -140,26 +137,28 @@ export function DashboardNavbar({
 
         <div className="flex items-center gap-2">
           {/* Bouton d'abonnement : durée restante ou incitatif */}
-          {isPremium && subInfo.active ? (
+          {isPremium && subInfo.active && !subInfo.expiringSoon ? (
+            /* Premium actif, pas d'expiration proche → bouton doré "Premium · Xj" */
+            <div className="hidden md:flex">
+              <div className="flex items-center gap-1.5 rounded-full px-3 h-8 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 text-xs font-bold shadow-sm">
+                <Crown className="h-3.5 w-3.5" />
+                Premium · {subInfo.label}
+              </div>
+            </div>
+          ) : isPremium && subInfo.active && subInfo.expiringSoon ? (
+            /* Premium actif mais expire dans ≤ 7 jours → bouton "Renouveler" */
             <Link href="/subscribe" className="hidden md:flex">
               <Button
                 variant="ghost"
                 size="sm"
-                className={`gap-1.5 text-xs font-semibold rounded-full px-3 h-8 ${
-                  subInfo.urgent
-                    ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
-                    : "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
-                }`}
+                className="gap-1.5 text-xs font-semibold rounded-full px-3 h-8 bg-amber-100 text-amber-800 hover:bg-amber-200 animate-pulse"
               >
-                {subInfo.urgent ? (
-                  <Clock className="h-3.5 w-3.5" />
-                ) : (
-                  <Crown className="h-3.5 w-3.5" />
-                )}
-                {subInfo.label}
+                <Clock className="h-3.5 w-3.5" />
+                Renouveler · {subInfo.label}
               </Button>
             </Link>
-          ) : isPremium && !subInfo.active ? (
+          ) : isPremium && subInfo.expired ? (
+            /* Premium expiré → bouton rouge "Renouveler" */
             <Link href="/subscribe" className="hidden md:flex">
               <Button
                 variant="ghost"
@@ -171,6 +170,7 @@ export function DashboardNavbar({
               </Button>
             </Link>
           ) : (
+            /* Pas premium → bouton "Passer Premium" */
             <Link href="/subscribe" className="hidden md:flex">
               <Button
                 size="sm"
@@ -279,22 +279,27 @@ export function DashboardNavbar({
             <Link
               href="/subscribe"
               className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
-                isPremium && subInfo.active
-                  ? subInfo.urgent
+                isPremium && subInfo.active && !subInfo.expiringSoon
+                  ? "bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-800"
+                  : isPremium && subInfo.active && subInfo.expiringSoon
                     ? "bg-amber-50 text-amber-800"
-                    : "bg-emerald-50 text-emerald-800"
-                  : isPremium && !subInfo.active
-                    ? "bg-red-50 text-red-800"
-                    : "bg-gradient-to-r from-[#80368D]/10 to-[#29358B]/10 text-[#80368D] font-semibold"
+                    : isPremium && subInfo.expired
+                      ? "bg-red-50 text-red-800"
+                      : "bg-gradient-to-r from-[#80368D]/10 to-[#29358B]/10 text-[#80368D] font-semibold"
               }`}
               onClick={() => setIsOpen(false)}
             >
-              {isPremium && subInfo.active ? (
+              {isPremium && subInfo.active && !subInfo.expiringSoon ? (
                 <span className="flex items-center gap-2">
-                  {subInfo.urgent ? <Clock className="h-4 w-4" /> : <Crown className="h-4 w-4" />}
-                  Abonnement — {subInfo.label}
+                  <Crown className="h-4 w-4" />
+                  Premium · {subInfo.label}
                 </span>
-              ) : isPremium && !subInfo.active ? (
+              ) : isPremium && subInfo.active && subInfo.expiringSoon ? (
+                <span className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Renouveler · {subInfo.label}
+                </span>
+              ) : isPremium && subInfo.expired ? (
                 <span className="flex items-center gap-2">
                   <Clock className="h-4 w-4" />
                   Abonnement expiré — Renouveler

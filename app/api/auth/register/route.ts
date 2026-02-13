@@ -37,130 +37,90 @@ export async function POST(request: Request) {
     }
 
     const { name, email, password } = validation.data
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://v0-big-five-bootcamp-platform.vercel.app'
 
-    let supabaseAdmin: any
-    try {
-      supabaseAdmin = getSupabaseAdmin()
-    } catch (envError) {
-      console.error("Missing env vars:", envError)
-      return NextResponse.json(
-        { error: "Configuration serveur manquante. Contactez l'administrateur." },
-        { status: 500 }
-      )
-    }
+    // Méthode principale : signUp() pour que Supabase envoie l'email de confirmation
+    const supabaseAnon = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
 
-    // Créer l'utilisateur via Admin API (service role) — plus fiable, pas besoin de confirmer l'email
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    const { data: signUpData, error: signUpError } = await supabaseAnon.auth.signUp({
       email,
       password,
-      email_confirm: true, // Auto-confirmer l'email
-      user_metadata: { name },
+      options: {
+        data: { name },
+        emailRedirectTo: `${appUrl}/auth/callback`,
+      },
     })
 
-    if (authError) {
-      console.error("Auth signUp error:", authError.message)
+    if (signUpError) {
+      console.error("SignUp error:", signUpError.message)
 
-      if (authError.message.includes('already registered') || 
-          authError.message.includes('already been registered') ||
-          authError.message.includes('already exists')) {
+      if (signUpError.message.includes('already registered') || 
+          signUpError.message.includes('already been registered') ||
+          signUpError.message.includes('already exists')) {
         return NextResponse.json(
           { error: "Un compte avec cet email existe déjà" },
           { status: 400 }
         )
       }
-      
-      // Si l'admin API échoue (service key invalide), fallback sur signUp classique
-      console.warn("Admin API failed, falling back to signUp...")
-      const supabaseAnon = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+
+      return NextResponse.json(
+        { error: signUpError.message || "Erreur lors de la création du compte" },
+        { status: 500 }
       )
-      
-      const { data: fallbackData, error: fallbackError } = await supabaseAnon.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { name },
-        },
-      })
-      
-      if (fallbackError) {
-        console.error("Fallback signUp error:", fallbackError.message)
-        
-        if (fallbackError.message.includes('already registered') || 
-            fallbackError.message.includes('already exists')) {
-          return NextResponse.json(
-            { error: "Un compte avec cet email existe déjà" },
-            { status: 400 }
-          )
-        }
-        
-        return NextResponse.json(
-          { error: fallbackError.message || "Erreur lors de la création du compte" },
-          { status: 500 }
-        )
-      }
-      
-      if (!fallbackData.user) {
-        return NextResponse.json(
-          { error: "Erreur lors de la création du compte" },
-          { status: 500 }
-        )
-      }
-
-      // Créer le profil via l'anon key (peut échouer si RLS bloque)
-      try {
-        await supabaseAnon.from('users').insert({
-          id: fallbackData.user.id,
-          email,
-          name,
-          role: 'user',
-          plan: 'Free',
-          status: 'active',
-        })
-      } catch (profileErr) {
-        console.error("Profile creation error (fallback):", profileErr)
-      }
-
-      return NextResponse.json({
-        message: "Compte créé avec succès",
-        user: {
-          id: fallbackData.user.id,
-          email,
-          name,
-        }
-      }, { status: 201 })
     }
 
-    if (!authData.user) {
+    // Supabase peut retourner un user avec identities vide si l'email existe déjà
+    // (quand "Confirm email" est activé et que l'user n'a pas confirmé)
+    if (signUpData.user && signUpData.user.identities && signUpData.user.identities.length === 0) {
+      return NextResponse.json(
+        { error: "Un compte avec cet email existe déjà" },
+        { status: 400 }
+      )
+    }
+
+    if (!signUpData.user) {
       return NextResponse.json(
         { error: "Erreur lors de la création du compte" },
         { status: 500 }
       )
     }
 
-    // Créer le profil dans la table users (avec service role pour bypasser RLS)
-    const { error: profileError } = await supabaseAdmin
-      .from('users')
-      .insert({
-        id: authData.user.id,
-        email,
-        name,
-        role: 'user',
-        plan: 'Free',
-        status: 'active',
-      })
+    // Créer le profil dans la table users via service role (bypass RLS)
+    try {
+      const supabaseAdmin = getSupabaseAdmin()
+      const { error: profileError } = await supabaseAdmin
+        .from('users')
+        .insert({
+          id: signUpData.user.id,
+          email,
+          name,
+          role: 'user',
+          plan: 'Free',
+          status: 'active',
+        })
 
-    if (profileError) {
-      console.error("Profile creation error:", profileError)
-      // L'utilisateur auth est créé mais le profil a échoué — pas bloquant,
-      // le callback auth créera le profil à la prochaine connexion
+      if (profileError) {
+        console.error("Profile creation error:", profileError.message)
+        // Non bloquant — le profil sera créé au premier login si nécessaire
+      }
+    } catch (profileErr) {
+      console.error("Profile creation exception:", profileErr)
     }
 
+    // Déterminer si un email de confirmation a été envoyé
+    // Si signUpData.session est null, c'est que l'email doit être confirmé
+    const needsEmailConfirmation = !signUpData.session
+
     return NextResponse.json({
-      message: "Compte créé avec succès",
+      message: needsEmailConfirmation 
+        ? "Compte créé ! Vérifie ta boîte mail pour confirmer ton adresse email."
+        : "Compte créé avec succès",
+      needsEmailConfirmation,
       user: {
-        id: authData.user.id,
+        id: signUpData.user.id,
         email,
         name,
       }

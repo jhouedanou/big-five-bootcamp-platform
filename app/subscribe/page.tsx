@@ -550,7 +550,7 @@ export default function SubscribePage() {
               <div className="mt-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Abonnement mensuel Big Five</span>
-                  <span className="font-medium text-foreground">4 500 XOF</span>
+                  <span className="font-medium text-foreground">25 000 XOF</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Durée</span>
@@ -565,7 +565,7 @@ export default function SubscribePage() {
               <div className="mt-4 border-t border-border pt-4">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-foreground">Total</span>
-                  <span className="font-[family-name:var(--font-heading)] text-2xl font-bold text-primary">4 500 XOF</span>
+                  <span className="font-[family-name:var(--font-heading)] text-2xl font-bold text-primary">25 000 XOF</span>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">Valable 1 mois</p>
               </div>

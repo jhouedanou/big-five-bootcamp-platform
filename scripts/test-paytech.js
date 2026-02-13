@@ -17,7 +17,7 @@ const PAYTECH_CONFIG = {
 // Données de test
 const paymentData = {
   item_name: 'Test Abonnement Big Five',
-  item_price: 4500,
+  item_price: 25000,
   currency: 'XOF',
   ref_command: 'TEST_' + Date.now(),
   command_name: 'Test paiement abonnement',

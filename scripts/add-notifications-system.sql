@@ -165,7 +165,7 @@ BEGIN
       v_reminder.user_id,
       'subscription_reminder',
       '🌟 Passez Premium et débloquez tout !',
-      format('Cela fait %s jours que vous utilisez Big Five en version gratuite. Passez Premium pour seulement 4 500 XOF/mois et accédez à toute la bibliothèque de créatives !', v_day_number),
+      format('Cela fait %s jours que vous utilisez Big Five en version gratuite. Passez Premium pour seulement 25 000 XOF/mois et accédez à toute la bibliothèque de créatives !', v_day_number),
       '/subscribe',
       jsonb_build_object(
         'day_number', v_day_number,

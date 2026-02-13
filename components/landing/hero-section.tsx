@@ -142,7 +142,7 @@ export function HeroSection() {
 
             {/* Price info below buttons */}
             <p className="mt-4 text-sm text-[#1A1F2B]/60 animate-fade-in-up delay-300">
-              Puis seulement <span className="font-semibold text-foreground">4 500 XOF/mois</span> après l'essai
+              Puis seulement <span className="font-semibold text-foreground">25 000 XOF/mois</span> après l'essai
             </p>
 
             <div className="mt-10 flex items-center gap-6 animate-fade-in-up delay-400">
@@ -388,25 +388,25 @@ export function PreviewSection() {
 
 export function PricingTeaser() {
   return (
-    <section className="py-24 bg-[#D0E4F2]/30 relative overflow-hidden">
+    <section className="py-16 sm:py-20 bg-[#D0E4F2]/30 relative overflow-hidden">
       <div className="absolute inset-0 bg-[linear-gradient(rgba(208,228,242,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(208,228,242,0.3)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
 
-      <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center relative z-10">
         {/* Free Trial Banner */}
-        <div className="mb-8 inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-[#F2B33D]/30 to-[#F2B33D]/10 px-6 py-3 ring-2 ring-[#F2B33D]/40 shadow-lg">
-          <span className="text-lg font-bold text-[#1A1F2B]">
+        <div className="mb-5 inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-[#F2B33D]/30 to-[#F2B33D]/10 px-5 py-2.5 ring-2 ring-[#F2B33D]/40 shadow-lg">
+          <span className="text-base font-bold text-[#1A1F2B]">
             🎉 Essai gratuit de 30 jours
           </span>
         </div>
-        
-        <h2 className="font-[family-name:var(--font-heading)] text-4xl font-bold mb-6 text-[#1A1F2B]">
+
+        <h2 className="font-[family-name:var(--font-heading)] text-3xl sm:text-4xl font-bold mb-4 text-[#1A1F2B]">
           Commencez à créer des campagnes impactantes.
         </h2>
-        <p className="text-[#1A1F2B]/70 text-xl mb-10 max-w-2xl mx-auto">
+        <p className="text-[#1A1F2B]/70 text-lg sm:text-xl mb-8 max-w-2xl mx-auto">
           Rejoignez des centaines de créatifs qui utilisent Big Five Creative Library pour élever leur niveau de jeu. Sans carte bancaire requise à l'inscription.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Button size="lg" className="h-14 px-8 text-lg bg-[#80368D] hover:bg-[#80368D]/90 text-white font-bold rounded-full shadow-lg shadow-[#80368D]/25 hover:shadow-[#80368D]/40 transition-all hover:-translate-y-1" asChild>
             <Link href="/pricing">
               Commencer gratuitement
@@ -419,8 +419,8 @@ export function PricingTeaser() {
           </Button>
         </div>
 
-        <p className="mt-8 text-sm text-[#1A1F2B]/50">
-          Puis 4 500 XOF/mois • Annulation à tout moment • Support 24/7
+        <p className="mt-5 text-sm text-[#1A1F2B]/50">
+          Puis 25 000 XOF/mois • Annulation à tout moment • Support 24/7
         </p>
       </div>
     </section>

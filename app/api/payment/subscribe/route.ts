@@ -19,7 +19,7 @@ import {
 } from '@/lib/paytech';
 
 // Prix de l'abonnement mensuel
-const SUBSCRIPTION_PRICE = 4500; // 4500 XOF
+const SUBSCRIPTION_PRICE = 25000; // 25 000 XOF
 const SUBSCRIPTION_DURATION_DAYS = 30; // 1 mois
 
 export async function POST(request: NextRequest) {

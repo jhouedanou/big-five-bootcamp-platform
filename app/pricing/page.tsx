@@ -64,7 +64,7 @@ export default function PricingPage() {
                                     <p className="text-[#1A1F2B]/60 text-sm">Pour les créatifs exigeants.</p>
                                 </div>
                                 <div className="mb-2">
-                                    <span className="text-4xl font-bold text-[#1A1F2B]">4 500</span>
+                                    <span className="text-4xl font-bold text-[#1A1F2B]">25 000</span>
                                     <span className="text-[#1A1F2B]/60 ml-2">XOF / mois</span>
                                 </div>
                                 <p className="text-sm text-[#F2B33D] font-medium mb-6">

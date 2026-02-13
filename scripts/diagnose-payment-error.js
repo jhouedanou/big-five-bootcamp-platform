@@ -66,7 +66,7 @@ async function diagnose() {
     // Tester en insérant puis supprimant un paiement test
     const testPayment = {
       user_email: 'test@example.com',
-      amount: 4500,
+      amount: 25000,
       status: 'pending',
       payment_method: 'Test',
       ref_command: `TEST-${Date.now()}`,
@@ -150,7 +150,7 @@ async function diagnose() {
     } else {
       const testPayment = {
         user_email: testUser.data.email,
-        amount: 4500,
+        amount: 25000,
         status: 'pending',
         payment_method: 'Orange Money',
         ref_command: `DIAG-${Date.now()}`,

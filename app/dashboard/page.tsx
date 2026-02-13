@@ -5,9 +5,10 @@ import Link from "next/link"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { FiltersSidebar, DynamicFilterOptions } from "@/components/dashboard/filters-sidebar"
 import { ContentCard, ContentItem } from "@/components/dashboard/content-card"
+import { ContentGridSkeleton } from "@/components/dashboard/content-card-skeleton"
 import { createClient } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
-import { Filter, Grid3X3, LayoutList, ChevronLeft, ChevronRight, Loader2, Lock, CalendarDays } from "lucide-react"
+import { Filter, Grid3X3, LayoutList, ChevronLeft, ChevronRight, Lock, CalendarDays } from "lucide-react"
 import { ParticlesBackground } from "@/components/ui/particles-background"
 import { format, parseISO } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -483,10 +484,7 @@ export default function DashboardPage() {
             {/* Content Grid */}
             <div className="flex-1">
               {isLoading ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <Loader2 className="h-10 w-10 animate-spin text-[#80368D]" />
-                  <p className="mt-4 text-base font-medium text-muted-foreground">Chargement des campagnes...</p>
-                </div>
+                <ContentGridSkeleton count={6} />
               ) : paginatedContent.length > 0 ? (
                 <>
                   {/* Campagnes groupées par mois/année */}

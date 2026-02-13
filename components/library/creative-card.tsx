@@ -1,3 +1,5 @@
+'use client'
+
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { PlayCircle, Maximize2 } from "lucide-react"
@@ -10,6 +12,58 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+
+// Helper function pour générer l'URL d'embed correcte
+function getVideoEmbedUrl(url: string): string {
+    if (!url) return '';
+    
+    // YouTube
+    if (url.includes('youtube.com') || url.includes('youtu.be')) {
+        const watchMatch = url.match(/[?&]v=([^&]+)/);
+        if (watchMatch) return `https://www.youtube.com/embed/${watchMatch[1]}`;
+        
+        const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
+        if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}`;
+        
+        if (url.includes('/embed/')) return url;
+    }
+    
+    // Facebook
+    if (url.includes('facebook.com') || url.includes('fb.watch') || url.includes('fb.com')) {
+        const watchMatch = url.match(/facebook\.com\/watch\/\?v=(\d+)/);
+        const videosMatch = url.match(/facebook\.com\/[^/]+\/videos\/(\d+)/);
+        const reelMatch = url.match(/facebook\.com\/reel\/(\d+)/);
+        
+        const videoId = watchMatch?.[1] || videosMatch?.[1] || reelMatch?.[1];
+        
+        if (videoId) {
+            return `https://www.facebook.com/plugins/video.php?height=476&href=https%3A%2F%2Fwww.facebook.com%2Fvideo.php%3Fv%3D${videoId}&show_text=false&width=267&t=0`;
+        }
+        
+        return `https://www.facebook.com/plugins/video.php?height=476&href=${encodeURIComponent(url)}&show_text=false&width=267&t=0`;
+    }
+    
+    // TikTok
+    if (url.includes('tiktok.com')) {
+        const match = url.match(/\/video\/(\d+)/);
+        if (match) {
+            return `https://www.tiktok.com/embed/v2/${match[1]}`;
+        }
+    }
+    
+    // Instagram Reels
+    if (url.includes('instagram.com')) {
+        const reelMatch = url.match(/\/reel\/([^/?]+)/);
+        const pMatch = url.match(/\/p\/([^/?]+)/);
+        const postId = reelMatch?.[1] || pMatch?.[1];
+        
+        if (postId) {
+            return `https://www.instagram.com/p/${postId}/embed/`;
+        }
+    }
+    
+    return url;
+}
 
 interface Creative {
     id: string
@@ -85,26 +139,28 @@ export function CreativeCard({ creative }: CreativeCardProps) {
 
                 <div className="grid gap-6 md:grid-cols-2 mt-4">
                     {/* Media Column */}
-                    <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-muted">
+                    <div className="relative w-full overflow-hidden rounded-lg bg-muted flex items-center justify-center min-h-[300px]">
                         {creative.videoUrl ? (
-                            <iframe
-                                src={creative.videoUrl.replace('watch?v=', 'embed/')} // specific for youtube, generic for now
-                                // Ideally use a proper video player or render video tag if direct link
-                                className="absolute inset-0 h-full w-full"
-                                allowFullScreen
-                            />
+                            <div className="relative w-full aspect-[9/16] max-h-[500px]">
+                                <iframe
+                                    src={getVideoEmbedUrl(creative.videoUrl)}
+                                    className="absolute inset-0 h-full w-full"
+                                    title={`Vidéo: ${creative.title}`}
+                                    allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                                    allowFullScreen
+                                />
+                            </div>
                         ) : (
-                            <Image
-                                src={creative.thumbnail || "/placeholder.jpg"}
-                                alt={creative.title}
-                                fill
-                                className="object-contain"
-                            />
+                            <div className="relative w-full h-full min-h-[400px]">
+                                <Image
+                                    src={creative.thumbnail || "/placeholder.jpg"}
+                                    alt={creative.title}
+                                    fill
+                                    className="object-contain"
+                                    sizes="(max-width: 768px) 100vw, 50vw"
+                                />
+                            </div>
                         )}
-                        {/* If videoUrl is just a placeholder or not embeddable, this might break. 
-                For now assuming embedded friendly or raw video. 
-                If it is a raw video file: <video src={url} controls />
-            */}
                     </div>
 
                     {/* Details Column */}

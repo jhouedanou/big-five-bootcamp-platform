@@ -154,9 +154,41 @@ C'est l'image qui apparaît dans les listes et les cartes.
 
 **Recommandations :**
 - Format : JPG ou PNG
-- Ratio : 16:9 recommandé
-- Taille : au moins 800x450 px
+- Ratio : 16:9 (paysage) ou 9:16 (portrait/Reels)
+- Taille : au moins 800x450 px (paysage) ou 450x800 px (portrait)
 - Sources : Unsplash, Cloudinary, ou votre hébergement
+
+---
+
+### 🎯 Comment récupérer les thumbnails depuis les réseaux sociaux
+
+#### Méthode recommandée : ThumbDownloader.com
+
+Pour récupérer facilement les images miniatures des vidéos Facebook, Instagram, TikTok, etc. :
+
+1. **Allez sur** 👉 [https://www.thumbdownloader.com/](https://www.thumbdownloader.com/)
+2. **Collez l'URL** de la vidéo ou du Reel (Facebook, Instagram, TikTok, YouTube)
+3. **Cliquez sur "Download"**
+4. **Faites clic droit** sur l'image affichée → **"Copier l'adresse de l'image"**
+5. **Collez** cette URL dans le champ thumbnail de votre créative
+
+#### Autres méthodes selon la plateforme
+
+| Plateforme | Méthode |
+|------------|---------|
+| **YouTube** | Utilisez `https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg` |
+| **Facebook** | ThumbDownloader.com ou capture d'écran + hébergement sur ImgBB |
+| **Instagram** | ThumbDownloader.com (les URLs directes Instagram expirent) |
+| **TikTok** | ThumbDownloader.com |
+
+#### Hébergement d'images (URLs permanentes)
+
+Si l'URL de l'image expire, hébergez-la sur :
+- **[ImgBB](https://imgbb.com/)** - Gratuit, pas de compte requis
+- **[Imgur](https://imgur.com/)** - Gratuit, liens permanents
+- **[Cloudinary](https://cloudinary.com/)** - Gratuit jusqu'à 25GB
+
+---
 
 #### Images supplémentaires (Galerie)
 
@@ -218,6 +250,29 @@ Vous pouvez ajouter plusieurs images pour créer une galerie avec lightbox.
 - `https://www.youtube.com/embed/VIDEO_ID` (déjà en embed)
 
 > ⚠️ **Important** : Pas besoin de convertir manuellement ! Collez simplement le lien YouTube tel quel.
+
+---
+
+### 🎬 Vidéos Facebook, Instagram, TikTok
+
+#### Formats d'URL supportés
+
+| Plateforme | Format d'URL | Exemple |
+|------------|--------------|---------|
+| **Facebook Watch** | `facebook.com/watch/?v=ID` | `https://www.facebook.com/watch/?v=123456789` |
+| **Facebook Videos** | `facebook.com/PAGE/videos/ID` | `https://www.facebook.com/coca-cola/videos/123456789` |
+| **Facebook Reels** | `facebook.com/reel/ID` | `https://www.facebook.com/reel/123456789` |
+| **Instagram Reels** | `instagram.com/reel/CODE` | `https://www.instagram.com/reel/ABC123xyz/` |
+| **Instagram Posts** | `instagram.com/p/CODE` | `https://www.instagram.com/p/ABC123xyz/` |
+| **TikTok** | `tiktok.com/@user/video/ID` | `https://www.tiktok.com/@username/video/123456789` |
+
+#### ⚠️ Note importante sur les vidéos Facebook
+
+Les vidéos Facebook peuvent parfois ne pas s'afficher correctement en embed. Si vous rencontrez des problèmes :
+
+1. **Vérifiez que la vidéo est publique** (pas en mode "Amis uniquement")
+2. **Utilisez le format d'URL correct** (voir tableau ci-dessus)
+3. **Alternative recommandée** : Téléchargez la vidéo et uploadez-la sur YouTube (non répertorié), puis utilisez le lien YouTube
 
 ---
 

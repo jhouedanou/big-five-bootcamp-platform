@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
 import { ArrowRight, Play, Target, BarChart3, Search, CheckCircle, Zap, RefreshCw, Globe, Layers, Sparkles } from "lucide-react"
+import { createClient } from "@/lib/supabase"
 
 function useStats() {
   const [stats, setStats] = useState({ users: 0, campaigns: 0, brands: 0, countries: 0 })
@@ -31,6 +33,30 @@ function useRecentUsers() {
   return recentUsers
 }
 
+interface RecentCampaign {
+  id: string
+  title: string
+  category: string | null
+  thumbnail: string | null
+}
+
+function useRecentCampaigns() {
+  const [campaigns, setCampaigns] = useState<RecentCampaign[]>([])
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase
+      .from("campaigns")
+      .select("id, title, category, thumbnail")
+      .eq("status", "Publié")
+      .order("created_at", { ascending: false })
+      .limit(4)
+      .then(({ data }) => setCampaigns(data || []))
+  }, [])
+
+  return campaigns
+}
+
 function formatNumber(n: number): string {
   if (n >= 1000) {
     return new Intl.NumberFormat("fr-FR").format(n)
@@ -41,6 +67,7 @@ function formatNumber(n: number): string {
 export function HeroSection() {
   const stats = useStats()
   const recentUsers = useRecentUsers()
+  const recentCampaigns = useRecentCampaigns()
 
   // Fallback si pas encore chargé
   const displayUsers = recentUsers.length > 0 
@@ -172,25 +199,45 @@ export function HeroSection() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                    {[
-                      { title: "MTN - Yello", cat: "Télécom", imgGrad: "from-[#FFCC00] to-[#FF9500]" },
-                      { title: "Orange Money", cat: "Fintech", imgGrad: "from-[#FF6B35] to-[#E8650E]" },
-                      { title: "Nescafé", cat: "FMCG", imgGrad: "from-red-600 to-red-900" },
-                      { title: "Wave", cat: "Mobile Money", imgGrad: "from-sky-400 to-blue-600" },
-                    ].map((card, i) => (
-                      <div key={i} className="group cursor-pointer rounded-lg border border-[#D0E4F2] bg-white p-2 transition-all hover:shadow-lg hover:-translate-y-1">
-                        <div className={`aspect-video w-full rounded-md bg-gradient-to-br ${card.imgGrad} relative overflow-hidden`}>
-                          <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
-                          <div className="absolute bottom-2 right-2 h-6 w-6 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Play className="h-3 w-3 text-white fill-current" />
+                    {recentCampaigns.length > 0
+                      ? recentCampaigns.map((campaign) => (
+                          <Link key={campaign.id} href={`/content/${campaign.id}`} className="group cursor-pointer rounded-lg border border-[#D0E4F2] bg-white p-2 transition-all hover:shadow-lg hover:-translate-y-1">
+                            <div className="aspect-video w-full rounded-md bg-[#D0E4F2] relative overflow-hidden">
+                              {campaign.thumbnail ? (
+                                <Image
+                                  src={campaign.thumbnail}
+                                  alt={campaign.title}
+                                  fill
+                                  className="object-cover"
+                                  unoptimized
+                                />
+                              ) : (
+                                <div className="absolute inset-0 bg-gradient-to-br from-[#80368D]/30 to-[#29358B]/30 flex items-center justify-center text-white/80 text-xs font-bold">
+                                  {campaign.title.substring(0, 2).toUpperCase()}
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+                              <div className="absolute bottom-2 right-2 h-6 w-6 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Play className="h-3 w-3 text-white fill-current" />
+                              </div>
+                            </div>
+                            <div className="mt-3 px-1">
+                              <h4 className="font-semibold text-sm text-[#1A1F2B] line-clamp-1">{campaign.title}</h4>
+                              <span className="text-xs text-[#1A1F2B]/60">{campaign.category || "Campagne"}</span>
+                            </div>
+                          </Link>
+                        ))
+                      : /* Skeleton placeholders while loading */
+                        Array.from({ length: 4 }).map((_, i) => (
+                          <div key={i} className="rounded-lg border border-[#D0E4F2] bg-white p-2">
+                            <div className="aspect-video w-full rounded-md skeleton-shimmer" />
+                            <div className="mt-3 px-1 space-y-1.5">
+                              <div className="skeleton-line h-4 w-3/4 rounded" />
+                              <div className="skeleton-line h-3 w-1/2 rounded" />
+                            </div>
                           </div>
-                        </div>
-                        <div className="mt-3 px-1">
-                          <h4 className="font-semibold text-sm text-[#1A1F2B]">{card.title}</h4>
-                          <span className="text-xs text-[#1A1F2B]/60">{card.cat}</span>
-                        </div>
-                      </div>
-                    ))}
+                        ))
+                    }
                   </div>
                 </div>
               </div>

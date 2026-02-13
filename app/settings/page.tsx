@@ -22,7 +22,6 @@ import {
   Calendar,
   Sparkles,
   ArrowRight,
-  RefreshCw,
   XCircle,
   Download,
   Receipt,
@@ -214,41 +213,72 @@ export default function SettingsPage() {
     }
   }
 
-  // Annuler l'abonnement
+  // État pour le suivi de la demande d'annulation
+  const [isCancelling, setIsCancelling] = useState(false)
+  const [cancellationRequested, setCancellationRequested] = useState(false)
+
+  // Annuler l'abonnement — crée un enregistrement admin de demande de désactivation
   const handleCancelSubscription = async () => {
     const confirmed = window.confirm(
-      "Êtes-vous sûr de vouloir annuler votre abonnement ? Vous perdrez l'accès aux fonctionnalités Premium à la fin de la période en cours."
+      "Êtes-vous sûr de vouloir demander l'annulation de votre abonnement ? Un administrateur traitera votre demande. Vous conserverez l'accès jusqu'à la fin de la période en cours."
     )
 
     if (!confirmed) return
+
+    setIsCancelling(true)
 
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
+      // Créer un enregistrement de demande d'annulation pour l'admin
       const { error } = await supabase
-        .from("users")
-        .update({ 
-          subscription_status: "cancelled",
-          plan: "Free"
+        .from("subscription_cancellation_requests")
+        .insert({
+          user_id: user.id,
+          user_email: user.email,
+          current_plan: subscription.plan,
+          subscription_end_date: subscription.endDate || null,
+          reason: "Demande d'annulation par l'utilisateur",
+          status: "pending",
         })
-        .eq("id", user.id)
 
-      if (error) throw error
+      if (error) {
+        // Si la table n'existe pas encore, fallback avec la table notifications
+        console.warn("Table subscription_cancellation_requests non disponible, fallback notifications:", error.message)
+        
+        try {
+          await supabase
+            .from("notifications")
+            .insert({
+              user_id: user.id,
+              title: "Demande d'annulation d'abonnement",
+              message: `L'utilisateur ${user.email} demande l'annulation de son abonnement ${subscription.plan}. Date de fin actuelle: ${subscription.endDate || 'N/A'}.`,
+              type: "admin",
+              read: false,
+            })
+        } catch {
+          // Dernier recours : on note la demande dans la table users
+          await supabase
+            .from("users")
+            .update({ 
+              subscription_status: "cancellation_requested",
+            })
+            .eq("id", user.id)
+        }
+      }
 
-      setSubscription(prev => ({
-        ...prev,
-        status: "cancelled",
-        plan: "Free"
-      }))
+      setCancellationRequested(true)
 
-      toast.success("Abonnement annulé", {
-        description: "Votre abonnement a été annulé. Vous conservez l'accès jusqu'à la fin de la période."
+      toast.success("Demande envoyée", {
+        description: "Votre demande d'annulation a été transmise à l'administration. Vous conservez l'accès jusqu'à la fin de la période en cours."
       })
     } catch (error) {
       toast.error("Erreur", {
-        description: "Impossible d'annuler l'abonnement. Veuillez réessayer."
+        description: "Impossible d'envoyer la demande d'annulation. Veuillez réessayer."
       })
+    } finally {
+      setIsCancelling(false)
     }
   }
 
@@ -517,22 +547,34 @@ export default function SettingsPage() {
 
               {/* Actions abonnement */}
               <div className="flex flex-wrap gap-3 pt-4 border-t border-[#D0E4F2]">
-                <Link href="/subscribe">
-                  <Button variant="outline" className="border-2 border-[#D0E4F2] text-[#1A1F2B] hover:bg-[#D0E4F2]/50">
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Changer de plan
-                  </Button>
-                </Link>
-                
-                {subscription.status === "active" && (
+                {subscription.status === "active" && !cancellationRequested && (
                   <Button 
                     variant="outline" 
                     onClick={handleCancelSubscription}
+                    disabled={isCancelling}
                     className="border-2 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
                   >
-                    <XCircle className="mr-2 h-4 w-4" />
-                    Annuler l'abonnement
+                    {isCancelling ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Envoi en cours...
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="mr-2 h-4 w-4" />
+                        Annuler l&apos;abonnement
+                      </>
+                    )}
                   </Button>
+                )}
+                {cancellationRequested && (
+                  <div className="flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 w-full">
+                    <AlertCircle className="h-5 w-5 text-amber-600 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-amber-800">Demande d&apos;annulation envoyée</p>
+                      <p className="text-xs text-amber-600">Un administrateur traitera votre demande prochainement. Vous conservez l&apos;accès jusqu&apos;à la fin de votre période d&apos;abonnement.</p>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>

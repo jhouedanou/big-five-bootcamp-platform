@@ -97,7 +97,7 @@ const operatorsByCountry = {
 
 export default function SubscribePage() {
   const router = useRouter()
-  const { user, loading } = useSupabaseAuth()
+  const { user, userProfile, loading } = useSupabaseAuth()
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mobile")
   const [country, setCountry] = useState<Country>("CI")
@@ -256,13 +256,36 @@ export default function SubscribePage() {
       </header>
 
       <div className="mx-auto max-w-3xl px-4 py-8">
+        {/* Already Premium */}
+        {userProfile?.plan === 'Premium' ? (
+          <div className="mx-auto max-w-md text-center">
+            <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-[#80368D]/15">
+              <Sparkles className="h-12 w-12 text-[#80368D]" />
+            </div>
+
+            <h1 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[#1A1F2B]">
+              Tu es déjà Premium !
+            </h1>
+
+            <p className="mt-3 text-[#1A1F2B]/70">
+              Ton abonnement est actif. Tu as accès à l'ensemble de la bibliothèque créative Big Five. Bonne exploration !
+            </p>
+
+            <Button asChild className="mt-8 h-12 w-full shadow-lg shadow-primary/25">
+              <Link href="/dashboard">
+                Accéder à la bibliothèque
+              </Link>
+            </Button>
+          </div>
+        ) : (
+        <>
         {/* Steps indicator */}
         <div className="mb-8 flex items-center justify-center gap-4">
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center gap-2">
               <div className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium ${
-                step >= s 
-                  ? "bg-[#80368D] text-white" 
+                step >= s
+                  ? "bg-[#80368D] text-white"
                   : "bg-[#D0E4F2] text-[#1A1F2B]/60"
               }`}>
                 {step > s ? <Check className="h-4 w-4" /> : s}
@@ -556,11 +579,11 @@ export default function SubscribePage() {
             <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-[#10B981]/20">
               <Check className="h-12 w-12 text-[#10B981]" />
             </div>
-            
+
             <h1 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-foreground">
               Paiement reussi !
             </h1>
-            
+
             <p className="mt-3 text-muted-foreground">
               Ton abonnement est maintenant actif. Profite bien de toutes les fonctionnalites de Big Five !
             </p>
@@ -571,6 +594,8 @@ export default function SubscribePage() {
               </Link>
             </Button>
           </div>
+        )}
+        </>
         )}
       </div>
     </div>

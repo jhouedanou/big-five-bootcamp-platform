@@ -15,7 +15,7 @@ import { useRouter } from "next/navigation"
 import { createCreative, updateCreative } from "@/app/actions/creative"
 import { toast } from "sonner"
 import { SUPPORTED_PLATFORMS, FILTERS } from "@/lib/constants"
-import { Loader2, ChevronLeft, ChevronRight, Check, FileText, Image, Sparkles, CalendarDays } from "lucide-react"
+import { Loader2, ChevronLeft, ChevronRight, Check, FileText, Image, Sparkles, CalendarDays, X } from "lucide-react"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { cn } from "@/lib/utils"
 
@@ -30,6 +30,84 @@ const STEPS = [
     { id: 3, title: "Description", icon: Sparkles, description: "Analyse et conseils" },
 ]
 
+function SelectWithCustom({
+    label,
+    field,
+    options,
+    value,
+    onChange,
+    required = false,
+    isCustom,
+    onToggleCustom,
+}: {
+    label: string
+    field: string
+    options: string[]
+    value: string
+    onChange: (value: string) => void
+    required?: boolean
+    isCustom: boolean
+    onToggleCustom: (custom: boolean) => void
+}) {
+    if (isCustom) {
+        return (
+            <div className="grid gap-2">
+                <Label htmlFor={field}>{label}{required && " *"}</Label>
+                <div className="flex gap-2">
+                    <Input
+                        id={field}
+                        value={value}
+                        onChange={(e) => onChange(e.target.value)}
+                        placeholder={`Saisir ${label.toLowerCase()}...`}
+                        className="flex-1"
+                    />
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                            onChange("")
+                            onToggleCustom(false)
+                        }}
+                        title="Revenir à la liste"
+                    >
+                        <X className="h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
+        )
+    }
+
+    return (
+        <div className="grid gap-2">
+            <Label htmlFor={field}>{label}{required && " *"}</Label>
+            <Select
+                value={value}
+                onValueChange={(v) => {
+                    if (v === "__custom__") {
+                        onChange("")
+                        onToggleCustom(true)
+                    } else {
+                        onChange(v)
+                    }
+                }}
+            >
+                <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner" />
+                </SelectTrigger>
+                <SelectContent>
+                    {options.map((opt) => (
+                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                    ))}
+                    <SelectItem value="__custom__" className="text-muted-foreground italic">
+                        Autre (personnaliser)...
+                    </SelectItem>
+                </SelectContent>
+            </Select>
+        </div>
+    )
+}
+
 export function CreativeFormMultiStep({ creative, isEdit = false }: CreativeFormProps) {
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
@@ -38,15 +116,39 @@ export function CreativeFormMultiStep({ creative, isEdit = false }: CreativeForm
     // Form state
     const [formData, setFormData] = useState({
         title: creative?.title || "",
+        brand: creative?.brand || "",
+        agency: creative?.agency || "",
         platform: creative?.platforms?.[0] || creative?.platform || "",
         format: creative?.tags?.[0] || creative?.format || "",
         sector: creative?.category || creative?.sector || "",
         objective: creative?.tags?.[1] || creative?.objective || "",
+        country: creative?.country || "",
+        year: creative?.year?.toString() || "",
         thumbnail: creative?.thumbnail || "",
         videoUrl: creative?.video_url || creative?.videoUrl || "",
         campaignDate: creative?.campaign_date || creative?.campaignDate || "",
         whyItWorks: creative?.description?.split('\n\n')[0] || creative?.whyItWorks || "",
         howToUse: creative?.description?.split('\n\n')[1] || creative?.howToUse || "",
+    })
+
+    // Track which select fields are in custom input mode
+    const [customFields, setCustomFields] = useState<Set<string>>(() => {
+        const initial = new Set<string>()
+        // If existing value is not in the predefined options, start in custom mode
+        const checks: [string, string[]][] = [
+            ["platform", FILTERS.PLATFORMS],
+            ["format", FILTERS.FORMATS],
+            ["sector", FILTERS.SECTORS],
+            ["objective", FILTERS.OBJECTIVES],
+            ["country", FILTERS.COUNTRIES],
+        ]
+        for (const [field, options] of checks) {
+            const val = formData[field as keyof typeof formData]
+            if (val && !options.includes(val)) {
+                initial.add(field)
+            }
+        }
+        return initial
     })
 
     const updateField = (field: string, value: string) => {
@@ -161,89 +263,134 @@ export function CreativeFormMultiStep({ creative, isEdit = false }: CreativeForm
                 {currentStep === 1 && (
                     <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                         <h2 className="text-lg font-semibold">Informations de base</h2>
-                        
+
+                        {/* Row 1: Titre (full width) */}
                         <div className="grid gap-2">
                             <Label htmlFor="title">Titre *</Label>
-                            <Input 
-                                id="title" 
-                                value={formData.title} 
+                            <Input
+                                id="title"
+                                value={formData.title}
                                 onChange={(e) => updateField("title", e.target.value)}
-                                placeholder="Ex: Campagne Black Friday" 
+                                placeholder="Ex: Campagne Black Friday"
                             />
                         </div>
 
+                        {/* Row 2: Marque + Agence */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
-                                <Label htmlFor="platform">Plateforme *</Label>
-                                <Select 
-                                    value={formData.platform} 
-                                    onValueChange={(v) => updateField("platform", v)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Sélectionner" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {FILTERS.PLATFORMS.map(p => (
-                                            <SelectItem key={p} value={p}>{p}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Label htmlFor="brand">Marque</Label>
+                                <Input
+                                    id="brand"
+                                    value={formData.brand}
+                                    onChange={(e) => updateField("brand", e.target.value)}
+                                    placeholder="Ex: Orange, MTN..."
+                                />
                             </div>
-
                             <div className="grid gap-2">
-                                <Label htmlFor="format">Format *</Label>
-                                <Select 
-                                    value={formData.format} 
-                                    onValueChange={(v) => updateField("format", v)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Sélectionner" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {FILTERS.FORMATS.map(f => (
-                                            <SelectItem key={f} value={f}>{f}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Label htmlFor="agency">Agence</Label>
+                                <Input
+                                    id="agency"
+                                    value={formData.agency}
+                                    onChange={(e) => updateField("agency", e.target.value)}
+                                    placeholder="Ex: Big Five, Ogilvy..."
+                                />
                             </div>
                         </div>
 
+                        {/* Row 3: Plateforme + Format */}
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="grid gap-2">
-                                <Label htmlFor="sector">Secteur *</Label>
-                                <Select 
-                                    value={formData.sector} 
-                                    onValueChange={(v) => updateField("sector", v)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Sélectionner" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {FILTERS.SECTORS.map(s => (
-                                            <SelectItem key={s} value={s}>{s}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                            <SelectWithCustom
+                                label="Plateforme"
+                                field="platform"
+                                options={FILTERS.PLATFORMS}
+                                value={formData.platform}
+                                onChange={(v) => updateField("platform", v)}
+                                required
+                                isCustom={customFields.has("platform")}
+                                onToggleCustom={(custom) => setCustomFields(prev => {
+                                    const next = new Set(prev)
+                                    custom ? next.add("platform") : next.delete("platform")
+                                    return next
+                                })}
+                            />
+                            <SelectWithCustom
+                                label="Format"
+                                field="format"
+                                options={FILTERS.FORMATS}
+                                value={formData.format}
+                                onChange={(v) => updateField("format", v)}
+                                required
+                                isCustom={customFields.has("format")}
+                                onToggleCustom={(custom) => setCustomFields(prev => {
+                                    const next = new Set(prev)
+                                    custom ? next.add("format") : next.delete("format")
+                                    return next
+                                })}
+                            />
+                        </div>
 
+                        {/* Row 4: Secteur + Objectif */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <SelectWithCustom
+                                label="Secteur"
+                                field="sector"
+                                options={FILTERS.SECTORS}
+                                value={formData.sector}
+                                onChange={(v) => updateField("sector", v)}
+                                required
+                                isCustom={customFields.has("sector")}
+                                onToggleCustom={(custom) => setCustomFields(prev => {
+                                    const next = new Set(prev)
+                                    custom ? next.add("sector") : next.delete("sector")
+                                    return next
+                                })}
+                            />
+                            <SelectWithCustom
+                                label="Objectif"
+                                field="objective"
+                                options={FILTERS.OBJECTIVES}
+                                value={formData.objective}
+                                onChange={(v) => updateField("objective", v)}
+                                required
+                                isCustom={customFields.has("objective")}
+                                onToggleCustom={(custom) => setCustomFields(prev => {
+                                    const next = new Set(prev)
+                                    custom ? next.add("objective") : next.delete("objective")
+                                    return next
+                                })}
+                            />
+                        </div>
+
+                        {/* Row 5: Pays + Année */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <SelectWithCustom
+                                label="Pays"
+                                field="country"
+                                options={FILTERS.COUNTRIES}
+                                value={formData.country}
+                                onChange={(v) => updateField("country", v)}
+                                isCustom={customFields.has("country")}
+                                onToggleCustom={(custom) => setCustomFields(prev => {
+                                    const next = new Set(prev)
+                                    custom ? next.add("country") : next.delete("country")
+                                    return next
+                                })}
+                            />
                             <div className="grid gap-2">
-                                <Label htmlFor="objective">Objectif *</Label>
-                                <Select
-                                    value={formData.objective}
-                                    onValueChange={(v) => updateField("objective", v)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Sélectionner" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {FILTERS.OBJECTIVES.map(o => (
-                                            <SelectItem key={o} value={o}>{o}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Label htmlFor="year">Année</Label>
+                                <Input
+                                    id="year"
+                                    type="number"
+                                    min="2000"
+                                    max="2099"
+                                    value={formData.year}
+                                    onChange={(e) => updateField("year", e.target.value)}
+                                    placeholder="Ex: 2025"
+                                />
                             </div>
                         </div>
 
+                        {/* Row 6: Date de campagne */}
                         <div className="grid gap-2">
                             <Label htmlFor="campaignDate">Date de la campagne</Label>
                             <div className="relative">

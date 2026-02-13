@@ -52,6 +52,10 @@ export async function createCreative(formData: FormData) {
     const campaignDate = formData.get("campaignDate") as string
     const whyItWorks = formData.get("whyItWorks") as string
     const howToUse = formData.get("howToUse") as string
+    const brand = formData.get("brand") as string
+    const country = formData.get("country") as string
+    const agency = formData.get("agency") as string
+    const year = formData.get("year") as string
 
     try {
         const supabase = getSupabaseAdmin()
@@ -65,6 +69,11 @@ export async function createCreative(formData: FormData) {
             description: [whyItWorks, howToUse].filter(Boolean).join('\n\n') || null,
             tags: [format, objective].filter(Boolean),
             status: 'Publié',
+            brand: brand || null,
+            country: country || null,
+            agency: agency || null,
+            year: year ? parseInt(year) : null,
+            format: format || null,
         })
 
         if (error) throw error
@@ -88,6 +97,10 @@ export async function updateCreative(id: string, formData: FormData) {
     const campaignDate = formData.get("campaignDate") as string
     const whyItWorks = formData.get("whyItWorks") as string
     const howToUse = formData.get("howToUse") as string
+    const brand = formData.get("brand") as string
+    const country = formData.get("country") as string
+    const agency = formData.get("agency") as string
+    const year = formData.get("year") as string
 
     try {
         const supabase = getSupabaseAdmin()
@@ -102,6 +115,11 @@ export async function updateCreative(id: string, formData: FormData) {
                 campaign_date: campaignDate || null,
                 description: [whyItWorks, howToUse].filter(Boolean).join('\n\n') || null,
                 tags: [format, objective].filter(Boolean),
+                brand: brand || null,
+                country: country || null,
+                agency: agency || null,
+                year: year ? parseInt(year) : null,
+                format: format || null,
             })
             .eq('id', id)
 

@@ -20,14 +20,15 @@ export async function GET(request: Request) {
     const url = new URL(request.url)
     const withCampaigns = url.searchParams.get('withCampaigns') === 'true'
 
-    let query = supabase
-      .from('favorites')
-      .select(withCampaigns 
-        ? `
+    if (withCampaigns) {
+      // Essayer d'abord avec la jointure directe
+      const { data, error } = await supabase
+        .from('favorites')
+        .select(`
           id,
           campaign_id,
           created_at,
-          campaign:campaigns (
+          campaign:campaigns!campaign_id (
             id,
             title,
             thumbnail,
@@ -37,13 +38,67 @@ export async function GET(request: Request) {
             description,
             video_url
           )
-        `
-        : 'id, campaign_id, created_at'
-      )
+        `)
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error fetching favorites with campaigns (join):', error)
+        // Fallback : charger les favoris puis les campagnes séparément
+        const { data: favs, error: favsError } = await supabase
+          .from('favorites')
+          .select('id, campaign_id, created_at')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+
+        if (favsError) {
+          return NextResponse.json(
+            { error: 'Erreur lors de la récupération des favoris' },
+            { status: 500 }
+          )
+        }
+
+        // Charger les campagnes correspondantes
+        const campaignIds = (favs || []).map((f: any) => f.campaign_id)
+        let campaignsMap: Record<string, any> = {}
+
+        if (campaignIds.length > 0) {
+          const { data: campaigns } = await supabase
+            .from('campaigns')
+            .select('id, title, thumbnail, platforms, category, format, description, video_url')
+            .in('id', campaignIds)
+
+          if (campaigns) {
+            campaigns.forEach((c: any) => { campaignsMap[c.id] = c })
+          }
+        }
+
+        // Assembler favoris + campagnes
+        const merged = (favs || []).map((f: any) => ({
+          ...f,
+          campaign: campaignsMap[f.campaign_id] || null
+        }))
+
+        return NextResponse.json({
+          success: true,
+          favorites: merged,
+          count: merged.length
+        })
+      }
+
+      return NextResponse.json({
+        success: true,
+        favorites: data || [],
+        count: data?.length || 0
+      })
+    }
+
+    // Sans campagnes
+    const { data, error } = await supabase
+      .from('favorites')
+      .select('id, campaign_id, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-
-    const { data, error } = await query
 
     if (error) {
       console.error('Error fetching favorites:', error)

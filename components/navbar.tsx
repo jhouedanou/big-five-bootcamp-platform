@@ -13,7 +13,7 @@ export function Navbar() {
 
   useEffect(() => {
     const supabase = createClient()
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }: { data: { session: any } }) => {
       setIsAuthenticated(!!session?.user)
     })
   }, [])

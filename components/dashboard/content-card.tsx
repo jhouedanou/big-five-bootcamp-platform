@@ -3,8 +3,10 @@
 import React from "react"
 
 import Link from "next/link"
-import { Play, Calendar, Globe, Facebook, Instagram, Linkedin, Youtube, Crown } from "lucide-react"
+import { Play, Calendar, Globe, Facebook, Instagram, Linkedin, Youtube, Crown, Heart } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { useFavorites } from "@/hooks/use-favorites"
+import { cn } from "@/lib/utils"
 
 export interface ContentItem {
   id: string
@@ -70,6 +72,21 @@ export function ContentCard({ content }: ContentCardProps) {
   const platform = platformConfig[content.platform] || { bg: "bg-gray-500", icon: <span className="text-xs font-bold text-white">?</span> }
   const sectorColor = sectorColors[content.sector] || "bg-muted text-muted-foreground font-semibold"
   const isPremium = content.accessLevel === 'premium'
+  const { isFavorite, toggleFavorite, isAuthenticated, loading: favLoading } = useFavorites()
+  const [isToggling, setIsToggling] = React.useState(false)
+  const isCurrentFavorite = isFavorite(content.id)
+
+  const handleToggleFavorite = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!isAuthenticated) {
+      window.location.href = '/login?redirect=/dashboard'
+      return
+    }
+    setIsToggling(true)
+    await toggleFavorite(content.id)
+    setIsToggling(false)
+  }
 
   return (
     <Link href={`/content/${content.id}`} className="group block">
@@ -118,6 +135,28 @@ export function ContentCard({ content }: ContentCardProps) {
               </div>
             </div>
           )}
+
+          {/* Favorite button */}
+          <button
+            onClick={handleToggleFavorite}
+            disabled={isToggling || favLoading}
+            className={cn(
+              "absolute left-2.5 bottom-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200",
+              "bg-white/90 hover:bg-white shadow-lg backdrop-blur-sm",
+              "focus:outline-none focus:ring-2 focus:ring-primary/50",
+              isToggling && "opacity-50 cursor-wait"
+            )}
+            title={isCurrentFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+          >
+            <Heart 
+              className={cn(
+                "h-4 w-4 transition-colors",
+                isCurrentFavorite 
+                  ? "fill-red-500 text-red-500" 
+                  : "text-gray-600 hover:text-red-500"
+              )}
+            />
+          </button>
 
           {/* Hover overlay */}
           <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100">

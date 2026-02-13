@@ -9,7 +9,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   ArrowLeft,
   Heart,
-  Bookmark,
   Share2,
   ExternalLink,
   Calendar,
@@ -22,6 +21,8 @@ import {
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar";
 import { createClient } from "@/lib/supabase";
 import { ImageGallery } from "@/components/ui/lightbox";
+import { useFavorites } from "@/hooks/use-favorites";
+import { cn } from "@/lib/utils";
 
 interface Campaign {
   id: string;
@@ -49,12 +50,12 @@ export default function ContentDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const [isLiked, setIsLiked] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
   const [content, setContent] = useState<Campaign | null>(null);
   const [relatedContent, setRelatedContent] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isFavorite, toggleFavorite, isAuthenticated } = useFavorites();
+  const [isToggling, setIsToggling] = useState(false);
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -202,24 +203,41 @@ export default function ContentDetailPage({
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => setIsLiked(!isLiked)}
-                  className={isLiked ? "text-red-500 border-red-500" : ""}
+                  onClick={async () => {
+                    if (!isAuthenticated) {
+                      window.location.href = `/login?redirect=/content/${id}`;
+                      return;
+                    }
+                    setIsToggling(true);
+                    await toggleFavorite(id);
+                    setIsToggling(false);
+                  }}
+                  disabled={isToggling}
+                  className={cn(
+                    isFavorite(id) ? "text-red-500 border-red-500" : "",
+                    isToggling && "opacity-50 cursor-wait"
+                  )}
+                  title={isFavorite(id) ? "Retirer des favoris" : "Ajouter aux favoris"}
                 >
                   <Heart
-                    className={`h-5 w-5 ${isLiked ? "fill-current" : ""}`}
+                    className={cn("h-5 w-5", isFavorite(id) && "fill-current")}
                   />
                 </Button>
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => setIsSaved(!isSaved)}
-                  className={isSaved ? "text-primary border-primary" : ""}
+                  onClick={() => {
+                    if (navigator.share) {
+                      navigator.share({
+                        title: content.title,
+                        url: window.location.href,
+                      });
+                    } else {
+                      navigator.clipboard.writeText(window.location.href);
+                    }
+                  }}
+                  title="Partager"
                 >
-                  <Bookmark
-                    className={`h-5 w-5 ${isSaved ? "fill-current" : ""}`}
-                  />
-                </Button>
-                <Button variant="outline" size="icon">
                   <Share2 className="h-5 w-5" />
                 </Button>
               </div>

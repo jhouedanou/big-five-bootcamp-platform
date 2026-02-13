@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Récupérer les infos de la session
-    const { data: session, error: sessionError } = await supabaseAdmin
+    const { data: session, error: sessionError } = await (supabaseAdmin as any)
       .from('sessions')
       .select(`
         *,
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Vérifier si un paiement existe déjà
-    const { data: existingPayment } = await supabaseAdmin
+    const { data: existingPayment } = await (supabaseAdmin as any)
       .from('payments')
       .select('id, status')
       .eq('session_id', sessionId)
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     };
 
     // 5. Créer l'enregistrement de paiement dans Supabase (statut: pending)
-    const { data: payment, error: paymentError } = await supabaseAdmin
+    const { data: payment, error: paymentError } = await (supabaseAdmin as any)
       .from('payments')
       .insert({
         ref_command,
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
 
     if (paytechResponse.success !== 1) {
       // Mettre à jour le statut à 'failed'
-      await supabaseAdmin
+      await (supabaseAdmin as any)
         .from('payments')
         .update({ status: 'failed' })
         .eq('id', payment.id);
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 7. Mettre à jour le payment avec le token PayTech
-    await supabaseAdmin
+    await (supabaseAdmin as any)
       .from('payments')
       .update({ 
         paytech_token: paytechResponse.token 

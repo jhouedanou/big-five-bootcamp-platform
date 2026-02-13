@@ -34,7 +34,7 @@ export async function GET() {
       .not('brand', 'is', null)
 
     const uniqueBrands = brandsData 
-      ? new Set(brandsData.map(c => c.brand).filter(Boolean)).size 
+      ? new Set(brandsData.map((c: any) => c.brand).filter(Boolean)).size 
       : 0
 
     if (brandsError) {
@@ -49,7 +49,7 @@ export async function GET() {
       .not('country', 'is', null)
 
     const uniqueCountries = countriesData 
-      ? new Set(countriesData.map(c => c.country).filter(Boolean)).size 
+      ? new Set(countriesData.map((c: any) => c.country).filter(Boolean)).size 
       : 0
 
     if (countriesError) {

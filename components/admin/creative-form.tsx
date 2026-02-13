@@ -67,8 +67,9 @@ export function CreativeForm({ creative, isEdit = false }: CreativeFormProps) {
                                 <SelectValue placeholder="Sélectionner" />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value={SUPPORTED_PLATFORMS.FACEBOOK}>Facebook</SelectItem>
-                                <SelectItem value={SUPPORTED_PLATFORMS.LINKEDIN}>LinkedIn</SelectItem>
+                                {SUPPORTED_PLATFORMS.map((platform) => (
+                                    <SelectItem key={platform} value={platform}>{platform}</SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>

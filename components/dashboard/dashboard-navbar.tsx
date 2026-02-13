@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { Menu, X, Search, User, LogOut, Settings, CreditCard, Crown, Sparkles, Clock, Users } from "lucide-react"
+import { Menu, X, Search, User, LogOut, Settings, CreditCard, Crown, Sparkles, Clock, Users, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase"
@@ -137,6 +137,13 @@ export function DashboardNavbar({
             >
               Communauté
             </Link>
+            <Link
+              href="/favorites"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] flex items-center gap-1"
+            >
+              <Heart className="h-3.5 w-3.5" />
+              Favoris
+            </Link>
           </nav>
         </div>
 
@@ -236,6 +243,12 @@ export function DashboardNavbar({
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
+                <Link href="/favorites" className="flex items-center gap-2 text-[#1A1F2B]">
+                  <Heart className="h-4 w-4" />
+                  Mes Favoris
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
                 <Link href="/settings" className="flex items-center gap-2 text-[#1A1F2B]">
                   <Settings className="h-4 w-4" />
                   Paramètres
@@ -299,6 +312,14 @@ export function DashboardNavbar({
               onClick={() => setIsOpen(false)}
             >
               Communauté
+            </Link>
+            <Link
+              href="/favorites"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] flex items-center gap-1.5"
+              onClick={() => setIsOpen(false)}
+            >
+              <Heart className="h-4 w-4 text-red-500" />
+              Mes Favoris
             </Link>
             {/* Bouton abonnement mobile */}
             <Link

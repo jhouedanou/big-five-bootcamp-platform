@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
     const authorId = searchParams.get('author_id')
 
-    let query = supabase
+    let query = (supabase as any)
       .from('campaigns')
       .select('*')
       .order('created_at', { ascending: false })
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from('campaigns')
       .insert({
         title: body.title,

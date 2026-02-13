@@ -62,6 +62,7 @@ export default function ProfilePage() {
                 <button 
                   type="button"
                   className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-[#D0E4F2] text-[#1A1F2B]/60 shadow-sm transition-colors hover:bg-[#D0E4F2]/80"
+                  aria-label="Changer la photo de profil"
                 >
                   <Camera className="h-4 w-4" />
                 </button>
@@ -210,6 +211,7 @@ export default function ProfilePage() {
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
                 className="rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+                aria-label="Sélectionner la langue de l'interface"
               >
                 <option value="fr">Francais</option>
                 <option value="en">English</option>

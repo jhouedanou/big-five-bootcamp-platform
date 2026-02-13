@@ -489,6 +489,7 @@ export default function SubscribePage() {
                   checked={acceptTerms}
                   onChange={(e) => setAcceptTerms(e.target.checked)}
                   className="mt-1 h-4 w-4 rounded border-border"
+                  aria-label="Accepter les CGV et la politique de confidentialité"
                 />
                 <Label htmlFor="terms" className="text-sm text-muted-foreground">
                   {"J'accepte les"}{" "}

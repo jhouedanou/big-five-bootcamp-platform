@@ -161,7 +161,7 @@ export default function ContentDetailPage({
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Main content area */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-6 main-container">
             {/* Image principale + galerie avec lightbox */}
             <ImageGallery
               mainImage={content.thumbnail}
@@ -340,7 +340,7 @@ export default function ContentDetailPage({
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-6 sidebar-content">
             {/* Metadata card */}
             <Card>
               <CardContent className="p-6 space-y-4">

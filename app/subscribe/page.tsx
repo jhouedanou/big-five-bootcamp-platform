@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
+import { LegalModal } from "@/components/legal-modal"
 
 type PaymentMethod = "mobile" | "card"
 type MobileOperator = "orange" | "orange_ci" | "mtn" | "moov" | "moov_ci" | "wave" | null
@@ -488,11 +489,18 @@ export default function SubscribePage() {
                   checked={acceptTerms}
                   onChange={(e) => setAcceptTerms(e.target.checked)}
                   className="mt-1 h-4 w-4 rounded border-border"
+                  aria-label="Accepter les CGV et la politique de confidentialité"
                 />
                 <Label htmlFor="terms" className="text-sm text-muted-foreground">
                   {"J'accepte les"}{" "}
-                  <Link href="/terms" className="text-primary hover:underline">conditions generales</Link>
-                  {" de vente"}
+                  <LegalModal 
+                    defaultTab="cgv"
+                    trigger={
+                      <button type="button" className="text-primary hover:underline">
+                        CGV et la politique de confidentialité
+                      </button>
+                    }
+                  />
                 </Label>
               </div>
 

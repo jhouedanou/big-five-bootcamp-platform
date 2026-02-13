@@ -1,6 +1,9 @@
+"use client";
+
 import Link from "next/link"
 import { Facebook, Instagram, Twitter, Linkedin, Heart, ArrowUpRight } from "lucide-react"
 import Image from "next/image"
+import { LegalModal } from "./legal-modal"
 
 export function Footer() {
   const currentYear = new Date().getFullYear()
@@ -76,14 +79,33 @@ export function Footer() {
             <div>
               <h3 className="text-sm font-semibold uppercase tracking-wider text-[#29358B]">Legal</h3>
               <nav className="mt-4 flex flex-col gap-3">
-                <Link href="/terms" className="group flex items-center text-sm text-[#1A1F2B]/60 transition-colors hover:text-[#80368D]">
-                  CGU
-                  <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </Link>
-                <Link href="/privacy" className="group flex items-center text-sm text-[#1A1F2B]/60 transition-colors hover:text-[#80368D]">
-                  Confidentialité
-                  <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </Link>
+                <LegalModal 
+                  defaultTab="cgu"
+                  trigger={
+                    <button className="group flex items-center text-sm text-[#1A1F2B]/60 transition-colors hover:text-[#80368D] text-left">
+                      CGU
+                      <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                    </button>
+                  }
+                />
+                <LegalModal 
+                  defaultTab="cgv"
+                  trigger={
+                    <button className="group flex items-center text-sm text-[#1A1F2B]/60 transition-colors hover:text-[#80368D] text-left">
+                      CGV
+                      <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                    </button>
+                  }
+                />
+                <LegalModal 
+                  defaultTab="privacy"
+                  trigger={
+                    <button className="group flex items-center text-sm text-[#1A1F2B]/60 transition-colors hover:text-[#80368D] text-left">
+                      Confidentialité
+                      <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                    </button>
+                  }
+                />
               </nav>
             </div>
           </div>

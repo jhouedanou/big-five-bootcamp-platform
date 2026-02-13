@@ -8,17 +8,21 @@ const registerSchema = z.object({
   password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
 })
 
-// Client avec anon key pour l'inscription auth
-const supabaseAuth = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
-
-// Client avec service role key pour bypasser le RLS et insérer dans public.users
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  
+  if (!url || !serviceKey) {
+    throw new Error('Missing Supabase environment variables')
+  }
+  
+  return createClient(url, serviceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
+}
 
 export async function POST(request: Request) {
   try {
@@ -33,51 +37,90 @@ export async function POST(request: Request) {
     }
 
     const { name, email, password } = validation.data
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://v0-big-five-bootcamp-platform.vercel.app'
 
-    // Créer l'utilisateur dans Supabase Auth
-    const { data: authData, error: authError } = await supabaseAuth.auth.signUp({
+    // Méthode principale : signUp() pour que Supabase envoie l'email de confirmation
+    const supabaseAnon = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+
+    const { data: signUpData, error: signUpError } = await supabaseAnon.auth.signUp({
       email,
       password,
       options: {
         data: { name },
+        emailRedirectTo: `${appUrl}/auth/callback`,
       },
     })
 
-    if (authError) {
-      if (authError.message.includes('already registered')) {
+    if (signUpError) {
+      console.error("SignUp error:", signUpError.message)
+
+      if (signUpError.message.includes('already registered') || 
+          signUpError.message.includes('already been registered') ||
+          signUpError.message.includes('already exists')) {
         return NextResponse.json(
           { error: "Un compte avec cet email existe déjà" },
           { status: 400 }
         )
       }
-      throw authError
+
+      return NextResponse.json(
+        { error: signUpError.message || "Erreur lors de la création du compte" },
+        { status: 500 }
+      )
     }
 
-    if (!authData.user) {
-      throw new Error("Erreur lors de la création du compte")
+    // Supabase peut retourner un user avec identities vide si l'email existe déjà
+    // (quand "Confirm email" est activé et que l'user n'a pas confirmé)
+    if (signUpData.user && signUpData.user.identities && signUpData.user.identities.length === 0) {
+      return NextResponse.json(
+        { error: "Un compte avec cet email existe déjà" },
+        { status: 400 }
+      )
     }
 
-    // Créer le profil dans la table users (avec service role pour bypasser RLS)
-    const { error: profileError } = await supabaseAdmin
-      .from('users')
-      .insert({
-        id: authData.user.id,
-        email,
-        name,
-        role: 'user',
-        plan: 'Free',
-        status: 'active',
-      })
-
-    if (profileError) {
-      console.error("Profile creation error:", profileError)
-      // L'utilisateur auth est créé mais le profil a échoué - pas bloquant
+    if (!signUpData.user) {
+      return NextResponse.json(
+        { error: "Erreur lors de la création du compte" },
+        { status: 500 }
+      )
     }
+
+    // Créer le profil dans la table users via service role (bypass RLS)
+    try {
+      const supabaseAdmin = getSupabaseAdmin()
+      const { error: profileError } = await supabaseAdmin
+        .from('users')
+        .insert({
+          id: signUpData.user.id,
+          email,
+          name,
+          role: 'user',
+          plan: 'Free',
+          status: 'active',
+        })
+
+      if (profileError) {
+        console.error("Profile creation error:", profileError.message)
+        // Non bloquant — le profil sera créé au premier login si nécessaire
+      }
+    } catch (profileErr) {
+      console.error("Profile creation exception:", profileErr)
+    }
+
+    // Déterminer si un email de confirmation a été envoyé
+    // Si signUpData.session est null, c'est que l'email doit être confirmé
+    const needsEmailConfirmation = !signUpData.session
 
     return NextResponse.json({
-      message: "Compte créé avec succès",
+      message: needsEmailConfirmation 
+        ? "Compte créé ! Vérifie ta boîte mail pour confirmer ton adresse email."
+        : "Compte créé avec succès",
+      needsEmailConfirmation,
       user: {
-        id: authData.user.id,
+        id: signUpData.user.id,
         email,
         name,
       }
@@ -86,7 +129,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Registration error:", error)
     return NextResponse.json(
-      { error: "Erreur lors de la création du compte" },
+      { error: error instanceof Error ? error.message : "Erreur lors de la création du compte" },
       { status: 500 }
     )
   }

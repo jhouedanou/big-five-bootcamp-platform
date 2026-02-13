@@ -13,7 +13,7 @@ export function useSupabaseAuth() {
 
   useEffect(() => {
     // Récupérer la session actuelle
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }: { data: { session: any } }) => {
       setUser(session?.user ?? null)
       if (session?.user) {
         fetchUserProfile(session.user)
@@ -25,7 +25,7 @@ export function useSupabaseAuth() {
     // Écouter les changements d'authentification
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
       setUser(session?.user ?? null)
       if (session?.user) {
         fetchUserProfile(session.user)

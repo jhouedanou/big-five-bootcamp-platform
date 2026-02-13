@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     // Utiliser le client admin (service_role) pour bypass RLS
     const supabaseAdmin = getSupabaseAdmin()
     
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from('campaigns')
       .select('*')
       .order('created_at', { ascending: false })
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
       body.status = 'Brouillon'
     }
     
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from('campaigns')
       .insert(body)
       .select()
@@ -162,7 +162,7 @@ export async function PUT(request: NextRequest) {
     
     const supabaseAdmin = getSupabaseAdmin()
     
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from('campaigns')
       .update(updateData)
       .eq('id', id)
@@ -201,7 +201,7 @@ export async function DELETE(request: NextRequest) {
     
     const supabaseAdmin = getSupabaseAdmin()
     
-    const { error } = await supabaseAdmin
+    const { error } = await (supabaseAdmin as any)
       .from('campaigns')
       .delete()
       .eq('id', id)

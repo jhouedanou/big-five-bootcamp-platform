@@ -171,7 +171,65 @@
   strong, b {
     font-weight: 600;
   }
-  
+  .container p{
+    font-size: 1.2em !important;
+    line-height: 2 !important;
+    margin-bottom: 1em !important;
+}
+.container h1{
+    font-size: 2.5em !important;
+    margin-top: 1.5em !important;
+    margin-bottom: 1.5em !important;
+}
+.container h2{
+    font-size: 1.6em !important;
+    margin-top: 1.5em !important;
+    margin-bottom: 1.5em !important;
+}
+.container h3{
+    font-size: 1.4em !important;
+    margin-top: 1.5em !important;
+    margin-bottom: 1.5em !important;
+}
+.container h4{
+    font-size: 1em !important;
+    margin-top: 1em !important;
+    margin-bottom: 1em !important;
+}
+.container h5{
+    font-size: 0.875em !important;
+    margin-top: 0.875em !important;
+    margin-bottom: 0.5em !important;
+}
+.container h6{
+    font-size: 0.75em !important;
+    margin-top: 0.75em !important;
+    margin-bottom: 0.75em !important;
+}
+.container ul, .container ol{
+    margin-left: 1.5em !important;
+    margin-bottom: 1.5em !important;
+}
+.container ul li{
+    margin-bottom: 1em !important;
+    list-style: disc !important;
+}
+.container ol li{
+    margin-bottom: 0.5em !important;
+    list-style: lower-roman !important;
+}
+
+.container blockquote{
+    border-left: 3px solid var(--primary);
+    padding-left: 1em;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 1em !important;
+    margin-bottom: 1em !important;
+    color: var(--muted-foreground);
+    font-style: italic;
+}
+
   /* Boutons primaires - style arrondi avec violet */
   .button-primary {
     background-color: var(--primary-violet);
@@ -278,6 +336,100 @@
 
 .animate-slide-in-right {
   animation: slide-in-right 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ===== Facebook-style Skeleton Loader ===== */
+@keyframes skeleton-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 400% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+.skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 100%
+  );
+  animation: skeleton-shimmer 1.8s ease-in-out infinite;
+}
+
+.skeleton-line {
+  background: linear-gradient(135deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 400% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.5) 50%,
+    transparent 100%
+  );
+  animation: skeleton-shimmer 1.8s ease-in-out infinite;
+}
+
+/* Décalage d'animation pour chaque carte — effet cascade */
+.modern-card:nth-child(1) .skeleton-shimmer,
+.modern-card:nth-child(1) .skeleton-line { animation-delay: 0s; }
+.modern-card:nth-child(2) .skeleton-shimmer,
+.modern-card:nth-child(2) .skeleton-line { animation-delay: 0.15s; }
+.modern-card:nth-child(3) .skeleton-shimmer,
+.modern-card:nth-child(3) .skeleton-line { animation-delay: 0.3s; }
+.modern-card:nth-child(4) .skeleton-shimmer,
+.modern-card:nth-child(4) .skeleton-line { animation-delay: 0.45s; }
+.modern-card:nth-child(5) .skeleton-shimmer,
+.modern-card:nth-child(5) .skeleton-line { animation-delay: 0.6s; }
+.modern-card:nth-child(6) .skeleton-shimmer,
+.modern-card:nth-child(6) .skeleton-line { animation-delay: 0.75s; }
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .skeleton-shimmer {
+    background: linear-gradient(135deg, #334155 25%, #475569 50%, #334155 75%);
+    background-size: 400% 100%;
+  }
+  .skeleton-shimmer::after {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.08) 50%,
+      transparent 100%
+    );
+  }
+  .skeleton-line {
+    background: linear-gradient(135deg, #334155 25%, #475569 50%, #334155 75%);
+    background-size: 400% 100%;
+  }
+  .skeleton-line::after {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.08) 50%,
+      transparent 100%
+    );
+  }
 }
 
 /* Delay utilities */

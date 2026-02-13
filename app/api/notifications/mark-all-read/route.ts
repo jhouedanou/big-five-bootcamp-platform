@@ -22,12 +22,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Marquer toutes les notifications comme lues
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from('notifications')
       .update({ 
         read: true, 
         read_at: new Date().toISOString() 
-      } as any)
+      })
       .eq('user_id', user.id)
       .eq('read', false)
       .select();

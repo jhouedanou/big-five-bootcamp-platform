@@ -9,6 +9,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
+const SUBSCRIPTION_DURATION_DAYS = 30;
+
+/**
+ * Active l'abonnement Premium pour l'utilisateur associé à un paiement
+ */
+async function activatePremiumForPayment(payment: any) {
+  const userId = payment.metadata?.userId || payment.user_id;
+  const userEmail = payment.metadata?.userEmail || payment.user_email;
+
+  if (!userId && !userEmail) {
+    console.warn('⚠️ Impossible d\'activer Premium: pas de userId/email dans le paiement', payment.id);
+    return;
+  }
+
+  const now = new Date();
+  const endDate = new Date(now.getTime() + SUBSCRIPTION_DURATION_DAYS * 24 * 60 * 60 * 1000);
+
+  try {
+    let query = (supabaseAdmin as any).from('users').update({
+      plan: 'Premium',
+      subscription_status: 'active',
+      subscription_start_date: now.toISOString(),
+      subscription_end_date: endDate.toISOString(),
+      updated_at: now.toISOString(),
+    });
+
+    if (userId) {
+      query = query.eq('id', userId);
+    } else {
+      query = query.eq('email', userEmail);
+    }
+
+    const { error } = await query;
+    if (error) {
+      console.error('❌ Erreur activation Premium:', error.message);
+    } else {
+      console.log('✅ Premium activé pour:', userId || userEmail, '→ fin le', endDate.toISOString());
+    }
+  } catch (err) {
+    console.error('❌ Exception activation Premium:', err);
+  }
+}
+
 // Vérifier un paiement par téléphone ou email
 export async function GET(request: NextRequest) {
   try {
@@ -24,20 +67,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    let query = supabaseAdmin
+    let query = (supabaseAdmin as any)
       .from('payments')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(10);
 
     if (ref) {
-      // Recherche par référence (partielle)
       query = query.ilike('ref_command', `%${ref}%`);
     } else if (phone) {
-      // Recherche par téléphone
       query = query.ilike('client_phone', `%${phone.replace(/\s/g, '')}%`);
     } else if (email) {
-      // Recherche par email dans custom_field ou user_id
       query = query.or(`client_email.ilike.%${email}%,user_email.ilike.%${email}%`);
     }
 
@@ -54,7 +94,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       count: payments?.length || 0,
-      payments: payments?.map(p => ({
+      payments: (payments || []).map((p: any) => ({
         id: p.id,
         ref_command: p.ref_command,
         status: p.status,
@@ -83,7 +123,7 @@ export async function POST(request: NextRequest) {
     const { ref_command, phone, status, amount, payment_method, item_name, user_id } = body;
 
     // Vérifier si le paiement existe déjà
-    const { data: existingPayment } = await supabaseAdmin
+    const { data: existingPayment } = await (supabaseAdmin as any)
       .from('payments')
       .select('*')
       .eq('ref_command', ref_command)
@@ -91,7 +131,7 @@ export async function POST(request: NextRequest) {
 
     if (existingPayment) {
       // Mettre à jour le paiement existant
-      const { data: updated, error } = await supabaseAdmin
+      const { data: updated, error } = await (supabaseAdmin as any)
         .from('payments')
         .update({
           status: status || 'completed',
@@ -104,6 +144,11 @@ export async function POST(request: NextRequest) {
 
       if (error) throw error;
 
+      // Si paiement complété, activer l'abonnement Premium
+      if ((status || 'completed') === 'completed') {
+        await activatePremiumForPayment(existingPayment);
+      }
+
       return NextResponse.json({
         success: true,
         action: 'updated',
@@ -111,7 +156,7 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Créer un nouveau paiement
-      const { data: created, error } = await supabaseAdmin
+      const { data: created, error } = await (supabaseAdmin as any)
         .from('payments')
         .insert({
           ref_command,
@@ -129,6 +174,11 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (error) throw error;
+
+      // Si paiement complété et user_id fourni, activer Premium
+      if ((status || 'completed') === 'completed' && user_id) {
+        await activatePremiumForPayment({ user_id, user_email: body.email });
+      }
 
       return NextResponse.json({
         success: true,

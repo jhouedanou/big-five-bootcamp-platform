@@ -13,7 +13,7 @@ export async function GET(
     // Dans Next.js 15+, params est une Promise
     const { id } = await params;
     
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from('campaigns')
       .select('*')
       .eq('id', id)
@@ -44,7 +44,7 @@ export async function PATCH(
     const { id } = await params;
     const body = await request.json()
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from('campaigns')
       .update(body)
       .eq('id', id)
@@ -75,7 +75,7 @@ export async function DELETE(
     // Dans Next.js 15+, params est une Promise
     const { id } = await params;
     
-    const { error } = await supabaseAdmin
+    const { error } = await (supabaseAdmin as any)
       .from('campaigns')
       .delete()
       .eq('id', id)

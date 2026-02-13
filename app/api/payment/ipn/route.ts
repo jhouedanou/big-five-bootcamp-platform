@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Récupérer le paiement dans la base de données
-    const { data: payment, error: paymentError } = await supabaseAdmin
+    const { data: payment, error: paymentError } = await (supabaseAdmin as any)
       .from('payments')
       .select('*')
       .eq('ref_command', ipnData.ref_command)
@@ -103,7 +103,7 @@ async function handlePaymentSuccess(
     console.log('✅ Processing successful payment:', payment.ref_command);
 
     // 1. Mettre à jour le paiement
-    const { error: updateError } = await supabaseAdmin
+    const { error: updateError } = await (supabaseAdmin as any)
       .from('payments')
       .update({
         status: 'completed',
@@ -130,14 +130,15 @@ async function handlePaymentSuccess(
         ? new Date(customData.subscription_end_date) 
         : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 jours par défaut
 
-      const { error: userUpdateError } = await supabaseAdmin
+      const { error: userUpdateError } = await (supabaseAdmin as any)
         .from('users')
         .update({
+          plan: 'Premium',
           subscription_status: 'active',
           subscription_start_date: new Date().toISOString(),
           subscription_end_date: subscriptionEndDate.toISOString(),
           updated_at: new Date().toISOString(),
-        } as any)
+        })
         .eq('id', customData.userId);
 
       if (userUpdateError) {
@@ -147,7 +148,7 @@ async function handlePaymentSuccess(
         
         // Créer une notification de succès de paiement
         try {
-          await supabaseAdmin.rpc('notify_payment_success', {
+          await (supabaseAdmin as any).rpc('notify_payment_success', {
             p_user_id: customData.userId,
             p_amount: ipnData.final_item_price || ipnData.item_price,
             p_subscription_end_date: subscriptionEndDate.toISOString(),
@@ -159,7 +160,7 @@ async function handlePaymentSuccess(
 
         // Annuler les rappels premium planifiés pour cet utilisateur
         try {
-          await supabaseAdmin
+          await (supabaseAdmin as any)
             .from('scheduled_reminders')
             .delete()
             .eq('user_id', customData.userId)
@@ -171,7 +172,7 @@ async function handlePaymentSuccess(
       }
     } else {
       // Créer l'inscription dans registrations (pour les bootcamps)
-      const { data: registration, error: regError } = await supabaseAdmin
+      const { data: registration, error: regError } = await (supabaseAdmin as any)
         .from('registrations')
         .insert({
           session_id: payment.session_id,
@@ -182,7 +183,7 @@ async function handlePaymentSuccess(
           payment_status: 'Payé',
           amount: ipnData.final_item_price || ipnData.item_price,
           payment_id: payment.id,
-        } as any)
+        })
         .select()
         .single();
 
@@ -212,7 +213,7 @@ async function handlePaymentCanceled(payment: any, ipnData: PaytechIPN) {
   try {
     console.log('❌ Processing canceled payment:', payment.ref_command);
 
-    await supabaseAdmin
+    await (supabaseAdmin as any)
       .from('payments')
       .update({
         status: 'canceled',
@@ -227,7 +228,7 @@ async function handlePaymentCanceled(payment: any, ipnData: PaytechIPN) {
       const userId = metadata.userId;
       
       if (userId) {
-        await supabaseAdmin.rpc('notify_payment_failed', {
+        await (supabaseAdmin as any).rpc('notify_payment_failed', {
           p_user_id: userId,
           p_reason: 'Paiement annulé',
         });
@@ -253,7 +254,7 @@ async function handleRefund(payment: any, ipnData: PaytechIPN) {
     console.log('💰 Processing refund:', payment.ref_command);
 
     // 1. Mettre à jour le paiement
-    await supabaseAdmin
+    await (supabaseAdmin as any)
       .from('payments')
       .update({
         status: 'refunded',
@@ -263,7 +264,7 @@ async function handleRefund(payment: any, ipnData: PaytechIPN) {
 
     // 2. Supprimer l'inscription si elle existe
     if (payment.session_id) {
-      await supabaseAdmin
+      await (supabaseAdmin as any)
         .from('registrations')
         .delete()
         .eq('payment_id', payment.id);

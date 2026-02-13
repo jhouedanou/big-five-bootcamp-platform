@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { Menu, X, Search, Bell, User, LogOut, Settings, CreditCard } from "lucide-react"
+import { Menu, X, Search, User, LogOut, Settings, CreditCard, Crown, Sparkles, Clock, Users, Heart } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase"
@@ -26,6 +26,8 @@ export function DashboardNavbar({
   const [userName, setUserName] = useState("")
   const [userEmail, setUserEmail] = useState("")
   const [userPlan, setUserPlan] = useState("Free")
+  const [subscriptionEndDate, setSubscriptionEndDate] = useState<string | null>(null)
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null)
   
   // Utiliser la recherche externe si fournie, sinon interne
   const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : internalSearchQuery
@@ -44,22 +46,61 @@ export function DashboardNavbar({
       const { data: { session } } = await supabase.auth.getSession()
       if (session?.user) {
         setUserEmail(session.user.email || "")
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('users')
-          .select('name, plan')
+          .select('*')
           .eq('id', session.user.id)
           .single()
+        if (profileError) {
+          console.warn('Erreur chargement profil navbar:', profileError.message)
+        }
         if (profile) {
           setUserName(profile.name || "")
-          setUserPlan(profile.plan || "Free")
+          // Vérification côté client : si Premium mais expiré, traiter comme Free
+          if (
+            profile.plan?.toLowerCase() === 'premium' &&
+            profile.subscription_end_date &&
+            new Date(profile.subscription_end_date) < new Date()
+          ) {
+            setUserPlan('Free')
+            setSubscriptionStatus('expired')
+            // Fire & forget : appeler le cron pour synchroniser la base
+            fetch('/api/cron/check-subscriptions').catch(() => {})
+          } else {
+            setUserPlan(profile.plan || "Free")
+            setSubscriptionStatus(profile.subscription_status || null)
+          }
+          setSubscriptionEndDate(profile.subscription_end_date || null)
         }
       }
     }
     loadUser()
   }, [])
 
-  const isPremium = userPlan.toLowerCase() === "premium"
+  const isPremium = userPlan.toLowerCase() === "premium" || userPlan.toLowerCase() === "pro"
   const initials = userName ? userName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "?"
+
+  // Calcul de la durée restante de l'abonnement
+  const getSubscriptionInfo = () => {
+    if (!isPremium || !subscriptionEndDate) {
+      return { active: false, daysLeft: 0, label: "", expiringSoon: false, expired: false }
+    }
+    
+    const endDate = new Date(subscriptionEndDate)
+    const now = new Date()
+    const diffMs = endDate.getTime() - now.getTime()
+    const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24))
+    
+    if (daysLeft <= 0) {
+      return { active: false, daysLeft: 0, label: "Expiré", expiringSoon: false, expired: true }
+    }
+    if (daysLeft <= 7) {
+      return { active: true, daysLeft, label: `${daysLeft}j`, expiringSoon: true, expired: false }
+    }
+    return { active: true, daysLeft, label: `${daysLeft}j`, expiringSoon: false, expired: false }
+  }
+
+  const subInfo = getSubscriptionInfo()
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#D0E4F2] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
@@ -90,6 +131,19 @@ export function DashboardNavbar({
             >
               Profil
             </Link>
+            <Link
+              href="/community"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B]"
+            >
+              Communauté
+            </Link>
+            <Link
+              href="/favorites"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] flex items-center gap-1"
+            >
+              <Heart className="h-3.5 w-3.5" />
+              Favoris
+            </Link>
           </nav>
         </div>
 
@@ -107,10 +161,51 @@ export function DashboardNavbar({
         </div>
 
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="relative hidden md:flex text-[#1A1F2B]">
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#80368D]" />
-          </Button>
+          {/* Bouton d'abonnement : durée restante ou incitatif */}
+          {isPremium && subInfo.active && !subInfo.expiringSoon ? (
+            /* Premium actif, pas d'expiration proche → bouton doré "Premium · Xj" */
+            <div className="hidden md:flex">
+              <div className="flex items-center gap-1.5 rounded-full px-3 h-8 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 text-xs font-bold shadow-sm">
+                <Crown className="h-3.5 w-3.5" />
+                Premium · {subInfo.label}
+              </div>
+            </div>
+          ) : isPremium && subInfo.active && subInfo.expiringSoon ? (
+            /* Premium actif mais expire dans ≤ 7 jours → bouton "Renouveler" */
+            <Link href="/subscribe" className="hidden md:flex">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs font-semibold rounded-full px-3 h-8 bg-amber-100 text-amber-800 hover:bg-amber-200 animate-pulse"
+              >
+                <Clock className="h-3.5 w-3.5" />
+                Renouveler · {subInfo.label}
+              </Button>
+            </Link>
+          ) : isPremium && subInfo.expired ? (
+            /* Premium expiré → bouton rouge "Renouveler" */
+            <Link href="/subscribe" className="hidden md:flex">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-xs font-semibold rounded-full px-3 h-8 bg-red-100 text-red-800 hover:bg-red-200"
+              >
+                <Clock className="h-3.5 w-3.5" />
+                Renouveler
+              </Button>
+            </Link>
+          ) : (
+            /* Pas premium → bouton "Passer Premium" */
+            <Link href="/subscribe" className="hidden md:flex">
+              <Button
+                size="sm"
+                className="gap-1.5 text-xs font-semibold rounded-full px-3 h-8 bg-gradient-to-r from-[#80368D] to-[#29358B] text-white hover:opacity-90"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Passer Premium
+              </Button>
+            </Link>
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -145,6 +240,12 @@ export function DashboardNavbar({
                 <Link href="/subscribe" className="flex items-center gap-2 text-[#1A1F2B]">
                   <CreditCard className="h-4 w-4" />
                   Abonnement
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/favorites" className="flex items-center gap-2 text-[#1A1F2B]">
+                  <Heart className="h-4 w-4" />
+                  Mes Favoris
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
@@ -206,11 +307,55 @@ export function DashboardNavbar({
               Profil
             </Link>
             <Link
-              href="/subscribe"
+              href="/community"
               className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B]"
               onClick={() => setIsOpen(false)}
             >
-              Abonnement
+              Communauté
+            </Link>
+            <Link
+              href="/favorites"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] flex items-center gap-1.5"
+              onClick={() => setIsOpen(false)}
+            >
+              <Heart className="h-4 w-4 text-red-500" />
+              Mes Favoris
+            </Link>
+            {/* Bouton abonnement mobile */}
+            <Link
+              href="/subscribe"
+              className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                isPremium && subInfo.active && !subInfo.expiringSoon
+                  ? "bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-800"
+                  : isPremium && subInfo.active && subInfo.expiringSoon
+                    ? "bg-amber-50 text-amber-800"
+                    : isPremium && subInfo.expired
+                      ? "bg-red-50 text-red-800"
+                      : "bg-gradient-to-r from-[#80368D]/10 to-[#29358B]/10 text-[#80368D] font-semibold"
+              }`}
+              onClick={() => setIsOpen(false)}
+            >
+              {isPremium && subInfo.active && !subInfo.expiringSoon ? (
+                <span className="flex items-center gap-2">
+                  <Crown className="h-4 w-4" />
+                  Premium · {subInfo.label}
+                </span>
+              ) : isPremium && subInfo.active && subInfo.expiringSoon ? (
+                <span className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Renouveler · {subInfo.label}
+                </span>
+              ) : isPremium && subInfo.expired ? (
+                <span className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Abonnement expiré — Renouveler
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Passer Premium
+                </span>
+              )}
             </Link>
             <Link
               href="/settings"

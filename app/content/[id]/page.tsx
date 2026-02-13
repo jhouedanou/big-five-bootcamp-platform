@@ -9,7 +9,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   ArrowLeft,
   Heart,
-  Bookmark,
   Share2,
   ExternalLink,
   Calendar,
@@ -22,6 +21,9 @@ import {
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar";
 import { createClient } from "@/lib/supabase";
 import { ImageGallery } from "@/components/ui/lightbox";
+import { useFavorites } from "@/hooks/use-favorites";
+import { cn } from "@/lib/utils";
+import { detectVideoPlatform, getEmbedUrl, getVideoPlatformLabel, getOriginalVideoUrl } from "@/lib/video-utils";
 
 interface Campaign {
   id: string;
@@ -49,12 +51,12 @@ export default function ContentDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const [isLiked, setIsLiked] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
   const [content, setContent] = useState<Campaign | null>(null);
   const [relatedContent, setRelatedContent] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isFavorite, toggleFavorite, isAuthenticated } = useFavorites();
+  const [isToggling, setIsToggling] = useState(false);
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -166,26 +168,83 @@ export default function ContentDetailPage({
               title={content.title}
             />
 
-            {/* Video player */}
-            {content.video_url && (
-              <Card>
-                <CardContent className="p-4">
-                  <h2 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                    <Video className="h-5 w-5" />
-                    Vidéo
-                  </h2>
-                  <div className="rounded-lg overflow-hidden">
-                    <iframe
-                      src={content.video_url}
-                      className="w-full aspect-video rounded-lg"
-                      allowFullScreen
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      title="Vidéo de la campagne"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            {/* Video player — embed multi-plateforme */}
+            {content.video_url && (() => {
+              const originalVideoUrl = getOriginalVideoUrl(content.video_url);
+              const videoPlatform = detectVideoPlatform(originalVideoUrl);
+              const embedUrl = getEmbedUrl(content.video_url);
+              const platformLabel = getVideoPlatformLabel(videoPlatform);
+              
+              // Pour LinkedIn ou Facebook: lien externe (les embeds iframe sont souvent bloqués)
+              if (videoPlatform === "linkedin" || videoPlatform === "facebook") {
+                const bgGradient = videoPlatform === "linkedin" 
+                  ? "from-sky-50 to-blue-50 hover:from-sky-100 hover:to-blue-100" 
+                  : "from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100";
+                const iconBg = videoPlatform === "linkedin" ? "bg-[#0A66C2]" : "bg-[#1877F2]";
+                
+                return (
+                  <Card>
+                    <CardContent className="p-4">
+                      <h2 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                        <Video className="h-5 w-5" />
+                        Vidéo {platformLabel}
+                      </h2>
+                      
+                      {/* Essayer l'embed iframe d'abord pour Facebook */}
+                      {videoPlatform === "facebook" && (
+                        <div className="rounded-lg overflow-hidden mb-3">
+                          <iframe
+                            src={embedUrl}
+                            className="w-full aspect-video rounded-lg border-0 overflow-hidden"
+                            allowFullScreen
+                            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                            title={`Vidéo ${platformLabel}`}
+                            scrolling="no"
+                          />
+                        </div>
+                      )}
+                      
+                      {/* Lien direct comme fallback */}
+                      <a
+                        href={originalVideoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`flex items-center gap-3 p-4 rounded-lg border border-gray-200 bg-gradient-to-r ${bgGradient} transition-colors`}
+                      >
+                        <div className={`flex h-12 w-12 items-center justify-center rounded-full text-white ${iconBg}`}>
+                          <ExternalLink className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">Voir la vidéo sur {platformLabel}</p>
+                          <p className="text-sm text-gray-500">S&apos;ouvre dans un nouvel onglet</p>
+                        </div>
+                      </a>
+                    </CardContent>
+                  </Card>
+                );
+              }
+              
+              // YouTube, Twitter/X: embed iframe standard
+              return (
+                <Card>
+                  <CardContent className="p-4">
+                    <h2 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                      <Video className="h-5 w-5" />
+                      Vidéo {platformLabel}
+                    </h2>
+                    <div className="rounded-lg overflow-hidden">
+                      <iframe
+                        src={embedUrl}
+                        className="w-full aspect-video rounded-lg"
+                        allowFullScreen
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        title={`Vidéo ${platformLabel} de la campagne`}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
 
             {/* Title and actions */}
             <div className="flex items-start justify-between gap-4">
@@ -202,24 +261,41 @@ export default function ContentDetailPage({
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => setIsLiked(!isLiked)}
-                  className={isLiked ? "text-red-500 border-red-500" : ""}
+                  onClick={async () => {
+                    if (!isAuthenticated) {
+                      window.location.href = `/login?redirect=/content/${id}`;
+                      return;
+                    }
+                    setIsToggling(true);
+                    await toggleFavorite(id);
+                    setIsToggling(false);
+                  }}
+                  disabled={isToggling}
+                  className={cn(
+                    isFavorite(id) ? "text-red-500 border-red-500" : "",
+                    isToggling && "opacity-50 cursor-wait"
+                  )}
+                  title={isFavorite(id) ? "Retirer des favoris" : "Ajouter aux favoris"}
                 >
                   <Heart
-                    className={`h-5 w-5 ${isLiked ? "fill-current" : ""}`}
+                    className={cn("h-5 w-5", isFavorite(id) && "fill-current")}
                   />
                 </Button>
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={() => setIsSaved(!isSaved)}
-                  className={isSaved ? "text-primary border-primary" : ""}
+                  onClick={() => {
+                    if (navigator.share) {
+                      navigator.share({
+                        title: content.title,
+                        url: window.location.href,
+                      });
+                    } else {
+                      navigator.clipboard.writeText(window.location.href);
+                    }
+                  }}
+                  title="Partager"
                 >
-                  <Bookmark
-                    className={`h-5 w-5 ${isSaved ? "fill-current" : ""}`}
-                  />
-                </Button>
-                <Button variant="outline" size="icon">
                   <Share2 className="h-5 w-5" />
                 </Button>
               </div>

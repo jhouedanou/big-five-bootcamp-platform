@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { TableCell, TableRow } from "@/components/ui/table"
 import { UserStatusToggle } from "./user-status-toggle"
-import { ChevronDown, ChevronRight, CreditCard, Calendar, Clock } from "lucide-react"
+import { ChevronDown, ChevronRight, CreditCard, Calendar, Clock, Heart } from "lucide-react"
 
 interface Payment {
     id: string
@@ -21,6 +21,7 @@ interface Payment {
 interface UserRowProps {
     user: Record<string, unknown>
     payments: Payment[]
+    favoritesCount: number
 }
 
 function formatDate(dateStr: string | null | undefined) {
@@ -79,7 +80,7 @@ function getPaymentStatusLabel(status: string) {
     }
 }
 
-export function UserRow({ user, payments }: UserRowProps) {
+export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
     const [isExpanded, setIsExpanded] = useState(false)
 
     const subStart = user.subscription_start_date as string | null | undefined
@@ -153,6 +154,16 @@ export function UserRow({ user, payments }: UserRowProps) {
                     )}
                 </TableCell>
                 <TableCell>
+                    {favoritesCount > 0 ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700">
+                            <Heart className="h-3 w-3 fill-red-500 text-red-500" />
+                            {favoritesCount}
+                        </span>
+                    ) : (
+                        <span className="text-xs text-muted-foreground">0</span>
+                    )}
+                </TableCell>
+                <TableCell>
                     {formatDate(user.created_at as string)}
                 </TableCell>
                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
@@ -163,7 +174,7 @@ export function UserRow({ user, payments }: UserRowProps) {
             {/* Expanded section: payment history */}
             {isExpanded && (
                 <TableRow>
-                    <TableCell colSpan={9} className="bg-muted/30 p-0">
+                    <TableCell colSpan={10} className="bg-muted/30 p-0">
                         <div className="px-6 py-4">
                             <div className="flex items-center gap-2 mb-3">
                                 <CreditCard className="h-4 w-4 text-muted-foreground" />

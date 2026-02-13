@@ -48,11 +48,14 @@ export async function POST(request: NextRequest) {
     if (!existingUser || userError?.code === 'PGRST116') {
       console.log('👤 Utilisateur non trouvé dans la table users, création...');
 
-      // Chercher l'utilisateur par email dans Supabase Auth (via filtre)
-      const { data: authListData, error: authListError } = await supabaseAdmin.auth.admin.listUsers({
-        filter: userEmail,
-      });
-      const authUser = authListData?.users?.[0];
+      // Chercher l'utilisateur par email dans Supabase Auth
+      const { data: authUserData, error: authListError } = await supabaseAdmin.auth.admin.getUserById(
+        '' // fallback - will use listUsers below
+      ).catch(() => ({ data: null, error: null })) as any;
+
+      // Alternative: chercher par liste
+      const { data: authListData } = await supabaseAdmin.auth.admin.listUsers() as any;
+      const authUser = authListData?.users?.find((u: any) => u.email === userEmail) || authUserData?.user;
 
       if (authListError || !authUser) {
         console.error('❌ Utilisateur non trouvé dans Auth:', authListError);
@@ -63,7 +66,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Créer l'utilisateur dans la table users
-      const { data: newUser, error: createError } = await supabaseAdmin
+      const { data: newUser, error: createError } = await (supabaseAdmin as any)
         .from('users')
         .upsert({
           id: authUser.id,
@@ -85,7 +88,7 @@ export async function POST(request: NextRequest) {
       }
 
       existingUser = newUser;
-      console.log('✅ Utilisateur créé:', existingUser?.id);
+      console.log('✅ Utilisateur créé:', (existingUser as any)?.id);
     }
 
     // Vérifier si un abonnement actif existe déjà
@@ -170,7 +173,7 @@ export async function POST(request: NextRequest) {
 
     if (paytechResponse.success !== 1 || !paytechResponse.redirect_url) {
       // Mettre à jour le statut du paiement en cas d'échec
-      await supabaseAdmin
+      await (supabaseAdmin as any)
         .from('payments')
         .update({ 
           status: 'failed',
@@ -178,7 +181,7 @@ export async function POST(request: NextRequest) {
             ...(payment as any).metadata,
             error: paytechResponse.message || 'PayTech request failed'
           }
-        } as any)
+        })
         .eq('id', (payment as any).id);
 
       return NextResponse.json(
@@ -191,7 +194,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Mettre à jour le paiement avec le token PayTech
-    await supabaseAdmin
+    await (supabaseAdmin as any)
       .from('payments')
       .update({ 
         paytech_token: paytechResponse.token,
@@ -199,7 +202,7 @@ export async function POST(request: NextRequest) {
           ...(payment as any).metadata,
           paytech_response: paytechResponse
         }
-      } as any)
+      })
       .eq('id', (payment as any).id);
 
     // Retourner l'URL de redirection PayTech

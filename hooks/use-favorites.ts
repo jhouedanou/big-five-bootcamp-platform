@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { createClient } from '@/lib/supabase'
 import { useSupabaseAuth } from './use-supabase-auth'
 
 interface Favorite {
@@ -19,6 +18,7 @@ interface FavoriteWithCampaign extends Favorite {
     category: string
     format: string
     description: string
+    video_url?: string
   }
 }
 
@@ -28,15 +28,13 @@ export function useFavorites() {
   const [favoritesWithCampaigns, setFavoritesWithCampaigns] = useState<FavoriteWithCampaign[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
-  const supabase = useMemo(() => createClient(), [])
 
   // IDs des campagnes favorites (pour vérification rapide)
   const favoriteIds = useMemo(() => {
     return new Set(favorites.map(f => f.campaign_id))
   }, [favorites])
 
-  // Charger les favoris de l'utilisateur
+  // Charger les favoris de l'utilisateur via l'API
   const fetchFavorites = useCallback(async () => {
     if (!user) {
       setFavorites([])
@@ -49,24 +47,23 @@ export function useFavorites() {
       setLoading(true)
       setError(null)
 
-      const { data, error: fetchError } = await supabase
-        .from('favorites')
-        .select('id, campaign_id, created_at')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
+      const res = await fetch('/api/favorites')
+      const json = await res.json()
 
-      if (fetchError) throw fetchError
+      if (!res.ok) {
+        throw new Error(json.error || 'Erreur lors du chargement des favoris')
+      }
 
-      setFavorites(data || [])
+      setFavorites(json.favorites || [])
     } catch (err: any) {
       console.error('Error fetching favorites:', err)
       setError(err.message)
     } finally {
       setLoading(false)
     }
-  }, [user, supabase])
+  }, [user])
 
-  // Charger les favoris avec les détails des campagnes
+  // Charger les favoris avec les détails des campagnes via l'API
   const fetchFavoritesWithCampaigns = useCallback(async () => {
     if (!user) {
       setFavoritesWithCampaigns([])
@@ -77,29 +74,17 @@ export function useFavorites() {
       setLoading(true)
       setError(null)
 
-      const { data, error: fetchError } = await supabase
-        .from('favorites')
-        .select(`
-          id,
-          campaign_id,
-          created_at,
-          campaign:campaigns (
-            id,
-            title,
-            thumbnail,
-            platforms,
-            category,
-            format,
-            description
-          )
-        `)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
+      const res = await fetch('/api/favorites?withCampaigns=true')
+      const json = await res.json()
 
-      if (fetchError) throw fetchError
+      if (!res.ok) {
+        throw new Error(json.error || 'Erreur lors du chargement des favoris')
+      }
+
+      const data = json.favorites || []
 
       // Transformer les données
-      const transformed = (data || []).map((f: any) => ({
+      const transformed = data.map((f: any) => ({
         id: f.id,
         campaign_id: f.campaign_id,
         created_at: f.created_at,
@@ -107,20 +92,26 @@ export function useFavorites() {
       }))
 
       setFavoritesWithCampaigns(transformed)
+      // Mettre aussi à jour les IDs simples
+      setFavorites(data.map((f: any) => ({
+        id: f.id,
+        campaign_id: f.campaign_id,
+        created_at: f.created_at,
+      })))
     } catch (err: any) {
       console.error('Error fetching favorites with campaigns:', err)
       setError(err.message)
     } finally {
       setLoading(false)
     }
-  }, [user, supabase])
+  }, [user])
 
   // Vérifier si une campagne est en favoris
   const isFavorite = useCallback((campaignId: string): boolean => {
     return favoriteIds.has(campaignId)
   }, [favoriteIds])
 
-  // Ajouter un favori
+  // Ajouter un favori via l'API
   const addFavorite = useCallback(async (campaignId: string): Promise<boolean> => {
     if (!user) {
       setError('Vous devez être connecté pour ajouter des favoris')
@@ -130,34 +121,44 @@ export function useFavorites() {
     try {
       setError(null)
 
-      const { data, error: insertError } = await supabase
-        .from('favorites')
-        .insert({
-          user_id: user.id,
-          campaign_id: campaignId
-        })
-        .select('id, campaign_id, created_at')
-        .single()
+      // Mise à jour optimiste
+      const optimisticFav: Favorite = {
+        id: `temp-${Date.now()}`,
+        campaign_id: campaignId,
+        created_at: new Date().toISOString(),
+      }
+      setFavorites(prev => [optimisticFav, ...prev])
 
-      if (insertError) {
-        // Si c'est une erreur de doublon, ignorer
-        if (insertError.code === '23505') {
-          return true
-        }
-        throw insertError
+      const res = await fetch('/api/favorites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ campaignId }),
+      })
+
+      const json = await res.json()
+
+      if (!res.ok) {
+        // Rollback optimiste
+        setFavorites(prev => prev.filter(f => f.id !== optimisticFav.id))
+        throw new Error(json.error || "Erreur lors de l'ajout aux favoris")
       }
 
-      // Mettre à jour le state local
-      setFavorites(prev => [data, ...prev])
+      // Remplacer le favori temporaire par le vrai
+      if (json.favorite) {
+        setFavorites(prev =>
+          prev.map(f => f.id === optimisticFav.id ? json.favorite : f)
+        )
+      }
+
       return true
     } catch (err: any) {
       console.error('Error adding favorite:', err)
       setError(err.message)
       return false
     }
-  }, [user, supabase])
+  }, [user])
 
-  // Supprimer un favori
+  // Supprimer un favori via l'API
   const removeFavorite = useCallback(async (campaignId: string): Promise<boolean> => {
     if (!user) {
       setError('Vous devez être connecté pour supprimer des favoris')
@@ -167,24 +168,34 @@ export function useFavorites() {
     try {
       setError(null)
 
-      const { error: deleteError } = await supabase
-        .from('favorites')
-        .delete()
-        .eq('user_id', user.id)
-        .eq('campaign_id', campaignId)
+      // Sauvegarde pour rollback
+      const previousFavorites = [...favorites]
+      const previousWithCampaigns = [...favoritesWithCampaigns]
 
-      if (deleteError) throw deleteError
-
-      // Mettre à jour le state local
+      // Mise à jour optimiste
       setFavorites(prev => prev.filter(f => f.campaign_id !== campaignId))
       setFavoritesWithCampaigns(prev => prev.filter(f => f.campaign_id !== campaignId))
+
+      const res = await fetch(`/api/favorites?campaignId=${campaignId}`, {
+        method: 'DELETE',
+      })
+
+      const json = await res.json()
+
+      if (!res.ok) {
+        // Rollback
+        setFavorites(previousFavorites)
+        setFavoritesWithCampaigns(previousWithCampaigns)
+        throw new Error(json.error || 'Erreur lors de la suppression du favori')
+      }
+
       return true
     } catch (err: any) {
       console.error('Error removing favorite:', err)
       setError(err.message)
       return false
     }
-  }, [user, supabase])
+  }, [user, favorites, favoritesWithCampaigns])
 
   // Basculer un favori (ajouter/supprimer)
   const toggleFavorite = useCallback(async (campaignId: string): Promise<boolean> => {

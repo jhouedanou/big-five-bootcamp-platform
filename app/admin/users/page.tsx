@@ -6,13 +6,14 @@ import {
   TableRow,
   TableCell,
 } from "@/components/ui/table"
-import { getUsers, getPayments } from "@/app/actions/user"
+import { getUsers, getPayments, getFavoritesCounts } from "@/app/actions/user"
 import { UserRow } from "./user-row"
 
 export default async function UsersPage() {
-  const [usersResult, paymentsResult] = await Promise.all([
+  const [usersResult, paymentsResult, favoritesResult] = await Promise.all([
     getUsers(),
     getPayments(),
+    getFavoritesCounts(),
   ])
 
   if (!usersResult.success || !usersResult.data) {
@@ -21,6 +22,7 @@ export default async function UsersPage() {
 
   const users = usersResult.data
   const payments = paymentsResult.data || []
+  const favoritesCounts = favoritesResult.data || {}
 
   // Group payments by user email
   const paymentsByEmail: Record<string, typeof payments> = {}
@@ -51,6 +53,7 @@ export default async function UsersPage() {
               <TableHead>Plan</TableHead>
               <TableHead>Accès</TableHead>
               <TableHead>Abonnement</TableHead>
+              <TableHead>Favoris</TableHead>
               <TableHead>Inscription</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -58,7 +61,7 @@ export default async function UsersPage() {
           <TableBody>
             {users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                   Aucun utilisateur trouvé.
                 </TableCell>
               </TableRow>
@@ -68,6 +71,7 @@ export default async function UsersPage() {
                   key={user.id as string}
                   user={user}
                   payments={paymentsByEmail[(user.email as string)] || []}
+                  favoritesCount={(favoritesCounts as Record<string, number>)[user.id as string] || 0}
                 />
               ))
             )}

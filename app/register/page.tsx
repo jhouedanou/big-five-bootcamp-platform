@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
+import { LegalModal } from "@/components/legal-modal"
 
 function formatNumber(n: number): string {
   if (n >= 1000) {
@@ -56,9 +57,16 @@ export default function RegisterPage() {
         return
       }
 
-      toast.success("Compte créé avec succès !", {
-        description: "Vérifie ta boîte mail pour confirmer ton compte, puis connecte-toi.",
-      })
+      if (data.needsEmailConfirmation) {
+        toast.success("Compte créé ! 📧", {
+          description: "Un email de confirmation a été envoyé à " + email + ". Vérifie ta boîte de réception (et les spams).",
+          duration: 8000,
+        })
+      } else {
+        toast.success("Compte créé avec succès !", {
+          description: "Tu peux maintenant te connecter.",
+        })
+      }
       router.push("/login")
     } catch (err) {
       toast.error("Une erreur inattendue est survenue", {
@@ -222,9 +230,13 @@ export default function RegisterPage() {
                 />
                 <Label htmlFor="terms" className="text-xs leading-relaxed text-muted-foreground">
                   {"J'accepte les"}{" "}
-                  <Link href="/terms" className="text-primary hover:underline">CGU</Link>
-                  {" et la "}
-                  <Link href="/privacy" className="text-primary hover:underline">politique de confidentialite</Link>
+                  <LegalModal 
+                    trigger={
+                      <button type="button" className="text-primary hover:underline">
+                        CGU, CGV et la politique de confidentialité
+                      </button>
+                    }
+                  />
                 </Label>
               </div>
             </div>

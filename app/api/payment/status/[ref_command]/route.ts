@@ -24,7 +24,7 @@ export async function GET(
     }
 
     // Récupérer le paiement - requête simple d'abord
-    const { data: payment, error } = await supabaseAdmin
+    const { data: payment, error } = await (supabaseAdmin as any)
       .from('payments')
       .select('*')
       .eq('ref_command', ref_command)

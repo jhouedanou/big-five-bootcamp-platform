@@ -91,7 +91,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
     checkUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: any, session: any) => {
       setSession(session);
       if (session?.user?.email) {
         // Vérifier d'abord les métadonnées

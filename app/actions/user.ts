@@ -56,3 +56,27 @@ export async function toggleUserStatus(id: string, currentStatus: string) {
         return { success: false, error: "Failed to update user status" }
     }
 }
+
+export async function getFavoritesCounts() {
+    try {
+        const supabase = getSupabaseAdmin()
+        // Récupérer tous les favoris groupés par user_id
+        const { data: favorites, error } = await (supabase as any)
+            .from('favorites')
+            .select('user_id, campaign_id')
+
+        if (error) throw error
+
+        // Compter les favoris par utilisateur
+        const countsByUser: Record<string, number> = {}
+        for (const fav of (favorites || [])) {
+            const uid = fav.user_id
+            countsByUser[uid] = (countsByUser[uid] || 0) + 1
+        }
+
+        return { success: true, data: countsByUser }
+    } catch (error) {
+        console.error('Error fetching favorites counts:', error)
+        return { success: true, data: {} }
+    }
+}

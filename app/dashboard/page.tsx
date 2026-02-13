@@ -5,9 +5,10 @@ import Link from "next/link"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { FiltersSidebar, DynamicFilterOptions } from "@/components/dashboard/filters-sidebar"
 import { ContentCard, ContentItem } from "@/components/dashboard/content-card"
+import { ContentGridSkeleton } from "@/components/dashboard/content-card-skeleton"
 import { createClient } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
-import { Filter, Grid3X3, LayoutList, ChevronLeft, ChevronRight, Loader2, Lock, CalendarDays } from "lucide-react"
+import { Filter, Grid3X3, LayoutList, ChevronLeft, ChevronRight, Lock, CalendarDays } from "lucide-react"
 import { ParticlesBackground } from "@/components/ui/particles-background"
 import { format, parseISO } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -62,7 +63,7 @@ export default function DashboardPage() {
     }
   }, [campaigns])
 
-  // Charger le plan utilisateur
+  // Charger le plan utilisateur (avec vérification expiration côté client)
   useEffect(() => {
     const loadUserPlan = async () => {
       try {
@@ -71,10 +72,24 @@ export default function DashboardPage() {
           try {
             const { data: profile, error } = await supabase
               .from('users')
-              .select('plan')
+              .select('plan, subscription_status, subscription_end_date')
               .eq('id', session.user.id)
               .single()
-            if (!error && profile?.plan) setUserPlan(profile.plan)
+            if (!error && profile) {
+              // Vérification côté client : si Premium mais expiré, traiter comme Free
+              if (
+                profile.plan?.toLowerCase() === 'premium' &&
+                profile.subscription_end_date &&
+                new Date(profile.subscription_end_date) < new Date()
+              ) {
+                console.warn('⏰ Abonnement Premium expiré côté client, traitement comme Free')
+                setUserPlan('Free')
+                // Appeler le cron pour mettre à jour la base (fire & forget)
+                fetch('/api/cron/check-subscriptions').catch(() => {})
+              } else {
+                setUserPlan(profile.plan || 'Free')
+              }
+            }
           } catch {
             // Table users n'existe pas encore, utiliser le plan par défaut
             console.warn('Table users non disponible, utilisation du plan par défaut')
@@ -469,10 +484,7 @@ export default function DashboardPage() {
             {/* Content Grid */}
             <div className="flex-1">
               {isLoading ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <Loader2 className="h-10 w-10 animate-spin text-[#80368D]" />
-                  <p className="mt-4 text-base font-medium text-muted-foreground">Chargement des campagnes...</p>
-                </div>
+                <ContentGridSkeleton count={6} />
               ) : paginatedContent.length > 0 ? (
                 <>
                   {/* Campagnes groupées par mois/année */}

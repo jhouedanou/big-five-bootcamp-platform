@@ -30,7 +30,7 @@ export async function PATCH(
     const notificationId = id;
 
     // Vérifier que la notification appartient à l'utilisateur
-    const { data: notification, error: fetchError } = await supabaseAdmin
+    const { data: notification, error: fetchError } = await (supabaseAdmin as any)
       .from('notifications')
       .select('*')
       .eq('id', notificationId)
@@ -45,12 +45,12 @@ export async function PATCH(
     }
 
     // Marquer comme lue
-    const { data: updated, error: updateError } = await supabaseAdmin
+    const { data: updated, error: updateError } = await (supabaseAdmin as any)
       .from('notifications')
       .update({ 
         read: true, 
         read_at: new Date().toISOString() 
-      } as any)
+      })
       .eq('id', notificationId)
       .select()
       .single();

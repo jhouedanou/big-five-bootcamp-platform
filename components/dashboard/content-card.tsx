@@ -3,8 +3,11 @@
 import React from "react"
 
 import Link from "next/link"
-import { Play, Calendar, Globe, Facebook, Instagram, Linkedin, Youtube } from "lucide-react"
+import { Play, Calendar, Globe, Facebook, Instagram, Linkedin, Youtube, Crown, Heart } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { useFavorites } from "@/hooks/use-favorites"
+import { cn } from "@/lib/utils"
+import { detectVideoPlatform } from "@/lib/video-utils"
 
 export interface ContentItem {
   id: string
@@ -69,10 +72,30 @@ const countryFlags: Record<string, string> = {
 export function ContentCard({ content }: ContentCardProps) {
   const platform = platformConfig[content.platform] || { bg: "bg-gray-500", icon: <span className="text-xs font-bold text-white">?</span> }
   const sectorColor = sectorColors[content.sector] || "bg-muted text-muted-foreground font-semibold"
+  const isPremium = content.accessLevel === 'premium'
+  const { isFavorite, toggleFavorite, isAuthenticated, loading: favLoading } = useFavorites()
+  const [isToggling, setIsToggling] = React.useState(false)
+  const isCurrentFavorite = isFavorite(content.id)
+
+  const handleToggleFavorite = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!isAuthenticated) {
+      window.location.href = '/login?redirect=/dashboard'
+      return
+    }
+    setIsToggling(true)
+    await toggleFavorite(content.id)
+    setIsToggling(false)
+  }
 
   return (
     <Link href={`/content/${content.id}`} className="group block">
-      <article className="modern-card overflow-hidden hover-lift transition-all duration-300 hover:shadow-xl hover:shadow-[#80368D]/10">
+      <article className={`modern-card overflow-hidden hover-lift transition-all duration-300 hover:shadow-xl ${
+        isPremium
+          ? "ring-2 ring-amber-400/80 shadow-lg shadow-amber-400/20 hover:shadow-amber-400/30 hover:ring-amber-300"
+          : "hover:shadow-[#80368D]/10"
+      }`}>
         <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-[#0A1F44] to-[#1a3a6e]">
           {content.imageUrl ? (
             <img
@@ -97,12 +120,72 @@ export function ContentCard({ content }: ContentCardProps) {
             </div>
           )}
 
+          {/* Video platform badge (bottom-right) */}
+          {content.isVideo && content.videoUrl && (
+            <div className="absolute right-2.5 bottom-2.5">
+              {(() => {
+                const vp = detectVideoPlatform(content.videoUrl || "");
+                const vpStyles: Record<string, string> = {
+                  youtube: "bg-red-600",
+                  facebook: "bg-[#1877F2]",
+                  twitter: "bg-black",
+                  linkedin: "bg-[#0A66C2]",
+                  unknown: "bg-gray-600",
+                };
+                const vpLabels: Record<string, string> = {
+                  youtube: "▶ YT",
+                  facebook: "▶ FB",
+                  twitter: "▶ X",
+                  linkedin: "▶ LI",
+                  unknown: "▶",
+                };
+                return (
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold text-white shadow-lg ${vpStyles[vp]}`}>
+                    {vpLabels[vp]}
+                  </span>
+                );
+              })()}
+            </div>
+          )}
+
           {/* Platform badge */}
           <div className="absolute right-2.5 top-2.5">
             <div className={`flex h-7 w-7 items-center justify-center rounded-full ${platform.bg} shadow-lg ring-2 ring-white/20`}>
               {platform.icon}
             </div>
           </div>
+
+          {/* Premium badge */}
+          {isPremium && (
+            <div className="absolute left-2.5 top-2.5">
+              <div className="flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 px-2.5 py-1 shadow-lg shadow-amber-500/30">
+                <Crown className="h-3 w-3 text-white" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-white">Premium</span>
+              </div>
+            </div>
+          )}
+
+          {/* Favorite button */}
+          <button
+            onClick={handleToggleFavorite}
+            disabled={isToggling || favLoading}
+            className={cn(
+              "absolute left-2.5 bottom-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full transition-all duration-200",
+              "bg-white/90 hover:bg-white shadow-lg backdrop-blur-sm",
+              "focus:outline-none focus:ring-2 focus:ring-primary/50",
+              isToggling && "opacity-50 cursor-wait"
+            )}
+            title={isCurrentFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+          >
+            <Heart 
+              className={cn(
+                "h-4 w-4 transition-colors",
+                isCurrentFavorite 
+                  ? "fill-red-500 text-red-500" 
+                  : "text-gray-600 hover:text-red-500"
+              )}
+            />
+          </button>
 
           {/* Hover overlay */}
           <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100">

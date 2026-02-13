@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
-import { PlayCircle, Maximize2 } from "lucide-react"
+import { PlayCircle, Maximize2, ExternalLink } from "lucide-react"
 import {
     Dialog,
     DialogContent,
@@ -13,11 +13,21 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 
-// Helper function pour générer l'URL d'embed correcte
-function getVideoEmbedUrl(url: string): string {
-    if (!url) return '';
+// Détecte la plateforme vidéo
+function getVideoPlatform(url: string): 'youtube' | 'facebook' | 'instagram' | 'tiktok' | 'other' {
+    if (!url) return 'other';
+    if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
+    if (url.includes('facebook.com') || url.includes('fb.watch') || url.includes('fb.com')) return 'facebook';
+    if (url.includes('instagram.com')) return 'instagram';
+    if (url.includes('tiktok.com')) return 'tiktok';
+    return 'other';
+}
+
+// Helper function pour générer l'URL d'embed correcte (YouTube et TikTok seulement)
+function getVideoEmbedUrl(url: string): string | null {
+    if (!url) return null;
     
-    // YouTube
+    // YouTube - fonctionne bien en embed
     if (url.includes('youtube.com') || url.includes('youtu.be')) {
         const watchMatch = url.match(/[?&]v=([^&]+)/);
         if (watchMatch) return `https://www.youtube.com/embed/${watchMatch[1]}`;
@@ -26,24 +36,10 @@ function getVideoEmbedUrl(url: string): string {
         if (shortMatch) return `https://www.youtube.com/embed/${shortMatch[1]}`;
         
         if (url.includes('/embed/')) return url;
+        return url;
     }
     
-    // Facebook
-    if (url.includes('facebook.com') || url.includes('fb.watch') || url.includes('fb.com')) {
-        const watchMatch = url.match(/facebook\.com\/watch\/\?v=(\d+)/);
-        const videosMatch = url.match(/facebook\.com\/[^/]+\/videos\/(\d+)/);
-        const reelMatch = url.match(/facebook\.com\/reel\/(\d+)/);
-        
-        const videoId = watchMatch?.[1] || videosMatch?.[1] || reelMatch?.[1];
-        
-        if (videoId) {
-            return `https://www.facebook.com/plugins/video.php?height=476&href=https%3A%2F%2Fwww.facebook.com%2Fvideo.php%3Fv%3D${videoId}&show_text=false&width=267&t=0`;
-        }
-        
-        return `https://www.facebook.com/plugins/video.php?height=476&href=${encodeURIComponent(url)}&show_text=false&width=267&t=0`;
-    }
-    
-    // TikTok
+    // TikTok - fonctionne en embed
     if (url.includes('tiktok.com')) {
         const match = url.match(/\/video\/(\d+)/);
         if (match) {
@@ -51,18 +47,24 @@ function getVideoEmbedUrl(url: string): string {
         }
     }
     
-    // Instagram Reels
-    if (url.includes('instagram.com')) {
-        const reelMatch = url.match(/\/reel\/([^/?]+)/);
-        const pMatch = url.match(/\/p\/([^/?]+)/);
-        const postId = reelMatch?.[1] || pMatch?.[1];
-        
-        if (postId) {
-            return `https://www.instagram.com/p/${postId}/embed/`;
-        }
+    // Facebook et Instagram - ne fonctionnent pas bien en embed, retourner null
+    if (url.includes('facebook.com') || url.includes('fb.watch') || url.includes('instagram.com')) {
+        return null;
     }
     
     return url;
+}
+
+// Obtenir le label de la plateforme
+function getPlatformLabel(platform: string): string {
+    const labels: Record<string, string> = {
+        'youtube': 'YouTube',
+        'facebook': 'Facebook',
+        'instagram': 'Instagram',
+        'tiktok': 'TikTok',
+        'other': 'Vidéo'
+    };
+    return labels[platform] || 'Vidéo';
 }
 
 interface Creative {
@@ -141,15 +143,61 @@ export function CreativeCard({ creative }: CreativeCardProps) {
                     {/* Media Column */}
                     <div className="relative w-full overflow-hidden rounded-lg bg-muted flex items-center justify-center min-h-[300px]">
                         {creative.videoUrl ? (
-                            <div className="relative w-full aspect-[9/16] max-h-[500px]">
-                                <iframe
-                                    src={getVideoEmbedUrl(creative.videoUrl)}
-                                    className="absolute inset-0 h-full w-full"
-                                    title={`Vidéo: ${creative.title}`}
-                                    allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                                    allowFullScreen
-                                />
-                            </div>
+                            (() => {
+                                const embedUrl = getVideoEmbedUrl(creative.videoUrl);
+                                const platform = getVideoPlatform(creative.videoUrl);
+                                
+                                // Si on peut embed (YouTube, TikTok)
+                                if (embedUrl) {
+                                    return (
+                                        <div className="relative w-full aspect-[9/16] max-h-[500px]">
+                                            <iframe
+                                                src={embedUrl}
+                                                className="absolute inset-0 h-full w-full"
+                                                title={`Vidéo: ${creative.title}`}
+                                                allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                                                allowFullScreen
+                                            />
+                                        </div>
+                                    );
+                                }
+                                
+                                // Pour Facebook/Instagram - afficher un aperçu cliquable
+                                return (
+                                    <div className="relative w-full h-full min-h-[400px] flex flex-col items-center justify-center">
+                                        {/* Thumbnail comme aperçu */}
+                                        <div className="relative w-full h-64 mb-4">
+                                            <Image
+                                                src={creative.thumbnail || "/placeholder.jpg"}
+                                                alt={creative.title}
+                                                fill
+                                                className="object-contain rounded-lg"
+                                                sizes="(max-width: 768px) 100vw, 50vw"
+                                            />
+                                            {/* Overlay play button */}
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg">
+                                                <PlayCircle className="h-16 w-16 text-white drop-shadow-lg" />
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Bouton pour ouvrir sur la plateforme */}
+                                        <a
+                                            href={creative.videoUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-medium rounded-full hover:from-violet-700 hover:to-purple-700 transition-all shadow-lg"
+                                        >
+                                            <PlayCircle className="h-5 w-5" />
+                                            Voir sur {getPlatformLabel(platform)}
+                                            <ExternalLink className="h-4 w-4" />
+                                        </a>
+                                        
+                                        <p className="text-xs text-muted-foreground mt-3 text-center px-4">
+                                            Les vidéos {getPlatformLabel(platform)} s'ouvrent dans un nouvel onglet
+                                        </p>
+                                    </div>
+                                );
+                            })()
                         ) : (
                             <div className="relative w-full h-full min-h-[400px]">
                                 <Image

@@ -32,16 +32,31 @@ export const getSupabaseAdmin = () => {
   
   adminClient = createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    }
   )
   return adminClient
 }
 
 // Pour la compatibilité avec le code existant côté serveur (API routes)
-export const supabaseAdmin = getSupabaseAdmin()
+// Utilise un getter paresseux pour éviter la création d'instances au chargement du module
+export const supabaseAdmin = new Proxy({} as ReturnType<typeof createSupabaseClient>, {
+  get(_target, prop) {
+    return (getSupabaseAdmin() as any)[prop]
+  },
+})
 
-// Alias pour compatibilité - utilise le client admin côté serveur
-// Cela garantit que les API routes ont toujours un client valide
-export const supabase = typeof window !== 'undefined' 
-  ? createClient() 
-  : getSupabaseAdmin()
+// Alias pour compatibilité - uniquement pour les API routes côté serveur
+export const supabase = new Proxy({} as ReturnType<typeof createSupabaseClient>, {
+  get(_target, prop) {
+    if (typeof window !== 'undefined') {
+      return (createClient() as any)[prop]
+    }
+    return (getSupabaseAdmin() as any)[prop]
+  },
+})

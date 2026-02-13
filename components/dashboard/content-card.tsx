@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge"
 import { useFavorites } from "@/hooks/use-favorites"
 import { cn } from "@/lib/utils"
 import { detectVideoPlatform } from "@/lib/video-utils"
+import { format, parseISO } from "date-fns"
+import { fr } from "date-fns/locale"
 
 export interface ContentItem {
   id: string
@@ -58,15 +60,36 @@ const sectorColors: Record<string, string> = {
 }
 
 const countryFlags: Record<string, string> = {
-  "Cote d'Ivoire": "CI",
-  "Senegal": "SN",
-  "Nigeria": "NG",
-  "Afrique du Sud": "ZA",
-  "Ghana": "GH",
-  "Kenya": "KE",
-  "Maroc": "MA",
-  "France": "FR",
-  "USA": "US",
+  "Côte d'Ivoire": "🇨🇮",
+  "Cote d'Ivoire": "🇨🇮",
+  "Sénégal": "🇸🇳",
+  "Senegal": "🇸🇳",
+  "Bénin": "🇧🇯",
+  "Benin": "🇧🇯",
+  "Burkina Faso": "🇧🇫",
+  "Togo": "🇹🇬",
+  "Guinée": "🇬🇳",
+  "Guinee": "🇬🇳",
+  "Nigeria": "🇳🇬",
+  "Afrique du Sud": "🇿🇦",
+  "Ghana": "🇬🇭",
+  "Kenya": "🇰🇪",
+  "Maroc": "🇲🇦",
+  "France": "🇫🇷",
+  "USA": "🇺🇸",
+  "Cameroun": "🇨🇲",
+  "Mali": "🇲🇱",
+  "Niger": "🇳🇪",
+}
+
+// Formate la date en français (ex: "15 janvier 2024")
+function formatDateFr(dateString: string): string {
+  try {
+    const date = parseISO(dateString)
+    return format(date, "d MMMM yyyy", { locale: fr })
+  } catch {
+    return dateString
+  }
 }
 
 export function ContentCard({ content }: ContentCardProps) {
@@ -223,14 +246,12 @@ export function ContentCard({ content }: ContentCardProps) {
 
           <div className="mt-4 flex items-center justify-between text-sm font-medium text-[#1A1F2B]/70">
             <div className="flex items-center gap-1.5">
-              <Globe className="h-4 w-4" />
-              <span className="font-semibold">{countryFlags[content.country] || content.country}</span>
-              <span className="mx-1 text-[#1A1F2B]/40">·</span>
+              <span className="text-lg">{countryFlags[content.country] || "🌍"}</span>
               <span>{content.country}</span>
             </div>
             <div className="flex items-center gap-1.5">
               <Calendar className="h-4 w-4" />
-              <span>{content.date}</span>
+              <span>{formatDateFr(content.date)}</span>
             </div>
           </div>
         </div>

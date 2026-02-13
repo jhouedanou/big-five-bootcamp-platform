@@ -1,20 +1,34 @@
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
+  TableCell,
 } from "@/components/ui/table"
-import { getUsers } from "@/app/actions/user"
-import { UserStatusToggle } from "./user-status-toggle"
-import { Badge } from "@/components/ui/badge" // Assuming Badge component exists
+import { getUsers, getPayments } from "@/app/actions/user"
+import { UserRow } from "./user-row"
 
 export default async function UsersPage() {
-  const { data: users, success } = await getUsers()
+  const [usersResult, paymentsResult] = await Promise.all([
+    getUsers(),
+    getPayments(),
+  ])
 
-  if (!success || !users) {
+  if (!usersResult.success || !usersResult.data) {
     return <div>Failed to load users</div>
+  }
+
+  const users = usersResult.data
+  const payments = paymentsResult.data || []
+
+  // Group payments by user email
+  const paymentsByEmail: Record<string, typeof payments> = {}
+  for (const payment of payments) {
+    const email = payment.user_email
+    if (!email) continue
+    if (!paymentsByEmail[email]) paymentsByEmail[email] = []
+    paymentsByEmail[email].push(payment)
   }
 
   return (
@@ -22,7 +36,7 @@ export default async function UsersPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-foreground">Utilisateurs</h1>
         <p className="text-muted-foreground">
-          Gérez l'accès des utilisateurs.
+          Gérez l'accès des utilisateurs. Cliquez sur une ligne pour voir les détails de paiement.
         </p>
       </div>
 
@@ -30,38 +44,31 @@ export default async function UsersPage() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-8"></TableHead>
               <TableHead>Nom</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Rôle</TableHead>
+              <TableHead>Plan</TableHead>
               <TableHead>Accès</TableHead>
-              <TableHead>Date d'inscription</TableHead>
+              <TableHead>Abonnement</TableHead>
+              <TableHead>Inscription</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {users.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   Aucun utilisateur trouvé.
                 </TableCell>
               </TableRow>
             ) : (
-              users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.name || "N/A"}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.role}</TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${user.subscriptionStatus === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                      {user.subscriptionStatus}
-                    </span>
-                  </TableCell>
-                  <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
-                  <TableCell className="text-right">
-                    <UserStatusToggle id={user.id} status={user.subscriptionStatus} />
-                  </TableCell>
-                </TableRow>
+              users.map((user: Record<string, unknown>) => (
+                <UserRow
+                  key={user.id as string}
+                  user={user}
+                  payments={paymentsByEmail[(user.email as string)] || []}
+                />
               ))
             )}
           </TableBody>

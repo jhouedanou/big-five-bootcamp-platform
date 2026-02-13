@@ -37,18 +37,55 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vérifier si l'utilisateur existe
-    const { data: existingUser } = await supabaseAdmin
+    // Vérifier si l'utilisateur existe dans la table users
+    let { data: existingUser, error: userError } = await supabaseAdmin
       .from('users')
       .select('id, email, name, subscription_status, subscription_end_date')
       .eq('email', userEmail)
       .single();
 
-    if (!existingUser) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+    // Si l'utilisateur n'existe pas dans la table users, le créer
+    if (!existingUser || userError?.code === 'PGRST116') {
+      console.log('👤 Utilisateur non trouvé dans la table users, création...');
+
+      // Chercher l'utilisateur par email dans Supabase Auth (via filtre)
+      const { data: authListData, error: authListError } = await supabaseAdmin.auth.admin.listUsers({
+        filter: userEmail,
+      });
+      const authUser = authListData?.users?.[0];
+
+      if (authListError || !authUser) {
+        console.error('❌ Utilisateur non trouvé dans Auth:', authListError);
+        return NextResponse.json(
+          { error: 'Utilisateur non trouvé. Veuillez vous inscrire d\'abord.' },
+          { status: 404 }
+        );
+      }
+
+      // Créer l'utilisateur dans la table users
+      const { data: newUser, error: createError } = await supabaseAdmin
+        .from('users')
+        .upsert({
+          id: authUser.id,
+          email: authUser.email!,
+          name: authUser.user_metadata?.name || authUser.email!.split('@')[0],
+          role: 'user',
+          plan: 'Free',
+          status: 'active',
+        }, { onConflict: 'id' })
+        .select('id, email, name, subscription_status, subscription_end_date')
+        .single();
+
+      if (createError) {
+        console.error('❌ Erreur création utilisateur:', createError);
+        return NextResponse.json(
+          { error: 'Impossible de créer le profil utilisateur', details: createError.message },
+          { status: 500 }
+        );
+      }
+
+      existingUser = newUser;
+      console.log('✅ Utilisateur créé:', existingUser?.id);
     }
 
     // Vérifier si un abonnement actif existe déjà

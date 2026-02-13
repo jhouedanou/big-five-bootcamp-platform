@@ -13,10 +13,13 @@ type AdminContextType = {
   isAuthenticated: boolean;
   isAdmin: boolean;
   isLoading: boolean;
+  isUsingLocalData: boolean;
+  userEmail: string | null;
   logout: () => void;
   addCampaign: (item: Omit<ContentItem, "id">) => void;
   updateCampaign: (id: string, item: Partial<ContentItem>) => void;
   deleteCampaign: (id: string) => void;
+  refreshCampaigns: () => Promise<void>;
 };
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
@@ -51,7 +54,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
           }
 
           // Liste des emails admin autorisés (fallback principal)
-          const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannickj@bigfiveabidjan.com'];
+          const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannick@bigfiveabidjan.com', 'franck@bigfiveabidjan.com', 'stephanie@bigfiveabidjan.com'];
           
           // Vérifier d'abord si l'email est dans la liste admin connue
           if (adminEmails.includes(session.user.email)) {
@@ -100,7 +103,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         }
         
         // Liste des emails admin autorisés
-        const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannickj@bigfiveabidjan.com'];
+        const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannick@bigfiveabidjan.com', 'franck@bigfiveabidjan.com', 'stephanie@bigfiveabidjan.com'];
         
         // Vérifier si l'email est dans la liste admin connue
         if (adminEmails.includes(session.user.email)) {
@@ -141,12 +144,16 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   // Charger les campagnes depuis Supabase
   useEffect(() => {
-    if (isAdmin) {
-      loadCampaignsFromSupabase();
-    } else {
+    if (isAdmin && !authLoading) {
+      // Petit délai pour s'assurer que les cookies sont synchronisés
+      const timer = setTimeout(() => {
+        loadCampaignsFromSupabase();
+      }, 100);
+      return () => clearTimeout(timer);
+    } else if (!authLoading) {
       setCampaignsLoading(false);
     }
-  }, [isAdmin]);
+  }, [isAdmin, authLoading]);
 
   // Données d'exemple pour l'admin quand la base n'est pas configurée
   const getSampleCampaigns = (): ContentItem[] => [
@@ -205,14 +212,25 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   const loadCampaignsFromSupabase = async () => {
     try {
+      console.log('Loading campaigns from API...')
+      
       // Utiliser l'API admin qui bypass RLS
       const response = await fetch('/api/admin/campaigns', {
         credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
+      
+      console.log('API response status:', response.status)
       
       if (!response.ok) {
         const errorData = await response.json();
         console.warn('API admin/campaigns non disponible:', errorData.error);
+        // En mode développement, afficher un message plus explicite
+        if (process.env.NODE_ENV === 'development') {
+          console.info('💡 Pour accéder aux campagnes, connectez-vous avec un compte admin.')
+        }
         setCampaigns(getSampleCampaigns());
         setIsUsingLocalData(true);
         return;
@@ -241,6 +259,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       const formattedCampaigns: ContentItem[] = (data || []).map((campaign: any) => ({
         id: campaign.id,
         title: campaign.title,
+        summary: campaign.summary || '',
         description: campaign.description || '',
         imageUrl: campaign.thumbnail || '',
         platform: campaign.platforms?.[0] || 'Facebook',
@@ -256,6 +275,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         agency: campaign.agency || '',
         year: campaign.year || undefined,
         status: campaign.status || 'Brouillon',
+        accessLevel: campaign.access_level || 'free',
       }));
 
       setCampaigns(formattedCampaigns);
@@ -276,6 +296,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const mapToDbRecord = (data: Partial<ContentItem>) => {
     const record: Record<string, any> = {};
     if (data.title !== undefined) record.title = data.title;
+    if (data.summary !== undefined) record.summary = data.summary;
     if (data.description !== undefined) record.description = data.description;
     if (data.imageUrl !== undefined) record.thumbnail = data.imageUrl;
     if (data.platform !== undefined) record.platforms = [data.platform];
@@ -289,6 +310,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     if (data.tags !== undefined) record.tags = data.tags;
     if (data.brand !== undefined) record.brand = data.brand;
     if (data.status !== undefined) record.status = data.status;
+    if (data.accessLevel !== undefined) record.access_level = data.accessLevel;
     return record;
   };
 
@@ -432,10 +454,13 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         isAuthenticated,
         isAdmin,
         isLoading,
+        isUsingLocalData,
+        userEmail: session?.user?.email || null,
         logout,
         addCampaign,
         updateCampaign,
         deleteCampaign,
+        refreshCampaigns: loadCampaignsFromSupabase,
       }}
     >
       {children}

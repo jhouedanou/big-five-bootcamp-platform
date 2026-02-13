@@ -7,13 +7,16 @@ import { supabaseAdmin } from '@/lib/supabase'
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Dans Next.js 15+, params est une Promise
+    const { id } = await params;
+    
     const { data, error } = await supabaseAdmin
       .from('campaigns')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (error) throw error
@@ -34,15 +37,17 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Dans Next.js 15+, params est une Promise
+    const { id } = await params;
     const body = await request.json()
 
     const { data, error } = await supabaseAdmin
       .from('campaigns')
       .update(body)
-      .eq('id', params.id)
+      .eq('id', id)
       .select()
       .single()
 
@@ -64,13 +69,16 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Dans Next.js 15+, params est une Promise
+    const { id } = await params;
+    
     const { error } = await supabaseAdmin
       .from('campaigns')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (error) throw error
 

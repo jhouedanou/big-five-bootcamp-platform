@@ -8,7 +8,10 @@
       "Bash(DATABASE_URL=\"file:./prisma/dev.db\" npx prisma db push:*)",
       "Bash(DATABASE_URL=\"file:./prisma/dev.db\" npx tsx:*)",
       "Bash(openssl rand:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npx tsx:*)",
+      "Bash(curl:*)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

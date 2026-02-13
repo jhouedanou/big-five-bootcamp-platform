@@ -39,7 +39,7 @@ export default function AdminLoginPage() {
       }
 
       // Vérifier si l'utilisateur est admin (via emails connus ou table users)
-      const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannickj@bigfiveabidjan.com'];
+      const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannick@bigfiveabidjan.com', 'franck@bigfiveabidjan.com', 'stephanie@bigfiveabidjan.com'];
       
       if (adminEmails.includes(email)) {
         toast.success("Connexion réussie !", {

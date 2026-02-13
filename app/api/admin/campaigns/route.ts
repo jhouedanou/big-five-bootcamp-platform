@@ -3,42 +3,74 @@ import { getSupabaseAdmin } from '@/lib/supabase'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
+// Liste des emails admin autorisés (centralisée)
+const ADMIN_EMAILS = [
+  'jeanluc@bigfiveabidjan.com', 
+  'cossi@bigfiveabidjan.com', 
+  'yannick@bigfiveabidjan.com', 
+  'franck@bigfiveabidjan.com', 
+  'stephanie@bigfiveabidjan.com'
+]
+
 // Helper pour vérifier si l'utilisateur est admin
-async function isAdminUser(request: NextRequest): Promise<boolean> {
-  const cookieStore = await cookies()
-  
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options)
-          })
-        },
-      },
+async function isAdminUser(request: NextRequest): Promise<{ isAdmin: boolean; email?: string; error?: string }> {
+  try {
+    const cookieStore = await cookies()
+    const allCookies = cookieStore.getAll()
+    
+    // Debug: Log les cookies disponibles (en développement)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Available cookies:', allCookies.map(c => c.name).join(', '))
     }
-  )
-  
-  const { data: { session } } = await supabase.auth.getSession()
-  
-  if (!session?.user?.email) {
-    return false
+    
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return allCookies
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) => {
+                cookieStore.set(name, value, options)
+              })
+            } catch {
+              // Ignore errors in read-only context
+            }
+          },
+        },
+      }
+    )
+    
+    // Utiliser getUser() qui est plus fiable que getSession() côté serveur
+    const { data: { user }, error } = await supabase.auth.getUser()
+    
+    if (error) {
+      console.log('Auth getUser error:', error.message)
+      return { isAdmin: false, error: error.message }
+    }
+    
+    if (!user?.email) {
+      console.log('No user or email found in session')
+      return { isAdmin: false, error: 'No user session' }
+    }
+    
+    console.log('Checking admin status for:', user.email)
+    
+    // Vérifier les métadonnées ou la liste connue
+    if (user.user_metadata?.role === 'admin' || ADMIN_EMAILS.includes(user.email)) {
+      console.log('User is admin:', user.email)
+      return { isAdmin: true, email: user.email }
+    }
+    
+    console.log('User not in admin list:', user.email)
+    return { isAdmin: false, email: user.email, error: 'Not an admin' }
+  } catch (error: any) {
+    console.error('Error checking admin status:', error)
+    return { isAdmin: false, error: error.message }
   }
-  
-  // Liste des emails admin autorisés
-  const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannickj@bigfiveabidjan.com']
-  
-  // Vérifier les métadonnées ou la liste connue
-  if (session.user.user_metadata?.role === 'admin' || adminEmails.includes(session.user.email)) {
-    return true
-  }
-  
-  return false
 }
 
 /**
@@ -48,7 +80,7 @@ async function isAdminUser(request: NextRequest): Promise<boolean> {
 export async function GET(request: NextRequest) {
   try {
     // Vérifier que l'utilisateur est admin
-    const isAdmin = await isAdminUser(request)
+    const { isAdmin } = await isAdminUser(request)
     if (!isAdmin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -79,7 +111,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const isAdmin = await isAdminUser(request)
+    const { isAdmin } = await isAdminUser(request)
     if (!isAdmin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -116,7 +148,7 @@ export async function POST(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
-    const isAdmin = await isAdminUser(request)
+    const { isAdmin } = await isAdminUser(request)
     if (!isAdmin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -155,7 +187,7 @@ export async function PUT(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const isAdmin = await isAdminUser(request)
+    const { isAdmin } = await isAdminUser(request)
     if (!isAdmin) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

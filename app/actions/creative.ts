@@ -49,6 +49,7 @@ export async function createCreative(formData: FormData) {
     const objective = formData.get("objective") as string
     const thumbnail = formData.get("thumbnail") as string
     const videoUrl = formData.get("videoUrl") as string
+    const campaignDate = formData.get("campaignDate") as string
     const whyItWorks = formData.get("whyItWorks") as string
     const howToUse = formData.get("howToUse") as string
 
@@ -60,6 +61,7 @@ export async function createCreative(formData: FormData) {
             platforms: [platform],
             thumbnail,
             video_url: videoUrl || null,
+            campaign_date: campaignDate || null,
             description: [whyItWorks, howToUse].filter(Boolean).join('\n\n') || null,
             tags: [format, objective].filter(Boolean),
             status: 'Publié',
@@ -83,6 +85,7 @@ export async function updateCreative(id: string, formData: FormData) {
     const objective = formData.get("objective") as string
     const thumbnail = formData.get("thumbnail") as string
     const videoUrl = formData.get("videoUrl") as string
+    const campaignDate = formData.get("campaignDate") as string
     const whyItWorks = formData.get("whyItWorks") as string
     const howToUse = formData.get("howToUse") as string
 
@@ -96,6 +99,7 @@ export async function updateCreative(id: string, formData: FormData) {
                 platforms: [platform],
                 thumbnail,
                 video_url: videoUrl || null,
+                campaign_date: campaignDate || null,
                 description: [whyItWorks, howToUse].filter(Boolean).join('\n\n') || null,
                 tags: [format, objective].filter(Boolean),
             })

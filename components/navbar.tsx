@@ -1,13 +1,22 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
-import { Menu, X, ArrowRight } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Menu, X, ArrowRight, Heart, BookOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
+import { createClient } from "@/lib/supabase"
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthenticated(!!session?.user)
+    })
+  }, [])
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#D0E4F2] bg-white/95 backdrop-blur-xl">
@@ -30,6 +39,26 @@ export function Navbar() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
+          {isAuthenticated && (
+            <>
+              <Link
+                href="/library"
+                className="relative px-4 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-all duration-300 hover:text-[#1A1F2B] group flex items-center gap-1.5"
+              >
+                <BookOpen className="h-4 w-4" />
+                Bibliothèque
+                <span className="absolute bottom-0 left-1/2 h-0.5 w-0 bg-[#80368D] transition-all duration-300 group-hover:left-4 group-hover:w-[calc(100%-32px)]" />
+              </Link>
+              <Link
+                href="/favorites"
+                className="relative px-4 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-all duration-300 hover:text-[#1A1F2B] group flex items-center gap-1.5"
+              >
+                <Heart className="h-4 w-4" />
+                Favoris
+                <span className="absolute bottom-0 left-1/2 h-0.5 w-0 bg-[#80368D] transition-all duration-300 group-hover:left-4 group-hover:w-[calc(100%-32px)]" />
+              </Link>
+            </>
+          )}
           <Link
             href="/#features"
             className="relative px-4 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-all duration-300 hover:text-[#1A1F2B] group"
@@ -44,25 +73,38 @@ export function Navbar() {
             Tarifs
             <span className="absolute bottom-0 left-1/2 h-0.5 w-0 bg-[#80368D] transition-all duration-300 group-hover:left-4 group-hover:w-[calc(100%-32px)]" />
           </Link>
-          <Link
-            href="/dashboard"
-            className="relative px-4 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-all duration-300 hover:text-[#1A1F2B] group"
-          >
-            Démo
-            <span className="absolute bottom-0 left-1/2 h-0.5 w-0 bg-[#80368D] transition-all duration-300 group-hover:left-4 group-hover:w-[calc(100%-32px)]" />
-          </Link>
+          {!isAuthenticated && (
+            <Link
+              href="/dashboard"
+              className="relative px-4 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-all duration-300 hover:text-[#1A1F2B] group"
+            >
+              Démo
+              <span className="absolute bottom-0 left-1/2 h-0.5 w-0 bg-[#80368D] transition-all duration-300 group-hover:left-4 group-hover:w-[calc(100%-32px)]" />
+            </Link>
+          )}
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Button variant="ghost" asChild className="font-medium text-[#1A1F2B] hover:bg-[#D0E4F2]/50">
-            <Link href="/login">Connexion</Link>
-          </Button>
-          <Button asChild className="group font-semibold shadow-lg shadow-[#80368D]/25 transition-all duration-300 hover:shadow-xl hover:shadow-[#80368D]/30 hover:scale-105 bg-[#80368D] hover:bg-[#80368D]/90">
-            <Link href="/pricing">
-              Essai gratuit 30 jours
-              <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Link>
-          </Button>
+          {isAuthenticated ? (
+            <Button asChild className="font-semibold shadow-lg shadow-[#80368D]/25 transition-all duration-300 hover:shadow-xl hover:shadow-[#80368D]/30 hover:scale-105 bg-[#80368D] hover:bg-[#80368D]/90">
+              <Link href="/dashboard">
+                Mon espace
+                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </Button>
+          ) : (
+            <>
+              <Button variant="ghost" asChild className="font-medium text-[#1A1F2B] hover:bg-[#D0E4F2]/50">
+                <Link href="/login">Connexion</Link>
+              </Button>
+              <Button asChild className="group font-semibold shadow-lg shadow-[#80368D]/25 transition-all duration-300 hover:shadow-xl hover:shadow-[#80368D]/30 hover:scale-105 bg-[#80368D] hover:bg-[#80368D]/90">
+                <Link href="/pricing">
+                  Essai gratuit 30 jours
+                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </Button>
+            </>
+          )}
         </div>
 
         <button
@@ -79,6 +121,26 @@ export function Navbar() {
       <div className={`md:hidden overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
         <div className="border-t border-[#D0E4F2] bg-white/95 backdrop-blur-xl">
           <nav className="flex flex-col gap-1 px-4 py-4">
+            {isAuthenticated && (
+              <>
+                <Link
+                  href="/library"
+                  className="rounded-xl px-4 py-3 text-sm font-medium text-[#1A1F2B]/70 transition-all duration-300 hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] hover:translate-x-1 flex items-center gap-2"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <BookOpen className="h-4 w-4" />
+                  Bibliothèque
+                </Link>
+                <Link
+                  href="/favorites"
+                  className="rounded-xl px-4 py-3 text-sm font-medium text-[#1A1F2B]/70 transition-all duration-300 hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] hover:translate-x-1 flex items-center gap-2"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Heart className="h-4 w-4" />
+                  Favoris
+                </Link>
+              </>
+            )}
             <Link
               href="/#features"
               className="rounded-xl px-4 py-3 text-sm font-medium text-[#1A1F2B]/70 transition-all duration-300 hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] hover:translate-x-1"
@@ -93,27 +155,40 @@ export function Navbar() {
             >
               Tarifs
             </Link>
-            <Link
-              href="/dashboard"
-              className="rounded-xl px-4 py-3 text-sm font-medium text-[#1A1F2B]/70 transition-all duration-300 hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] hover:translate-x-1"
-              onClick={() => setIsOpen(false)}
-            >
-              Démo
-            </Link>
-            <hr className="my-3 border-[#D0E4F2]" />
-            <Link
-              href="/login"
-              className="rounded-xl px-4 py-3 text-sm font-medium text-[#1A1F2B]/70 transition-all duration-300 hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] hover:translate-x-1"
-              onClick={() => setIsOpen(false)}
-            >
-              Connexion
-            </Link>
-            <Button asChild className="mt-3 h-12 font-semibold shadow-lg shadow-[#80368D]/25 bg-[#80368D] hover:bg-[#80368D]/90">
-              <Link href="/pricing" onClick={() => setIsOpen(false)}>
-                Essai gratuit 30 jours
-                <ArrowRight className="ml-2 h-4 w-4" />
+            {!isAuthenticated && (
+              <Link
+                href="/dashboard"
+                className="rounded-xl px-4 py-3 text-sm font-medium text-[#1A1F2B]/70 transition-all duration-300 hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] hover:translate-x-1"
+                onClick={() => setIsOpen(false)}
+              >
+                Démo
               </Link>
-            </Button>
+            )}
+            <hr className="my-3 border-[#D0E4F2]" />
+            {isAuthenticated ? (
+              <Button asChild className="h-12 font-semibold shadow-lg shadow-[#80368D]/25 bg-[#80368D] hover:bg-[#80368D]/90">
+                <Link href="/dashboard" onClick={() => setIsOpen(false)}>
+                  Mon espace
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="rounded-xl px-4 py-3 text-sm font-medium text-[#1A1F2B]/70 transition-all duration-300 hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] hover:translate-x-1"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Connexion
+                </Link>
+                <Button asChild className="mt-3 h-12 font-semibold shadow-lg shadow-[#80368D]/25 bg-[#80368D] hover:bg-[#80368D]/90">
+                  <Link href="/pricing" onClick={() => setIsOpen(false)}>
+                    Essai gratuit 30 jours
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </>
+            )}
           </nav>
         </div>
       </div>

@@ -16,7 +16,7 @@ export function useSupabaseAuth() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       if (session?.user) {
-        fetchUserProfile(session.user.id)
+        fetchUserProfile(session.user)
       } else {
         setLoading(false)
       }
@@ -28,7 +28,7 @@ export function useSupabaseAuth() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) {
-        fetchUserProfile(session.user.id)
+        fetchUserProfile(session.user)
       } else {
         setUserProfile(null)
         setLoading(false)
@@ -38,16 +38,42 @@ export function useSupabaseAuth() {
     return () => subscription.unsubscribe()
   }, [])
 
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (authUser: User) => {
     try {
+      // Essayer de récupérer le profil existant
       const { data, error } = await supabase
         .from('users')
         .select('*')
-        .eq('id', userId)
+        .eq('id', authUser.id)
         .single()
 
-      if (error) throw error
-      setUserProfile(data)
+      if (error?.code === 'PGRST116') {
+        // L'utilisateur n'existe pas dans la table users, le créer
+        console.log('Profil non trouvé, création automatique...')
+
+        const { data: newProfile, error: createError } = await supabase
+          .from('users')
+          .insert({
+            id: authUser.id,
+            email: authUser.email!,
+            name: authUser.user_metadata?.name || authUser.email!.split('@')[0],
+            role: 'user',
+            plan: 'Free',
+            status: 'active',
+          })
+          .select('*')
+          .single()
+
+        if (createError) {
+          console.error('Error creating user profile:', createError)
+        } else {
+          setUserProfile(newProfile)
+        }
+      } else if (error) {
+        throw error
+      } else {
+        setUserProfile(data)
+      }
     } catch (error) {
       console.error('Error fetching user profile:', error)
     } finally {

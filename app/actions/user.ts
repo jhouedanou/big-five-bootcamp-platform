@@ -25,6 +25,21 @@ export async function getUsers() {
     }
 }
 
+export async function getPayments() {
+    try {
+        const supabase = getSupabaseAdmin()
+        const { data: payments, error } = await supabase
+            .from('payments')
+            .select('id, ref_command, amount, currency, payment_method, status, user_email, item_name, created_at, completed_at')
+            .order('created_at', { ascending: false })
+
+        if (error) throw error
+        return { success: true, data: payments || [] }
+    } catch (error) {
+        return { success: false, data: [] }
+    }
+}
+
 export async function toggleUserStatus(id: string, currentStatus: string) {
     try {
         const supabase = getSupabaseAdmin()

@@ -38,14 +38,24 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
-    // Protected routes
+    // Protected routes - require authentication
     if (request.nextUrl.pathname.startsWith('/dashboard') ||
-        request.nextUrl.pathname.startsWith('/library') ||
-        request.nextUrl.pathname.startsWith('/admin')) {
+        request.nextUrl.pathname.startsWith('/favorites')) {
 
         if (!user) {
             const url = request.nextUrl.clone()
             url.pathname = '/login'
+            return NextResponse.redirect(url)
+        }
+    }
+
+    // Admin routes - redirect to admin login
+    if (request.nextUrl.pathname.startsWith('/admin') &&
+        !request.nextUrl.pathname.startsWith('/admin/login')) {
+
+        if (!user) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/admin/login'
             return NextResponse.redirect(url)
         }
     }

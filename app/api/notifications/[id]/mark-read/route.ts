@@ -10,9 +10,12 @@ import { createClient } from '@/lib/supabase';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Dans Next.js 15+, params est une Promise
+    const { id } = await params;
+    
     // Récupérer l'utilisateur connecté
     const supabase = createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -24,7 +27,7 @@ export async function PATCH(
       );
     }
 
-    const notificationId = params.id;
+    const notificationId = id;
 
     // Vérifier que la notification appartient à l'utilisateur
     const { data: notification, error: fetchError } = await supabaseAdmin

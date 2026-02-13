@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Save } from "lucide-react";
+import { Save, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
@@ -16,13 +17,68 @@ export default function SettingsPage() {
     publicAccess: true,
   });
 
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
   const handleSave = () => {
-    // In a real app, this would save to backend
-    toast.success("Parametres enregistres avec succes");
+    toast.success("Paramètres enregistrés avec succès");
+  };
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error("Veuillez remplir tous les champs");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      toast.error("Le nouveau mot de passe doit contenir au moins 8 caractères");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error("Les nouveaux mots de passe ne correspondent pas");
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      toast.error("Le nouveau mot de passe doit être différent de l'actuel");
+      return;
+    }
+
+    setIsChangingPassword(true);
+
+    try {
+      const response = await fetch("/api/admin/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || "Erreur lors du changement de mot de passe");
+        return;
+      }
+
+      toast.success("Mot de passe modifié avec succès");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch {
+      toast.error("Erreur de connexion au serveur");
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-[family-name:var(--font-heading)]">
@@ -32,13 +88,99 @@ export default function SettingsPage() {
             Configuration globale de la plateforme
           </p>
         </div>
-        <Button onClick={handleSave} className="bg-[#FF6B35] hover:bg-[#e55a2b] text-white">
-          <Save className="h-4 w-4 mr-2" />
-          Enregistrer
-        </Button>
       </div>
 
       <div className="grid gap-6">
+        {/* Password Change */}
+        <Card className="bg-white border-gray-200 shadow-sm">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-orange-500/10">
+                <Lock className="h-5 w-5 text-orange-600" />
+              </div>
+              <div>
+                <CardTitle className="text-gray-900">Changer le mot de passe</CardTitle>
+                <CardDescription className="text-gray-600">
+                  Modifiez votre mot de passe administrateur
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 max-w-md">
+            <div>
+              <Label htmlFor="currentPassword" className="text-gray-900">Mot de passe actuel</Label>
+              <div className="relative mt-1.5">
+                <Input
+                  id="currentPassword"
+                  type={showCurrentPassword ? "text" : "password"}
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Votre mot de passe actuel"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="newPassword" className="text-gray-900">Nouveau mot de passe</Label>
+              <div className="relative mt-1.5">
+                <Input
+                  id="newPassword"
+                  type={showNewPassword ? "text" : "password"}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Minimum 8 caractères"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="confirmPassword" className="text-gray-900">Confirmer le nouveau mot de passe</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Retapez le nouveau mot de passe"
+                className="mt-1.5"
+              />
+              {confirmPassword && newPassword !== confirmPassword && (
+                <p className="text-xs text-red-500 mt-1">Les mots de passe ne correspondent pas</p>
+              )}
+            </div>
+            <Button
+              onClick={handleChangePassword}
+              disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+              className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg shadow-orange-500/25"
+            >
+              {isChangingPassword ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Modification...
+                </>
+              ) : (
+                <>
+                  <Lock className="h-4 w-4 mr-2" />
+                  Modifier le mot de passe
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* General Settings */}
         <Card className="bg-white border-gray-200 shadow-sm">
           <CardHeader>
@@ -122,6 +264,14 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Save Button */}
+        <div className="flex justify-end">
+          <Button onClick={handleSave} className="bg-[#FF6B35] hover:bg-[#e55a2b] text-white">
+            <Save className="h-4 w-4 mr-2" />
+            Enregistrer les paramètres
+          </Button>
+        </div>
       </div>
     </div>
   );

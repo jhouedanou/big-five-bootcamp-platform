@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAdmin } from "../AdminContext";
 import type { ContentItem } from "@/components/dashboard/content-card";
@@ -38,12 +38,16 @@ import {
   Video,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   Send,
   FileText,
   Image,
   Sparkles,
   Check,
   Upload,
+  Crown,
+  Users,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -55,6 +59,7 @@ import { toast } from "sonner";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { CSVImporter } from "@/components/admin/csv-importer";
 import { cn } from "@/lib/utils";
+import { DatePicker } from "@/components/ui/date-picker";
 
 const platforms = ["Facebook", "Instagram", "TikTok", "YouTube", "LinkedIn", "Twitter/X"];
 const countries = ["Cote d'Ivoire", "Nigeria", "Kenya", "Ghana", "Senegal", "Maroc", "Afrique du Sud"];
@@ -68,8 +73,50 @@ const FORM_STEPS = [
   { id: 3, title: "Description", icon: Sparkles, description: "Analyse et conseils" },
 ];
 
+/**
+ * Convertit une URL YouTube standard en URL embed
+ * Supporte: youtube.com/watch?v=xxx, youtu.be/xxx, youtube.com/embed/xxx
+ */
+function convertToYouTubeEmbed(url: string): string {
+  if (!url) return "";
+  
+  // Si c'est déjà une URL embed, la retourner telle quelle
+  if (url.includes("/embed/")) {
+    return url;
+  }
+  
+  // Extraire l'ID de la vidéo
+  let videoId = "";
+  
+  // Format: youtube.com/watch?v=VIDEO_ID
+  const watchMatch = url.match(/[?&]v=([^&]+)/);
+  if (watchMatch) {
+    videoId = watchMatch[1];
+  }
+  
+  // Format: youtu.be/VIDEO_ID
+  const shortMatch = url.match(/youtu\.be\/([^?&]+)/);
+  if (shortMatch) {
+    videoId = shortMatch[1];
+  }
+  
+  // Format: youtube.com/v/VIDEO_ID
+  const vMatch = url.match(/youtube\.com\/v\/([^?&]+)/);
+  if (vMatch) {
+    videoId = vMatch[1];
+  }
+  
+  if (videoId) {
+    return `https://www.youtube.com/embed/${videoId}`;
+  }
+  
+  // Retourner l'URL originale si on ne peut pas la convertir
+  return url;
+}
+
 const defaultFormData: Omit<ContentItem, "id"> = {
   title: "",
+  summary: "",
   description: "",
   imageUrl: "",
   images: [],
@@ -85,10 +132,11 @@ const defaultFormData: Omit<ContentItem, "id"> = {
   year: new Date().getFullYear(),
   isVideo: false,
   status: "Brouillon",
+  accessLevel: "free",
 };
 
 function CampaignsPageContent() {
-  const { campaigns, addCampaign, updateCampaign, deleteCampaign } = useAdmin();
+  const { campaigns, addCampaign, updateCampaign, deleteCampaign, isUsingLocalData, refreshCampaigns, userEmail } = useAdmin();
   const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterSector, setFilterSector] = useState<string>("all");
@@ -100,6 +148,29 @@ function CampaignsPageContent() {
   const [previewCampaign, setPreviewCampaign] = useState<ContentItem | null>(null);
   const [previewImageIndex, setPreviewImageIndex] = useState(0);
   const [currentStep, setCurrentStep] = useState(1);
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+
+  // Extraire tous les tags existants des campagnes pour les suggestions
+  const existingTags = useMemo(() => {
+    const allTags = new Set<string>();
+    campaigns.forEach((campaign) => {
+      campaign.tags?.forEach((tag) => {
+        if (tag) allTags.add(tag);
+      });
+    });
+    return Array.from(allTags).sort();
+  }, [campaigns]);
+
+  // Filtrer les suggestions de tags basées sur l'input
+  const filteredTagSuggestions = useMemo(() => {
+    if (!tagInput.trim()) return existingTags.slice(0, 10);
+    return existingTags
+      .filter((tag) => 
+        tag.toLowerCase().includes(tagInput.toLowerCase()) &&
+        !formData.tags.includes(tag)
+      )
+      .slice(0, 10);
+  }, [tagInput, existingTags, formData.tags]);
 
   // Ouvrir automatiquement le formulaire si ?action=new
   useEffect(() => {
@@ -134,6 +205,7 @@ function CampaignsPageContent() {
     setEditingCampaign(item);
     setFormData({
       title: item.title,
+      summary: item.summary || "",
       description: item.description,
       imageUrl: item.imageUrl,
       images: item.images || [],
@@ -149,6 +221,7 @@ function CampaignsPageContent() {
       year: item.year || new Date().getFullYear(),
       isVideo: item.isVideo || false,
       status: item.status || "Brouillon",
+      accessLevel: item.accessLevel || "free",
     });
     setTagInput("");
     setImageInput("");
@@ -186,10 +259,17 @@ function CampaignsPageContent() {
       toast.error("Le titre est obligatoire");
       return;
     }
+    
+    // Convertir l'URL YouTube en format embed si nécessaire
+    const processedFormData = {
+      ...formData,
+      videoUrl: formData.videoUrl ? convertToYouTubeEmbed(formData.videoUrl) : "",
+    };
+    
     if (editingCampaign) {
-      await updateCampaign(editingCampaign.id, formData);
+      await updateCampaign(editingCampaign.id, processedFormData);
     } else {
-      await addCampaign(formData);
+      await addCampaign(processedFormData);
     }
     setIsDialogOpen(false);
     setCurrentStep(1);
@@ -206,25 +286,72 @@ function CampaignsPageContent() {
 
   const sectorColor = (sector: string) => {
     const colors: Record<string, string> = {
-      Telecoms: "bg-blue-500/20 text-blue-400",
-      "E-commerce": "bg-pink-500/20 text-pink-400",
-      "Banque/Finance": "bg-purple-500/20 text-purple-400",
-      FMCG: "bg-orange-500/20 text-orange-400",
-      Tech: "bg-cyan-500/20 text-cyan-400",
-      Energie: "bg-yellow-500/20 text-yellow-400",
-      Industrie: "bg-slate-500/20 text-slate-400",
+      Telecoms: "bg-blue-100 text-blue-700",
+      "E-commerce": "bg-pink-100 text-pink-700",
+      "Banque/Finance": "bg-purple-100 text-purple-700",
+      FMCG: "bg-orange-100 text-orange-700",
+      Tech: "bg-cyan-100 text-cyan-700",
+      Energie: "bg-yellow-100 text-yellow-700",
+      Industrie: "bg-slate-100 text-slate-700",
     };
-    return colors[sector] || "bg-gray-500/20 text-gray-400";
+    return colors[sector] || "bg-gray-100 text-gray-600";
   };
 
   return (
-    <div className="p-6 lg:p-8 space-y-6">
+    <div className="space-y-6">
+      {/* Avertissement si données de test */}
+      {isUsingLocalData && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-medium text-amber-800">Mode démonstration</h3>
+            <p className="text-sm text-amber-700 mt-1">
+              Vous voyez des données d'exemple car la connexion à la base de données n'est pas disponible.
+              {userEmail && (
+                <span className="block mt-1">
+                  <strong>Connecté avec :</strong> {userEmail}
+                </span>
+              )}
+              {!userEmail && (
+                <span className="block mt-1 text-red-600">
+                  ⚠️ Aucune session détectée. Veuillez vous reconnecter.
+                </span>
+              )}
+            </p>
+            <div className="flex gap-2 mt-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-amber-700 border-amber-300 hover:bg-amber-100"
+                onClick={() => refreshCampaigns()}
+              >
+                Réessayer la connexion
+              </Button>
+              {!userEmail && (
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="text-blue-700 border-blue-300 hover:bg-blue-100"
+                  onClick={() => window.location.href = '/admin/login'}
+                >
+                  Se reconnecter
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-white font-[family-name:var(--font-heading)]">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-[family-name:var(--font-heading)]">
             Exemples de Campagnes
           </h1>
-          <p className="text-[#9CA3AF] mt-1">
+          <p className="text-gray-500 mt-1">
             Gerez les exemples de campagnes affiches sur la plateforme ({campaigns.length} campagnes)
           </p>
         </div>
@@ -238,23 +365,23 @@ function CampaignsPageContent() {
       </div>
 
       {/* Filters */}
-      <Card className="bg-[#122a52] border-[#1a3a6e]">
+      <Card className="bg-white border-gray-200 shadow-sm">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#9CA3AF]" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Rechercher par titre, marque ou agence..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 bg-[#071428] border-[#1a3a6e] text-white placeholder:text-[#9CA3AF]"
+                className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
               />
             </div>
             <Select value={filterSector} onValueChange={setFilterSector}>
-              <SelectTrigger className="w-full sm:w-[200px] bg-[#071428] border-[#1a3a6e] text-white">
+              <SelectTrigger className="w-full sm:w-[200px] bg-white border-gray-300 text-gray-900">
                 <SelectValue placeholder="Filtrer par secteur" />
               </SelectTrigger>
-              <SelectContent className="bg-[#071428] border-[#1a3a6e] text-white">
+              <SelectContent className="bg-white border-gray-200 text-gray-900">
                 <SelectItem value="all">Tous les secteurs</SelectItem>
                 {sectors.map((s) => (
                   <SelectItem key={s} value={s}>{s}</SelectItem>
@@ -268,20 +395,20 @@ function CampaignsPageContent() {
       {/* Campaign List */}
       <div className="grid gap-4">
         {filteredCampaigns.length === 0 ? (
-          <Card className="bg-[#122a52] border-[#1a3a6e]">
+          <Card className="bg-white border-gray-200 shadow-sm">
             <CardContent className="p-8 text-center">
-              <Megaphone className="h-12 w-12 text-[#9CA3AF] mx-auto mb-4" />
-              <p className="text-[#9CA3AF]">Aucune campagne trouvee</p>
+              <Megaphone className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">Aucune campagne trouvee</p>
             </CardContent>
           </Card>
         ) : (
           filteredCampaigns.map((item) => (
-            <Card key={item.id} className="bg-[#122a52] border-[#1a3a6e]">
+            <Card key={item.id} className="bg-white border-gray-200 shadow-sm hover:shadow-md transition-shadow">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4 flex-1 min-w-0">
                     {/* Thumbnail */}
-                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-[#1a3a6e] flex-shrink-0">
+                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-200">
                       {item.imageUrl ? (
                         <img
                           src={item.imageUrl}
@@ -296,40 +423,52 @@ function CampaignsPageContent() {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-medium truncate">{item.title}</h3>
-                      <p className="text-[#9CA3AF] text-sm mt-0.5 truncate">
+                      <h3 className="text-gray-900 font-medium truncate">{item.title}</h3>
+                      <p className="text-gray-500 text-sm mt-0.5 truncate">
                         {item.brand && <span>{item.brand}</span>}
                         {item.agency && <span> - {item.agency}</span>}
                       </p>
                       <div className="flex flex-wrap gap-2 mt-2">
                         {/* Badge de statut */}
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                          item.status === "Publié" ? "bg-green-500/20 text-green-400" :
-                          item.status === "En attente" ? "bg-yellow-500/20 text-yellow-400" :
-                          "bg-gray-500/20 text-gray-400"
+                          item.status === "Publié" ? "bg-green-100 text-green-700" :
+                          item.status === "En attente" ? "bg-yellow-100 text-yellow-700" :
+                          "bg-gray-100 text-gray-600"
                         }`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${
-                            item.status === "Publié" ? "bg-green-400" :
-                            item.status === "En attente" ? "bg-yellow-400" :
+                            item.status === "Publié" ? "bg-green-500" :
+                            item.status === "En attente" ? "bg-yellow-500" :
                             "bg-gray-400"
                           }`}></span>
                           {item.status || "Brouillon"}
                         </span>
+                        {/* Badge Premium/Gratuit */}
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                          item.accessLevel === "premium" 
+                            ? "bg-amber-100 text-amber-700" 
+                            : "bg-emerald-100 text-emerald-700"
+                        }`}>
+                          {item.accessLevel === "premium" ? (
+                            <><Crown className="h-3 w-3" /> Premium</>
+                          ) : (
+                            <><Users className="h-3 w-3" /> Gratuit</>
+                          )}
+                        </span>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${sectorColor(item.sector)}`}>
                           {item.sector}
                         </span>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#1a3a6e] text-[#9CA3AF]">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
                           <Globe className="h-3 w-3 mr-1" />
                           {item.country}
                         </span>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#1a3a6e] text-[#9CA3AF]">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
                           {item.platform}
                         </span>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#1a3a6e] text-[#9CA3AF]">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
                           {item.format}
                         </span>
                         {item.date && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[#1a3a6e] text-[#9CA3AF]">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
                             {item.date}
                           </span>
                         )}
@@ -351,22 +490,22 @@ function CampaignsPageContent() {
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-[#9CA3AF] hover:text-white flex-shrink-0">
+                      <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-900 flex-shrink-0">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-[#071428] border-[#1a3a6e] text-white">
+                    <DropdownMenuContent align="end" className="bg-white border-gray-200 text-gray-900 shadow-lg">
                       <DropdownMenuItem
                         onClick={() => setPreviewCampaign(item)}
-                        className="hover:bg-[#1a3a6e] cursor-pointer"
+                        className="hover:bg-gray-100 cursor-pointer"
                       >
                         <Eye className="h-4 w-4 mr-2" />
                         Apercu
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handlePublish(item)}
-                        className={`hover:bg-[#1a3a6e] cursor-pointer ${
-                          item.status === "Publié" ? "text-yellow-400" : "text-green-400"
+                        className={`hover:bg-gray-100 cursor-pointer ${
+                          item.status === "Publié" ? "text-yellow-600" : "text-green-600"
                         }`}
                       >
                         <Send className="h-4 w-4 mr-2" />
@@ -374,14 +513,14 @@ function CampaignsPageContent() {
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handleOpenEdit(item)}
-                        className="hover:bg-[#1a3a6e] cursor-pointer"
+                        className="hover:bg-gray-100 cursor-pointer"
                       >
                         <Edit className="h-4 w-4 mr-2" />
                         Modifier
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handleDelete(item.id)}
-                        className="text-red-400 hover:bg-[#1a3a6e] hover:text-red-300 cursor-pointer"
+                        className="text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Supprimer
@@ -397,16 +536,17 @@ function CampaignsPageContent() {
 
       {/* Preview Dialog */}
       <Dialog open={!!previewCampaign} onOpenChange={() => { setPreviewCampaign(null); setPreviewImageIndex(0); }}>
-        <DialogContent className="bg-[#122a52] border-[#1a3a6e] text-white sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="bg-white border-gray-200 text-gray-900 sm:max-w-[600px] max-h-[90vh] overflow-y-auto shadow-xl">
           <DialogHeader>
-            <DialogTitle>{previewCampaign?.title}</DialogTitle>
+            <DialogTitle className="text-gray-900">{previewCampaign?.title}</DialogTitle>
           </DialogHeader>
           {previewCampaign && (() => {
             const allImages = [previewCampaign.imageUrl, ...(previewCampaign.images || [])].filter(Boolean);
+            const embedVideoUrl = previewCampaign.videoUrl ? convertToYouTubeEmbed(previewCampaign.videoUrl) : "";
             return (
               <div className="space-y-4">
                 {allImages.length > 0 && (
-                  <div className="relative rounded-lg overflow-hidden">
+                  <div className="relative rounded-lg overflow-hidden bg-gray-100">
                     <img
                       src={allImages[previewImageIndex] || ""}
                       alt={`${previewCampaign.title} - ${previewImageIndex + 1}`}
@@ -417,12 +557,16 @@ function CampaignsPageContent() {
                         <button
                           onClick={() => setPreviewImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length)}
                           className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
+                          title="Image précédente"
+                          aria-label="Image précédente"
                         >
                           <ChevronLeft className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => setPreviewImageIndex((prev) => (prev + 1) % allImages.length)}
                           className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full p-1 hover:bg-black/70"
+                          title="Image suivante"
+                          aria-label="Image suivante"
                         >
                           <ChevronRight className="h-4 w-4" />
                         </button>
@@ -432,69 +576,80 @@ function CampaignsPageContent() {
                               key={i}
                               onClick={() => setPreviewImageIndex(i)}
                               className={`w-2 h-2 rounded-full ${i === previewImageIndex ? "bg-[#FF6B35]" : "bg-white/50"}`}
+                              title={`Aller à l'image ${i + 1}`}
+                              aria-label={`Aller à l'image ${i + 1}`}
                             />
                           ))}
+                        </div>
+                        <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-full">
+                          {previewImageIndex + 1} / {allImages.length}
                         </div>
                       </>
                     )}
                   </div>
                 )}
-                {previewCampaign.videoUrl && (
+                {embedVideoUrl && (
                   <div className="rounded-lg overflow-hidden">
-                    <div className="text-sm text-[#9CA3AF] mb-1 flex items-center gap-1">
-                      <Video className="h-3 w-3" /> Video
+                    <div className="text-sm text-gray-500 mb-1 flex items-center gap-1">
+                      <Video className="h-3 w-3" /> Vidéo
                     </div>
                     <iframe
-                      src={previewCampaign.videoUrl}
-                      className="w-full aspect-video rounded-lg"
+                      src={embedVideoUrl}
+                      title={`Vidéo: ${previewCampaign.title}`}
+                      className="w-full aspect-video rounded-lg border border-gray-200"
                       allowFullScreen
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     />
                   </div>
                 )}
-                <p className="text-[#9CA3AF]">{previewCampaign.description}</p>
-                <div className="grid grid-cols-2 gap-3 text-sm">
+                {previewCampaign.description && (
+                  <div 
+                    className="text-gray-600 prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: previewCampaign.description }}
+                  />
+                )}
+                <div className="grid grid-cols-2 gap-3 text-sm bg-gray-50 rounded-lg p-4">
                   <div>
-                    <span className="text-[#9CA3AF]">Marque:</span>{" "}
-                    <span className="text-white">{previewCampaign.brand || "-"}</span>
+                    <span className="text-gray-500">Marque:</span>{" "}
+                    <span className="text-gray-900 font-medium">{previewCampaign.brand || "-"}</span>
                   </div>
                   <div>
-                    <span className="text-[#9CA3AF]">Agence:</span>{" "}
-                    <span className="text-white">{previewCampaign.agency || "-"}</span>
+                    <span className="text-gray-500">Agence:</span>{" "}
+                    <span className="text-gray-900 font-medium">{previewCampaign.agency || "-"}</span>
                   </div>
                   <div>
-                    <span className="text-[#9CA3AF]">Plateforme:</span>{" "}
-                    <span className="text-white">{previewCampaign.platform}</span>
+                    <span className="text-gray-500">Plateforme:</span>{" "}
+                    <span className="text-gray-900 font-medium">{previewCampaign.platform}</span>
                   </div>
                   <div>
-                    <span className="text-[#9CA3AF]">Pays:</span>{" "}
-                    <span className="text-white">{previewCampaign.country}</span>
+                    <span className="text-gray-500">Pays:</span>{" "}
+                    <span className="text-gray-900 font-medium">{previewCampaign.country}</span>
                   </div>
                   <div>
-                    <span className="text-[#9CA3AF]">Secteur:</span>{" "}
-                    <span className="text-white">{previewCampaign.sector}</span>
+                    <span className="text-gray-500">Secteur:</span>{" "}
+                    <span className="text-gray-900 font-medium">{previewCampaign.sector}</span>
                   </div>
                   <div>
-                    <span className="text-[#9CA3AF]">Format:</span>{" "}
-                    <span className="text-white">{previewCampaign.format}</span>
+                    <span className="text-gray-500">Format:</span>{" "}
+                    <span className="text-gray-900 font-medium">{previewCampaign.format}</span>
                   </div>
                   <div>
-                    <span className="text-[#9CA3AF]">Date:</span>{" "}
-                    <span className="text-white">{previewCampaign.date}</span>
+                    <span className="text-gray-500">Date:</span>{" "}
+                    <span className="text-gray-900 font-medium">{previewCampaign.date || "-"}</span>
                   </div>
                   <div>
-                    <span className="text-[#9CA3AF]">Annee:</span>{" "}
-                    <span className="text-white">{previewCampaign.year || "-"}</span>
+                    <span className="text-gray-500">Année:</span>{" "}
+                    <span className="text-gray-900 font-medium">{previewCampaign.year || "-"}</span>
                   </div>
                 </div>
                 {previewCampaign.tags.length > 0 && (
                   <div>
-                    <span className="text-[#9CA3AF] text-sm">Tags:</span>
+                    <span className="text-gray-500 text-sm">Tags:</span>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {previewCampaign.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-[#FF6B35]/20 text-[#FF6B35]"
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-orange-100 text-orange-700"
                         >
                           {tag}
                         </span>
@@ -588,6 +743,22 @@ function CampaignsPageContent() {
                     className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                     placeholder="Ex: MTN Ghana - Mobile Money Campaign"
                   />
+                </div>
+
+                {/* Summary - Résumé */}
+                <div className="space-y-2">
+                  <Label htmlFor="camp-summary" className="text-gray-700">Résumé</Label>
+                  <Input
+                    id="camp-summary"
+                    value={formData.summary || ""}
+                    onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
+                    className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
+                    placeholder="Une phrase qui résume la campagne..."
+                    maxLength={150}
+                  />
+                  <p className="text-xs text-gray-500">
+                    Court résumé affiché sur les cartes (max. 150 caractères)
+                  </p>
                 </div>
 
                 {/* Brand & Agency */}
@@ -689,13 +860,24 @@ function CampaignsPageContent() {
                 {/* Date & Year */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="camp-date" className="text-gray-700">Date</Label>
-                    <Input
-                      id="camp-date"
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
-                      placeholder="Ex: Jan 2024"
+                    <Label htmlFor="camp-date" className="text-gray-700">Date de la campagne</Label>
+                    <DatePicker
+                      date={formData.date ? new Date(formData.date) : undefined}
+                      onDateChange={(date) => {
+                        if (date) {
+                          const formattedDate = date.toISOString().split('T')[0];
+                          setFormData({ 
+                            ...formData, 
+                            date: formattedDate,
+                            year: date.getFullYear()
+                          });
+                        } else {
+                          setFormData({ ...formData, date: "" });
+                        }
+                      }}
+                      placeholder="Sélectionner une date"
+                      displayFormat="dd MMM yyyy"
+                      className="bg-white border-gray-300 text-gray-900"
                     />
                   </div>
                   <div className="space-y-2">
@@ -740,6 +922,36 @@ function CampaignsPageContent() {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Access Level */}
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Niveau d'accès</Label>
+                  <Select
+                    value={formData.accessLevel || "free"}
+                    onValueChange={(value: "free" | "premium") => setFormData({ ...formData, accessLevel: value })}
+                  >
+                    <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200 text-gray-900">
+                      <SelectItem value="free">
+                        <span className="inline-flex items-center gap-2 text-green-600">
+                          <Users className="h-4 w-4" />
+                          Gratuit - Visible par tous
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="premium">
+                        <span className="inline-flex items-center gap-2 text-amber-600">
+                          <Crown className="h-4 w-4" />
+                          Premium - Réservé aux abonnés
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500">
+                    Les campagnes Premium ne sont pas visibles sur la page Démo.
+                  </p>
+                </div>
               </div>
             )}
 
@@ -763,9 +975,103 @@ function CampaignsPageContent() {
                   )}
                 </div>
 
-                {/* Images supplementaires */}
-                <div className="space-y-2">
-                  <Label className="text-gray-700">Visuels supplementaires</Label>
+                {/* Images supplementaires - Champs répétables */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-gray-700">Visuels supplémentaires (carousel)</Label>
+                    <span className="text-xs text-gray-500">
+                      {(formData.images || []).length} image{(formData.images || []).length !== 1 ? 's' : ''} ajoutée{(formData.images || []).length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  
+                  {/* Liste des images existantes avec champs éditables */}
+                  <div className="space-y-2">
+                    {(formData.images || []).map((img, idx) => (
+                      <div key={idx} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                        {/* Miniature */}
+                        <div className="w-12 h-12 rounded-md overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-200">
+                          {img ? (
+                            <img src={img} alt={`Visuel ${idx + 1}`} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-400">
+                              <ImagePlus className="h-4 w-4" />
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Numéro et input */}
+                        <div className="flex-1 flex items-center gap-2">
+                          <span className="text-xs text-gray-500 font-medium w-6">#{idx + 1}</span>
+                          <Input
+                            value={img}
+                            onChange={(e) => {
+                              const newImages = [...(formData.images || [])];
+                              newImages[idx] = e.target.value;
+                              setFormData({ ...formData, images: newImages });
+                            }}
+                            className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 text-sm"
+                            placeholder="URL de l'image..."
+                          />
+                        </div>
+                        
+                        {/* Boutons d'action */}
+                        <div className="flex items-center gap-1">
+                          {/* Monter */}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-gray-400 hover:text-gray-600"
+                            onClick={() => {
+                              if (idx > 0) {
+                                const newImages = [...(formData.images || [])];
+                                [newImages[idx - 1], newImages[idx]] = [newImages[idx], newImages[idx - 1]];
+                                setFormData({ ...formData, images: newImages });
+                              }
+                            }}
+                            disabled={idx === 0}
+                            title="Monter"
+                          >
+                            <ChevronUp className="h-4 w-4" />
+                          </Button>
+                          
+                          {/* Descendre */}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-gray-400 hover:text-gray-600"
+                            onClick={() => {
+                              const images = formData.images || [];
+                              if (idx < images.length - 1) {
+                                const newImages = [...images];
+                                [newImages[idx], newImages[idx + 1]] = [newImages[idx + 1], newImages[idx]];
+                                setFormData({ ...formData, images: newImages });
+                              }
+                            }}
+                            disabled={idx === (formData.images || []).length - 1}
+                            title="Descendre"
+                          >
+                            <ChevronDown className="h-4 w-4" />
+                          </Button>
+                          
+                          {/* Supprimer */}
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => handleRemoveImage(img)}
+                            title="Supprimer"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Bouton pour ajouter une nouvelle image */}
                   <div className="flex gap-2">
                     <Input
                       value={imageInput}
@@ -777,49 +1083,63 @@ function CampaignsPageContent() {
                         }
                       }}
                       className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
-                      placeholder="URL d'une image supplementaire..."
+                      placeholder="Coller l'URL d'une nouvelle image..."
                     />
                     <Button
                       type="button"
                       onClick={handleAddImage}
                       variant="outline"
-                      className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                      className="border-gray-300 text-gray-700 hover:bg-gray-100 gap-2"
                     >
-                      <ImagePlus className="h-4 w-4" />
+                      <Plus className="h-4 w-4" />
+                      Ajouter
                     </Button>
                   </div>
-                  {(formData.images || []).length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {(formData.images || []).map((img, idx) => (
-                        <div key={idx} className="relative group w-20 h-20 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
-                          <img src={img} alt={`Visuel ${idx + 1}`} className="w-full h-full object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveImage(img)}
-                            className="absolute top-0.5 right-0.5 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                            title="Supprimer"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  
+                  {/* Bouton pour ajouter un champ vide */}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="w-full border-2 border-dashed border-gray-300 text-gray-500 hover:border-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                    onClick={() => {
+                      setFormData({ ...formData, images: [...(formData.images || []), ""] });
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Ajouter un champ image
+                  </Button>
+                  
+                  <p className="text-xs text-gray-500">
+                    💡 Astuce : Ajoutez plusieurs images pour créer un carousel. Vous pouvez réorganiser l'ordre avec les flèches.
+                  </p>
                 </div>
 
                 {/* URL Video */}
                 <div className="space-y-2">
                   <Label htmlFor="camp-video-url" className="text-gray-700">
                     <Video className="h-4 w-4 inline mr-1" />
-                    URL de la video (YouTube embed, etc.)
+                    URL de la vidéo YouTube
                   </Label>
                   <Input
                     id="camp-video-url"
                     value={formData.videoUrl || ""}
                     onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
                     className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
-                    placeholder="https://www.youtube.com/embed/..."
+                    placeholder="https://www.youtube.com/watch?v=xxxxx ou https://youtu.be/xxxxx"
                   />
+                  <p className="text-xs text-gray-500">
+                    💡 Collez simplement le lien YouTube - il sera automatiquement converti en format embed.
+                  </p>
+                  {formData.videoUrl && (
+                    <div className="mt-2 rounded-lg overflow-hidden border border-gray-200">
+                      <iframe
+                        src={convertToYouTubeEmbed(formData.videoUrl)}
+                        title="Aperçu vidéo"
+                        className="w-full aspect-video"
+                        allowFullScreen
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Video checkbox */}
@@ -830,7 +1150,7 @@ function CampaignsPageContent() {
                     onCheckedChange={(checked) => setFormData({ ...formData, isVideo: !!checked })}
                   />
                   <Label htmlFor="camp-video" className="cursor-pointer text-gray-700">
-                    Cette campagne contient une video
+                    Cette campagne contient une vidéo
                   </Label>
                 </div>
               </div>
@@ -853,28 +1173,88 @@ function CampaignsPageContent() {
                 {/* Tags */}
                 <div className="space-y-2">
                   <Label className="text-gray-700">Tags</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      value={tagInput}
-                      onChange={(e) => setTagInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
+                  <div className="relative">
+                    <div className="flex gap-2">
+                      <Input
+                        value={tagInput}
+                        onChange={(e) => {
+                          setTagInput(e.target.value);
+                          setShowTagSuggestions(true);
+                        }}
+                        onFocus={() => setShowTagSuggestions(true)}
+                        onBlur={() => {
+                          // Délai pour permettre le clic sur les suggestions
+                          setTimeout(() => setShowTagSuggestions(false), 200);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddTag();
+                            setShowTagSuggestions(false);
+                          }
+                          if (e.key === "Escape") {
+                            setShowTagSuggestions(false);
+                          }
+                        }}
+                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
+                        placeholder="Ajouter un tag ou sélectionner..."
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => {
                           handleAddTag();
-                        }
-                      }}
-                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
-                      placeholder="Ajouter un tag..."
-                    />
-                    <Button
-                      type="button"
-                      onClick={handleAddTag}
-                      variant="outline"
-                      className="border-gray-300 text-gray-700 hover:bg-gray-100"
-                    >
-                      +
-                    </Button>
+                          setShowTagSuggestions(false);
+                        }}
+                        variant="outline"
+                        className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                      >
+                        +
+                      </Button>
+                    </div>
+                    
+                    {/* Suggestions de tags */}
+                    {showTagSuggestions && filteredTagSuggestions.length > 0 && (
+                      <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        <div className="p-2 text-xs text-gray-500 border-b border-gray-100">
+                          💡 Tags existants (cliquez pour ajouter)
+                        </div>
+                        {filteredTagSuggestions.map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between group"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              if (!formData.tags.includes(tag)) {
+                                setFormData({ ...formData, tags: [...formData.tags, tag] });
+                              }
+                              setTagInput("");
+                              setShowTagSuggestions(false);
+                            }}
+                          >
+                            <span className="text-gray-700">{tag}</span>
+                            <span className="text-xs text-gray-400 group-hover:text-primary">+ Ajouter</span>
+                          </button>
+                        ))}
+                        {tagInput.trim() && !existingTags.includes(tagInput.trim()) && (
+                          <button
+                            type="button"
+                            className="w-full text-left px-3 py-2 text-sm bg-primary/5 hover:bg-primary/10 flex items-center gap-2 border-t border-gray-100"
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              handleAddTag();
+                              setShowTagSuggestions(false);
+                            }}
+                          >
+                            <Plus className="h-3 w-3 text-primary" />
+                            <span className="text-primary">Créer "{tagInput.trim()}"</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
+                  
+                  {/* Tags sélectionnés */}
                   {formData.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
                       {formData.tags.map((tag) => (
@@ -889,12 +1269,16 @@ function CampaignsPageContent() {
                             className="hover:text-primary/70 ml-1"
                             title="Supprimer le tag"
                           >
-                            x
+                            <X className="h-3 w-3" />
                           </button>
                         </span>
                       ))}
                     </div>
                   )}
+                  
+                  <p className="text-xs text-gray-500">
+                    💡 Tapez pour filtrer les tags existants ou créez-en un nouveau en appuyant sur Entrée.
+                  </p>
                 </div>
               </div>
             )}

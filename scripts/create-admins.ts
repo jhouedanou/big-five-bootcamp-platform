@@ -53,8 +53,18 @@ const ADMIN_USERS = [
     password: 'BigFive@Admin2024!',
   },
   {
-    email: 'yannickj@bigfiveabidjan.com',
+    email: 'yannick@bigfiveabidjan.com',
     name: 'Yannick J',
+    password: 'BigFive@Admin2024!',
+  },
+  {
+    email: 'franck@bigfiveabidjan.com',
+    name: 'Franck',
+    password: 'BigFive@Admin2024!',
+  },
+  {
+    email: 'stephanie@bigfiveabidjan.com',
+    name: 'Stéphanie',
     password: 'BigFive@Admin2024!',
   },
 ]

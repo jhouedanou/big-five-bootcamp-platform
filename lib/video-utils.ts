@@ -1,9 +1,9 @@
 /**
  * Utilitaires pour la gestion des vidéos multi-plateforme
- * Supporte: YouTube, Facebook, LinkedIn, Twitter/X
+ * Supporte: YouTube, Facebook, LinkedIn, Twitter/X, Instagram, TikTok
  */
 
-export type VideoPlatform = "youtube" | "facebook" | "linkedin" | "twitter" | "unknown";
+export type VideoPlatform = "youtube" | "facebook" | "linkedin" | "twitter" | "instagram" | "tiktok" | "unknown";
 
 export interface VideoInfo {
   platform: VideoPlatform;
@@ -22,6 +22,8 @@ export function detectVideoPlatform(url: string): VideoPlatform {
 
   if (u.includes("youtube.com") || u.includes("youtu.be")) return "youtube";
   if (u.includes("facebook.com") || u.includes("fb.watch") || u.includes("fb.com")) return "facebook";
+  if (u.includes("instagram.com")) return "instagram";
+  if (u.includes("tiktok.com")) return "tiktok";
   if (u.includes("linkedin.com")) return "linkedin";
   if (u.includes("twitter.com") || u.includes("x.com") || u.includes("t.co")) return "twitter";
 
@@ -266,6 +268,8 @@ export function getVideoPlatformLabel(platform: VideoPlatform): string {
   const labels: Record<VideoPlatform, string> = {
     youtube: "YouTube",
     facebook: "Facebook",
+    instagram: "Instagram",
+    tiktok: "TikTok",
     linkedin: "LinkedIn",
     twitter: "Twitter/X",
     unknown: "Vidéo",

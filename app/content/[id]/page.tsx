@@ -17,6 +17,7 @@ import {
   Globe,
   Video,
   Loader2,
+  Play,
 } from "lucide-react";
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar";
 import { createClient } from "@/lib/supabase";
@@ -175,48 +176,51 @@ export default function ContentDetailPage({
               const embedUrl = getEmbedUrl(content.video_url);
               const platformLabel = getVideoPlatformLabel(videoPlatform);
               
-              // Pour LinkedIn ou Facebook: lien externe (les embeds iframe sont souvent bloqués)
-              if (videoPlatform === "linkedin" || videoPlatform === "facebook") {
-                const bgGradient = videoPlatform === "linkedin" 
-                  ? "from-sky-50 to-blue-50 hover:from-sky-100 hover:to-blue-100" 
-                  : "from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100";
-                const iconBg = videoPlatform === "linkedin" ? "bg-[#0A66C2]" : "bg-[#1877F2]";
+              // Pour LinkedIn, Facebook ou Instagram: afficher le visuel avec bouton
+              if (videoPlatform === "linkedin" || videoPlatform === "facebook" || videoPlatform === "instagram") {
+                const iconBg = videoPlatform === "linkedin" 
+                  ? "bg-[#0A66C2]" 
+                  : videoPlatform === "instagram" 
+                    ? "bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400" 
+                    : "bg-[#1877F2]";
                 
                 return (
-                  <Card>
-                    <CardContent className="p-4">
-                      <h2 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                        <Video className="h-5 w-5" />
-                        Vidéo {platformLabel}
-                      </h2>
-                      
-                      {/* Essayer l'embed iframe d'abord pour Facebook */}
-                      {videoPlatform === "facebook" && (
-                        <div className="rounded-lg overflow-hidden mb-3">
-                          <iframe
-                            src={embedUrl}
-                            className="w-full aspect-video rounded-lg border-0 overflow-hidden"
-                            allowFullScreen
-                            allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                            title={`Vidéo ${platformLabel}`}
-                            scrolling="no"
-                          />
-                        </div>
-                      )}
-                      
-                      {/* Lien direct comme fallback */}
+                  <Card className="overflow-hidden">
+                    <CardContent className="p-0">
+                      {/* Visuel/Thumbnail cliquable */}
                       <a
                         href={originalVideoUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className={`flex items-center gap-3 p-4 rounded-lg border border-gray-200 bg-gradient-to-r ${bgGradient} transition-colors`}
+                        className="block relative group"
                       >
-                        <div className={`flex h-12 w-12 items-center justify-center rounded-full text-white ${iconBg}`}>
-                          <ExternalLink className="h-5 w-5" />
+                        {/* Image de la créative */}
+                        <div className="relative aspect-[9/16] max-h-[600px] w-full overflow-hidden bg-gray-100">
+                          <img
+                            src={content.thumbnail || "/placeholder.jpg"}
+                            alt={content.title}
+                            className="w-full h-full object-contain"
+                          />
+                          {/* Overlay avec bouton play */}
+                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
+                            <div className="bg-white/95 rounded-full p-5 shadow-xl group-hover:scale-110 transition-transform">
+                              <Play className="h-10 w-10 text-violet-600 ml-1" />
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-gray-900">Voir la vidéo sur {platformLabel}</p>
-                          <p className="text-sm text-gray-500">S&apos;ouvre dans un nouvel onglet</p>
+                        
+                        {/* Barre d'action en bas */}
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-6 pt-20">
+                          <div className="flex items-center gap-3">
+                            <div className={`flex h-12 w-12 items-center justify-center rounded-full text-white ${iconBg}`}>
+                              <Play className="h-5 w-5 ml-0.5" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-white text-lg">Voir la vidéo sur {platformLabel}</p>
+                              <p className="text-sm text-white/70">Cliquez pour ouvrir dans un nouvel onglet</p>
+                            </div>
+                            <ExternalLink className="h-5 w-5 text-white/70 ml-auto" />
+                          </div>
                         </div>
                       </a>
                     </CardContent>
@@ -224,7 +228,7 @@ export default function ContentDetailPage({
                 );
               }
               
-              // YouTube, Twitter/X: embed iframe standard
+              // YouTube, Twitter/X, TikTok: embed iframe standard
               return (
                 <Card>
                   <CardContent className="p-4">

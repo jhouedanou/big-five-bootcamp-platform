@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, Eye, EyeOff, CheckCircle2, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase";
@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 export default function UpdatePasswordPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -21,16 +22,67 @@ export default function UpdatePasswordPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
   const [isValidSession, setIsValidSession] = useState<boolean | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const supabase = createClient();
 
-  // Vérifier que l'utilisateur a une session valide (venant du lien email)
+  // Vérifier la session et traiter les tokens de l'URL
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsValidSession(!!session);
+    const handleAuthCallback = async () => {
+      try {
+        // Vérifier s'il y a un hash dans l'URL (token de récupération)
+        if (typeof window !== 'undefined') {
+          const hash = window.location.hash;
+          
+          // Si on a un hash avec access_token (lien de réinitialisation)
+          if (hash && hash.includes('access_token')) {
+            // Supabase gère automatiquement le hash et crée une session
+            // Attendre un peu pour que Supabase traite le token
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+          
+          // Vérifier s'il y a une erreur dans l'URL
+          const errorParam = searchParams.get('error');
+          const errorDescription = searchParams.get('error_description');
+          if (errorParam) {
+            setErrorMessage(errorDescription || 'Lien invalide ou expiré');
+            setIsValidSession(false);
+            return;
+          }
+        }
+
+        // Vérifier si on a une session valide
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Session error:', error);
+          setErrorMessage(error.message);
+          setIsValidSession(false);
+          return;
+        }
+
+        setIsValidSession(!!session);
+        
+        // Si pas de session, écouter les changements d'auth (pour le hash processing)
+        if (!session) {
+          const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log('Auth state change:', event);
+            if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+              setIsValidSession(true);
+            }
+          });
+          
+          // Cleanup
+          return () => subscription.unsubscribe();
+        }
+      } catch (err) {
+        console.error('Auth callback error:', err);
+        setErrorMessage('Une erreur est survenue');
+        setIsValidSession(false);
+      }
     };
-    checkSession();
-  }, [supabase.auth]);
+
+    handleAuthCallback();
+  }, [supabase.auth, searchParams]);
 
   const passwordStrength = (pwd: string) => {
     let strength = 0;
@@ -126,7 +178,7 @@ export default function UpdatePasswordPage() {
               Lien expiré ou invalide
             </CardTitle>
             <CardDescription className="text-base">
-              Le lien de réinitialisation a expiré ou n'est pas valide.
+              {errorMessage || "Le lien de réinitialisation a expiré ou n'est pas valide."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -134,7 +186,7 @@ export default function UpdatePasswordPage() {
               Veuillez demander un nouveau lien de réinitialisation.
             </p>
             <div className="flex flex-col gap-2">
-              <Button asChild className="w-full">
+              <Button asChild className="w-full bg-violet-600 hover:bg-violet-700">
                 <Link href="/forgot-password">
                   Demander un nouveau lien
                 </Link>

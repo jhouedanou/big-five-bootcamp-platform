@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, Eye, EyeOff, CheckCircle2, ArrowLeft, Loader2 } from "lucide-react";
@@ -12,7 +12,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function UpdatePasswordPage() {
+// Loading component for Suspense fallback
+function UpdatePasswordLoading() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-violet-50 via-blue-50 to-white">
+      <div className="text-center">
+        <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-violet-600" />
+        <p className="text-lg font-medium">Chargement...</p>
+      </div>
+    </div>
+  );
+}
+
+// Main content component that uses useSearchParams
+function UpdatePasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
@@ -423,5 +436,14 @@ export default function UpdatePasswordPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main page component with Suspense boundary
+export default function UpdatePasswordPage() {
+  return (
+    <Suspense fallback={<UpdatePasswordLoading />}>
+      <UpdatePasswordContent />
+    </Suspense>
   );
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { Menu, X, Search, User, LogOut, Settings, CreditCard, Crown, Sparkles, Clock } from "lucide-react"
+import { Menu, X, Search, User, LogOut, Settings, CreditCard, Crown, Sparkles, Clock, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase"
@@ -56,8 +56,20 @@ export function DashboardNavbar({
         }
         if (profile) {
           setUserName(profile.name || "")
-          setUserPlan(profile.plan || "Free")
-          setSubscriptionStatus(profile.subscription_status || null)
+          // Vérification côté client : si Premium mais expiré, traiter comme Free
+          if (
+            profile.plan?.toLowerCase() === 'premium' &&
+            profile.subscription_end_date &&
+            new Date(profile.subscription_end_date) < new Date()
+          ) {
+            setUserPlan('Free')
+            setSubscriptionStatus('expired')
+            // Fire & forget : appeler le cron pour synchroniser la base
+            fetch('/api/cron/check-subscriptions').catch(() => {})
+          } else {
+            setUserPlan(profile.plan || "Free")
+            setSubscriptionStatus(profile.subscription_status || null)
+          }
           setSubscriptionEndDate(profile.subscription_end_date || null)
         }
       }
@@ -118,6 +130,12 @@ export function DashboardNavbar({
               className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B]"
             >
               Profil
+            </Link>
+            <Link
+              href="/community"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B]"
+            >
+              Communauté
             </Link>
           </nav>
         </div>
@@ -274,6 +292,13 @@ export function DashboardNavbar({
               onClick={() => setIsOpen(false)}
             >
               Profil
+            </Link>
+            <Link
+              href="/community"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B]"
+              onClick={() => setIsOpen(false)}
+            >
+              Communauté
             </Link>
             {/* Bouton abonnement mobile */}
             <Link

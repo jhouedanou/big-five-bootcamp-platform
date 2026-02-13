@@ -18,6 +18,19 @@ function useStats() {
   return stats
 }
 
+function useRecentUsers() {
+  const [recentUsers, setRecentUsers] = useState<{ initials: string }[]>([])
+
+  useEffect(() => {
+    fetch("/api/users/recent")
+      .then((res) => res.json())
+      .then((data) => setRecentUsers(data.users || []))
+      .catch(() => setRecentUsers([]))
+  }, [])
+
+  return recentUsers
+}
+
 function formatNumber(n: number): string {
   if (n >= 1000) {
     return new Intl.NumberFormat("fr-FR").format(n)
@@ -27,6 +40,12 @@ function formatNumber(n: number): string {
 
 export function HeroSection() {
   const stats = useStats()
+  const recentUsers = useRecentUsers()
+
+  // Fallback si pas encore chargé
+  const displayUsers = recentUsers.length > 0 
+    ? recentUsers 
+    : [{ initials: '...' }, { initials: '...' }, { initials: '...' }, { initials: '...' }]
 
   return (
     <section className="relative overflow-hidden bg-white pt-20 pb-32 sm:pt-32 sm:pb-40 lg:pb-48">
@@ -101,9 +120,9 @@ export function HeroSection() {
 
             <div className="mt-10 flex items-center gap-6 animate-fade-in-up delay-400">
               <div className="flex -space-x-3">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className={`h-10 w-10 rounded-full border-2 border-background bg-slate-200 z-${10 - i} flex items-center justify-center text-xs font-medium text-slate-600`}>
-                    U{i}
+                {displayUsers.map((user, i) => (
+                  <div key={i} className={`h-10 w-10 rounded-full border-2 border-background bg-gradient-to-br from-[#80368D]/20 to-[#29358B]/20 z-${10 - i} flex items-center justify-center text-xs font-bold text-[#80368D]`}>
+                    {user.initials}
                   </div>
                 ))}
               </div>

@@ -62,7 +62,7 @@ export default function DashboardPage() {
     }
   }, [campaigns])
 
-  // Charger le plan utilisateur
+  // Charger le plan utilisateur (avec vérification expiration côté client)
   useEffect(() => {
     const loadUserPlan = async () => {
       try {
@@ -71,10 +71,24 @@ export default function DashboardPage() {
           try {
             const { data: profile, error } = await supabase
               .from('users')
-              .select('plan')
+              .select('plan, subscription_status, subscription_end_date')
               .eq('id', session.user.id)
               .single()
-            if (!error && profile?.plan) setUserPlan(profile.plan)
+            if (!error && profile) {
+              // Vérification côté client : si Premium mais expiré, traiter comme Free
+              if (
+                profile.plan?.toLowerCase() === 'premium' &&
+                profile.subscription_end_date &&
+                new Date(profile.subscription_end_date) < new Date()
+              ) {
+                console.warn('⏰ Abonnement Premium expiré côté client, traitement comme Free')
+                setUserPlan('Free')
+                // Appeler le cron pour mettre à jour la base (fire & forget)
+                fetch('/api/cron/check-subscriptions').catch(() => {})
+              } else {
+                setUserPlan(profile.plan || 'Free')
+              }
+            }
           } catch {
             // Table users n'existe pas encore, utiliser le plan par défaut
             console.warn('Table users non disponible, utilisation du plan par défaut')

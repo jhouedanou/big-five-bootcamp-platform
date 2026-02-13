@@ -598,24 +598,21 @@ function PaymentSuccessContent() {
 
         {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-4">
+          <Link href="/dashboard" className="flex-1">
+            <Button
+              className="w-full h-12 text-base font-semibold bg-gradient-to-r from-[#80368D] to-[#29358B] hover:opacity-90"
+            >
+              🎨 Accéder à la bibliothèque
+            </Button>
+          </Link>
           <Button
             variant="outline"
-            className="flex-1"
+            className="flex-1 h-12"
             onClick={() => window.print()}
           >
             <Download className="mr-2 h-4 w-4" />
             Télécharger la confirmation
           </Button>
-          <Link href="/library" className="flex-1">
-            <Button
-              className="w-full"
-              style={{
-                background: 'linear-gradient(135deg, var(--violet), var(--blue))',
-              }}
-            >
-              Explorer d'autres bootcamps
-            </Button>
-          </Link>
         </div>
 
         {/* Support */}

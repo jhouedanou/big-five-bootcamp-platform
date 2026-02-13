@@ -133,6 +133,7 @@ async function handlePaymentSuccess(
       const { error: userUpdateError } = await supabaseAdmin
         .from('users')
         .update({
+          plan: 'Premium',
           subscription_status: 'active',
           subscription_start_date: new Date().toISOString(),
           subscription_end_date: subscriptionEndDate.toISOString(),

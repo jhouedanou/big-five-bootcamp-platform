@@ -26,6 +26,13 @@ interface PaymentData {
     item_name: string;
     created_at: string;
     completed_at: string;
+    metadata?: {
+      user_name?: string;
+      user_email?: string;
+      user_id?: string;
+      item_name?: string;
+      [key: string]: any;
+    };
     session: {
       id: string;
       start_date: string;
@@ -40,7 +47,7 @@ interface PaymentData {
         tagline: string;
         level: string;
       };
-    };
+    } | null;
   };
 }
 
@@ -404,8 +411,6 @@ function PaymentSuccessContent() {
   }
 
   const { payment } = paymentData;
-  const { session } = payment;
-  const bootcamp = session.creative_library;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-50 via-blue-50 to-white p-4 py-12">
@@ -417,99 +422,138 @@ function PaymentSuccessContent() {
           </div>
           <h1 className="text-3xl font-bold mb-2">Paiement confirmé !</h1>
           <p className="text-gray-600">
-            Votre inscription a été enregistrée avec succès
+            Votre {payment.item_name || 'abonnement'} a été confirmé avec succès
           </p>
         </div>
 
-        {/* Détails du bootcamp */}
+        {/* Détails du paiement */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>{bootcamp.title}</CardTitle>
-            <CardDescription>{bootcamp.tagline}</CardDescription>
+            <CardTitle>Détails du paiement</CardTitle>
+            <CardDescription>Votre transaction a été traitée avec succès</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex items-start gap-3">
-                <Calendar className="h-5 w-5 text-violet-600 mt-0.5" />
+                <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
                 <div>
-                  <p className="font-semibold text-sm">Dates</p>
-                  <p className="text-sm text-gray-600">
-                    {new Date(session.start_date).toLocaleDateString('fr-FR', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                    })}
-                    {' - '}
-                    {new Date(session.end_date).toLocaleDateString('fr-FR', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                    })}
+                  <p className="font-semibold text-sm">Référence</p>
+                  <p className="text-sm text-gray-600 font-mono">
+                    {payment.ref_command}
                   </p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <MapPin className="h-5 w-5 text-violet-600 mt-0.5" />
+                <Mail className="h-5 w-5 text-violet-600 mt-0.5" />
                 <div>
-                  <p className="font-semibold text-sm">Lieu</p>
+                  <p className="font-semibold text-sm">Montant</p>
                   <p className="text-sm text-gray-600">
-                    {session.location}, {session.city}
+                    {payment.amount?.toLocaleString('fr-FR')} {payment.currency}
                   </p>
-                  <p className="text-xs text-gray-500">{session.format}</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
                 <User className="h-5 w-5 text-violet-600 mt-0.5" />
                 <div>
-                  <p className="font-semibold text-sm">Formateur</p>
-                  <p className="text-sm text-gray-600">{session.trainer_name}</p>
+                  <p className="font-semibold text-sm">Méthode de paiement</p>
+                  <p className="text-sm text-gray-600">{payment.payment_method}</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <span className="text-violet-600 mt-0.5">📊</span>
+                <Calendar className="h-5 w-5 text-violet-600 mt-0.5" />
                 <div>
-                  <p className="font-semibold text-sm">Niveau</p>
-                  <p className="text-sm text-gray-600">{bootcamp.level}</p>
+                  <p className="font-semibold text-sm">Date</p>
+                  <p className="text-sm text-gray-600">
+                    {new Date(payment.completed_at || payment.created_at).toLocaleDateString('fr-FR', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
                 </div>
+              </div>
+            </div>
+
+            {/* Métadonnées supplémentaires si disponibles */}
+            {payment.metadata && (
+              <div className="mt-4 pt-4 border-t">
+                <p className="text-sm font-semibold mb-2">Informations complémentaires</p>
+                <div className="space-y-1">
+                  {payment.metadata.user_name && (
+                    <p className="text-sm text-gray-600">
+                      <span className="font-medium">Nom :</span> {payment.metadata.user_name}
+                    </p>
+                  )}
+                  {payment.metadata.user_email && (
+                    <p className="text-sm text-gray-600">
+                      <span className="font-medium">Email :</span> {payment.metadata.user_email}
+                    </p>
+                  )}
+                  {payment.client_phone && (
+                    <p className="text-sm text-gray-600">
+                      <span className="font-medium">Téléphone :</span> {payment.client_phone}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Informations importantes */}
+        <Card className="mb-6 border-blue-200 bg-blue-50">
+          <CardContent className="pt-6">
+            <div className="flex gap-3">
+              <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-bold text-blue-800 mb-2">Accès à votre abonnement</p>
+                <p className="text-blue-700 mb-2">
+                  Votre abonnement est maintenant actif ! Vous pouvez accéder à tous les contenus premium 
+                  immédiatement depuis votre tableau de bord.
+                </p>
+                <p className="text-blue-700">
+                  Un email de confirmation avec tous les détails a été envoyé à votre adresse email.
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Détails du paiement */}
+        {/* Détails de facturation */}
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle className="text-lg">Détails du paiement</CardTitle>
+            <CardTitle className="text-lg">Détails de la transaction</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Montant payé</span>
+              <div className="flex justify-between py-2">
+                <span className="text-gray-600">Article</span>
+                <span className="font-semibold text-right">{payment.item_name || 'Abonnement Premium'}</span>
+              </div>
+              <div className="flex justify-between py-2">
+                <span className="text-gray-600">Montant</span>
                 <span className="font-semibold">
-                  {payment.amount.toLocaleString('fr-FR')} {payment.currency}
+                  {payment.amount?.toLocaleString('fr-FR')} {payment.currency}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Méthode de paiement</span>
+              <div className="flex justify-between py-2">
+                <span className="text-gray-600">Méthode</span>
                 <span className="font-semibold">{payment.payment_method}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Référence</span>
-                <span className="font-mono text-sm">{payment.ref_command}</span>
+              <div className="flex justify-between py-2 border-t pt-3">
+                <span className="text-gray-600">Référence de paiement</span>
+                <span className="font-mono text-sm font-bold">{payment.ref_command}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Date</span>
-                <span>
-                  {new Date(payment.completed_at).toLocaleDateString('fr-FR', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+              <div className="flex justify-between py-2">
+                <span className="text-gray-600">Statut</span>
+                <span className="inline-flex items-center gap-1 text-sm font-bold text-green-600">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Confirmé
                 </span>
               </div>
             </div>
@@ -528,8 +572,8 @@ function PaymentSuccessContent() {
                   1
                 </span>
                 <p className="text-sm">
-                  <strong>Vérifiez vos emails</strong> - Vous recevrez un email de confirmation avec
-                  tous les détails de votre inscription
+                  <strong>Explorez le contenu</strong> - Accédez immédiatement à tous les contenus premium 
+                  depuis votre tableau de bord
                 </p>
               </li>
               <li className="flex gap-3">
@@ -537,7 +581,7 @@ function PaymentSuccessContent() {
                   2
                 </span>
                 <p className="text-sm">
-                  <strong>Préparez-vous</strong> - Consultez les prérequis et préparez votre matériel
+                  <strong>Créez vos favoris</strong> - Sauvegardez vos campagnes préférées pour un accès rapide
                 </p>
               </li>
               <li className="flex gap-3">
@@ -545,7 +589,7 @@ function PaymentSuccessContent() {
                   3
                 </span>
                 <p className="text-sm">
-                  <strong>Rejoignez-nous</strong> - Présentez-vous le jour J avec votre confirmation
+                  <strong>Profitez pleinement</strong> - Utilisez les filtres avancés et téléchargez les ressources
                 </p>
               </li>
             </ol>

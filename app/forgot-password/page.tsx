@@ -25,22 +25,28 @@ export default function ForgotPasswordPage() {
         const email = formData.get("email") as string
 
         try {
+            // Utiliser l'URL correcte selon l'environnement
+            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+            
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${location.origin}/auth/callback?next=/update-password`,
+                redirectTo: `${baseUrl}/auth/callback?type=recovery&next=/update-password`,
             })
 
             if (error) {
+                console.error('Reset password error:', error)
                 toast.error("Erreur", {
                     description: error.message,
                 })
             } else {
-                toast.success("Email envoyé", {
-                    description: "Vérifie ta boîte de réception pour réinitialiser ton mot de passe.",
+                toast.success("Email envoyé !", {
+                    description: "Vérifie ta boîte de réception (et les spams) pour réinitialiser ton mot de passe.",
+                    duration: 5000,
                 })
                 // Optional: redirect to login or show confirmation
             }
         } catch (error) {
-            toast.error("Une erreur est revenue", {
+            console.error('Reset password exception:', error)
+            toast.error("Une erreur est survenue", {
                 description: "Veuillez réessayer plus tard",
             })
         } finally {

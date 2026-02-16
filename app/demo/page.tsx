@@ -37,15 +37,12 @@ const filterConfigs = [
     placeholder: "Pays",
     type: "select" as const,
     options: [
-      { value: "Cote d'Ivoire", label: "Côte d'Ivoire" },
-      { value: "Senegal", label: "Sénégal" },
-      { value: "Nigeria", label: "Nigeria" },
-      { value: "Ghana", label: "Ghana" },
-      { value: "Kenya", label: "Kenya" },
-      { value: "Afrique du Sud", label: "Afrique du Sud" },
-      { value: "Maroc", label: "Maroc" },
-      { value: "France", label: "France" },
-      { value: "USA", label: "États-Unis" },
+      { value: "Bénin", label: "Bénin" },
+      { value: "Côte d'Ivoire", label: "Côte d'Ivoire" },
+      { value: "Sénégal", label: "Sénégal" },
+      { value: "Burkina Faso", label: "Burkina Faso" },
+      { value: "Togo", label: "Togo" },
+      { value: "Guinée", label: "Guinée" },
     ]
   },
   {

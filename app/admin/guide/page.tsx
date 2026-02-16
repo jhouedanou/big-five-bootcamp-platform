@@ -61,7 +61,7 @@ const steps = [
       "  - Plateforme : Facebook, Instagram, TikTok, YouTube, LinkedIn ou Twitter/X",
       "  - Pays : le pays concerne",
       "  - Secteur : Telecoms, E-commerce, Banque/Finance, FMCG, Tech, Energie ou Industrie",
-      "  - Format : Video Ad, Story, Carousel, Post Social ou Campagne 360",
+      "  - Format : Story, Carrousel, Vidéo, Image, Photo, Vidéos Ad, Image Ad ou Carrousel Ad",
       "  - Date : le mois et l'annee (ex: Jan 2024)",
       "  - Annee : l'annee de la campagne",
       "  - Video : cochez si la campagne contient une video",

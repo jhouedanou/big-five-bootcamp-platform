@@ -17,7 +17,7 @@ interface FilterGroup {
 const defaultFilterGroups: FilterGroup[] = [
   {
     name: "Pays",
-    options: ["Cote d'Ivoire", "Senegal", "Nigeria", "Afrique du Sud", "Ghana", "Kenya", "Maroc", "France", "USA"]
+    options: ["Bénin", "Côte d'Ivoire", "Sénégal", "Burkina Faso", "Togo", "Guinée"]
   },
   {
     name: "Secteur",
@@ -25,7 +25,7 @@ const defaultFilterGroups: FilterGroup[] = [
   },
   {
     name: "Format",
-    options: ["Post Social", "Story", "Video Ad", "Display", "Campagne 360", "Carousel", "Print"]
+    options: ["Story", "Carrousel", "Vidéo", "Image", "Photo", "Vidéos Ad", "Image Ad", "Carrousel Ad"]
   },
   {
     name: "Plateforme",

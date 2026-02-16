@@ -58,7 +58,7 @@ const CSV_EXAMPLE_DATA = [
     {
         title: "Campagne Black Friday",
         platform: "Facebook",
-        format: "Video Ad",
+        format: "Vidéo",
         sector: "E-commerce",
         objective: "Ventes",
         thumbnail: "https://example.com/image.jpg",

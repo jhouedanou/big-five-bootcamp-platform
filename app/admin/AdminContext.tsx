@@ -197,7 +197,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       description: "Campagne de sensibilisation aux services bancaires mobiles",
       imageUrl: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=800",
       platform: "YouTube",
-      country: "Cameroun",
+      country: "Togo",
       sector: "Banque/Finance",
       format: "Vidéo",
       tags: ["Banque mobile", "Digital", "Fintech"],

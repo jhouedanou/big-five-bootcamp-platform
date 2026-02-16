@@ -63,9 +63,9 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { detectVideoPlatform, getEmbedUrl, isSupportedVideoUrl, getYouTubeThumbnail, getVideoPlatformLabel, getOriginalVideoUrl } from "@/lib/video-utils";
 
 const platforms = ["Facebook", "Instagram", "TikTok", "YouTube", "LinkedIn", "Twitter/X"];
-const countries = ["Cote d'Ivoire", "Nigeria", "Kenya", "Ghana", "Senegal", "Maroc", "Afrique du Sud"];
+const countries = ["Bénin", "Côte d'Ivoire", "Sénégal", "Burkina Faso", "Togo", "Guinée"];
 const sectors = ["Telecoms", "E-commerce", "Banque/Finance", "FMCG", "Tech", "Energie", "Industrie"];
-const formats = ["Video Ad", "Story", "Carousel", "Post Social", "Campagne 360"];
+const formats = ["Story", "Carrousel", "Vidéo", "Image", "Photo", "Vidéos Ad", "Image Ad", "Carrousel Ad"];
 const statuses = ["Brouillon", "En attente", "Publié"] as const;
 
 const FORM_STEPS = [
@@ -98,9 +98,9 @@ const defaultFormData: Omit<ContentItem, "id"> = {
   images: [],
   videoUrl: "",
   platform: "Facebook",
-  country: "Cote d'Ivoire",
+  country: "Côte d'Ivoire",
   sector: "Telecoms",
-  format: "Video Ad",
+  format: "Story",
   tags: [],
   date: "",
   brand: "",

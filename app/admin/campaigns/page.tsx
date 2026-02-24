@@ -61,6 +61,7 @@ import { CSVImporter } from "@/components/admin/csv-importer";
 import { cn, getGoogleDriveImageUrl } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
 import { detectVideoPlatform, getEmbedUrl, isSupportedVideoUrl, getYouTubeThumbnail, getVideoPlatformLabel, getOriginalVideoUrl } from "@/lib/video-utils";
+import { ImageUpload, ImageUploadButton } from "@/components/ui/image-upload";
 
 const platforms = ["Facebook", "Instagram", "TikTok", "YouTube", "LinkedIn", "Twitter/X"];
 const countries = ["Bénin", "Côte d'Ivoire", "Sénégal", "Burkina Faso", "Togo", "Guinée"];
@@ -934,22 +935,14 @@ function CampaignsPageContent() {
             {/* Step 2: Media */}
             {currentStep === 2 && (
               <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                {/* Image principale */}
-                <div className="space-y-2">
-                  <Label htmlFor="camp-img" className="text-gray-700">Image principale (thumbnail) *</Label>
-                  <Input
-                    id="camp-img"
-                    value={formData.imageUrl}
-                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                    className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
-                    placeholder="https://images.unsplash.com/..."
-                  />
-                  {formData.imageUrl && (
-                    <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-100 mt-2 border border-gray-200">
-                      <img src={getGoogleDriveImageUrl(formData.imageUrl)} alt="Principale" className="w-full h-full object-cover" />
-                    </div>
-                  )}
-                </div>
+                {/* Image principale — Upload */}
+                <ImageUpload
+                  value={formData.imageUrl ? getGoogleDriveImageUrl(formData.imageUrl) : formData.imageUrl}
+                  onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                  label="Image principale (thumbnail) *"
+                  required
+                  previewClassName="w-40 h-40"
+                />
 
                 {/* Images supplementaires - Champs répétables */}
                 <div className="space-y-3">
@@ -1047,46 +1040,40 @@ function CampaignsPageContent() {
                     ))}
                   </div>
                   
-                  {/* Bouton pour ajouter une nouvelle image */}
+                  {/* Boutons pour ajouter une nouvelle image */}
                   <div className="flex gap-2">
-                    <Input
-                      value={imageInput}
-                      onChange={(e) => setImageInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          handleAddImage();
-                        }
+                    <ImageUploadButton
+                      onUploaded={(url) => {
+                        setFormData({ ...formData, images: [...(formData.images || []), url] });
                       }}
-                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
-                      placeholder="Coller l'URL d'une nouvelle image..."
+                      className="flex-1"
                     />
-                    <Button
-                      type="button"
-                      onClick={handleAddImage}
-                      variant="outline"
-                      className="border-gray-300 text-gray-700 hover:bg-gray-100 gap-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Ajouter
-                    </Button>
+                    <div className="flex gap-2 flex-1">
+                      <Input
+                        value={imageInput}
+                        onChange={(e) => setImageInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddImage();
+                          }
+                        }}
+                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
+                        placeholder="Ou coller une URL..."
+                      />
+                      <Button
+                        type="button"
+                        onClick={handleAddImage}
+                        variant="outline"
+                        className="border-gray-300 text-gray-700 hover:bg-gray-100 gap-2"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                   
-                  {/* Bouton pour ajouter un champ vide */}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="w-full border-2 border-dashed border-gray-300 text-gray-500 hover:border-gray-400 hover:text-gray-600 hover:bg-gray-50"
-                    onClick={() => {
-                      setFormData({ ...formData, images: [...(formData.images || []), ""] });
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Ajouter un champ image
-                  </Button>
-                  
                   <p className="text-xs text-gray-500">
-                    💡 Astuce : Ajoutez plusieurs images pour créer un carousel. Vous pouvez réorganiser l'ordre avec les flèches.
+                    💡 Astuce : Uploadez ou collez des URLs pour créer un carousel. Réorganisez l'ordre avec les flèches.
                   </p>
                 </div>
 

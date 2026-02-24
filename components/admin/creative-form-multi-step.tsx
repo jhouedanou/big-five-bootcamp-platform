@@ -18,6 +18,7 @@ import { SUPPORTED_PLATFORMS, FILTERS } from "@/lib/constants"
 import { Loader2, ChevronLeft, ChevronRight, Check, FileText, Image, Sparkles, CalendarDays, X } from "lucide-react"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { cn, getGoogleDriveImageUrl } from "@/lib/utils"
+import { ImageUpload } from "@/components/ui/image-upload"
 
 interface CreativeFormProps {
     creative?: any
@@ -412,34 +413,13 @@ export function CreativeFormMultiStep({ creative, isEdit = false }: CreativeForm
                     <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                         <h2 className="text-lg font-semibold">Médias</h2>
                         
-                        <div className="grid gap-2">
-                            <Label htmlFor="thumbnail">URL Miniature (Image) *</Label>
-                            <Input 
-                                id="thumbnail" 
-                                value={formData.thumbnail} 
-                                onChange={(e) => updateField("thumbnail", e.target.value)}
-                                placeholder="https://..." 
-                            />
-                            <p className="text-xs text-muted-foreground">
-                                Collez l'URL directe de l'image (formats supportés: jpg, png, webp)
-                            </p>
-                        </div>
-
-                        {formData.thumbnail && (
-                            <div className="mt-4">
-                                <Label>Aperçu</Label>
-                                <div className="mt-2 rounded-lg border overflow-hidden bg-muted/50 max-w-sm">
-                                    <img 
-                                        src={getGoogleDriveImageUrl(formData.thumbnail)} 
-                                        alt="Preview" 
-                                        className="w-full h-auto object-cover"
-                                        onError={(e) => {
-                                            (e.target as HTMLImageElement).style.display = 'none'
-                                        }}
-                                    />
-                                </div>
-                            </div>
-                        )}
+                        <ImageUpload
+                            value={formData.thumbnail ? getGoogleDriveImageUrl(formData.thumbnail) : formData.thumbnail}
+                            onChange={(url) => updateField("thumbnail", url)}
+                            label="Image Miniature (Thumbnail) *"
+                            required
+                            previewClassName="w-full max-w-sm h-48"
+                        />
 
                         <div className="grid gap-2">
                             <Label htmlFor="videoUrl">URL Vidéo (Optionnel)</Label>

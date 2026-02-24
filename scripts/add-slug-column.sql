@@ -6,14 +6,12 @@
 ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS slug VARCHAR(300);
 
 -- 2. Générer les slugs pour les campagnes existantes à partir du titre
--- Convertit en minuscules, remplace les espaces et caractères spéciaux par des tirets
 UPDATE campaigns 
 SET slug = LOWER(
   REGEXP_REPLACE(
     REGEXP_REPLACE(
       REGEXP_REPLACE(
         REGEXP_REPLACE(
-          -- Remplacer les caractères accentués courants
           REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
             REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
               title,
@@ -22,11 +20,10 @@ SET slug = LOWER(
               'ù', 'u'), 'û', 'u'), 'ü', 'u'),
               'ô', 'o'), 'ö', 'o'),
               'î', 'i'), 'ï', 'i'),
-          '[^a-zA-Z0-9\s-]', '', 'g'),  -- Supprimer les caractères spéciaux
-        '\s+', '-', 'g'),               -- Remplacer espaces par tirets
-      '-+', '-', 'g'),                  -- Supprimer les tirets multiples
-    '^-|-$', '', 'g')                   -- Supprimer tirets en début/fin
-  )
+          '[^a-zA-Z0-9\s-]', '', 'g'),
+        '\s+', '-', 'g'),
+      '-+', '-', 'g'),
+    '^-|-$', '', 'g')
 )
 WHERE slug IS NULL;
 

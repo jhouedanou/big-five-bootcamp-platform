@@ -161,6 +161,18 @@ function CampaignsPageContent() {
     }
   }, [searchParams]);
 
+  // Ouvrir automatiquement l'édition si ?edit=CAMPAIGN_ID
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId && campaigns.length > 0) {
+      const campaignToEdit = campaigns.find((c) => c.id === editId);
+      if (campaignToEdit) {
+        handleOpenEdit(campaignToEdit);
+        setIsDialogOpen(true);
+      }
+    }
+  }, [searchParams, campaigns]);
+
   const filteredCampaigns = campaigns.filter((item) => {
     const matchesSearch =
       item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||

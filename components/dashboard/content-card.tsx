@@ -3,8 +3,9 @@
 import React from "react"
 
 import Link from "next/link"
-import { Play, Calendar, Globe, Facebook, Instagram, Linkedin, Youtube, Crown, Heart } from "lucide-react"
+import { Play, Calendar, Globe, Facebook, Instagram, Linkedin, Youtube, Crown, Heart, Pencil } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { useAuth } from "@/hooks/use-auth"
 import { useFavorites } from "@/hooks/use-favorites"
 import { cn, getGoogleDriveImageUrl } from "@/lib/utils"
 import { detectVideoPlatform } from "@/lib/video-utils"
@@ -97,6 +98,7 @@ export function ContentCard({ content }: ContentCardProps) {
   const platform = platformConfig[content.platform] || { bg: "bg-gray-500", icon: <span className="text-xs font-bold text-white">?</span> }
   const sectorColor = sectorColors[content.sector] || "bg-muted text-muted-foreground font-semibold"
   const isPremium = content.accessLevel === 'premium'
+  const { isAdmin } = useAuth()
   const { isFavorite, toggleFavorite, isAuthenticated, loading: favLoading } = useFavorites()
   const [isToggling, setIsToggling] = React.useState(false)
   const isCurrentFavorite = isFavorite(content.id)
@@ -189,6 +191,21 @@ export function ContentCard({ content }: ContentCardProps) {
             </div>
           )}
 
+          {/* Admin edit button */}
+          {isAdmin && (
+            <button
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                window.location.href = `/admin/campaigns?edit=${content.id}`
+              }}
+              className="absolute right-2.5 bottom-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-violet-600/90 hover:bg-violet-600 shadow-lg backdrop-blur-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-violet-400/50"
+              title="Modifier (Admin)"
+            >
+              <Pencil className="h-3.5 w-3.5 text-white" />
+            </button>
+          )}
+
           {/* Favorite button */}
           <button
             onClick={handleToggleFavorite}
@@ -201,11 +218,11 @@ export function ContentCard({ content }: ContentCardProps) {
             )}
             title={isCurrentFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
           >
-            <Heart 
+            <Heart
               className={cn(
                 "h-4 w-4 transition-colors",
-                isCurrentFavorite 
-                  ? "fill-red-500 text-red-500" 
+                isCurrentFavorite
+                  ? "fill-red-500 text-red-500"
                   : "text-gray-600 hover:text-red-500"
               )}
             />

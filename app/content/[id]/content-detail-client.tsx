@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,9 @@ import {
   Video,
   Loader2,
   Play,
+  Pencil,
 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar";
 import { createClient } from "@/lib/supabase";
 import { ImageGallery } from "@/components/ui/lightbox";
@@ -53,7 +55,29 @@ export default function ContentDetailClient({ id }: { id: string }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isFavorite, toggleFavorite, isAuthenticated } = useFavorites();
+  const { isAdmin } = useAuth();
   const [isToggling, setIsToggling] = useState(false);
+  const [readProgress, setReadProgress] = useState(0);
+  const articleRef = useRef<HTMLDivElement>(null);
+
+  // Barre de progression de lecture
+  useEffect(() => {
+    const handleScroll = () => {
+      const articleEl = articleRef.current;
+      if (!articleEl) return;
+
+      const rect = articleEl.getBoundingClientRect();
+      const articleTop = rect.top + window.scrollY;
+      const articleHeight = rect.height;
+      const scrolled = window.scrollY - articleTop;
+      const viewportHeight = window.innerHeight;
+      const progress = Math.min(100, Math.max(0, (scrolled / (articleHeight - viewportHeight)) * 100));
+      setReadProgress(progress);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [content]);
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -159,14 +183,21 @@ export default function ContentDetailClient({ id }: { id: string }) {
   const agency = content.agency || '';
   const date = content.date || new Date(content.created_at).toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' });
 
-  // Hide gallery when campaign has only a thumbnail + video (no gallery images)
-  const hasOnlyVideoAndThumbnail = !!content.video_url && (!content.images || content.images.length === 0);
+  const hasGallery = !!(content.thumbnail || (content.images && content.images.length > 0));
 
   return (
     <div className="min-h-screen bg-background">
       <DashboardNavbar />
 
-      <main className="container mx-auto px-4 py-8">
+      {/* Barre de progression de lecture */}
+      <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-muted/30">
+        <div
+          className="h-full bg-gradient-to-r from-[#80368D] to-[#a855f7] transition-all duration-150 ease-out"
+          style={{ width: `${readProgress}%` }}
+        />
+      </div>
+
+      <main ref={articleRef} className="container mx-auto px-4 py-8">
         {/* Back button */}
         <Link
           href="/dashboard"
@@ -176,18 +207,9 @@ export default function ContentDetailClient({ id }: { id: string }) {
           Retour a la bibliotheque
         </Link>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid lg:grid-cols-3 gap-8 items-start">
           {/* Main content area */}
-          <div className="lg:col-span-2 space-y-6 main-container">
-            {/* Image principale + galerie avec lightbox */}
-            {!hasOnlyVideoAndThumbnail && (
-              <ImageGallery
-                mainImage={content.thumbnail}
-                images={content.images || []}
-                title={content.title}
-              />
-            )}
-
+          <div className="lg:col-span-2 space-y-6">
             {/* Video player — embed multi-plateforme */}
             {content.video_url && (() => {
               const originalVideoUrl = getOriginalVideoUrl(content.video_url);
@@ -281,6 +303,19 @@ export default function ContentDetailClient({ id }: { id: string }) {
               </div>
 
               <div className="flex gap-2">
+                {isAdmin && content.id && (
+                  <Link href={`/admin/campaigns?edit=${content.id}`}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-2 text-violet-600 border-violet-300 hover:bg-violet-50 dark:text-violet-400 dark:border-violet-700 dark:hover:bg-violet-950"
+                      title="Modifier cette campagne (Admin)"
+                    >
+                      <Pencil className="h-4 w-4" />
+                      Modifier
+                    </Button>
+                  </Link>
+                )}
                 <Button
                   variant="outline"
                   size="icon"
@@ -358,8 +393,17 @@ export default function ContentDetailClient({ id }: { id: string }) {
             )}
           </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6 sidebar-content">
+          {/* Sidebar - sticky avec galerie */}
+          <div className="lg:sticky lg:top-6 space-y-6">
+            {/* Galerie d'images */}
+            {hasGallery && (
+              <ImageGallery
+                mainImage={content.thumbnail}
+                images={content.images || []}
+                title={content.title}
+              />
+            )}
+
             {/* Metadata card */}
             <Card>
               <CardContent className="p-6 space-y-4">

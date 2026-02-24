@@ -171,7 +171,7 @@ export default function CommunityPage() {
                     {selectedUserFavorites.map((campaign) => (
                       <Link 
                         key={campaign.id} 
-                        href={`/content/${campaign.id}`}
+                        href={`/content/${campaign.slug || campaign.id}`}
                         className="group rounded-xl border border-[#D0E4F2] bg-white overflow-hidden transition-all hover:shadow-lg hover:-translate-y-1"
                       >
                         <div className="aspect-video bg-[#D0E4F2]/30 relative overflow-hidden">

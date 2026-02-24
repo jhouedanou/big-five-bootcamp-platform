@@ -43,6 +43,7 @@ interface Campaign {
   date?: string | null;
   year?: number | null;
   images?: string[] | null;
+  slug?: string | null;
   created_at: string;
 }
 
@@ -62,14 +63,32 @@ export default function ContentDetailClient({ id }: { id: string }) {
       try {
         const supabase = createClient();
 
-        // Récupérer le contenu principal
-        const { data: campaign, error: campaignError } = await supabase
-          .from('campaigns')
-          .select('*')
-          .eq('id', id)
-          .single();
+        // Déterminer si l'id est un UUID ou un slug
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-        if (campaignError) {
+        // Récupérer le contenu par UUID ou slug
+        let campaign = null;
+        let campaignError = null;
+
+        if (isUUID) {
+          const result = await supabase
+            .from('campaigns')
+            .select('*')
+            .eq('id', id)
+            .single();
+          campaign = result.data;
+          campaignError = result.error;
+        } else {
+          const result = await supabase
+            .from('campaigns')
+            .select('*')
+            .eq('slug', id)
+            .single();
+          campaign = result.data;
+          campaignError = result.error;
+        }
+
+        if (campaignError || !campaign) {
           console.error('Error fetching campaign:', campaignError);
           setError('Contenu non trouvé');
           setIsLoading(false);
@@ -405,7 +424,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                     {relatedContent.map((item) => (
                       <Link
                         key={item.id}
-                        href={`/content/${item.id}`}
+                        href={`/content/${item.slug || item.id}`}
                         className="flex gap-3 group"
                       >
                         <div className="relative w-16 h-16 bg-muted rounded-lg overflow-hidden flex-shrink-0">

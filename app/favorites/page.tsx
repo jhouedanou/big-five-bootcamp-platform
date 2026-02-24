@@ -138,7 +138,7 @@ export default function FavoritesPage() {
                                 )}
                             >
                                 {/* Image */}
-                                <Link href={`/content/${c.id}`}>
+                                <Link href={`/content/${c.slug || c.id}`}>
                                     <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-[#0A1F44] to-[#1a3a6e]">
                                         {c.thumbnail ? (
                                             <Image
@@ -170,7 +170,7 @@ export default function FavoritesPage() {
 
                                 {/* Content */}
                                 <div className="p-4">
-                                    <Link href={`/content/${c.id}`}>
+                                    <Link href={`/content/${c.slug || c.id}`}>
                                         <h3 className="font-bold text-[#1A1F2B] line-clamp-2 hover:text-[#80368D] transition-colors">
                                             {c.title}
                                         </h3>
@@ -197,7 +197,7 @@ export default function FavoritesPage() {
 
                                     {/* Actions */}
                                     <div className="mt-4 flex items-center justify-between border-t border-[#D0E4F2] pt-3">
-                                        <Link href={`/content/${c.id}`}>
+                                        <Link href={`/content/${c.slug || c.id}`}>
                                             <Button variant="ghost" size="sm" className="text-xs text-[#80368D] hover:bg-[#80368D]/10">
                                                 Voir détails →
                                             </Button>

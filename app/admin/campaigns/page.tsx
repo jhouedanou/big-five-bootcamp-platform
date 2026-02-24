@@ -58,7 +58,7 @@ import {
 import { toast } from "sonner";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { CSVImporter } from "@/components/admin/csv-importer";
-import { cn, getGoogleDriveImageUrl } from "@/lib/utils";
+import { cn, getGoogleDriveImageUrl, generateSlug } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
 import { detectVideoPlatform, getEmbedUrl, isSupportedVideoUrl, getYouTubeThumbnail, getVideoPlatformLabel, getOriginalVideoUrl } from "@/lib/video-utils";
 import { ImageUpload, ImageUploadButton } from "@/components/ui/image-upload";
@@ -110,6 +110,7 @@ const defaultFormData: Omit<ContentItem, "id"> = {
   isVideo: false,
   status: "Brouillon",
   accessLevel: "free",
+  slug: "",
 };
 
 function CampaignsPageContent() {
@@ -199,6 +200,7 @@ function CampaignsPageContent() {
       isVideo: item.isVideo || false,
       status: item.status || "Brouillon",
       accessLevel: item.accessLevel || "free",
+      slug: item.slug || "",
     });
     setTagInput("");
     setImageInput("");
@@ -241,6 +243,8 @@ function CampaignsPageContent() {
     const processedFormData = {
       ...formData,
       videoUrl: formData.videoUrl ? getOriginalVideoUrl(formData.videoUrl.trim()) : "",
+      // Auto-générer le slug si vide
+      slug: formData.slug || generateSlug(formData.title),
     };
     
     if (editingCampaign) {
@@ -716,10 +720,56 @@ function CampaignsPageContent() {
                   <Input
                     id="camp-title"
                     value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    onChange={(e) => {
+                      const newTitle = e.target.value;
+                      const updates: any = { title: newTitle };
+                      // Auto-générer le slug si c'est une nouvelle campagne ou si le slug est vide
+                      if (!editingCampaign || !formData.slug) {
+                        updates.slug = generateSlug(newTitle);
+                      }
+                      setFormData({ ...formData, ...updates });
+                    }}
                     className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
                     placeholder="Ex: MTN Ghana - Mobile Money Campaign"
                   />
+                </div>
+
+                {/* Permalien / Slug */}
+                <div className="space-y-2">
+                  <Label htmlFor="camp-slug" className="text-gray-700">
+                    Permalien (URL SEO)
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500 whitespace-nowrap">/content/</span>
+                    <Input
+                      id="camp-slug"
+                      value={formData.slug || ""}
+                      onChange={(e) => {
+                        // Nettoyer le slug en temps réel
+                        const cleaned = e.target.value
+                          .toLowerCase()
+                          .replace(/[^a-z0-9\s-]/g, '')
+                          .replace(/\s+/g, '-')
+                          .replace(/-+/g, '-');
+                        setFormData({ ...formData, slug: cleaned });
+                      }}
+                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 font-mono text-sm"
+                      placeholder="mon-titre-de-campagne"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="border-gray-300 text-gray-600 hover:bg-gray-100 whitespace-nowrap text-xs"
+                      onClick={() => setFormData({ ...formData, slug: generateSlug(formData.title) })}
+                      title="Regénérer depuis le titre"
+                    >
+                      🔄 Auto
+                    </Button>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    URL finale : <span className="font-mono text-primary">/content/{formData.slug || "..."}</span> — Idéal pour le référencement (SEO)
+                  </p>
                 </div>
 
                 {/* Summary - Résumé */}

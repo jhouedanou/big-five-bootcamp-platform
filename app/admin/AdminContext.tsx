@@ -276,6 +276,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         year: campaign.year || undefined,
         status: campaign.status || 'Brouillon',
         accessLevel: campaign.access_level || 'free',
+        slug: campaign.slug || '',
       }));
 
       setCampaigns(formattedCampaigns);
@@ -311,6 +312,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     if (data.brand !== undefined) record.brand = data.brand;
     if (data.status !== undefined) record.status = data.status;
     if (data.accessLevel !== undefined) record.access_level = data.accessLevel;
+    if (data.slug !== undefined) record.slug = data.slug;
     return record;
   };
 

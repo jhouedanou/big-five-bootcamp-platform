@@ -3,6 +3,31 @@ import { getSupabaseAdmin } from '@/lib/supabase'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
+/**
+ * Génère un slug SEO-friendly à partir d'un titre (côté serveur)
+ */
+function generateSlugFromTitle(text: string): string {
+  if (!text) return ''
+  const accentMap: Record<string, string> = {
+    'à': 'a', 'â': 'a', 'ä': 'a', 'á': 'a', 'ã': 'a',
+    'è': 'e', 'ê': 'e', 'ë': 'e', 'é': 'e',
+    'ì': 'i', 'î': 'i', 'ï': 'i', 'í': 'i',
+    'ò': 'o', 'ô': 'o', 'ö': 'o', 'ó': 'o', 'õ': 'o',
+    'ù': 'u', 'û': 'u', 'ü': 'u', 'ú': 'u',
+    'ñ': 'n', 'ç': 'c', 'ß': 'ss',
+  }
+  return text
+    .toLowerCase()
+    .split('')
+    .map(char => accentMap[char] || char)
+    .join('')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 250)
+}
+
 // Liste des emails admin autorisés (centralisée)
 const ADMIN_EMAILS = [
   'jeanluc@bigfiveabidjan.com', 
@@ -124,6 +149,27 @@ export async function POST(request: NextRequest) {
       body.status = 'Brouillon'
     }
     
+    // Auto-générer le slug s'il n'est pas fourni
+    if (!body.slug && body.title) {
+      body.slug = generateSlugFromTitle(body.title)
+      
+      // Vérifier l'unicité du slug et ajouter un suffixe si nécessaire
+      let slugCandidate = body.slug
+      let counter = 2
+      while (true) {
+        const { data: existing } = await (supabaseAdmin as any)
+          .from('campaigns')
+          .select('id')
+          .eq('slug', slugCandidate)
+          .maybeSingle()
+        
+        if (!existing) break
+        slugCandidate = `${body.slug}-${counter}`
+        counter++
+      }
+      body.slug = slugCandidate
+    }
+    
     const { data, error } = await (supabaseAdmin as any)
       .from('campaigns')
       .insert(body)
@@ -161,6 +207,25 @@ export async function PUT(request: NextRequest) {
     }
     
     const supabaseAdmin = getSupabaseAdmin()
+    
+    // Si le slug est modifié, vérifier l'unicité
+    if (updateData.slug) {
+      let slugCandidate = updateData.slug
+      let counter = 2
+      while (true) {
+        const { data: existing } = await (supabaseAdmin as any)
+          .from('campaigns')
+          .select('id')
+          .eq('slug', slugCandidate)
+          .neq('id', id)
+          .maybeSingle()
+        
+        if (!existing) break
+        slugCandidate = `${updateData.slug}-${counter}`
+        counter++
+      }
+      updateData.slug = slugCandidate
+    }
     
     const { data, error } = await (supabaseAdmin as any)
       .from('campaigns')

@@ -39,6 +39,7 @@ interface RecentCampaign {
   title: string
   category: string | null
   thumbnail: string | null
+  slug: string | null
 }
 
 function useRecentCampaigns() {
@@ -48,7 +49,7 @@ function useRecentCampaigns() {
     const supabase = createClient()
     supabase
       .from("campaigns")
-      .select("id, title, category, thumbnail")
+      .select("id, title, category, thumbnail, slug")
       .eq("status", "Publié")
       .order("created_at", { ascending: false })
       .limit(4)
@@ -202,7 +203,7 @@ export function HeroSection() {
                   <div className="grid grid-cols-2 gap-4">
                     {recentCampaigns.length > 0
                       ? recentCampaigns.map((campaign) => (
-                          <Link key={campaign.id} href={`/content/${campaign.id}`} className="group cursor-pointer rounded-lg border border-[#D0E4F2] bg-white p-2 transition-all hover:shadow-lg hover:-translate-y-1">
+                          <Link key={campaign.id} href={`/content/${campaign.slug || campaign.id}`} className="group cursor-pointer rounded-lg border border-[#D0E4F2] bg-white p-2 transition-all hover:shadow-lg hover:-translate-y-1">
                             <div className="aspect-video w-full rounded-md bg-[#D0E4F2] relative overflow-hidden">
                               {campaign.thumbnail ? (
                                 <Image

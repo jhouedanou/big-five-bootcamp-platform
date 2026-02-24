@@ -58,3 +58,37 @@ export function getGoogleDriveImageUrl(url: string): string {
   // Pas un lien Google Drive — retourner tel quel
   return url
 }
+
+/**
+ * Génère un slug SEO-friendly à partir d'un texte.
+ * - Convertit en minuscules
+ * - Remplace les caractères accentués (é→e, à→a, etc.)
+ * - Supprime les caractères spéciaux
+ * - Remplace les espaces par des tirets
+ * - Supprime les tirets en début/fin et les doublons
+ * 
+ * @example generateSlug("Campagne MTN Côte d'Ivoire 2024") → "campagne-mtn-cote-divoire-2024"
+ */
+export function generateSlug(text: string): string {
+  if (!text) return ''
+
+  const accentMap: Record<string, string> = {
+    'à': 'a', 'â': 'a', 'ä': 'a', 'á': 'a', 'ã': 'a',
+    'è': 'e', 'ê': 'e', 'ë': 'e', 'é': 'e',
+    'ì': 'i', 'î': 'i', 'ï': 'i', 'í': 'i',
+    'ò': 'o', 'ô': 'o', 'ö': 'o', 'ó': 'o', 'õ': 'o',
+    'ù': 'u', 'û': 'u', 'ü': 'u', 'ú': 'u',
+    'ñ': 'n', 'ç': 'c', 'ß': 'ss',
+  }
+
+  return text
+    .toLowerCase()
+    .split('')
+    .map(char => accentMap[char] || char)
+    .join('')
+    .replace(/[^a-z0-9\s-]/g, '')  // Supprimer les caractères spéciaux
+    .replace(/\s+/g, '-')          // Espaces → tirets
+    .replace(/-+/g, '-')           // Tirets multiples → un seul
+    .replace(/^-|-$/g, '')         // Supprimer tirets en début/fin
+    .slice(0, 250)                 // Limiter la longueur
+}

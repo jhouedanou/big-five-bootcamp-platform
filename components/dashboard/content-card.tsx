@@ -32,6 +32,7 @@ export interface ContentItem {
   award?: string
   status?: 'Publié' | 'Brouillon' | 'En attente'
   accessLevel?: 'free' | 'premium' // 'free' = visible par tous, 'premium' = réservé aux abonnés
+  slug?: string // Permalien SEO-friendly
 }
 
 interface ContentCardProps {
@@ -113,7 +114,7 @@ export function ContentCard({ content }: ContentCardProps) {
   }
 
   return (
-    <Link href={`/content/${content.id}`} className="group block">
+    <Link href={`/content/${content.slug || content.id}`} className="group block">
       <article className={`modern-card overflow-hidden hover-lift transition-all duration-300 hover:shadow-xl ${
         isPremium
           ? "ring-2 ring-amber-400/80 shadow-lg shadow-amber-400/20 hover:shadow-amber-400/30 hover:ring-amber-300"

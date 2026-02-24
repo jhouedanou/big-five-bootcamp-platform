@@ -2,6 +2,7 @@
 
 import { createClient } from "@supabase/supabase-js"
 import { revalidatePath } from "next/cache"
+import { generateSlug } from "@/lib/utils"
 
 function getSupabaseAdmin() {
     return createClient(
@@ -59,8 +60,24 @@ export async function createCreative(formData: FormData) {
 
     try {
         const supabase = getSupabaseAdmin()
+        
+        // Générer le slug avec vérification d'unicité
+        let slug = generateSlug(title)
+        let slugCounter = 2
+        while (true) {
+            const { data: existing } = await supabase
+                .from('campaigns')
+                .select('id')
+                .eq('slug', slug)
+                .maybeSingle()
+            if (!existing) break
+            slug = `${generateSlug(title)}-${slugCounter}`
+            slugCounter++
+        }
+        
         const { error } = await supabase.from('campaigns').insert({
             title,
+            slug,
             category: sector,
             platforms: [platform],
             thumbnail,

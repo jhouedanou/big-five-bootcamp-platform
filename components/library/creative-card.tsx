@@ -4,6 +4,7 @@ import { useState } from "react"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { PlayCircle, Maximize2, ExternalLink } from "lucide-react"
+import { getGoogleDriveImageUrl } from "@/lib/utils"
 import {
     Dialog,
     DialogContent,
@@ -100,7 +101,7 @@ export function CreativeCard({ creative }: CreativeCardProps) {
                     {/* Thumbnail */}
                     <div className="relative aspect-[4/5] overflow-hidden">
                         <Image
-                            src={creative.thumbnail || "/placeholder.png"}
+                            src={getGoogleDriveImageUrl(creative.thumbnail) || "/placeholder.png"}
                             alt={creative.title}
                             fill
                             className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -179,7 +180,7 @@ export function CreativeCard({ creative }: CreativeCardProps) {
                                             onClick={() => setIsVideoPopupOpen(true)}
                                         >
                                             <Image
-                                                src={creative.thumbnail || "/placeholder.jpg"}
+                                                src={getGoogleDriveImageUrl(creative.thumbnail) || "/placeholder.jpg"}
                                                 alt={creative.title}
                                                 fill
                                                 className="object-contain rounded-lg"
@@ -203,7 +204,7 @@ export function CreativeCard({ creative }: CreativeCardProps) {
                         ) : (
                             <div className="relative w-full h-full min-h-[400px]">
                                 <Image
-                                    src={creative.thumbnail || "/placeholder.jpg"}
+                                    src={getGoogleDriveImageUrl(creative.thumbnail) || "/placeholder.jpg"}
                                     alt={creative.title}
                                     fill
                                     className="object-contain"
@@ -257,7 +258,7 @@ export function CreativeCard({ creative }: CreativeCardProps) {
                         {/* Grande image/visuel */}
                         <div className="relative w-full aspect-[9/16] max-h-[80vh] bg-black">
                             <Image
-                                src={creative.thumbnail || "/placeholder.jpg"}
+                                src={getGoogleDriveImageUrl(creative.thumbnail) || "/placeholder.jpg"}
                                 alt={creative.title}
                                 fill
                                 className="object-contain"

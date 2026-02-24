@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getGoogleDriveImageUrl } from "@/lib/utils";
 
 interface LightboxProps {
   images: string[];
@@ -12,7 +13,8 @@ interface LightboxProps {
   onClose: () => void;
 }
 
-export function Lightbox({ images, initialIndex = 0, isOpen, onClose }: LightboxProps) {
+export function Lightbox({ images: rawImages, initialIndex = 0, isOpen, onClose }: LightboxProps) {
+  const images = rawImages.map(getGoogleDriveImageUrl);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isZoomed, setIsZoomed] = useState(false);
 
@@ -218,12 +220,14 @@ interface ImageGalleryProps {
   title: string;
 }
 
-export function ImageGallery({ mainImage, images, title }: ImageGalleryProps) {
+export function ImageGallery({ mainImage, images: rawImages, title }: ImageGalleryProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
-  // Combine main image and additional images
-  const allImages = [mainImage, ...images].filter(Boolean) as string[];
+  // Combine main image and additional images, converting Drive URLs
+  const images = rawImages.map(getGoogleDriveImageUrl);
+  const convertedMainImage = mainImage ? getGoogleDriveImageUrl(mainImage) : null;
+  const allImages = [convertedMainImage, ...images].filter(Boolean) as string[];
   const supplementaryImages = images.filter(Boolean) as string[];
 
   const openLightbox = (index: number) => {
@@ -250,7 +254,7 @@ export function ImageGallery({ mainImage, images, title }: ImageGalleryProps) {
           onClick={() => openLightbox(0)}
         >
           <Image
-            src={mainImage || allImages[0]}
+            src={convertedMainImage || allImages[0]}
             alt={title}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-105"

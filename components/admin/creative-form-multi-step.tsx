@@ -17,7 +17,7 @@ import { toast } from "sonner"
 import { SUPPORTED_PLATFORMS, FILTERS } from "@/lib/constants"
 import { Loader2, ChevronLeft, ChevronRight, Check, FileText, Image, Sparkles, CalendarDays, X } from "lucide-react"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
-import { cn } from "@/lib/utils"
+import { cn, getGoogleDriveImageUrl } from "@/lib/utils"
 
 interface CreativeFormProps {
     creative?: any
@@ -430,7 +430,7 @@ export function CreativeFormMultiStep({ creative, isEdit = false }: CreativeForm
                                 <Label>Aperçu</Label>
                                 <div className="mt-2 rounded-lg border overflow-hidden bg-muted/50 max-w-sm">
                                     <img 
-                                        src={formData.thumbnail} 
+                                        src={getGoogleDriveImageUrl(formData.thumbnail)} 
                                         alt="Preview" 
                                         className="w-full h-auto object-cover"
                                         onError={(e) => {

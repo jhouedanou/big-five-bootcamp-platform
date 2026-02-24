@@ -58,7 +58,7 @@ import {
 import { toast } from "sonner";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { CSVImporter } from "@/components/admin/csv-importer";
-import { cn } from "@/lib/utils";
+import { cn, getGoogleDriveImageUrl } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
 import { detectVideoPlatform, getEmbedUrl, isSupportedVideoUrl, getYouTubeThumbnail, getVideoPlatformLabel, getOriginalVideoUrl } from "@/lib/video-utils";
 
@@ -387,7 +387,7 @@ function CampaignsPageContent() {
                     <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-200">
                       {item.imageUrl ? (
                         <img
-                          src={item.imageUrl}
+                          src={getGoogleDriveImageUrl(item.imageUrl)}
                           alt={item.title}
                           className="w-full h-full object-cover"
                         />
@@ -517,7 +517,7 @@ function CampaignsPageContent() {
             <DialogTitle className="text-gray-900">{previewCampaign?.title}</DialogTitle>
           </DialogHeader>
           {previewCampaign && (() => {
-            const allImages = [previewCampaign.imageUrl, ...(previewCampaign.images || [])].filter(Boolean);
+            const allImages = [previewCampaign.imageUrl, ...(previewCampaign.images || [])].filter(Boolean).map(getGoogleDriveImageUrl);
             const embedVideoUrl = previewCampaign.videoUrl ? convertToVideoEmbed(previewCampaign.videoUrl) : "";
             return (
               <div className="space-y-4">
@@ -946,7 +946,7 @@ function CampaignsPageContent() {
                   />
                   {formData.imageUrl && (
                     <div className="w-32 h-32 rounded-lg overflow-hidden bg-gray-100 mt-2 border border-gray-200">
-                      <img src={formData.imageUrl} alt="Principale" className="w-full h-full object-cover" />
+                      <img src={getGoogleDriveImageUrl(formData.imageUrl)} alt="Principale" className="w-full h-full object-cover" />
                     </div>
                   )}
                 </div>
@@ -967,7 +967,7 @@ function CampaignsPageContent() {
                         {/* Miniature */}
                         <div className="w-12 h-12 rounded-md overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-200">
                           {img ? (
-                            <img src={img} alt={`Visuel ${idx + 1}`} className="w-full h-full object-cover" />
+                            <img src={getGoogleDriveImageUrl(img)} alt={`Visuel ${idx + 1}`} className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-400">
                               <ImagePlus className="h-4 w-4" />

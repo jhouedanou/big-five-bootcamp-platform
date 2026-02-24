@@ -9,6 +9,7 @@ import {
   Users, Heart, Crown, Loader2, ArrowLeft, ChevronLeft, ChevronRight, 
   Calendar, Search, Eye, Sparkles 
 } from "lucide-react"
+import { getGoogleDriveImageUrl } from "@/lib/utils"
 
 interface UserProfile {
   id: string
@@ -176,7 +177,7 @@ export default function CommunityPage() {
                         <div className="aspect-video bg-[#D0E4F2]/30 relative overflow-hidden">
                           {campaign.thumbnail ? (
                             <img 
-                              src={campaign.thumbnail} 
+                              src={getGoogleDriveImageUrl(campaign.thumbnail)} 
                               alt={campaign.title}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                             />

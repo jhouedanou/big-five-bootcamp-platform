@@ -9,7 +9,7 @@ import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { Footer } from "@/components/footer"
 import { Navbar } from "@/components/navbar"
 import Image from "next/image"
-import { cn } from "@/lib/utils"
+import { cn, getGoogleDriveImageUrl } from "@/lib/utils"
 
 export default function FavoritesPage() {
     const {
@@ -142,7 +142,7 @@ export default function FavoritesPage() {
                                     <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-[#0A1F44] to-[#1a3a6e]">
                                         {c.thumbnail ? (
                                             <Image
-                                                src={c.thumbnail}
+                                                src={getGoogleDriveImageUrl(c.thumbnail)}
                                                 alt={c.title}
                                                 fill
                                                 className="object-cover transition-transform duration-300 group-hover:scale-105"

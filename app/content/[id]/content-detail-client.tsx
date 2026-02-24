@@ -23,7 +23,7 @@ import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar";
 import { createClient } from "@/lib/supabase";
 import { ImageGallery } from "@/components/ui/lightbox";
 import { useFavorites } from "@/hooks/use-favorites";
-import { cn } from "@/lib/utils";
+import { cn, getGoogleDriveImageUrl } from "@/lib/utils";
 import { detectVideoPlatform, getEmbedUrl, getVideoPlatformLabel, getOriginalVideoUrl } from "@/lib/video-utils";
 
 interface Campaign {
@@ -197,7 +197,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                         {/* Image de la créative */}
                         <div className="relative aspect-[9/16] max-h-[600px] w-full overflow-hidden bg-gray-100">
                           <img
-                            src={content.thumbnail || "/placeholder.jpg"}
+                            src={getGoogleDriveImageUrl(content.thumbnail) || "/placeholder.jpg"}
                             alt={content.title}
                             className="w-full h-full object-contain"
                           />
@@ -411,7 +411,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                         <div className="relative w-16 h-16 bg-muted rounded-lg overflow-hidden flex-shrink-0">
                           {item.thumbnail ? (
                             <Image
-                              src={item.thumbnail}
+                              src={getGoogleDriveImageUrl(item.thumbnail)}
                               alt={item.title}
                               fill
                               className="object-cover group-hover:scale-105 transition-transform"

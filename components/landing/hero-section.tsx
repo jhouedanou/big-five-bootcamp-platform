@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { ArrowRight, Play, Target, BarChart3, Search, CheckCircle, Zap, RefreshCw, Globe, Layers, Sparkles } from "lucide-react"
 import { createClient } from "@/lib/supabase"
+import { getGoogleDriveImageUrl } from "@/lib/utils"
 
 function useStats() {
   const [stats, setStats] = useState({ users: 0, campaigns: 0, brands: 0, countries: 0 })
@@ -205,7 +206,7 @@ export function HeroSection() {
                             <div className="aspect-video w-full rounded-md bg-[#D0E4F2] relative overflow-hidden">
                               {campaign.thumbnail ? (
                                 <Image
-                                  src={campaign.thumbnail}
+                                  src={getGoogleDriveImageUrl(campaign.thumbnail)}
                                   alt={campaign.title}
                                   fill
                                   className="object-cover"

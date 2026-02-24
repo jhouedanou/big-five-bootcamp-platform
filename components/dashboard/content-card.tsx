@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Play, Calendar, Globe, Facebook, Instagram, Linkedin, Youtube, Crown, Heart } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useFavorites } from "@/hooks/use-favorites"
-import { cn } from "@/lib/utils"
+import { cn, getGoogleDriveImageUrl } from "@/lib/utils"
 import { detectVideoPlatform } from "@/lib/video-utils"
 import { format, parseISO } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -122,7 +122,7 @@ export function ContentCard({ content }: ContentCardProps) {
         <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-[#0A1F44] to-[#1a3a6e]">
           {content.imageUrl ? (
             <img
-              src={content.imageUrl || "/placeholder.svg"}
+              src={getGoogleDriveImageUrl(content.imageUrl) || "/placeholder.svg"}
               alt={content.title}
               className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             />

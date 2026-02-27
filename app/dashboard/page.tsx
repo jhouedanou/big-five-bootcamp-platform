@@ -2,16 +2,19 @@
 
 import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
+import dynamic from "next/dynamic"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
-import { FiltersSidebar, DynamicFilterOptions } from "@/components/dashboard/filters-sidebar"
+import type { DynamicFilterOptions } from "@/components/dashboard/filters-sidebar"
 import { ContentCard, ContentItem } from "@/components/dashboard/content-card"
 import { ContentGridSkeleton } from "@/components/dashboard/content-card-skeleton"
 import { createClient } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Filter, Grid3X3, LayoutList, ChevronLeft, ChevronRight, Lock, CalendarDays } from "lucide-react"
-import { ParticlesBackground } from "@/components/ui/particles-background"
 import { format, parseISO } from "date-fns"
 import { fr } from "date-fns/locale"
+
+const ParticlesBackground = dynamic(() => import("@/components/ui/particles-background").then(m => m.ParticlesBackground), { ssr: false })
+const FiltersSidebar = dynamic(() => import("@/components/dashboard/filters-sidebar").then(m => m.FiltersSidebar))
 
 const FREE_CAMPAIGN_LIMIT = 4
 

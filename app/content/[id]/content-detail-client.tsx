@@ -477,8 +477,9 @@ export default function ContentDetailClient({ id }: { id: string }) {
                               src={getGoogleDriveImageUrl(item.thumbnail)}
                               alt={item.title}
                               fill
+                              sizes="(max-width: 768px) 100vw, 33vw"
                               className="object-cover group-hover:scale-105 transition-transform"
-                              unoptimized
+                              loading="lazy"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">

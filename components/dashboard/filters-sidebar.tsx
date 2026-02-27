@@ -6,6 +6,7 @@ import { useState } from "react"
 import { ChevronDown, ChevronUp, X, Facebook, Instagram, Linkedin, Youtube } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { CountryFlag } from "@/components/ui/country-flag"
 
 interface FilterGroup {
   name: string
@@ -49,28 +50,6 @@ const platformIcons: Record<string, React.ReactNode> = {
   "YouTube": <Youtube className="h-4 w-4" />,
 }
 
-const countryFlags: Record<string, string> = {
-  "Côte d'Ivoire": "🇨🇮",
-  "Cote d'Ivoire": "🇨🇮",
-  "Sénégal": "🇸🇳",
-  "Senegal": "🇸🇳",
-  "Bénin": "🇧🇯",
-  "Benin": "🇧🇯",
-  "Burkina Faso": "🇧🇫",
-  "Togo": "🇹🇬",
-  "Guinée": "🇬🇳",
-  "Guinee": "🇬🇳",
-  "Nigeria": "🇳🇬",
-  "Afrique du Sud": "🇿🇦",
-  "Ghana": "🇬🇭",
-  "Kenya": "🇰🇪",
-  "Maroc": "🇲🇦",
-  "France": "🇫🇷",
-  "USA": "🇺🇸",
-  "Cameroun": "🇨🇲",
-  "Mali": "🇲🇱",
-  "Niger": "🇳🇪",
-}
 
 // Interface pour les options dynamiques
 export interface DynamicFilterOptions {
@@ -241,7 +220,7 @@ export function FiltersSidebar({ selectedFilters, onFilterChange, className, dyn
                             <span className={isSelected ? "text-white" : "text-[#1A1F2B]/70"}>{platformIcons[option]}</span>
                           )}
                           {group.name === "Pays" && (
-                            <span className="text-base leading-none">{countryFlags[option] || "🌍"}</span>
+                            <CountryFlag country={option} className="h-4 w-5" />
                           )}
                           <span className="text-sm font-semibold truncate">{option}</span>
                         </button>

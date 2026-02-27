@@ -3,12 +3,14 @@
 import React from "react"
 
 import Link from "next/link"
+import Image from "next/image"
 import { Play, Calendar, Globe, Facebook, Instagram, Linkedin, Youtube, Crown, Heart, Pencil } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/hooks/use-auth"
 import { useFavorites } from "@/hooks/use-favorites"
 import { cn, getGoogleDriveImageUrl } from "@/lib/utils"
 import { detectVideoPlatform } from "@/lib/video-utils"
+import { CountryFlag } from "@/components/ui/country-flag"
 import { format, parseISO } from "date-fns"
 import { fr } from "date-fns/locale"
 
@@ -61,28 +63,6 @@ const sectorColors: Record<string, string> = {
   "Industrie": "bg-slate-600 text-white font-semibold shadow-md shadow-slate-600/20",
 }
 
-const countryFlags: Record<string, string> = {
-  "Côte d'Ivoire": "🇨🇮",
-  "Cote d'Ivoire": "🇨🇮",
-  "Sénégal": "🇸🇳",
-  "Senegal": "🇸🇳",
-  "Bénin": "🇧🇯",
-  "Benin": "🇧🇯",
-  "Burkina Faso": "🇧🇫",
-  "Togo": "🇹🇬",
-  "Guinée": "🇬🇳",
-  "Guinee": "🇬🇳",
-  "Nigeria": "🇳🇬",
-  "Afrique du Sud": "🇿🇦",
-  "Ghana": "🇬🇭",
-  "Kenya": "🇰🇪",
-  "Maroc": "🇲🇦",
-  "France": "🇫🇷",
-  "USA": "🇺🇸",
-  "Cameroun": "🇨🇲",
-  "Mali": "🇲🇱",
-  "Niger": "🇳🇪",
-}
 
 // Formate la date en français (ex: "15 janvier 2024")
 function formatDateFr(dateString: string): string {
@@ -124,10 +104,13 @@ export function ContentCard({ content }: ContentCardProps) {
       }`}>
         <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-[#0A1F44] to-[#1a3a6e]">
           {content.imageUrl ? (
-            <img
+            <Image
               src={getGoogleDriveImageUrl(content.imageUrl) || "/placeholder.svg"}
               alt={content.title}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              loading="lazy"
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center">
@@ -264,7 +247,7 @@ export function ContentCard({ content }: ContentCardProps) {
 
           <div className="mt-4 flex items-center justify-between text-sm font-medium text-[#1A1F2B]/70">
             <div className="flex items-center gap-1.5">
-              <span className="text-lg">{countryFlags[content.country] || "🌍"}</span>
+              <CountryFlag country={content.country} className="h-4 w-5" />
               <span>{content.country}</span>
             </div>
             <div className="flex items-center gap-1.5">

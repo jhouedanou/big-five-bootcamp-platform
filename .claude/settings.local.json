@@ -12,7 +12,9 @@
       "Bash(npx tsx:*)",
       "Bash(curl:*)",
       "Bash(npx tsc:*)",
-      "Bash(npm install country-flag-icons)"
+      "Bash(npm install country-flag-icons)",
+      "Bash(git show f812bfb --no-stat)",
+      "Bash(npm run build)"
     ]
   }
 }

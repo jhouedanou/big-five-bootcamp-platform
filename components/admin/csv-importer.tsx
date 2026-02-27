@@ -5,21 +5,21 @@ import Papa from "papaparse"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { 
-    Dialog, 
-    DialogContent, 
-    DialogHeader, 
-    DialogTitle, 
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
     DialogDescription,
-    DialogFooter 
+    DialogFooter
 } from "@/components/ui/dialog"
-import { 
-    Table, 
-    TableBody, 
-    TableCell, 
-    TableHead, 
-    TableHeader, 
-    TableRow 
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow
 } from "@/components/ui/table"
 import { Upload, FileSpreadsheet, Download, AlertCircle, CheckCircle2, Loader2, X } from "lucide-react"
 import { toast } from "sonner"
@@ -28,14 +28,20 @@ import { cn } from "@/lib/utils"
 
 interface CSVRow {
     title: string
-    platform: string
-    format: string
-    sector: string
-    objective: string
-    thumbnail: string
+    brand?: string
+    agency?: string
+    platform?: string
+    country?: string
+    sector?: string
+    format?: string
+    date?: string
+    year?: string
+    imageUrl?: string
     videoUrl?: string
-    whyItWorks?: string
-    howToUse?: string
+    description?: string
+    tags?: string
+    status?: string
+    accessLevel?: string
 }
 
 interface CSVImporterProps {
@@ -44,91 +50,92 @@ interface CSVImporterProps {
 
 const CSV_TEMPLATE_HEADERS = [
     "title",
-    "platform", 
-    "format",
+    "brand",
+    "agency",
+    "platform",
+    "country",
     "sector",
-    "objective",
-    "thumbnail",
+    "format",
+    "date",
+    "year",
+    "imageUrl",
     "videoUrl",
-    "whyItWorks",
-    "howToUse"
+    "description",
+    "tags",
+    "status",
+    "accessLevel"
 ]
 
 const CSV_EXAMPLE_DATA = [
     {
         title: "Campagne Black Friday",
+        brand: "Nike",
+        agency: "Ogilvy",
         platform: "Facebook",
-        format: "Vidéo",
+        country: "Côte d'Ivoire",
         sector: "E-commerce",
-        objective: "Ventes",
-        thumbnail: "https://example.com/image.jpg",
+        format: "Vidéo",
+        date: "2025-11-29",
+        year: "2025",
+        imageUrl: "https://example.com/image.jpg",
         videoUrl: "https://example.com/video.mp4",
-        whyItWorks: "Urgence créée avec le compte à rebours",
-        howToUse: "Adapter les couleurs à votre marque"
+        description: "Campagne de promotion pour le Black Friday avec des offres exclusives",
+        tags: "promo;blackfriday;soldes",
+        status: "Publié",
+        accessLevel: "premium"
     }
 ]
+
+const VALID_STATUSES = ['Brouillon', 'En attente', 'Publié']
+const VALID_ACCESS_LEVELS = ['free', 'premium']
 
 export function CSVImporter({ onImportComplete }: CSVImporterProps) {
     const [isOpen, setIsOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [parsedData, setParsedData] = useState<CSVRow[]>([])
     const [errors, setErrors] = useState<string[]>([])
+    const [warnings, setWarnings] = useState<string[]>([])
     const [fileName, setFileName] = useState<string>("")
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     const downloadTemplate = () => {
-        const csv = Papa.unparse({
-            fields: CSV_TEMPLATE_HEADERS,
-            data: CSV_EXAMPLE_DATA.map(row => CSV_TEMPLATE_HEADERS.map(h => row[h as keyof typeof row] || ""))
-        })
-        
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-        const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
-        link.href = url
+        link.href = '/template_creatives.csv'
         link.download = 'template_creatives.csv'
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
-        URL.revokeObjectURL(url)
-        
+
         toast.success("Template téléchargé")
     }
 
-    const validateRow = (row: any, index: number): { valid: boolean; errors: string[] } => {
+    const validateRow = (row: any, index: number): { errors: string[]; warnings: string[] } => {
         const rowErrors: string[] = []
-        
+        const rowWarnings: string[] = []
+
         if (!row.title?.trim()) {
-            rowErrors.push(`Ligne ${index + 1}: Titre manquant`)
+            rowErrors.push(`Ligne ${index + 1}: Titre manquant (obligatoire)`)
         }
-        if (!row.platform?.trim()) {
-            rowErrors.push(`Ligne ${index + 1}: Plateforme manquante`)
+        if (row.year && (isNaN(parseInt(row.year)) || parseInt(row.year) < 1900 || parseInt(row.year) > 2100)) {
+            rowErrors.push(`Ligne ${index + 1}: Année invalide "${row.year}" (nombre entre 1900 et 2100)`)
         }
-        if (!row.format?.trim()) {
-            rowErrors.push(`Ligne ${index + 1}: Format manquant`)
+        if (row.status?.trim() && !VALID_STATUSES.includes(row.status.trim())) {
+            rowWarnings.push(`Ligne ${index + 1}: Status "${row.status}" non reconnu, sera mis à "Brouillon". Valeurs acceptées: ${VALID_STATUSES.join(', ')}`)
         }
-        if (!row.sector?.trim()) {
-            rowErrors.push(`Ligne ${index + 1}: Secteur manquant`)
+        if (row.accessLevel?.trim() && !VALID_ACCESS_LEVELS.includes(row.accessLevel.trim().toLowerCase())) {
+            rowWarnings.push(`Ligne ${index + 1}: accessLevel "${row.accessLevel}" non reconnu, sera mis à "free". Valeurs acceptées: ${VALID_ACCESS_LEVELS.join(', ')}`)
         }
-        if (!row.objective?.trim()) {
-            rowErrors.push(`Ligne ${index + 1}: Objectif manquant`)
-        }
-        if (!row.thumbnail?.trim()) {
-            rowErrors.push(`Ligne ${index + 1}: URL miniature manquante`)
-        }
-        
-        return {
-            valid: rowErrors.length === 0,
-            errors: rowErrors
-        }
+
+        return { errors: rowErrors, warnings: rowWarnings }
     }
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
-        
+
         setFileName(file.name)
         setErrors([])
+        setWarnings([])
         setParsedData([])
 
         Papa.parse(file, {
@@ -137,23 +144,22 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
             complete: (results) => {
                 const data = results.data as CSVRow[]
                 const allErrors: string[] = []
-                
-                // Check for parsing errors
+                const allWarnings: string[] = []
+
                 if (results.errors.length > 0) {
                     results.errors.forEach(err => {
                         allErrors.push(`Erreur de parsing: ${err.message} (ligne ${err.row})`)
                     })
                 }
-                
-                // Validate each row
+
                 data.forEach((row, index) => {
                     const validation = validateRow(row, index)
-                    if (!validation.valid) {
-                        allErrors.push(...validation.errors)
-                    }
+                    allErrors.push(...validation.errors)
+                    allWarnings.push(...validation.warnings)
                 })
-                
+
                 setErrors(allErrors)
+                setWarnings(allWarnings)
                 setParsedData(data)
             },
             error: (error) => {
@@ -169,20 +175,33 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
         }
 
         setIsLoading(true)
-        
+
         try {
             const result = await importCreativesFromCSV(parsedData)
-            
+
             if (result.success) {
-                toast.success(`${result.imported} créative(s) importée(s) avec succès`)
-                setIsOpen(false)
-                setParsedData([])
-                setFileName("")
+                const messages: string[] = [`${result.imported} créative(s) importée(s)`]
+                if (result.skipped?.length) {
+                    messages.push(`${result.skipped.length} doublon(s) ignoré(s)`)
+                }
+                toast.success(messages.join(', '))
+
+                if (result.skipped?.length) {
+                    setWarnings(result.skipped)
+                } else {
+                    setIsOpen(false)
+                    setParsedData([])
+                    setFileName("")
+                    setWarnings([])
+                }
                 onImportComplete?.()
             } else {
                 toast.error(result.error || "Erreur lors de l'import")
                 if (result.errors) {
                     setErrors(result.errors)
+                }
+                if (result.skipped?.length) {
+                    setWarnings(prev => [...prev, ...result.skipped!])
                 }
             }
         } catch (error) {
@@ -195,6 +214,7 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
     const resetForm = () => {
         setParsedData([])
         setErrors([])
+        setWarnings([])
         setFileName("")
         if (fileInputRef.current) {
             fileInputRef.current.value = ""
@@ -203,8 +223,8 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
 
     return (
         <>
-            <Button 
-                variant="outline" 
+            <Button
+                variant="outline"
                 onClick={() => setIsOpen(true)}
                 className="gap-2"
             >
@@ -216,14 +236,14 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
                 setIsOpen(open)
                 if (!open) resetForm()
             }}>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+                <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <FileSpreadsheet className="w-5 h-5" />
                             Importer des créatives via CSV
                         </DialogTitle>
                         <DialogDescription>
-                            Importez plusieurs créatives en une seule fois à partir d'un fichier CSV.
+                            Importez plusieurs créatives en une seule fois. Seul le champ <strong>title</strong> est obligatoire.
                         </DialogDescription>
                     </DialogHeader>
 
@@ -233,10 +253,10 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
                             <div>
                                 <p className="font-medium">Télécharger le template</p>
                                 <p className="text-sm text-muted-foreground">
-                                    Utilisez ce modèle pour formater vos données correctement
+                                    15 colonnes : title, brand, agency, platform, country, sector, format, date, year, imageUrl, videoUrl, description, tags (séparés par ;), status (Brouillon/En attente/Publié), accessLevel (free/premium)
                                 </p>
                             </div>
-                            <Button variant="secondary" size="sm" onClick={downloadTemplate} className="gap-2">
+                            <Button variant="secondary" size="sm" onClick={downloadTemplate} className="gap-2 shrink-0">
                                 <Download className="w-4 h-4" />
                                 Template CSV
                             </Button>
@@ -255,8 +275,8 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
                                     className="flex-1"
                                 />
                                 {fileName && (
-                                    <Button 
-                                        variant="ghost" 
+                                    <Button
+                                        variant="ghost"
                                         size="icon"
                                         onClick={resetForm}
                                     >
@@ -281,6 +301,21 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
                             </div>
                         )}
 
+                        {/* Warnings */}
+                        {warnings.length > 0 && (
+                            <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg space-y-2">
+                                <div className="flex items-center gap-2 text-yellow-700 dark:text-yellow-400 font-medium">
+                                    <AlertCircle className="w-4 h-4" />
+                                    {warnings.length} avertissement(s)
+                                </div>
+                                <ul className="text-sm text-yellow-600 dark:text-yellow-400/80 list-disc list-inside max-h-32 overflow-auto">
+                                    {warnings.map((warning, i) => (
+                                        <li key={i}>{warning}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+
                         {/* Preview Table */}
                         {parsedData.length > 0 && (
                             <div className="space-y-2">
@@ -300,10 +335,15 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
                                                 <TableRow>
                                                     <TableHead className="w-12">#</TableHead>
                                                     <TableHead>Titre</TableHead>
+                                                    <TableHead>Marque</TableHead>
+                                                    <TableHead>Agence</TableHead>
                                                     <TableHead>Plateforme</TableHead>
-                                                    <TableHead>Format</TableHead>
+                                                    <TableHead>Pays</TableHead>
                                                     <TableHead>Secteur</TableHead>
-                                                    <TableHead>Objectif</TableHead>
+                                                    <TableHead>Format</TableHead>
+                                                    <TableHead>Année</TableHead>
+                                                    <TableHead>Status</TableHead>
+                                                    <TableHead>Accès</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -315,18 +355,15 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
                                                         <TableCell className={cn(!row.title && "text-destructive")}>
                                                             {row.title || "—"}
                                                         </TableCell>
-                                                        <TableCell className={cn(!row.platform && "text-destructive")}>
-                                                            {row.platform || "—"}
-                                                        </TableCell>
-                                                        <TableCell className={cn(!row.format && "text-destructive")}>
-                                                            {row.format || "—"}
-                                                        </TableCell>
-                                                        <TableCell className={cn(!row.sector && "text-destructive")}>
-                                                            {row.sector || "—"}
-                                                        </TableCell>
-                                                        <TableCell className={cn(!row.objective && "text-destructive")}>
-                                                            {row.objective || "—"}
-                                                        </TableCell>
+                                                        <TableCell>{row.brand || "—"}</TableCell>
+                                                        <TableCell>{row.agency || "—"}</TableCell>
+                                                        <TableCell>{row.platform || "—"}</TableCell>
+                                                        <TableCell>{row.country || "—"}</TableCell>
+                                                        <TableCell>{row.sector || "—"}</TableCell>
+                                                        <TableCell>{row.format || "—"}</TableCell>
+                                                        <TableCell>{row.year || "—"}</TableCell>
+                                                        <TableCell>{row.status || "—"}</TableCell>
+                                                        <TableCell>{row.accessLevel || "—"}</TableCell>
                                                     </TableRow>
                                                 ))}
                                             </TableBody>
@@ -346,8 +383,8 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
                         <Button variant="outline" onClick={() => setIsOpen(false)}>
                             Annuler
                         </Button>
-                        <Button 
-                            onClick={handleImport} 
+                        <Button
+                            onClick={handleImport}
                             disabled={isLoading || parsedData.length === 0 || errors.length > 0}
                             className="gap-2"
                         >

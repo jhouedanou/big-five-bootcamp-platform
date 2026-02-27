@@ -2,7 +2,7 @@
 
 import { createClient } from "@supabase/supabase-js"
 import { revalidatePath } from "next/cache"
-import { generateSlug } from "@/lib/utils"
+import { generateSlug, getGoogleDriveImageUrl } from "@/lib/utils"
 
 function getSupabaseAdmin() {
     return createClient(
@@ -168,40 +168,120 @@ export async function deleteCreative(id: string) {
 
 interface CSVCreativeRow {
     title: string
-    platform: string
-    format: string
-    sector: string
-    objective: string
-    thumbnail: string
+    brand?: string
+    agency?: string
+    platform?: string
+    country?: string
+    sector?: string
+    format?: string
+    date?: string
+    year?: string
+    imageUrl?: string
     videoUrl?: string
-    whyItWorks?: string
-    howToUse?: string
+    description?: string
+    tags?: string
+    status?: string
+    accessLevel?: string
 }
+
+const VALID_STATUSES = ['Brouillon', 'En attente', 'Publié']
+const VALID_ACCESS_LEVELS = ['free', 'premium']
 
 export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
     const supabase = getSupabaseAdmin()
     const errors: string[] = []
+    const skipped: string[] = []
     let imported = 0
+
+    // Fetch existing campaigns for duplicate detection (title + brand)
+    const { data: existingCampaigns } = await supabase
+        .from('campaigns')
+        .select('title, brand')
+
+    const existingSet = new Set(
+        (existingCampaigns || []).map(c =>
+            `${(c.title || '').trim().toLowerCase()}||${(c.brand || '').trim().toLowerCase()}`
+        )
+    )
 
     for (let i = 0; i < rows.length; i++) {
         const row = rows[i]
-        
+
         try {
+            const titleTrimmed = row.title.trim()
+            const brandTrimmed = (row.brand || '').trim()
+
+            // Duplicate check: same title + brand
+            const key = `${titleTrimmed.toLowerCase()}||${brandTrimmed.toLowerCase()}`
+            if (existingSet.has(key)) {
+                skipped.push(`Ligne ${i + 1}: "${titleTrimmed}" (${brandTrimmed || 'sans marque'}) existe déjà — ignorée`)
+                continue
+            }
+
+            // Parse tags separated by ;
+            const tags = row.tags
+                ? row.tags.split(';').map(t => t.trim()).filter(Boolean)
+                : []
+
+            // Validate and normalize status
+            const status = VALID_STATUSES.includes(row.status?.trim() || '')
+                ? row.status!.trim()
+                : 'Brouillon'
+
+            // Validate and normalize accessLevel
+            const accessLevel = VALID_ACCESS_LEVELS.includes(row.accessLevel?.trim().toLowerCase() || '')
+                ? row.accessLevel!.trim().toLowerCase()
+                : 'free'
+
+            // Parse year as number
+            const year = row.year ? parseInt(row.year, 10) : null
+
+            // Convert Google Drive URLs to direct image URLs
+            const thumbnail = row.imageUrl?.trim()
+                ? getGoogleDriveImageUrl(row.imageUrl.trim())
+                : null
+            const videoUrl = row.videoUrl?.trim()
+                ? getGoogleDriveImageUrl(row.videoUrl.trim())
+                : null
+
+            // Generate unique slug
+            let slug = generateSlug(titleTrimmed)
+            let slugCounter = 2
+            while (true) {
+                const { data: existing } = await supabase
+                    .from('campaigns')
+                    .select('id')
+                    .eq('slug', slug)
+                    .maybeSingle()
+                if (!existing) break
+                slug = `${generateSlug(titleTrimmed)}-${slugCounter}`
+                slugCounter++
+            }
+
             const { error } = await supabase.from('campaigns').insert({
-                title: row.title.trim(),
-                category: row.sector.trim(),
-                platforms: [row.platform.trim()],
-                thumbnail: row.thumbnail.trim(),
-                video_url: row.videoUrl?.trim() || null,
-                description: [row.whyItWorks, row.howToUse].filter(Boolean).join('\n\n') || null,
-                tags: [row.format.trim(), row.objective.trim()].filter(Boolean),
-                status: 'Publié',
+                title: titleTrimmed,
+                slug,
+                brand: brandTrimmed || null,
+                agency: row.agency?.trim() || null,
+                platforms: row.platform ? [row.platform.trim()] : [],
+                country: row.country?.trim() || null,
+                category: row.sector?.trim() || null,
+                format: row.format?.trim() || null,
+                year: (year && !isNaN(year)) ? year : null,
+                thumbnail,
+                video_url: videoUrl,
+                description: row.description?.trim() || null,
+                tags,
+                status,
+                access_level: accessLevel,
             })
 
             if (error) {
                 errors.push(`Ligne ${i + 1}: ${error.message}`)
             } else {
                 imported++
+                // Add to set to prevent duplicates within the same import
+                existingSet.add(key)
             }
         } catch (error: any) {
             errors.push(`Ligne ${i + 1}: ${error.message || 'Erreur inconnue'}`)
@@ -211,13 +291,18 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
     revalidatePath("/admin/creatives")
     revalidatePath("/admin/campaigns")
     revalidatePath("/library")
+    revalidatePath("/dashboard")
 
-    if (errors.length > 0) {
+    if (errors.length > 0 || skipped.length > 0) {
         return {
             success: imported > 0,
             imported,
+            skipped,
             errors,
-            error: `${errors.length} erreur(s) sur ${rows.length} lignes`
+            error: [
+                errors.length > 0 ? `${errors.length} erreur(s)` : null,
+                skipped.length > 0 ? `${skipped.length} doublon(s) ignoré(s)` : null,
+            ].filter(Boolean).join(', ') + ` sur ${rows.length} lignes`
         }
     }
 

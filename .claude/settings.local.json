@@ -11,7 +11,8 @@
       "Bash(grep:*)",
       "Bash(npx tsx:*)",
       "Bash(curl:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npm install country-flag-icons)"
     ]
   }
 }

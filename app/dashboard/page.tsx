@@ -527,7 +527,7 @@ export default function DashboardPage() {
                         variant="outline"
                         size="sm"
                         className="h-10 w-10 border-2 border-[#D0E4F2] bg-white p-0 hover:bg-[#D0E4F2] hover:border-[#80368D]/30"
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
                         disabled={currentPage === 1}
                       >
                         <ChevronLeft className="h-5 w-5" />
@@ -538,7 +538,7 @@ export default function DashboardPage() {
                           <button
                             key={page}
                             type="button"
-                            onClick={() => setCurrentPage(page)}
+                            onClick={() => { setCurrentPage(page); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
                             className={`h-10 w-10 rounded-lg text-sm font-bold transition-all duration-200 ${currentPage === page
                               ? "bg-[#80368D] text-white shadow-lg shadow-[#80368D]/30 scale-110"
                               : "bg-white border-2 border-[#D0E4F2] text-[#1A1F2B]/70 hover:bg-[#D0E4F2] hover:text-[#1A1F2B] hover:border-[#80368D]/30"
@@ -553,7 +553,7 @@ export default function DashboardPage() {
                         variant="outline"
                         size="sm"
                         className="h-10 w-10 border-2 border-[#D0E4F2] bg-white p-0 hover:bg-[#D0E4F2] hover:border-[#80368D]/30"
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        onClick={() => { setCurrentPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
                         disabled={currentPage === totalPages}
                       >
                         <ChevronRight className="h-5 w-5" />

@@ -49,6 +49,29 @@ const platformIcons: Record<string, React.ReactNode> = {
   "YouTube": <Youtube className="h-4 w-4" />,
 }
 
+const countryFlags: Record<string, string> = {
+  "Côte d'Ivoire": "🇨🇮",
+  "Cote d'Ivoire": "🇨🇮",
+  "Sénégal": "🇸🇳",
+  "Senegal": "🇸🇳",
+  "Bénin": "🇧🇯",
+  "Benin": "🇧🇯",
+  "Burkina Faso": "🇧🇫",
+  "Togo": "🇹🇬",
+  "Guinée": "🇬🇳",
+  "Guinee": "🇬🇳",
+  "Nigeria": "🇳🇬",
+  "Afrique du Sud": "🇿🇦",
+  "Ghana": "🇬🇭",
+  "Kenya": "🇰🇪",
+  "Maroc": "🇲🇦",
+  "France": "🇫🇷",
+  "USA": "🇺🇸",
+  "Cameroun": "🇨🇲",
+  "Mali": "🇲🇱",
+  "Niger": "🇳🇪",
+}
+
 // Interface pour les options dynamiques
 export interface DynamicFilterOptions {
   countries?: string[]
@@ -216,6 +239,9 @@ export function FiltersSidebar({ selectedFilters, onFilterChange, className, dyn
                           </div>
                           {group.hasIcons && platformIcons[option] && (
                             <span className={isSelected ? "text-white" : "text-[#1A1F2B]/70"}>{platformIcons[option]}</span>
+                          )}
+                          {group.name === "Pays" && (
+                            <span className="text-base leading-none">{countryFlags[option] || "🌍"}</span>
                           )}
                           <span className="text-sm font-semibold truncate">{option}</span>
                         </button>

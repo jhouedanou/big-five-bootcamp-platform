@@ -182,6 +182,7 @@ interface CSVCreativeRow {
     tags?: string
     status?: string
     accessLevel?: string
+    axe?: string
 }
 
 const VALID_STATUSES = ['Brouillon', 'En attente', 'Publié']
@@ -190,19 +191,7 @@ const VALID_ACCESS_LEVELS = ['free', 'premium']
 export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
     const supabase = getSupabaseAdmin()
     const errors: string[] = []
-    const skipped: string[] = []
     let imported = 0
-
-    // Fetch existing campaigns for duplicate detection (title + brand)
-    const { data: existingCampaigns } = await supabase
-        .from('campaigns')
-        .select('title, brand')
-
-    const existingSet = new Set(
-        (existingCampaigns || []).map(c =>
-            `${(c.title || '').trim().toLowerCase()}||${(c.brand || '').trim().toLowerCase()}`
-        )
-    )
 
     for (let i = 0; i < rows.length; i++) {
         const row = rows[i]
@@ -210,13 +199,6 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
         try {
             const titleTrimmed = row.title.trim()
             const brandTrimmed = (row.brand || '').trim()
-
-            // Duplicate check: same title + brand
-            const key = `${titleTrimmed.toLowerCase()}||${brandTrimmed.toLowerCase()}`
-            if (existingSet.has(key)) {
-                skipped.push(`Ligne ${i + 1}: "${titleTrimmed}" (${brandTrimmed || 'sans marque'}) existe déjà — ignorée`)
-                continue
-            }
 
             // Parse tags separated by ;
             const tags = row.tags
@@ -274,14 +256,13 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
                 tags,
                 status,
                 access_level: accessLevel,
+                axe: row.axe?.trim() || null,
             })
 
             if (error) {
                 errors.push(`Ligne ${i + 1}: ${error.message}`)
             } else {
                 imported++
-                // Add to set to prevent duplicates within the same import
-                existingSet.add(key)
             }
         } catch (error: any) {
             errors.push(`Ligne ${i + 1}: ${error.message || 'Erreur inconnue'}`)
@@ -293,16 +274,12 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
     revalidatePath("/library")
     revalidatePath("/dashboard")
 
-    if (errors.length > 0 || skipped.length > 0) {
+    if (errors.length > 0) {
         return {
             success: imported > 0,
             imported,
-            skipped,
             errors,
-            error: [
-                errors.length > 0 ? `${errors.length} erreur(s)` : null,
-                skipped.length > 0 ? `${skipped.length} doublon(s) ignoré(s)` : null,
-            ].filter(Boolean).join(', ') + ` sur ${rows.length} lignes`
+            error: `${errors.length} erreur(s) sur ${rows.length} lignes`
         }
     }
 

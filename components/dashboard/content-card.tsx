@@ -33,6 +33,7 @@ export interface ContentItem {
   agency?: string
   year?: number
   award?: string
+  axe?: string
   status?: 'Publié' | 'Brouillon' | 'En attente'
   accessLevel?: 'free' | 'premium' // 'free' = visible par tous, 'premium' = réservé aux abonnés
   slug?: string // Permalien SEO-friendly

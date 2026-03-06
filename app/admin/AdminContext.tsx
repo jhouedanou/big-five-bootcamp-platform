@@ -273,6 +273,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         videoUrl: campaign.video_url || undefined,
         brand: campaign.brand || '',
         agency: campaign.agency || '',
+        axe: campaign.axe || '',
         year: campaign.year || undefined,
         status: campaign.status || 'Brouillon',
         accessLevel: campaign.access_level || 'free',
@@ -310,6 +311,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     if (data.images !== undefined) record.images = data.images;
     if (data.tags !== undefined) record.tags = data.tags;
     if (data.brand !== undefined) record.brand = data.brand;
+    if (data.axe !== undefined) record.axe = data.axe;
     if (data.status !== undefined) record.status = data.status;
     if (data.accessLevel !== undefined) record.access_level = data.accessLevel;
     if (data.slug !== undefined) record.slug = data.slug;

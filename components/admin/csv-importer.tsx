@@ -42,6 +42,7 @@ interface CSVRow {
     tags?: string
     status?: string
     accessLevel?: string
+    axe?: string
 }
 
 interface CSVImporterProps {
@@ -63,7 +64,8 @@ const CSV_TEMPLATE_HEADERS = [
     "description",
     "tags",
     "status",
-    "accessLevel"
+    "accessLevel",
+    "axe"
 ]
 
 const CSV_EXAMPLE_DATA = [
@@ -82,7 +84,8 @@ const CSV_EXAMPLE_DATA = [
         description: "Campagne de promotion pour le Black Friday avec des offres exclusives",
         tags: "promo;blackfriday;soldes",
         status: "Publié",
-        accessLevel: "premium"
+        accessLevel: "premium",
+        axe: "Offre / Promotion"
     }
 ]
 
@@ -253,7 +256,7 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
                             <div>
                                 <p className="font-medium">Télécharger le template</p>
                                 <p className="text-sm text-muted-foreground">
-                                    15 colonnes : title, brand, agency, platform, country, sector, format, date, year, imageUrl, videoUrl, description, tags (séparés par ;), status (Brouillon/En attente/Publié), accessLevel (free/premium)
+                                    16 colonnes : title, brand, agency, platform, country, sector, format, date, year, imageUrl, videoUrl, description, tags (séparés par ;), status (Brouillon/En attente/Publié), accessLevel (free/premium), axe
                                 </p>
                             </div>
                             <Button variant="secondary" size="sm" onClick={downloadTemplate} className="gap-2 shrink-0">
@@ -342,6 +345,7 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
                                                     <TableHead>Secteur</TableHead>
                                                     <TableHead>Format</TableHead>
                                                     <TableHead>Année</TableHead>
+                                                    <TableHead>Axe</TableHead>
                                                     <TableHead>Status</TableHead>
                                                     <TableHead>Accès</TableHead>
                                                 </TableRow>
@@ -362,6 +366,7 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
                                                         <TableCell>{row.sector || "—"}</TableCell>
                                                         <TableCell>{row.format || "—"}</TableCell>
                                                         <TableCell>{row.year || "—"}</TableCell>
+                                                        <TableCell>{row.axe || "—"}</TableCell>
                                                         <TableCell>{row.status || "—"}</TableCell>
                                                         <TableCell>{row.accessLevel || "—"}</TableCell>
                                                     </TableRow>

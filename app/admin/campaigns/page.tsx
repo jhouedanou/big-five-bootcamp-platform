@@ -67,6 +67,11 @@ const platforms = ["Facebook", "Instagram", "TikTok", "YouTube", "LinkedIn", "Tw
 const countries = ["Bénin", "Côte d'Ivoire", "Sénégal", "Burkina Faso", "Togo", "Guinée"];
 const sectors = ["Telecoms", "E-commerce", "Banque/Finance", "FMCG", "Tech", "Energie", "Industrie"];
 const formats = ["Story", "Carrousel", "Vidéo", "Image", "Photo", "Vidéos Ad", "Image Ad", "Carrousel Ad"];
+const axes = [
+  "Focus produit", "Bénéfice produit", "Démonstration", "Utilisation",
+  "Offre / Promotion", "Storytelling", "Transparence", "Humanisation",
+  "RSE", "Langage de la cible", "Preuve sociale", "Gamification intelligente", "Education"
+];
 const statuses = ["Brouillon", "En attente", "Publié"] as const;
 
 const FORM_STEPS = [
@@ -102,6 +107,7 @@ const defaultFormData: Omit<ContentItem, "id"> = {
   country: "Côte d'Ivoire",
   sector: "Telecoms",
   format: "Story",
+  axe: "",
   tags: [],
   date: "",
   brand: "",
@@ -894,6 +900,24 @@ function CampaignsPageContent() {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+
+                {/* Axe */}
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Axe</Label>
+                  <Select
+                    value={formData.axe || ""}
+                    onValueChange={(value) => setFormData({ ...formData, axe: value })}
+                  >
+                    <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                      <SelectValue placeholder="Sélectionner un axe" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200 text-gray-900">
+                      {axes.map((a) => (
+                        <SelectItem key={a} value={a}>{a}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Date & Year */}

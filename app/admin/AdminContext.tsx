@@ -273,7 +273,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         videoUrl: campaign.video_url || undefined,
         brand: campaign.brand || '',
         agency: campaign.agency || '',
-        axe: campaign.axe || '',
+        axe: campaign.axe || [],
         year: campaign.year || undefined,
         status: campaign.status || 'Brouillon',
         accessLevel: campaign.access_level || 'free',

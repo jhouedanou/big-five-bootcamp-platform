@@ -192,6 +192,7 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
     const supabase = getSupabaseAdmin()
     const errors: string[] = []
     let imported = 0
+    const usedSlugs = new Set<string>()
 
     for (let i = 0; i < rows.length; i++) {
         const row = rows[i]
@@ -226,10 +227,15 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
                 ? getGoogleDriveImageUrl(row.videoUrl.trim())
                 : null
 
-            // Generate unique slug
+            // Generate unique slug (check both DB and current batch)
             let slug = generateSlug(titleTrimmed)
             let slugCounter = 2
             while (true) {
+                if (usedSlugs.has(slug)) {
+                    slug = `${generateSlug(titleTrimmed)}-${slugCounter}`
+                    slugCounter++
+                    continue
+                }
                 const { data: existing } = await supabase
                     .from('campaigns')
                     .select('id')
@@ -239,6 +245,7 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
                 slug = `${generateSlug(titleTrimmed)}-${slugCounter}`
                 slugCounter++
             }
+            usedSlugs.add(slug)
 
             const { error } = await supabase.from('campaigns').insert({
                 title: titleTrimmed,
@@ -256,7 +263,9 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
                 tags,
                 status,
                 access_level: accessLevel,
-                axe: row.axe?.trim() || null,
+                axe: row.axe
+                    ? row.axe.split(';').map(a => a.trim()).filter(Boolean)
+                    : [],
             })
 
             if (error) {

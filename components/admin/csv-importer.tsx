@@ -85,7 +85,7 @@ const CSV_EXAMPLE_DATA = [
         tags: "promo;blackfriday;soldes",
         status: "Publié",
         accessLevel: "premium",
-        axe: "Offre / Promotion"
+        axe: "Offre / Promotion;Storytelling"
     }
 ]
 
@@ -183,28 +183,16 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
             const result = await importCreativesFromCSV(parsedData)
 
             if (result.success) {
-                const messages: string[] = [`${result.imported} créative(s) importée(s)`]
-                if (result.skipped?.length) {
-                    messages.push(`${result.skipped.length} doublon(s) ignoré(s)`)
-                }
-                toast.success(messages.join(', '))
-
-                if (result.skipped?.length) {
-                    setWarnings(result.skipped)
-                } else {
-                    setIsOpen(false)
-                    setParsedData([])
-                    setFileName("")
-                    setWarnings([])
-                }
+                toast.success(`${result.imported} créative(s) importée(s)`)
+                setIsOpen(false)
+                setParsedData([])
+                setFileName("")
+                setWarnings([])
                 onImportComplete?.()
             } else {
                 toast.error(result.error || "Erreur lors de l'import")
                 if (result.errors) {
                     setErrors(result.errors)
-                }
-                if (result.skipped?.length) {
-                    setWarnings(prev => [...prev, ...result.skipped!])
                 }
             }
         } catch (error) {
@@ -256,7 +244,7 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
                             <div>
                                 <p className="font-medium">Télécharger le template</p>
                                 <p className="text-sm text-muted-foreground">
-                                    16 colonnes : title, brand, agency, platform, country, sector, format, date, year, imageUrl, videoUrl, description, tags (séparés par ;), status (Brouillon/En attente/Publié), accessLevel (free/premium), axe
+                                    16 colonnes : title, brand, agency, platform, country, sector, format, date, year, imageUrl, videoUrl, description, tags (séparés par ;), status (Brouillon/En attente/Publié), accessLevel (free/premium), axe (séparés par ;)
                                 </p>
                             </div>
                             <Button variant="secondary" size="sm" onClick={downloadTemplate} className="gap-2 shrink-0">

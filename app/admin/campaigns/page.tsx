@@ -107,7 +107,7 @@ const defaultFormData: Omit<ContentItem, "id"> = {
   country: "Côte d'Ivoire",
   sector: "Telecoms",
   format: "Story",
-  axe: "",
+  axe: [],
   tags: [],
   date: "",
   brand: "",
@@ -219,6 +219,7 @@ function CampaignsPageContent() {
       status: item.status || "Brouillon",
       accessLevel: item.accessLevel || "free",
       slug: item.slug || "",
+      axe: item.axe || [],
     });
     setTagInput("");
     setImageInput("");
@@ -355,7 +356,7 @@ function CampaignsPageContent() {
           </p>
         </div>
         <div className="flex gap-2">
-          <CSVImporter onImportComplete={() => window.location.reload()} />
+          <CSVImporter onImportComplete={() => refreshCampaigns()} />
           <Button onClick={handleOpenAdd} className="bg-[#FF6B35] hover:bg-[#e55a2b] text-white">
             <Plus className="h-4 w-4 mr-2" />
             Ajouter une campagne
@@ -902,22 +903,28 @@ function CampaignsPageContent() {
                   </div>
                 </div>
 
-                {/* Axe */}
+                {/* Axe (multi-select checkboxes) */}
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Axe</Label>
-                  <Select
-                    value={formData.axe || ""}
-                    onValueChange={(value) => setFormData({ ...formData, axe: value })}
-                  >
-                    <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                      <SelectValue placeholder="Sélectionner un axe" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200 text-gray-900">
-                      {axes.map((a) => (
-                        <SelectItem key={a} value={a}>{a}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-gray-700">Axe(s)</Label>
+                  <div className="grid grid-cols-2 gap-2 p-3 border border-gray-300 rounded-md bg-white max-h-48 overflow-y-auto">
+                    {axes.map((a) => (
+                      <label key={a} className="flex items-center gap-2 cursor-pointer text-sm text-gray-900 hover:bg-gray-50 rounded px-1 py-0.5">
+                        <Checkbox
+                          checked={(formData.axe || []).includes(a)}
+                          onCheckedChange={(checked) => {
+                            const current = formData.axe || [];
+                            setFormData({
+                              ...formData,
+                              axe: checked
+                                ? [...current, a]
+                                : current.filter((x) => x !== a),
+                            });
+                          }}
+                        />
+                        {a}
+                      </label>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Date & Year */}

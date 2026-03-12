@@ -3,8 +3,10 @@
 import Link from "next/link"
 import { Clock, Check, ArrowRight, LogOut, Sparkles, Smartphone, CreditCard } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useProductPrice } from "@/hooks/use-product-price"
 
 export default function PaywallPage() {
+  const { label: priceLabel, currency: priceCurrency } = useProductPrice()
   const benefits = [
     "Acces illimite a toute la bibliotheque",
     "Nouveaux contenus ajoutes quotidiennement",
@@ -38,7 +40,7 @@ export default function PaywallPage() {
           
           <p className="mt-3 text-[#1A1F2B]/70">
             Tu as kiffe ces 30 jours ? Continue {"l'aventure"} pour{" "}
-            <span className="font-semibold text-[#1A1F2B]">25 000 XOF/mois</span> seulement.
+            <span className="font-semibold text-[#1A1F2B]">{priceLabel} {priceCurrency}/mois</span> seulement.
           </p>
 
           {/* Benefits */}
@@ -56,8 +58,8 @@ export default function PaywallPage() {
           {/* Pricing Card */}
           <div className="mt-8 rounded-xl bg-[#80368D] p-6 text-left">
             <div className="flex items-baseline gap-1">
-              <span className="font-[family-name:var(--font-heading)] text-4xl font-bold text-white">25 000</span>
-              <span className="text-lg text-white/70">XOF/mois</span>
+              <span className="font-[family-name:var(--font-heading)] text-4xl font-bold text-white">{priceLabel}</span>
+              <span className="text-lg text-white/70">{priceCurrency}/mois</span>
             </div>
             <p className="mt-1 text-sm text-white/60">Soit ~833 XOF/jour pour booster ta créa</p>
             

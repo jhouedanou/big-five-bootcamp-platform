@@ -7,6 +7,7 @@ import { ArrowLeft, Check, Lock, Sparkles, Loader2, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
+import { useProductPrice } from "@/hooks/use-product-price"
 import { LegalModal } from "@/components/legal-modal"
 
 export default function SubscribePage() {
@@ -16,6 +17,7 @@ export default function SubscribePage() {
   const [isProcessing, setIsProcessing] = useState(false)
   const [phoneNumber, setPhoneNumber] = useState('')
   const [phoneCountryCode, setPhoneCountryCode] = useState('CI')
+  const { label: priceLabel, currency: priceCurrency } = useProductPrice()
 
   // Redirection si non connecté
   useEffect(() => {
@@ -235,7 +237,7 @@ export default function SubscribePage() {
                 ) : (
                   <>
                     <Lock className="mr-2 h-4 w-4" />
-                    Renouveler — 25 000 FCFA / mois
+                    Renouveler — {priceLabel} {priceCurrency} / mois
                   </>
                 )}
               </Button>
@@ -354,7 +356,7 @@ export default function SubscribePage() {
                 ) : (
                   <>
                     <Lock className="mr-2 h-4 w-4" />
-                    S'abonner — 25 000 FCFA / mois
+                    S'abonner — {priceLabel} {priceCurrency} / mois
                   </>
                 )}
               </Button>
@@ -381,7 +383,7 @@ export default function SubscribePage() {
               <div className="mt-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Abonnement mensuel Big Five</span>
-                  <span className="font-medium text-foreground">25 000 XOF</span>
+                  <span className="font-medium text-foreground">{priceLabel} {priceCurrency}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Durée</span>
@@ -396,7 +398,7 @@ export default function SubscribePage() {
               <div className="mt-4 border-t border-border pt-4">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-foreground">Total</span>
-                  <span className="font-[family-name:var(--font-heading)] text-2xl font-bold text-primary">25 000 XOF</span>
+                  <span className="font-[family-name:var(--font-heading)] text-2xl font-bold text-primary">{priceLabel} {priceCurrency}</span>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">Valable 1 mois</p>
               </div>

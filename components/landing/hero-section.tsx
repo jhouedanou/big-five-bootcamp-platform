@@ -7,6 +7,7 @@ import Image from "next/image"
 import { ArrowRight, Play, Target, BarChart3, Search, CheckCircle, Zap, RefreshCw, Globe, Layers, Sparkles } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import { getGoogleDriveImageUrl } from "@/lib/utils"
+import { useProductPrice } from "@/hooks/use-product-price"
 
 function useStats() {
   const [stats, setStats] = useState({ users: 0, campaigns: 0, brands: 0, countries: 0 })
@@ -70,6 +71,7 @@ export function HeroSection() {
   const stats = useStats()
   const recentUsers = useRecentUsers()
   const recentCampaigns = useRecentCampaigns()
+  const { label: priceLabel, currency: priceCurrency } = useProductPrice()
 
   // Fallback si pas encore chargé
   const displayUsers = recentUsers.length > 0 
@@ -144,7 +146,7 @@ export function HeroSection() {
 
             {/* Price info below buttons */}
             <p className="mt-4 text-sm text-[#1A1F2B]/60 animate-fade-in-up delay-300">
-              Puis seulement <span className="font-semibold text-foreground">25 000 XOF/mois</span> après l'essai
+              Puis seulement <span className="font-semibold text-foreground">{priceLabel} {priceCurrency}/mois</span> après l'essai
             </p>
 
             <div className="mt-10 flex items-center gap-6 animate-fade-in-up delay-400">
@@ -389,6 +391,7 @@ export function PreviewSection() {
 }
 
 export function PricingTeaser() {
+  const { label: priceLabel, currency: priceCurrency } = useProductPrice()
   return (
     <section className="py-16 sm:py-20 bg-[#D0E4F2]/30 relative overflow-hidden">
       <div className="absolute inset-0 bg-[linear-gradient(rgba(208,228,242,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(208,228,242,0.3)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
@@ -422,7 +425,7 @@ export function PricingTeaser() {
         </div>
 
         <p className="mt-5 text-sm text-[#1A1F2B]/50">
-          Puis 25 000 XOF/mois • Annulation à tout moment • Support 24/7
+          Puis {priceLabel} {priceCurrency}/mois • Annulation à tout moment • Support 24/7
         </p>
       </div>
     </section>

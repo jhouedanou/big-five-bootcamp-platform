@@ -1,9 +1,9 @@
 /**
  * API Route: POST /api/payment/subscribe
- * 
+ *
  * Crée une demande de paiement Chariow pour un abonnement mensuel
- * Prix: 25 000 XOF/mois - Valable 1 mois
- * 
+ * Le prix est récupéré dynamiquement depuis l'API Chariow (GET /products)
+ *
  * Body:
  * - userEmail: Email de l'utilisateur
  * - phoneNumber?: Numéro de téléphone
@@ -14,13 +14,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { 
+import {
   createSubscriptionCheckout,
   generateRefCommand,
+  getProduct,
+  getSubscriptionProductId,
 } from '@/lib/chariow';
+import { PRICING_MONTHLY_VALUE } from '@/lib/constants';
 
-// Prix de l'abonnement mensuel
-const SUBSCRIPTION_PRICE = 25000; // 25 000 XOF
 const SUBSCRIPTION_DURATION_DAYS = 30; // 1 mois
 
 export async function POST(request: NextRequest) {
@@ -29,6 +30,17 @@ export async function POST(request: NextRequest) {
     const { userEmail, phoneNumber, phoneCountryCode, firstName, lastName } = body;
 
     console.log('📨 Requête d\'abonnement reçue:', { userEmail });
+
+    // Récupérer le prix dynamique depuis Chariow
+    let subscriptionPrice = PRICING_MONTHLY_VALUE; // fallback
+    try {
+      const productId = getSubscriptionProductId();
+      const product = await getProduct(productId);
+      subscriptionPrice = product.data.current_price?.value ?? product.data.price?.value ?? PRICING_MONTHLY_VALUE;
+      console.log('💰 Prix récupéré depuis Chariow:', subscriptionPrice);
+    } catch (priceError) {
+      console.warn('⚠️ Impossible de récupérer le prix Chariow, utilisation du fallback:', PRICING_MONTHLY_VALUE);
+    }
 
     // Validation
     if (!userEmail) {
@@ -117,7 +129,7 @@ export async function POST(request: NextRequest) {
     
     const paymentInsert = {
       user_email: userEmail,
-      amount: SUBSCRIPTION_PRICE,
+      amount: subscriptionPrice,
       status: 'pending',
       payment_method: 'Chariow',
       ref_command,
@@ -200,7 +212,7 @@ export async function POST(request: NextRequest) {
         ref_command,
         redirect_url: chariowResponse.data.payment.checkout_url,
         sale_id: chariowResponse.data.purchase?.id,
-        amount: SUBSCRIPTION_PRICE,
+        amount: subscriptionPrice,
         duration_days: SUBSCRIPTION_DURATION_DAYS,
         subscription_end_date: subscriptionEndDate.toISOString(),
       });

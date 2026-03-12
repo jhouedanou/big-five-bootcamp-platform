@@ -18,7 +18,8 @@
       "Bash(pnpm install:*)",
       "Bash(npm install:*)",
       "WebFetch(domain:docs.chariow.dev)",
-      "WebFetch(domain:chariow.dev)"
+      "WebFetch(domain:chariow.dev)",
+      "Bash(npx pnpm install:*)"
     ]
   }
 }

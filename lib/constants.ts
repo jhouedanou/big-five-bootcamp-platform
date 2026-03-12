@@ -4,6 +4,7 @@ export const DOMAIN_URL = "https://bigfiveabidjan.com";
 
 export const FOOTER_TEXT = "2026 Creative Library powered by Big Five";
 
+// Fallback values — la source de vérité est l'API Chariow (GET /v1/products)
 export const PRICING_MONTHLY = "25 000 FCFA";
 export const PRICING_MONTHLY_VALUE = 25000;
 

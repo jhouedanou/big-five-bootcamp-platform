@@ -40,6 +40,7 @@ export default function SubscribePage() {
   const [licenseKey, setLicenseKey] = useState("")
   const [verifyingLicense, setVerifyingLicense] = useState(false)
   const [licenseError, setLicenseError] = useState<string | null>(null)
+  const [activating, setActivating] = useState(false)
 
   // Enregistrer l'état initial de l'abonnement
   useEffect(() => {
@@ -51,7 +52,40 @@ export default function SubscribePage() {
     }
   }, [userProfile, initialPlanState])
 
-  // Polling : vérifier si l'abonnement a été activé (après paiement widget)
+  // ======= CALLBACK PRINCIPAL : paiement widget réussi =======
+  const handleWidgetPaymentSuccess = async (data: { purchaseId?: string; returnUrl?: string }) => {
+    if (!user?.email || activating) return
+    
+    console.log("🎯 Widget payment success detected!", data)
+    setActivating(true)
+
+    try {
+      const res = await fetch("/api/payment/activate-widget", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: user.email,
+          purchaseId: data.purchaseId,
+        }),
+      })
+      const result = await res.json()
+
+      if (result.success) {
+        setSubscriptionActivated(true)
+        setNewEndDate(result.subscription?.endDate)
+        console.log("✅ Subscription activated!", result)
+      } else {
+        console.error("❌ Activation failed:", result.error)
+        // Fallback : le polling va quand même vérifier
+      }
+    } catch (err) {
+      console.error("❌ Activation request failed:", err)
+    } finally {
+      setActivating(false)
+    }
+  }
+
+  // Polling : vérifier si l'abonnement a été activé (backup du callback)
   useEffect(() => {
     if (!user?.email || subscriptionActivated || !initialPlanState) return
 
@@ -305,7 +339,13 @@ export default function SubscribePage() {
 
               {/* Widget Chariow */}
               <div className="mt-5">
-                <ChariowWidget ctaWidth="full" />
+                <ChariowWidget ctaWidth="full" onPaymentSuccess={handleWidgetPaymentSuccess} />
+                {activating && (
+                  <div className="mt-3 flex items-center justify-center gap-2 text-sm text-[#80368D]">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Activation de ton abonnement en cours...</span>
+                  </div>
+                )}
               </div>
 
               {/* CGV */}
@@ -406,7 +446,13 @@ export default function SubscribePage() {
 
               {/* Widget Chariow — remplace l'ancien formulaire de paiement */}
               <div className="mt-6">
-                <ChariowWidget ctaWidth="full" />
+                <ChariowWidget ctaWidth="full" onPaymentSuccess={handleWidgetPaymentSuccess} />
+                {activating && (
+                  <div className="mt-3 flex items-center justify-center gap-2 text-sm text-[#80368D]">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Activation de ton abonnement en cours...</span>
+                  </div>
+                )}
               </div>
 
               {/* Info sécurité */}

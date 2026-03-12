@@ -1,18 +1,54 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
-import { Clock, Check, LogOut, Sparkles, Smartphone, CreditCard } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Clock, Check, LogOut, Sparkles, Smartphone, CreditCard, Loader2 } from "lucide-react"
 import { useProductPrice } from "@/hooks/use-product-price"
+import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
 import { ChariowWidget } from "@/components/chariow-widget"
 
 export default function PaywallPage() {
+  const router = useRouter()
   const { label: priceLabel, currency: priceCurrency } = useProductPrice()
+  const { user } = useSupabaseAuth()
+  const [activating, setActivating] = useState(false)
+  
   const benefits = [
     "Acces illimite a toute la bibliotheque",
     "Nouveaux contenus ajoutes quotidiennement",
     "Filtres et recherche avances",
     "Annulation possible a tout moment"
   ]
+
+  // Callback quand le widget signale un paiement réussi
+  const handleWidgetPaymentSuccess = async (data: { purchaseId?: string; returnUrl?: string }) => {
+    if (!user?.email || activating) return
+
+    console.log("🎯 Paywall: Widget payment success!", data)
+    setActivating(true)
+
+    try {
+      const res = await fetch("/api/payment/activate-widget", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: user.email,
+          purchaseId: data.purchaseId,
+        }),
+      })
+      const result = await res.json()
+
+      if (result.success) {
+        // Rediriger vers le dashboard
+        router.push("/dashboard?activated=true")
+      }
+    } catch (err) {
+      console.error("❌ Activation failed:", err)
+    } finally {
+      setActivating(false)
+    }
+  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#D0E4F2]/30 to-white px-4">
@@ -78,7 +114,13 @@ export default function PaywallPage() {
 
           {/* Widget Chariow — paiement direct */}
           <div className="mt-6">
-            <ChariowWidget ctaWidth="full" />
+            <ChariowWidget ctaWidth="full" onPaymentSuccess={handleWidgetPaymentSuccess} />
+            {activating && (
+              <div className="mt-3 flex items-center justify-center gap-2 text-sm text-[#80368D]">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Activation de ton abonnement en cours...</span>
+              </div>
+            )}
           </div>
 
           {/* Lien vers la page subscribe pour plus d'options */}

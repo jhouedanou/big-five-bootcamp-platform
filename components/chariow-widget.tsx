@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useCallback } from "react"
 
 interface ChariowWidgetProps {
   /** ID du produit Chariow (ex: prd_t5xjq2) */
@@ -23,6 +23,8 @@ interface ChariowWidgetProps {
   ctaAnimation?: "shine" | "none"
   /** Classe CSS additionnelle */
   className?: string
+  /** Callback quand un paiement est réussi (via postMessage du widget) */
+  onPaymentSuccess?: (data: { purchaseId?: string; returnUrl?: string }) => void
 }
 
 /**
@@ -31,7 +33,9 @@ interface ChariowWidgetProps {
  * Intègre le widget de paiement Chariow directement sur la page.
  * Le widget gère tout le flow de checkout (Mobile Money, CB, etc.)
  * 
- * Après le paiement, Chariow envoie un webhook qui active l'abonnement.
+ * Détecte automatiquement le succès du paiement via postMessage :
+ * - eventType: "PAYMENT_SUCCESSFUL" (avec return_url)
+ * - type: "chariow-purchase-completed" (avec purchaseId)
  */
 export function ChariowWidget({
   productId = "prd_t5xjq2",
@@ -44,9 +48,44 @@ export function ChariowWidget({
   ctaWidth = "full",
   ctaAnimation = "shine",
   className,
+  onPaymentSuccess,
 }: ChariowWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const scriptLoadedRef = useRef(false)
+  const callbackRef = useRef(onPaymentSuccess)
+  
+  // Garder la référence à jour sans recréer le listener
+  callbackRef.current = onPaymentSuccess
+
+  // Écouter les messages postMessage du widget Chariow (iframe)
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (!event.data || typeof event.data !== "object") return
+
+      // Event 1: PAYMENT_SUCCESSFUL (paiement confirmé côté Chariow)
+      if (event.data.eventType === "PAYMENT_SUCCESSFUL") {
+        console.log("✅ Chariow: PAYMENT_SUCCESSFUL detected", event.data)
+        callbackRef.current?.({
+          returnUrl: event.data.eventData?.return_url,
+          purchaseId: undefined,
+        })
+        return
+      }
+
+      // Event 2: chariow-purchase-completed (achat finalisé avec purchaseId)
+      if (event.data.type === "chariow-purchase-completed") {
+        console.log("✅ Chariow: purchase-completed detected", event.data)
+        callbackRef.current?.({
+          purchaseId: event.data.purchaseId,
+          returnUrl: undefined,
+        })
+        return
+      }
+    }
+
+    window.addEventListener("message", handleMessage)
+    return () => window.removeEventListener("message", handleMessage)
+  }, [])
 
   useEffect(() => {
     if (scriptLoadedRef.current) return

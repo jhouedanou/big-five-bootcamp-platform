@@ -101,8 +101,11 @@ function PaymentSuccessContent() {
       if (attempt >= maxRetries) {
         // Tenter une vérification directe auprès de Chariow
         try {
+          const storedSaleId = sessionStorage.getItem('payment_sale_id');
           const checkResponse = await fetch(`/api/payment/check/${ref_command}`, {
             method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sale_id: storedSaleId || undefined }),
           });
           const checkData = await checkResponse.json();
           
@@ -154,6 +157,12 @@ function PaymentSuccessContent() {
     const refFromUrl = searchParams.get('ref_command') || searchParams.get('ref');
     const refFromStorage = sessionStorage.getItem('payment_ref');
     const ref_command = refFromUrl || refFromStorage;
+
+    // Récupérer le sale_id si Chariow l'a ajouté à l'URL de redirect
+    const saleIdFromUrl = searchParams.get('sale_id') || searchParams.get('purchase_id');
+    if (saleIdFromUrl) {
+      sessionStorage.setItem('payment_sale_id', saleIdFromUrl);
+    }
 
     if (!ref_command) {
       setError('Référence de paiement introuvable');
@@ -263,8 +272,11 @@ function PaymentSuccessContent() {
                   
                   // D'abord vérifier directement auprès de Chariow
                   try {
+                    const storedSaleId = sessionStorage.getItem('payment_sale_id');
                     const checkResponse = await fetch(`/api/payment/check/${pendingPayment.ref_command}`, {
                       method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ sale_id: storedSaleId || undefined }),
                     });
                     const checkData = await checkResponse.json();
                     

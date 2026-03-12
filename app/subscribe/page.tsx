@@ -58,9 +58,12 @@ export default function SubscribePage() {
         throw new Error(data.error || 'Erreur lors de la création du paiement')
       }
 
-      // Stocker la référence pour la page de succès
+      // Stocker la référence et le sale_id pour la page de succès
       if (data.ref_command) {
         sessionStorage.setItem('payment_ref', data.ref_command)
+      }
+      if (data.sale_id) {
+        sessionStorage.setItem('payment_sale_id', data.sale_id)
       }
 
       // Redirection vers la page de checkout Chariow

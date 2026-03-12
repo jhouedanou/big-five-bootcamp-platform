@@ -1,10 +1,13 @@
 /**
  * API Route: POST /api/payment/check/[ref_command]
- * 
+ *
  * Vérifie le statut d'un paiement directement auprès de Chariow
  * et met à jour la base de données si le paiement est complété.
- * 
+ *
  * Fallback si le webhook Pulse n'a pas été reçu.
+ *
+ * Body (optionnel):
+ * - sale_id?: ID de vente Chariow (passé par la page de succès si dispo dans l'URL)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -30,7 +33,16 @@ export async function POST(
       );
     }
 
-    console.log('🔍 Checking payment status with Chariow:', ref_command);
+    // Lire le body optionnel (peut contenir sale_id)
+    let bodySaleId: string | undefined;
+    try {
+      const body = await request.json();
+      bodySaleId = body?.sale_id;
+    } catch {
+      // Pas de body, c'est OK
+    }
+
+    console.log('🔍 Checking payment status with Chariow:', ref_command, bodySaleId ? `(sale_id from body: ${bodySaleId})` : '');
 
     // 1. Récupérer le paiement dans notre base
     const { data: payment, error: paymentError } = await supabase
@@ -62,11 +74,13 @@ export async function POST(
       });
     }
 
-    // 2. Vérifier le statut auprès de Chariow
-    const saleId = paymentData.chariow_sale_id || paymentData.metadata?.chariow_response?.sale_id;
+    // 2. Déterminer le sale_id : DB > body > metadata
+    const saleId = paymentData.chariow_sale_id
+      || bodySaleId
+      || paymentData.metadata?.chariow_response?.sale_id;
+
     if (!saleId) {
-      // Pas de sale_id, on ne peut pas vérifier auprès de Chariow
-      // Retourner le statut actuel en attendant le webhook
+      console.log('⚠️ No sale_id available for', ref_command);
       return NextResponse.json({
         success: false,
         message: 'Waiting for payment confirmation (no sale ID yet)',
@@ -75,6 +89,14 @@ export async function POST(
           status: paymentData.status,
         },
       });
+    }
+
+    // Si on a un sale_id du body mais pas en DB, le sauvegarder
+    if (!paymentData.chariow_sale_id && saleId) {
+      await supabase
+        .from('payments')
+        .update({ chariow_sale_id: saleId })
+        .eq('id', paymentData.id);
     }
 
     const chariowSale = await getSale(saleId);
@@ -100,8 +122,9 @@ export async function POST(
         payment_method: chariowSale.data.payment?.method?.name || 'Chariow',
         completed_at: chariowSale.data.completed_at || new Date().toISOString(),
         final_amount: chariowSale.data.amount?.value || paymentData.amount,
+        chariow_sale_id: saleId,
       };
-      
+
       const { error: updateError } = await supabase
         .from('payments')
         .update(updateData)
@@ -118,7 +141,7 @@ export async function POST(
       // Si c'est un abonnement, activer l'utilisateur
       if (paymentData.metadata?.type === 'subscription' && paymentData.metadata?.userId) {
         const userId = paymentData.metadata.userId;
-        
+
         // Récupérer l'abonnement actuel pour gérer le renouvellement anticipé
         const { data: currentUser } = await supabase
           .from('users')
@@ -150,7 +173,7 @@ export async function POST(
           subscription_end_date: subscriptionEndDate.toISOString(),
           updated_at: now.toISOString(),
         };
-        
+
         const { error: userError } = await supabase
           .from('users')
           .update(userUpdateData)

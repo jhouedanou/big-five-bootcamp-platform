@@ -2,7 +2,7 @@
  * API Route: POST /api/payment/subscribe
  *
  * Crée une demande de paiement Chariow pour un abonnement mensuel
- * Le prix est récupéré dynamiquement depuis l'API Chariow (GET /products)
+ * Le prix de référence (XOF) est stocké en DB. Chariow gère la conversion devise.
  *
  * Body:
  * - userEmail: Email de l'utilisateur
@@ -17,8 +17,6 @@ import { supabaseAdmin } from '@/lib/supabase';
 import {
   createSubscriptionCheckout,
   generateRefCommand,
-  getProduct,
-  getSubscriptionProductId,
 } from '@/lib/chariow';
 import { PRICING_MONTHLY_VALUE } from '@/lib/constants';
 
@@ -31,18 +29,9 @@ export async function POST(request: NextRequest) {
 
     console.log('📨 Requête d\'abonnement reçue:', { userEmail });
 
-    // Récupérer le prix dynamique depuis Chariow
-    let subscriptionPrice = PRICING_MONTHLY_VALUE; // fallback
-    try {
-      const productId = getSubscriptionProductId();
-      const product = await getProduct(productId);
-      const pricing = product.data.pricing;
-      const rawPrice = pricing?.current_price?.value ?? pricing?.price?.value;
-      subscriptionPrice = rawPrice != null ? Math.round(rawPrice) : PRICING_MONTHLY_VALUE;
-      console.log('💰 Prix récupéré depuis Chariow:', subscriptionPrice, pricing?.current_price?.currency || 'XOF');
-    } catch (priceError) {
-      console.warn('⚠️ Impossible de récupérer le prix Chariow, utilisation du fallback:', PRICING_MONTHLY_VALUE);
-    }
+    // Le prix stocké en DB est le prix de référence en XOF.
+    // Chariow gère le montant réel facturé (conversion devise selon le client).
+    const subscriptionPrice = PRICING_MONTHLY_VALUE;
 
     // Validation
     if (!userEmail) {
@@ -193,20 +182,26 @@ export async function POST(request: NextRequest) {
     }
 
     if (chariowResponse.data.step === 'payment' && chariowResponse.data.payment?.checkout_url) {
+      const saleId = chariowResponse.data.purchase?.id;
+      const transactionId = chariowResponse.data.payment?.transaction_id;
+      console.log('🎫 Chariow sale_id:', saleId, '| transaction_id:', transactionId);
+
       // Mettre à jour le paiement avec l'ID de vente Chariow
-      await (supabaseAdmin as any)
-        .from('payments')
-        .update({ 
-          chariow_sale_id: chariowResponse.data.purchase?.id,
-          metadata: {
-            ...(payment as any).metadata,
-            chariow_response: {
-              sale_id: chariowResponse.data.purchase?.id,
-              transaction_id: chariowResponse.data.payment?.transaction_id,
+      if (saleId) {
+        await (supabaseAdmin as any)
+          .from('payments')
+          .update({
+            chariow_sale_id: saleId,
+            metadata: {
+              ...(payment as any).metadata,
+              chariow_response: {
+                sale_id: saleId,
+                transaction_id: transactionId,
+              }
             }
-          }
-        })
-        .eq('id', (payment as any).id);
+          })
+          .eq('id', (payment as any).id);
+      }
 
       return NextResponse.json({
         success: true,

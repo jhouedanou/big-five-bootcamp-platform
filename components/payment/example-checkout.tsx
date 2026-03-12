@@ -1,7 +1,7 @@
 /**
  * Exemple d'utilisation du PaymentButton
  * 
- * Ce fichier montre comment intégrer le bouton de paiement PayTech
+ * Ce fichier montre comment intégrer le bouton de paiement Chariow
  * dans une page de checkout de bootcamp
  */
 
@@ -150,7 +150,7 @@ export default function ExampleCheckout({ sessionId }: ExampleCheckoutProps) {
           🔒 Paiement 100% sécurisé
         </h3>
         <p className="text-sm text-gray-600 mb-4">
-          Votre paiement est traité de manière sécurisée par PayTech, leader du paiement mobile en Afrique de l'Ouest.
+          Votre paiement est traité de manière sécurisée par Chariow, plateforme de paiement digital en Afrique.
         </p>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs text-gray-500">
           <div>✓ Cryptage SSL</div>

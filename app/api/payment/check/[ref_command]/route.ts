@@ -1,17 +1,16 @@
 /**
  * API Route: POST /api/payment/check/[ref_command]
  * 
- * Vérifie le statut d'un paiement directement auprès de PayTech
+ * Vérifie le statut d'un paiement directement auprès de Chariow
  * et met à jour la base de données si le paiement est complété.
  * 
- * C'est un fallback si l'IPN n'a pas été reçue.
+ * Fallback si le webhook Pulse n'a pas été reçu.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getPaymentStatus } from '@/lib/paytech';
+import { getSale } from '@/lib/chariow';
 import { createClient } from '@supabase/supabase-js';
 
-// Créer un client admin sans types stricts
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -31,7 +30,7 @@ export async function POST(
       );
     }
 
-    console.log('🔍 Checking payment status with PayTech:', ref_command);
+    console.log('🔍 Checking payment status with Chariow:', ref_command);
 
     // 1. Récupérer le paiement dans notre base
     const { data: payment, error: paymentError } = await supabase
@@ -47,7 +46,6 @@ export async function POST(
       );
     }
 
-    // Cast payment to any for flexibility
     const paymentData = payment as any;
 
     // Si déjà complété, retourner les infos
@@ -64,22 +62,22 @@ export async function POST(
       });
     }
 
-    // 2. Vérifier le statut auprès de PayTech
-    const token = paymentData.paytech_token;
-    if (!token) {
+    // 2. Vérifier le statut auprès de Chariow
+    const saleId = paymentData.chariow_sale_id;
+    if (!saleId) {
       return NextResponse.json(
-        { error: 'No PayTech token found for this payment' },
+        { error: 'No Chariow sale ID found for this payment' },
         { status: 400 }
       );
     }
 
-    const paytechStatus = await getPaymentStatus(token);
-    console.log('📥 PayTech status response:', paytechStatus);
+    const chariowSale = await getSale(saleId);
+    console.log('📥 Chariow sale status:', chariowSale.data?.status);
 
-    if (!paytechStatus.success) {
+    if (!chariowSale.data) {
       return NextResponse.json({
         success: false,
-        message: 'Could not verify payment with PayTech',
+        message: 'Could not verify payment with Chariow',
         payment: {
           ref_command: paymentData.ref_command,
           status: paymentData.status,
@@ -87,18 +85,15 @@ export async function POST(
       });
     }
 
-    // 3. Si le paiement est confirmé par PayTech, mettre à jour notre base
-    const paytechPayment = (paytechStatus as any).payment;
-    
-    if (paytechPayment?.state === 'success') {
-      console.log('✅ PayTech confirms payment success, updating database...');
+    // 3. Si le paiement est confirmé par Chariow, mettre à jour notre base
+    if (chariowSale.data.status === 'completed') {
+      console.log('✅ Chariow confirms payment success, updating database...');
 
-      // Mettre à jour le paiement
       const updateData: Record<string, unknown> = {
         status: 'completed',
-        client_phone: paytechPayment.buyer_phone_number || paymentData.metadata?.phoneNumber,
-        completed_at: paytechPayment.date_checkout || new Date().toISOString(),
-        final_amount: paytechPayment.item_price || paymentData.amount,
+        payment_method: chariowSale.data.payment?.method?.name || 'Chariow',
+        completed_at: chariowSale.data.completed_at || new Date().toISOString(),
+        final_amount: chariowSale.data.amount?.value || paymentData.amount,
       };
       
       const { error: updateError } = await supabase
@@ -118,10 +113,36 @@ export async function POST(
       if (paymentData.metadata?.type === 'subscription' && paymentData.metadata?.userId) {
         const userId = paymentData.metadata.userId;
         
+        // Récupérer l'abonnement actuel pour gérer le renouvellement anticipé
+        const { data: currentUser } = await supabase
+          .from('users')
+          .select('subscription_status, subscription_end_date, subscription_start_date')
+          .eq('id', userId)
+          .single();
+
+        const now = new Date();
+        const isRenewal = (currentUser as any)?.subscription_status === 'active' &&
+          (currentUser as any)?.subscription_end_date &&
+          new Date((currentUser as any).subscription_end_date) > now;
+
+        // Si renouvellement anticipé, ajouter 30 jours à la date de fin existante
+        let subscriptionEndDate: Date;
+        if (isRenewal) {
+          const existingEnd = new Date((currentUser as any).subscription_end_date);
+          subscriptionEndDate = new Date(existingEnd.getTime() + 30 * 24 * 60 * 60 * 1000);
+          console.log('🔄 Renouvellement anticipé:', existingEnd.toISOString(), '→', subscriptionEndDate.toISOString());
+        } else {
+          subscriptionEndDate = paymentData.metadata.subscription_end_date
+            ? new Date(paymentData.metadata.subscription_end_date)
+            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        }
+
         const userUpdateData: Record<string, unknown> = {
           plan: 'Premium',
-          status: 'active',
-          updated_at: new Date().toISOString(),
+          subscription_status: 'active',
+          subscription_start_date: isRenewal ? (currentUser as any).subscription_start_date || now.toISOString() : now.toISOString(),
+          subscription_end_date: subscriptionEndDate.toISOString(),
+          updated_at: now.toISOString(),
         };
         
         const { error: userError } = await supabase
@@ -142,9 +163,8 @@ export async function POST(
         payment: {
           ref_command: paymentData.ref_command,
           status: 'completed',
-          amount: paytechPayment.item_price || paymentData.amount,
-          completed_at: paytechPayment.date_checkout,
-          buyer_phone: paytechPayment.buyer_phone_number,
+          amount: chariowSale.data.amount?.value || paymentData.amount,
+          completed_at: chariowSale.data.completed_at,
         },
       });
     }
@@ -156,7 +176,7 @@ export async function POST(
       payment: {
         ref_command: paymentData.ref_command,
         status: paymentData.status,
-        paytech_state: paytechPayment?.state || 'unknown',
+        chariow_status: chariowSale.data.status,
       },
     });
 

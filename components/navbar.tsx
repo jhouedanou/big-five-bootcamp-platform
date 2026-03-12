@@ -13,9 +13,20 @@ export function Navbar() {
 
   useEffect(() => {
     const supabase = createClient()
+
+    // Vérifier la session actuelle
     supabase.auth.getSession().then(({ data: { session } }: { data: { session: any } }) => {
       setIsAuthenticated(!!session?.user)
     })
+
+    // Écouter les changements d'authentification (login, logout, token refresh)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+      setIsAuthenticated(!!session?.user)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
   return (

@@ -1,7 +1,7 @@
 /**
  * Page: /payment/success
  * 
- * Page de confirmation après paiement réussi
+ * Page de confirmation après paiement réussi via Chariow
  * Vérifie le statut du paiement et affiche les détails de l'inscription
  */
 
@@ -97,9 +97,9 @@ function PaymentSuccessContent() {
       setPendingPayment(data.payment);
       setRetryCount(attempt + 1);
 
-      // Si on a atteint le max de tentatives, vérifier directement auprès de PayTech
+      // Si on a atteint le max de tentatives, vérifier directement auprès de Chariow
       if (attempt >= maxRetries) {
-        // Tenter une vérification directe auprès de PayTech
+        // Tenter une vérification directe auprès de Chariow
         try {
           const checkResponse = await fetch(`/api/payment/check/${ref_command}`, {
             method: 'POST',
@@ -107,7 +107,7 @@ function PaymentSuccessContent() {
           const checkData = await checkResponse.json();
           
           if (checkData.success && checkData.payment?.status === 'completed') {
-            // PayTech confirme le paiement, re-vérifier notre statut
+            // Chariow confirme le paiement, re-vérifier notre statut
             const refreshResponse = await fetch(`/api/payment/status/${ref_command}`);
             const refreshData = await refreshResponse.json();
             if (refreshData.success && refreshData.payment?.status === 'completed') {
@@ -121,7 +121,7 @@ function PaymentSuccessContent() {
             }
           }
         } catch (checkErr) {
-          console.error('PayTech check error:', checkErr);
+          console.error('Chariow check error:', checkErr);
         }
         
         setLoading(false);
@@ -261,7 +261,7 @@ function PaymentSuccessContent() {
                   setLoading(true);
                   setShowPendingMessage(false);
                   
-                  // D'abord vérifier directement auprès de PayTech
+                  // D'abord vérifier directement auprès de Chariow
                   try {
                     const checkResponse = await fetch(`/api/payment/check/${pendingPayment.ref_command}`, {
                       method: 'POST',
@@ -269,7 +269,7 @@ function PaymentSuccessContent() {
                     const checkData = await checkResponse.json();
                     
                     if (checkData.success && checkData.payment?.status === 'completed') {
-                      // Paiement confirmé par PayTech!
+                      // Paiement confirmé par Chariow !
                       const refreshResponse = await fetch(`/api/payment/status/${pendingPayment.ref_command}`);
                       const refreshData = await refreshResponse.json();
                       if (refreshData.success) {
@@ -281,7 +281,7 @@ function PaymentSuccessContent() {
                       }
                     }
                   } catch (err) {
-                    console.error('PayTech check error:', err);
+                    console.error('Chariow check error:', err);
                   }
                   
                   // Sinon, reprendre la vérification normale

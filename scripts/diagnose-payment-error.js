@@ -120,20 +120,18 @@ async function diagnose() {
     return;
   }
 
-  // 5. Vérifier les variables PayTech
-  console.log('5️⃣ Vérification des variables PayTech...');
-  const paytechKey = process.env.PAYTECH_API_KEY;
-  const paytechSecret = process.env.PAYTECH_API_SECRET;
-  const paytechEnv = process.env.PAYTECH_ENV || 'test';
+  // 5. Vérifier les variables Chariow
+  console.log('5️⃣ Vérification des variables Chariow...');
+  const chariowKey = process.env.CHARIOW_API_KEY;
+  const chariowProductId = process.env.CHARIOW_PRODUCT_ID;
   
-  console.log('   PAYTECH_API_KEY:', paytechKey ? `✓ (${paytechKey.substring(0, 10)}...)` : '✗ MANQUANT');
-  console.log('   PAYTECH_API_SECRET:', paytechSecret ? `✓ (${paytechSecret.substring(0, 10)}...)` : '✗ MANQUANT');
-  console.log('   PAYTECH_ENV:', paytechEnv);
+  console.log('   CHARIOW_API_KEY:', chariowKey ? `✓ (${chariowKey.substring(0, 15)}...)` : '✗ MANQUANT');
+  console.log('   CHARIOW_PRODUCT_ID:', chariowProductId ? `✓ (${chariowProductId})` : '✗ MANQUANT');
   
-  if (!paytechKey || !paytechSecret) {
-    console.log('\n   ⚠️  Variables PayTech manquantes dans .env.local\n');
+  if (!chariowKey) {
+    console.log('\n   ⚠️  Variables Chariow manquantes dans .env.local\n');
   } else {
-    console.log('   ✅ Variables PayTech configurées\n');
+    console.log('   ✅ Variables Chariow configurées\n');
   }
 
   // 6. Simulation d'insertion

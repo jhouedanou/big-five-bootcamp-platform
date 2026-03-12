@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import type { ChariowPulsePayload } from '@/lib/chariow';
+import { generateRefCommand, activateLicense } from '@/lib/chariow';
 
 export async function POST(request: NextRequest) {
   try {
@@ -64,6 +65,9 @@ export async function POST(request: NextRequest) {
 
 /**
  * Traiter une vente réussie
+ * Gère deux flows :
+ * 1. API Checkout (avec ref_command dans custom_metadata)
+ * 2. Widget Chariow (sans ref_command, match par email client)
  */
 async function handleSuccessfulSale(pulseData: ChariowPulsePayload) {
   try {
@@ -73,53 +77,170 @@ async function handleSuccessfulSale(pulseData: ChariowPulsePayload) {
     
     console.log('✅ Processing successful sale:', sale?.id);
 
-    // Récupérer le ref_command depuis les custom_metadata
     const refCommand = customMetadata.ref_command;
     const userId = customMetadata.user_id;
     const type = customMetadata.type;
 
-    if (!refCommand) {
-      console.warn('No ref_command in custom_metadata, searching by sale_id...');
+    // ========== Flow 1 : API Checkout (ref_command présent) ==========
+    if (refCommand) {
+      const { data: payment, error: paymentError } = await (supabaseAdmin as any)
+        .from('payments')
+        .select('*')
+        .eq('ref_command', refCommand)
+        .single();
+
+      if (!paymentError && payment) {
+        await processPaymentSuccess(payment, pulseData, userId, type);
+        return;
+      }
+      console.warn('⚠️ Payment not found by ref_command:', refCommand);
     }
 
-    // Trouver le paiement dans notre base
-    let query = (supabaseAdmin as any).from('payments').select('*');
-    
-    if (refCommand) {
-      query = query.eq('ref_command', refCommand);
-    } else if (sale?.id) {
-      query = query.eq('chariow_sale_id', sale.id);
-    } else {
-      console.error('❌ No ref_command or sale_id found in pulse data');
+    // ========== Flow 2 : Widget Chariow (pas de ref_command) ==========
+    // Chercher un paiement pending existant par sale_id ou email
+    let payment = null;
+
+    if (sale?.id) {
+      const { data } = await (supabaseAdmin as any)
+        .from('payments')
+        .select('*')
+        .eq('chariow_sale_id', sale.id)
+        .single();
+      payment = data;
+    }
+
+    if (!payment && customer?.email) {
+      const { data } = await (supabaseAdmin as any)
+        .from('payments')
+        .select('*')
+        .eq('user_email', customer.email)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      payment = data;
+    }
+
+    if (payment) {
+      console.log('✅ Found existing payment:', payment.id);
+      await processPaymentSuccess(payment, pulseData, userId || payment.metadata?.userId, type || payment.metadata?.type);
       return;
     }
 
-    const { data: payment, error: paymentError } = await query.single();
+    // ========== Flow Widget : créer un nouveau paiement ==========
+    if (customer?.email) {
+      console.log('🆕 Widget purchase — creating payment for:', customer.email);
 
-    if (paymentError || !payment) {
-      console.error('❌ Payment not found:', refCommand || sale?.id);
-      // Essayer de trouver par email
-      if (customer?.email) {
-        const { data: paymentByEmail } = await (supabaseAdmin as any)
-          .from('payments')
-          .select('*')
-          .eq('user_email', customer.email)
-          .eq('status', 'pending')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-        
-        if (paymentByEmail) {
-          console.log('✅ Found payment by email:', paymentByEmail.id);
-          await processPaymentSuccess(paymentByEmail, pulseData, userId, type);
-          return;
+      // Trouver l'utilisateur par email
+      const { data: dbUser } = await (supabaseAdmin as any)
+        .from('users')
+        .select('id, email, name, subscription_status, subscription_end_date, subscription_start_date')
+        .eq('email', customer.email)
+        .single();
+
+      if (!dbUser) {
+        console.warn('⚠️ No user found for email:', customer.email);
+        return;
+      }
+
+      // Créer l'enregistrement de paiement
+      const widgetRef = generateRefCommand('WDG');
+      const { data: newPayment, error: insertError } = await (supabaseAdmin as any)
+        .from('payments')
+        .insert({
+          ref_command: widgetRef,
+          user_email: customer.email,
+          amount: sale?.amount?.value || 0,
+          final_amount: sale?.amount?.value || 0,
+          currency: sale?.amount?.currency || 'XOF',
+          status: 'completed',
+          payment_method: 'Chariow Widget',
+          chariow_sale_id: sale?.id,
+          webhook_data: pulseData,
+          completed_at: sale?.completed_at || new Date().toISOString(),
+          item_name: 'Abonnement Big Five - Widget',
+          metadata: {
+            type: 'subscription',
+            userId: dbUser.id,
+            source: 'widget',
+            customer_name: `${customer.first_name || ''} ${customer.last_name || ''}`.trim(),
+          },
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('❌ Error creating widget payment:', insertError);
+        return;
+      }
+
+      // Activer l'abonnement
+      const now = new Date();
+      const isRenewal = dbUser.subscription_status === 'active' &&
+        dbUser.subscription_end_date &&
+        new Date(dbUser.subscription_end_date) > now;
+
+      // Utiliser la durée de licence Chariow si disponible, sinon 30 jours
+      const licenseExpiresAt = pulseData.license?.expires_at;
+      let subscriptionEndDate: Date;
+
+      if (licenseExpiresAt) {
+        // Synchro directe avec la licence Chariow
+        subscriptionEndDate = new Date(licenseExpiresAt);
+        console.log('📅 License duration sync:', subscriptionEndDate.toISOString());
+      } else if (isRenewal) {
+        subscriptionEndDate = new Date(
+          new Date(dbUser.subscription_end_date).getTime() + 30 * 24 * 60 * 60 * 1000
+        );
+        console.log('🔄 Renewal: extending to', subscriptionEndDate.toISOString());
+      } else {
+        subscriptionEndDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      }
+
+      const { error: userUpdateError } = await (supabaseAdmin as any)
+        .from('users')
+        .update({
+          plan: 'Premium',
+          subscription_status: 'active',
+          subscription_start_date: isRenewal
+            ? (dbUser.subscription_start_date || now.toISOString())
+            : now.toISOString(),
+          subscription_end_date: subscriptionEndDate.toISOString(),
+          updated_at: now.toISOString(),
+        })
+        .eq('id', dbUser.id);
+
+      if (userUpdateError) {
+        console.error('❌ Error updating user subscription:', userUpdateError);
+      } else {
+        console.log('✅ Widget subscription activated for:', dbUser.id);
+
+        // Notification de succès
+        try {
+          await (supabaseAdmin as any).rpc('notify_payment_success', {
+            p_user_id: dbUser.id,
+            p_amount: sale?.amount?.value || 0,
+            p_subscription_end_date: subscriptionEndDate.toISOString(),
+          });
+        } catch (notifError) {
+          console.error('Notification error:', notifError);
+        }
+
+        // Annuler les rappels
+        try {
+          await (supabaseAdmin as any)
+            .from('scheduled_reminders')
+            .delete()
+            .eq('user_id', dbUser.id)
+            .eq('sent', false);
+        } catch (reminderError) {
+          console.error('Error cancelling reminders:', reminderError);
         }
       }
-      console.error('❌ Payment not found by any method');
       return;
     }
 
-    await processPaymentSuccess(payment, pulseData, userId, type);
+    console.error('❌ No ref_command, sale_id, or customer email — cannot process sale');
 
   } catch (error) {
     console.error('Error in handleSuccessfulSale:', error);
@@ -306,27 +427,89 @@ async function handleFailedSale(pulseData: ChariowPulsePayload) {
 
 /**
  * Traiter l'émission d'une licence
+ * Sauvegarde la clé, auto-active si nécessaire, et synchronise les durées
  */
 async function handleLicenseIssued(pulseData: ChariowPulsePayload) {
-  console.log('🔑 License issued:', pulseData.license?.key);
+  const license = pulseData.license;
+  const customer = pulseData.customer;
   const refCommand = pulseData.sale?.custom_metadata?.ref_command;
-  if (refCommand && pulseData.license) {
-    // Récupérer les metadata existantes pour ne pas les écraser
-    const { data: existing } = await (supabaseAdmin as any)
+
+  if (!license?.key) return;
+  console.log('🔑 License issued:', license.key, 'status:', license.status);
+
+  // 1. Trouver le paiement associé (par ref_command ou par email)
+  let payment: any = null;
+
+  if (refCommand) {
+    const { data } = await (supabaseAdmin as any)
       .from('payments')
-      .select('metadata')
+      .select('id, metadata')
       .eq('ref_command', refCommand)
       .single();
+    payment = data;
+  }
 
+  if (!payment && customer?.email) {
+    const { data } = await (supabaseAdmin as any)
+      .from('payments')
+      .select('id, metadata')
+      .eq('user_email', customer.email)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    payment = data;
+  }
+
+  // 2. Sauvegarder la clé de licence dans le paiement
+  if (payment) {
     await (supabaseAdmin as any)
       .from('payments')
       .update({
         metadata: {
-          ...(existing?.metadata || {}),
-          license_key: pulseData.license.key,
-          license_id: pulseData.license.id,
+          ...(payment.metadata || {}),
+          license_key: license.key,
+          license_id: license.id,
+          license_expires_at: license.expires_at,
+          license_status: license.status,
         },
       })
-      .eq('ref_command', refCommand);
+      .eq('id', payment.id);
+  }
+
+  // 3. Auto-activer la licence si elle est en attente d'activation
+  if (license.status === 'pending_activation') {
+    try {
+      const result = await activateLicense(license.key, 'web-platform');
+      console.log('🔑 Auto-activated license:', result.message);
+    } catch (err) {
+      console.error('Failed to auto-activate license:', err);
+    }
+  }
+
+  // 4. Synchroniser la durée de licence avec l'abonnement utilisateur
+  if (license.expires_at && customer?.email) {
+    const { data: user } = await (supabaseAdmin as any)
+      .from('users')
+      .select('id, subscription_end_date')
+      .eq('email', customer.email)
+      .single();
+
+    if (user) {
+      const licenseExpiry = new Date(license.expires_at);
+      const currentEnd = user.subscription_end_date ? new Date(user.subscription_end_date) : null;
+
+      // Mettre à jour si la date de licence est différente (>1 min de diff)
+      if (!currentEnd || Math.abs(licenseExpiry.getTime() - currentEnd.getTime()) > 60000) {
+        await (supabaseAdmin as any)
+          .from('users')
+          .update({
+            subscription_end_date: licenseExpiry.toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
+
+        console.log('📅 Subscription synced with license expiry:', licenseExpiry.toISOString());
+      }
+    }
   }
 }

@@ -1,9 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { Clock, Check, ArrowRight, LogOut, Sparkles, Smartphone, CreditCard } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Clock, Check, LogOut, Sparkles, Smartphone, CreditCard } from "lucide-react"
 import { useProductPrice } from "@/hooks/use-product-price"
+import { ChariowWidget } from "@/components/chariow-widget"
 
 export default function PaywallPage() {
   const { label: priceLabel, currency: priceCurrency } = useProductPrice()
@@ -76,13 +76,18 @@ export default function PaywallPage() {
             </div>
           </div>
 
-          {/* CTA */}
-          <Button asChild className="mt-6 h-12 w-full text-base shadow-lg shadow-[#80368D]/25 bg-[#80368D] hover:bg-[#80368D]/90 text-white">
-            <Link href="/subscribe">
-              {"S'abonner"} maintenant
-              <ArrowRight className="ml-2 h-4 w-4" />
+          {/* Widget Chariow — paiement direct */}
+          <div className="mt-6">
+            <ChariowWidget ctaWidth="full" />
+          </div>
+
+          {/* Lien vers la page subscribe pour plus d'options */}
+          <p className="mt-3 text-xs text-[#1A1F2B]/50">
+            Ou{" "}
+            <Link href="/subscribe" className="text-[#80368D] hover:underline font-medium">
+              voir les détails et options de paiement
             </Link>
-          </Button>
+          </p>
 
           {/* Logout link */}
           <Link 

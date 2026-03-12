@@ -151,12 +151,20 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Paiement créé:', (payment as any)?.id);
 
+    // Valider le numéro de téléphone
+    if (!phoneNumber || phoneNumber.replace(/\D/g, '').length < 8) {
+      return NextResponse.json(
+        { error: 'Un numéro de téléphone valide est requis pour le paiement Mobile Money' },
+        { status: 400 }
+      );
+    }
+
     // Créer le checkout Chariow
     const chariowResponse = await createSubscriptionCheckout({
       email: userEmail,
       firstName: userFirstName,
       lastName: userLastName,
-      phoneNumber: phoneNumber || '0000000000',
+      phoneNumber,
       phoneCountryCode: phoneCountryCode || 'CI',
       refCommand: ref_command,
       userId: (existingUser as any).id,

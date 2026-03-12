@@ -14,7 +14,11 @@
       "Bash(npx tsc:*)",
       "Bash(npm install country-flag-icons)",
       "Bash(git show f812bfb --no-stat)",
-      "Bash(npm run build)"
+      "Bash(npm run build)",
+      "Bash(pnpm install:*)",
+      "Bash(npm install:*)",
+      "WebFetch(domain:docs.chariow.dev)",
+      "WebFetch(domain:chariow.dev)"
     ]
   }
 }

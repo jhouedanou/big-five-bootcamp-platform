@@ -12,6 +12,29 @@
 // TYPES
 // ============================================
 
+export interface ChariowPriceInfo {
+  value: number;
+  formatted: string;
+  short: string;
+  currency: string;
+}
+
+export interface ChariowProductResponse {
+  message: string;
+  data: {
+    id: string;
+    name: string;
+    slug: string;
+    description: string;
+    type: string;
+    status: string;
+    current_price: ChariowPriceInfo;
+    price: ChariowPriceInfo;
+    sale_price: ChariowPriceInfo | null;
+  };
+  errors: any[];
+}
+
 export interface ChariowCheckoutRequest {
   product_id: string;
   email: string;
@@ -525,9 +548,47 @@ export async function listLicenses(filters?: {
   }
 }
 
+/**
+ * Récupérer les détails d'un produit Chariow (y compris le prix)
+ *
+ * @param productId - ID ou slug du produit (ex: "prd_abc123" ou "creative-library")
+ * @returns Détails du produit avec prix
+ */
+export async function getProduct(productId?: string): Promise<ChariowProductResponse> {
+  const id = productId || CHARIOW_CONFIG.PRODUCT_ID;
+  if (!id) {
+    throw new Error('Product ID is required. Set CHARIOW_PRODUCT_ID in your .env file.');
+  }
+
+  try {
+    const response = await fetch(`${CHARIOW_CONFIG.BASE_URL}/products/${id}`, {
+      method: 'GET',
+      headers: getHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Failed to get product: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Chariow getProduct error:', error);
+    throw error;
+  }
+}
+
 // ============================================
 // HELPERS
 // ============================================
+
+/**
+ * Formater un prix numérique avec séparateur de milliers (espace)
+ * Ex: 25000 → "25 000"
+ */
+export function formatPrice(value: number): string {
+  return value.toLocaleString('fr-FR');
+}
 
 /**
  * Générer une référence de commande unique pour le tracking interne

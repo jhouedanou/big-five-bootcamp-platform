@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Check, Lock, Sparkles, Loader2 } from "lucide-react"
+import { ArrowLeft, Check, Lock, Sparkles, Loader2, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
@@ -14,6 +14,8 @@ export default function SubscribePage() {
   const { user, userProfile, loading } = useSupabaseAuth()
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [phoneCountryCode, setPhoneCountryCode] = useState('CI')
 
   // Redirection si non connecté
   useEffect(() => {
@@ -32,11 +34,19 @@ export default function SubscribePage() {
 
     try {
       // Appel à l'API de paiement — Chariow gère la sélection de méthode
+      if (!phoneNumber || phoneNumber.replace(/\D/g, '').length < 8) {
+        alert('Veuillez entrer un numéro de téléphone valide')
+        setIsProcessing(false)
+        return
+      }
+
       const response = await fetch('/api/payment/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userEmail: user.email,
+          phoneNumber: phoneNumber.replace(/\D/g, ''),
+          phoneCountryCode,
         }),
       })
 
@@ -152,6 +162,44 @@ export default function SubscribePage() {
                 </div>
               )}
 
+              {/* Numéro de téléphone pour le paiement */}
+              <div className="mt-4">
+                <Label htmlFor="phone-renew" className="text-sm font-medium text-[#1A1F2B]">
+                  Numéro de téléphone (Mobile Money)
+                </Label>
+                <div className="mt-1.5 flex gap-2">
+                  <select
+                    value={phoneCountryCode}
+                    onChange={(e) => setPhoneCountryCode(e.target.value)}
+                    className="h-10 rounded-md border border-border bg-background px-2 text-sm"
+                  >
+                    <option value="CI">CI +225</option>
+                    <option value="SN">SN +221</option>
+                    <option value="BJ">BJ +229</option>
+                    <option value="BF">BF +226</option>
+                    <option value="ML">ML +223</option>
+                    <option value="TG">TG +228</option>
+                    <option value="NE">NE +227</option>
+                    <option value="GN">GN +224</option>
+                    <option value="CM">CM +237</option>
+                    <option value="GA">GA +241</option>
+                    <option value="CG">CG +242</option>
+                    <option value="CD">CD +243</option>
+                  </select>
+                  <div className="relative flex-1">
+                    <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      id="phone-renew"
+                      type="tel"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="07 00 00 00 00"
+                      className="h-10 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="mt-4 flex items-start gap-2">
                 <input
                   type="checkbox"
@@ -176,7 +224,7 @@ export default function SubscribePage() {
 
               <Button
                 onClick={handlePayment}
-                disabled={!acceptTerms || isProcessing}
+                disabled={!acceptTerms || !phoneNumber || isProcessing}
                 className="mt-4 h-12 w-full shadow-lg shadow-primary/25"
               >
                 {isProcessing ? (
@@ -228,8 +276,49 @@ export default function SubscribePage() {
                 ))}
               </div>
 
+              {/* Numéro de téléphone pour le paiement */}
+              <div className="mt-8">
+                <Label htmlFor="phone-subscribe" className="text-sm font-medium">
+                  Numéro de téléphone (Mobile Money)
+                </Label>
+                <div className="mt-1.5 flex gap-2">
+                  <select
+                    value={phoneCountryCode}
+                    onChange={(e) => setPhoneCountryCode(e.target.value)}
+                    className="h-10 rounded-md border border-border bg-background px-2 text-sm"
+                  >
+                    <option value="CI">CI +225</option>
+                    <option value="SN">SN +221</option>
+                    <option value="BJ">BJ +229</option>
+                    <option value="BF">BF +226</option>
+                    <option value="ML">ML +223</option>
+                    <option value="TG">TG +228</option>
+                    <option value="NE">NE +227</option>
+                    <option value="GN">GN +224</option>
+                    <option value="CM">CM +237</option>
+                    <option value="GA">GA +241</option>
+                    <option value="CG">CG +242</option>
+                    <option value="CD">CD +243</option>
+                  </select>
+                  <div className="relative flex-1">
+                    <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      id="phone-subscribe"
+                      type="tel"
+                      value={phoneNumber}
+                      onChange={(e) => setPhoneNumber(e.target.value)}
+                      placeholder="07 00 00 00 00"
+                      className="h-10 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Numéro utilisé pour le paiement Mobile Money
+                </p>
+              </div>
+
               {/* Conditions */}
-              <div className="mt-8 flex items-start gap-2">
+              <div className="mt-4 flex items-start gap-2">
                 <input
                   type="checkbox"
                   id="terms"
@@ -240,7 +329,7 @@ export default function SubscribePage() {
                 />
                 <Label htmlFor="terms" className="text-sm text-muted-foreground">
                   {"J'accepte les"}{" "}
-                  <LegalModal 
+                  <LegalModal
                     defaultTab="cgv"
                     trigger={
                       <button type="button" className="text-primary hover:underline">
@@ -254,7 +343,7 @@ export default function SubscribePage() {
               {/* Bouton de paiement */}
               <Button 
                 onClick={handlePayment}
-                disabled={!acceptTerms || isProcessing}
+                disabled={!acceptTerms || !phoneNumber || isProcessing}
                 className="mt-6 h-12 w-full shadow-lg shadow-primary/25"
               >
                 {isProcessing ? (

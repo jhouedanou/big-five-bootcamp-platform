@@ -20,7 +20,6 @@ export interface ChariowPriceInfo {
 }
 
 export interface ChariowProductResponse {
-  message: string;
   data: {
     id: string;
     name: string;
@@ -28,11 +27,14 @@ export interface ChariowProductResponse {
     description: string;
     type: string;
     status: string;
-    current_price: ChariowPriceInfo;
-    price: ChariowPriceInfo;
-    sale_price: ChariowPriceInfo | null;
+    pricing: {
+      type: string;
+      current_price: ChariowPriceInfo;
+      price: ChariowPriceInfo;
+      effective: ChariowPriceInfo;
+      sale_price: ChariowPriceInfo | null;
+    };
   };
-  errors: any[];
 }
 
 export interface ChariowCheckoutRequest {

@@ -16,6 +16,7 @@ interface PaymentButtonProps {
   sessionId: string;
   userEmail: string;
   amount: number;
+  currency?: string;
   bootcampTitle: string;
   onSuccess?: () => void;
   className?: string;
@@ -25,6 +26,7 @@ export default function PaymentButton({
   sessionId,
   userEmail,
   amount,
+  currency = 'XOF',
   bootcampTitle,
   onSuccess,
   className,
@@ -92,7 +94,7 @@ export default function PaymentButton({
       ) : (
         <>
           <CreditCard className="mr-2 h-5 w-5" />
-          Procéder au paiement ({amount.toLocaleString('fr-FR')} FCFA)
+          Procéder au paiement ({amount.toLocaleString('fr-FR')} {currency})
         </>
       )}
     </Button>

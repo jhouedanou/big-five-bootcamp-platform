@@ -36,13 +36,18 @@ export async function GET() {
 
     return NextResponse.json(cachedProduct);
   } catch (error) {
-    console.error('❌ Error fetching product price:', error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error('❌ Error fetching product price:', errMsg);
+    console.error('  → CHARIOW_API_KEY set:', !!process.env.CHARIOW_API_KEY);
+    console.error('  → CHARIOW_PRODUCT_ID set:', !!process.env.CHARIOW_PRODUCT_ID);
     // Fallback sur la valeur hardcodée
     return NextResponse.json({
       price: PRICING_MONTHLY_VALUE,
       formatted: `${formatPrice(PRICING_MONTHLY_VALUE)} XOF`,
       currency: 'XOF',
       name: 'Abonnement Big Five',
+      _fallback: true,
+      _error: errMsg,
     });
   }
 }

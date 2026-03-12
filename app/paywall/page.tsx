@@ -61,7 +61,7 @@ export default function PaywallPage() {
               <span className="font-[family-name:var(--font-heading)] text-4xl font-bold text-white">{priceLabel}</span>
               <span className="text-lg text-white/70">{priceCurrency}/mois</span>
             </div>
-            <p className="mt-1 text-sm text-white/60">Soit ~833 XOF/jour pour booster ta créa</p>
+            <p className="mt-1 text-sm text-white/60">Soit ~{Math.round(Number(priceLabel.replace(/\s/g, '')) / 30).toLocaleString('fr-FR')} {priceCurrency}/jour pour booster ta créa</p>
             
             {/* Payment options */}
             <div className="mt-4 flex items-center gap-3">

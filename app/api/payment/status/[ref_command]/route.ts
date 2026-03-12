@@ -5,6 +5,8 @@
  * Utilisé sur les pages de confirmation pour vérifier le paiement
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 

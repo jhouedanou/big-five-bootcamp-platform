@@ -9,6 +9,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
+export const dynamic = 'force-dynamic';
+
 const SUBSCRIPTION_DURATION_DAYS = 30;
 
 /**

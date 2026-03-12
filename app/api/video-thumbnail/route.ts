@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { detectVideoPlatform, getYouTubeThumbnail } from "@/lib/video-utils";
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/video-thumbnail?url=VIDEO_URL
  * 

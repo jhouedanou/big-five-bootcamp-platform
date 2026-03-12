@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { getAuthenticatedUser, getSupabaseAdmin } from "@/lib/supabase-server"
 import { z } from "zod"
 
+export const dynamic = 'force-dynamic';
+
 // Schéma de validation
 const contentCreateSchema = z.object({
   title: z.string().min(2),

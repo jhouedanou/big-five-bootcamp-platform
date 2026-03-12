@@ -3,6 +3,8 @@ import { getSupabaseAdmin } from '@/lib/supabase'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Génère un slug SEO-friendly à partir d'un titre (côté serveur)
  */

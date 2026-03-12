@@ -3,51 +3,26 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Clock, Check, LogOut, Sparkles, Smartphone, CreditCard, Loader2 } from "lucide-react"
+import { Clock, Check, LogOut, Sparkles, Smartphone, CreditCard } from "lucide-react"
 import { useProductPrice } from "@/hooks/use-product-price"
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
-import { ChariowWidget } from "@/components/chariow-widget"
+import { LicenseActivation } from "@/components/license-activation"
 
 export default function PaywallPage() {
   const router = useRouter()
   const { label: priceLabel, currency: priceCurrency } = useProductPrice()
   const { user } = useSupabaseAuth()
-  const [activating, setActivating] = useState(false)
-  
+
   const benefits = [
     "Acces illimite a toute la bibliotheque",
     "Nouveaux contenus ajoutes quotidiennement",
     "Filtres et recherche avances",
-    "Annulation possible a tout moment"
+    "Annulation possible a tout moment",
   ]
 
-  // Callback quand le widget signale un paiement réussi
-  const handleWidgetPaymentSuccess = async (data: { purchaseId?: string; returnUrl?: string }) => {
-    if (!user?.email || activating) return
-
-    console.log("🎯 Paywall: Widget payment success!", data)
-    setActivating(true)
-
-    try {
-      const res = await fetch("/api/payment/activate-widget", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: user.email,
-          purchaseId: data.purchaseId,
-        }),
-      })
-      const result = await res.json()
-
-      if (result.success) {
-        // Rediriger vers le dashboard
-        router.push("/dashboard?activated=true")
-      }
-    } catch (err) {
-      console.error("❌ Activation failed:", err)
-    } finally {
-      setActivating(false)
-    }
+  // Callback quand la licence est validée
+  const handleActivated = () => {
+    router.push("/dashboard?activated=true")
   }
 
   return (
@@ -59,7 +34,9 @@ export default function PaywallPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#80368D]">
               <Sparkles className="h-6 w-6 text-white" />
             </div>
-            <span className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[#1A1F2B]">Big Five</span>
+            <span className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[#1A1F2B]">
+              Big Five
+            </span>
           </Link>
         </div>
 
@@ -69,14 +46,17 @@ export default function PaywallPage() {
           <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#F2B33D]/20">
             <Clock className="h-10 w-10 text-[#F2B33D]" />
           </div>
-          
+
           <h1 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[#1A1F2B]">
             Ton essai gratuit est termine
           </h1>
-          
+
           <p className="mt-3 text-[#1A1F2B]/70">
             Tu as kiffe ces 30 jours ? Continue {"l'aventure"} pour{" "}
-            <span className="font-semibold text-[#1A1F2B]">{priceLabel} {priceCurrency}/mois</span> seulement.
+            <span className="font-semibold text-[#1A1F2B]">
+              {priceLabel} {priceCurrency}/mois
+            </span>{" "}
+            seulement.
           </p>
 
           {/* Benefits */}
@@ -94,11 +74,16 @@ export default function PaywallPage() {
           {/* Pricing Card */}
           <div className="mt-8 rounded-xl bg-[#80368D] p-6 text-left">
             <div className="flex items-baseline gap-1">
-              <span className="font-[family-name:var(--font-heading)] text-4xl font-bold text-white">{priceLabel}</span>
+              <span className="font-[family-name:var(--font-heading)] text-4xl font-bold text-white">
+                {priceLabel}
+              </span>
               <span className="text-lg text-white/70">{priceCurrency}/mois</span>
             </div>
-            <p className="mt-1 text-sm text-white/60">Soit ~{Math.round(Number(priceLabel.replace(/\s/g, '')) / 30).toLocaleString('fr-FR')} {priceCurrency}/jour pour booster ta créa</p>
-            
+            <p className="mt-1 text-sm text-white/60">
+              Soit ~{Math.round(Number(priceLabel.replace(/\s/g, "")) / 30).toLocaleString("fr-FR")}{" "}
+              {priceCurrency}/jour pour booster ta créa
+            </p>
+
             {/* Payment options */}
             <div className="mt-4 flex items-center gap-3">
               <div className="flex items-center gap-1 rounded bg-white/10 px-2 py-1">
@@ -112,27 +97,34 @@ export default function PaywallPage() {
             </div>
           </div>
 
-          {/* Widget Chariow — paiement direct */}
-          <div className="mt-6">
-            <ChariowWidget ctaWidth="full" onPaymentSuccess={handleWidgetPaymentSuccess} />
-            {activating && (
-              <div className="mt-3 flex items-center justify-center gap-2 text-sm text-[#80368D]">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Activation de ton abonnement en cours...</span>
-              </div>
+          {/* Composant d'activation par licence — flux en 2 étapes */}
+          <div className="mt-6 text-left">
+            {user?.email ? (
+              <LicenseActivation
+                userEmail={user.email}
+                onActivated={handleActivated}
+                compact
+              />
+            ) : (
+              <Link
+                href="/login?redirect=/paywall"
+                className="block w-full rounded-lg bg-[#80368D] px-6 py-3 text-center font-semibold text-white hover:bg-[#80368D]/90"
+              >
+                Se connecter pour s&apos;abonner
+              </Link>
             )}
           </div>
 
           {/* Lien vers la page subscribe pour plus d'options */}
           <p className="mt-3 text-xs text-[#1A1F2B]/50">
             Ou{" "}
-            <Link href="/subscribe" className="text-[#80368D] hover:underline font-medium">
+            <Link href="/subscribe" className="font-medium text-[#80368D] hover:underline">
               voir les détails et options de paiement
             </Link>
           </p>
 
           {/* Logout link */}
-          <Link 
+          <Link
             href="/"
             className="mt-4 inline-flex items-center gap-1 text-sm text-[#1A1F2B]/60 transition-colors hover:text-[#1A1F2B]"
           >

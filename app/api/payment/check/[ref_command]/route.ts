@@ -10,6 +10,8 @@
  * - sale_id?: ID de vente Chariow (passé par la page de succès si dispo dans l'URL)
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { getSale } from '@/lib/chariow';
 import { createClient } from '@supabase/supabase-js';

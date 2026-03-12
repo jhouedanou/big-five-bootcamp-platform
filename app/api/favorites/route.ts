@@ -1,6 +1,8 @@
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase-server'
 import { NextResponse } from 'next/server'
 
+export const dynamic = 'force-dynamic';
+
 // GET - Récupérer les favoris de l'utilisateur connecté
 export async function GET(request: Request) {
   try {

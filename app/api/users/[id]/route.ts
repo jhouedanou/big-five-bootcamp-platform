@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from "next/server"
 import { getAuthenticatedUser, getSupabaseAdmin } from "@/lib/supabase-server"
 import { z } from "zod"

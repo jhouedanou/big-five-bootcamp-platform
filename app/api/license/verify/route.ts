@@ -9,6 +9,8 @@
  * - email: Email de l'utilisateur
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { validateLicense, activateLicense, generateRefCommand } from '@/lib/chariow';
@@ -116,22 +118,31 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 7. Créer un enregistrement de paiement si aucun n'existe
-    const { data: existingPayment } = await (supabaseAdmin as any)
+    // 7. Créer un enregistrement de paiement si cette licence n'a pas déjà été utilisée
+    const { data: existingPayments } = await (supabaseAdmin as any)
       .from('payments')
       .select('id')
       .contains('metadata', { license_key: licenseKey })
-      .limit(1)
-      .single();
+      .limit(1);
 
-    if (!existingPayment) {
+    if (!existingPayments || existingPayments.length === 0) {
+      // Récupérer le montant depuis la licence Chariow si disponible
+      const licenseAmount = license.product?.pricing?.effective?.value
+        || license.product?.pricing?.price?.value
+        || 0;
+      const licenseCurrency = license.product?.pricing?.effective?.currency
+        || license.product?.pricing?.price?.currency
+        || 'XOF';
+
       const refCommand = generateRefCommand('LIC');
       await (supabaseAdmin as any)
         .from('payments')
         .insert({
           ref_command: refCommand,
           user_email: email,
-          amount: 0, // Le montant est géré par Chariow
+          amount: licenseAmount,
+          final_amount: licenseAmount,
+          currency: licenseCurrency,
           status: 'completed',
           payment_method: 'Chariow License',
           item_name: 'Abonnement Big Five - Licence',
@@ -143,8 +154,16 @@ export async function POST(request: NextRequest) {
             license_key: licenseKey,
             license_id: license.id,
             license_expires_at: license.expires_at,
+            customer_email: license.customer?.email,
           },
         });
+
+      // Marquer les paiements pending de cet utilisateur comme superseded
+      await (supabaseAdmin as any)
+        .from('payments')
+        .update({ status: 'superseded' })
+        .eq('user_email', email)
+        .eq('status', 'pending');
     }
 
     // 8. Notification de succès

@@ -13,6 +13,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { listLicenses, CHARIOW_CONFIG } from '@/lib/chariow';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const email = request.nextUrl.searchParams.get('email');

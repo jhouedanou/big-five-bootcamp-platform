@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { getProduct, formatPrice, getSubscriptionProductId } from '@/lib/chariow';
 import { PRICING_MONTHLY_VALUE } from '@/lib/constants';

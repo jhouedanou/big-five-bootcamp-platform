@@ -5,10 +5,10 @@
  * Données publiques uniquement (pas d'email, pas d'ID)
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-
-export const revalidate = 3600; // Cache 1 heure
 
 export async function GET() {
   try {

@@ -7,6 +7,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   // Rediriger vers le nouveau endpoint webhook Chariow
   console.log('⚠️ IPN endpoint appelé - redirection vers /api/payment/webhook');

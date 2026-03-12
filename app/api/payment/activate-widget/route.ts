@@ -12,6 +12,8 @@
  * Cet endpoint ne dépend PAS du webhook Chariow.
  */
 
+export const dynamic = 'force-dynamic';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { CHARIOW_CONFIG, generateRefCommand, getSale } from '@/lib/chariow';

@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
+export const dynamic = 'force-dynamic';
+
 const BUCKET_NAME = 'shoo'
 
 // Vérifier que l'utilisateur est authentifié

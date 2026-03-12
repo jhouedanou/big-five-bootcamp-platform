@@ -8,127 +8,25 @@ import {
   Check,
   Sparkles,
   Loader2,
-  Key,
   PartyPopper,
   ArrowRight,
   AlertCircle,
-  ShieldCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
 import { useProductPrice } from "@/hooks/use-product-price"
 import { LegalModal } from "@/components/legal-modal"
-import { ChariowWidget } from "@/components/chariow-widget"
+import { LicenseActivation } from "@/components/license-activation"
 
 export default function SubscribePage() {
   const router = useRouter()
   const { user, userProfile, loading } = useSupabaseAuth()
   const { label: priceLabel, currency: priceCurrency } = useProductPrice()
 
-  // État de l'activation détectée
+  // État de l'activation
   const [subscriptionActivated, setSubscriptionActivated] = useState(false)
   const [newEndDate, setNewEndDate] = useState<string | null>(null)
-
-  // Suivi de l'état initial pour détecter les changements (renouvellement)
-  const [initialPlanState, setInitialPlanState] = useState<{
-    isPremium: boolean
-    endDate: string | null
-  } | null>(null)
-
-  // Fallback : vérification manuelle de licence
-  const [showLicenseInput, setShowLicenseInput] = useState(false)
-  const [licenseKey, setLicenseKey] = useState("")
-  const [verifyingLicense, setVerifyingLicense] = useState(false)
-  const [licenseError, setLicenseError] = useState<string | null>(null)
-  const [activating, setActivating] = useState(false)
-
-  // Enregistrer l'état initial de l'abonnement
-  useEffect(() => {
-    if (userProfile && !initialPlanState) {
-      setInitialPlanState({
-        isPremium: userProfile.plan?.toLowerCase() === "premium",
-        endDate: userProfile.subscription_end_date || null,
-      })
-    }
-  }, [userProfile, initialPlanState])
-
-  // ======= CALLBACK PRINCIPAL : paiement widget réussi =======
-  const handleWidgetPaymentSuccess = async (data: { purchaseId?: string; returnUrl?: string }) => {
-    if (!user?.email || activating) return
-    
-    console.log("🎯 Widget payment success detected!", data)
-    setActivating(true)
-
-    try {
-      const res = await fetch("/api/payment/activate-widget", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: user.email,
-          purchaseId: data.purchaseId,
-        }),
-      })
-      const result = await res.json()
-
-      if (result.success) {
-        setSubscriptionActivated(true)
-        setNewEndDate(result.subscription?.endDate)
-        console.log("✅ Subscription activated!", result)
-      } else {
-        console.error("❌ Activation failed:", result.error)
-        // Fallback : le polling va quand même vérifier
-      }
-    } catch (err) {
-      console.error("❌ Activation request failed:", err)
-    } finally {
-      setActivating(false)
-    }
-  }
-
-  // Polling : vérifier si l'abonnement a été activé (backup du callback)
-  useEffect(() => {
-    if (!user?.email || subscriptionActivated || !initialPlanState) return
-
-    const pollInterval = setInterval(async () => {
-      try {
-        const res = await fetch(
-          `/api/payment/check-subscription?email=${encodeURIComponent(user.email!)}`
-        )
-        if (!res.ok) return
-        const data = await res.json()
-
-        // Nouvel abonnement détecté
-        if (!initialPlanState.isPremium && data.isPremium) {
-          setSubscriptionActivated(true)
-          setNewEndDate(data.subscription_end_date)
-          clearInterval(pollInterval)
-          return
-        }
-
-        // Renouvellement détecté (date de fin a changé)
-        if (
-          initialPlanState.isPremium &&
-          data.subscription_end_date &&
-          data.subscription_end_date !== initialPlanState.endDate
-        ) {
-          setSubscriptionActivated(true)
-          setNewEndDate(data.subscription_end_date)
-          clearInterval(pollInterval)
-          return
-        }
-      } catch {
-        // Ignorer les erreurs de polling silencieusement
-      }
-    }, 5000)
-
-    // Arrêter le polling après 10 minutes
-    const timeout = setTimeout(() => clearInterval(pollInterval), 10 * 60 * 1000)
-
-    return () => {
-      clearInterval(pollInterval)
-      clearTimeout(timeout)
-    }
-  }, [user?.email, subscriptionActivated, initialPlanState])
+  const [isRenewal, setIsRenewal] = useState(false)
 
   // Redirection si non connecté
   useEffect(() => {
@@ -137,35 +35,11 @@ export default function SubscribePage() {
     }
   }, [user, loading, router])
 
-  // Vérification manuelle d'une clé de licence
-  const handleVerifyLicense = async () => {
-    if (!licenseKey.trim() || !user?.email) return
-
-    setVerifyingLicense(true)
-    setLicenseError(null)
-
-    try {
-      const res = await fetch("/api/license/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          licenseKey: licenseKey.trim(),
-          email: user.email,
-        }),
-      })
-      const data = await res.json()
-
-      if (data.success) {
-        setSubscriptionActivated(true)
-        setNewEndDate(data.subscription_end_date)
-      } else {
-        setLicenseError(data.error || "Licence invalide")
-      }
-    } catch {
-      setLicenseError("Erreur lors de la vérification")
-    } finally {
-      setVerifyingLicense(false)
-    }
+  // Callback quand la licence est validée
+  const handleActivated = (data: { endDate: string; isRenewal: boolean }) => {
+    setSubscriptionActivated(true)
+    setNewEndDate(data.endDate)
+    setIsRenewal(data.isRenewal)
   }
 
   // Loading
@@ -189,11 +63,11 @@ export default function SubscribePage() {
           </div>
 
           <h1 className="font-[family-name:var(--font-heading)] text-3xl font-bold text-[#1A1F2B]">
-            {initialPlanState?.isPremium ? "Renouvellement confirmé !" : "Abonnement activé !"}
+            {isRenewal ? "Renouvellement confirmé !" : "Abonnement activé !"}
           </h1>
 
           <p className="mt-3 text-[#1A1F2B]/70">
-            {initialPlanState?.isPremium
+            {isRenewal
               ? "Ton abonnement a été prolongé avec succès."
               : "Bienvenue dans la famille Premium ! Tu as maintenant accès à toute la bibliothèque créative."}
           </p>
@@ -278,25 +152,25 @@ export default function SubscribePage() {
                 <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#80368D]/10 px-4 py-2 text-sm font-medium text-[#80368D]">
                   <span>📅</span>
                   <span>
-                    Expire le{' '}
-                    {new Date((userProfile as any).subscription_end_date).toLocaleDateString('fr-FR', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
+                    Expire le{" "}
+                    {new Date((userProfile as any).subscription_end_date).toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
                     })}
                   </span>
                 </div>
               )}
             </div>
 
-            {/* Section renouvellement avec widget */}
+            {/* Section renouvellement */}
             <div className="mt-8 rounded-xl border-2 border-[#80368D]/20 bg-[#80368D]/5 p-6">
               <h2 className="font-[family-name:var(--font-heading)] text-lg font-semibold text-[#1A1F2B]">
                 🔄 Renouveler maintenant
               </h2>
               <p className="mt-2 text-sm text-[#1A1F2B]/70">
                 Renouvelle ton abonnement dès maintenant.
-                <strong> 30 jours seront ajoutés</strong> à ta date d&apos;expiration actuelle — tu ne perds aucun jour !
+                <strong> 30 jours seront ajoutés</strong> à ta date d&apos;expiration actuelle.
               </p>
 
               {(userProfile as any)?.subscription_end_date && (
@@ -304,10 +178,10 @@ export default function SubscribePage() {
                   <div className="flex items-center justify-between">
                     <span className="text-[#1A1F2B]/60">Date actuelle de fin</span>
                     <span className="font-medium">
-                      {new Date((userProfile as any).subscription_end_date).toLocaleDateString('fr-FR', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
+                      {new Date((userProfile as any).subscription_end_date).toLocaleDateString("fr-FR", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
                       })}
                     </span>
                   </div>
@@ -316,10 +190,10 @@ export default function SubscribePage() {
                     <span className="font-semibold text-[#10B981]">
                       {new Date(
                         new Date((userProfile as any).subscription_end_date).getTime() + 30 * 24 * 60 * 60 * 1000
-                      ).toLocaleDateString('fr-FR', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
+                      ).toLocaleDateString("fr-FR", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
                       })}
                     </span>
                   </div>
@@ -337,14 +211,13 @@ export default function SubscribePage() {
                 </div>
               )}
 
-              {/* Widget Chariow */}
+              {/* Composant d'activation par licence — flux en 2 étapes */}
               <div className="mt-5">
-                <ChariowWidget ctaWidth="full" onPaymentSuccess={handleWidgetPaymentSuccess} />
-                {activating && (
-                  <div className="mt-3 flex items-center justify-center gap-2 text-sm text-[#80368D]">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Activation de ton abonnement en cours...</span>
-                  </div>
+                {user?.email && (
+                  <LicenseActivation
+                    userEmail={user.email}
+                    onActivated={handleActivated}
+                  />
                 )}
               </div>
 
@@ -365,40 +238,6 @@ export default function SubscribePage() {
             <Button asChild variant="outline" className="mt-4 h-12 w-full">
               <Link href="/dashboard">Accéder à la bibliothèque</Link>
             </Button>
-
-            {/* Fallback licence */}
-            <div className="mt-8 border-t border-[#D0E4F2] pt-6">
-              <button
-                type="button"
-                onClick={() => setShowLicenseInput(!showLicenseInput)}
-                className="flex w-full items-center justify-center gap-2 text-sm text-[#1A1F2B]/60 hover:text-[#1A1F2B]"
-              >
-                <Key className="h-4 w-4" />
-                Tu as déjà une clé de licence ?
-              </button>
-
-              {showLicenseInput && (
-                <div className="mt-3 space-y-3">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={licenseKey}
-                      onChange={(e) => setLicenseKey(e.target.value)}
-                      placeholder="ABC-123-XYZ-789"
-                      className="h-10 flex-1 rounded-md border border-border bg-background px-3 font-mono text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#80368D]/30"
-                    />
-                    <Button
-                      onClick={handleVerifyLicense}
-                      disabled={!licenseKey.trim() || verifyingLicense}
-                      className="h-10 bg-[#80368D] hover:bg-[#80368D]/90"
-                    >
-                      {verifyingLicense ? <Loader2 className="h-4 w-4 animate-spin" /> : "Vérifier"}
-                    </Button>
-                  </div>
-                  {licenseError && <p className="text-sm text-red-600">{licenseError}</p>}
-                </div>
-              )}
-            </div>
           </div>
         ) : (
           /* ====== NOUVEAU — Passer à Premium ====== */
@@ -444,27 +283,15 @@ export default function SubscribePage() {
                 </div>
               )}
 
-              {/* Widget Chariow — remplace l'ancien formulaire de paiement */}
+              {/* Composant d'activation par licence — flux en 2 étapes */}
               <div className="mt-6">
-                <ChariowWidget ctaWidth="full" onPaymentSuccess={handleWidgetPaymentSuccess} />
-                {activating && (
-                  <div className="mt-3 flex items-center justify-center gap-2 text-sm text-[#80368D]">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Activation de ton abonnement en cours...</span>
-                  </div>
+                {user?.email && (
+                  <LicenseActivation
+                    userEmail={user.email}
+                    onActivated={handleActivated}
+                    paymentDescription="Procède au paiement, puis entre la clé de licence que tu recevras par email ou SMS."
+                  />
                 )}
-              </div>
-
-              {/* Info sécurité */}
-              <div className="mt-4 flex items-start gap-2 rounded-lg bg-[#10B981]/5 p-4">
-                <ShieldCheck className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#10B981]" />
-                <div className="text-sm">
-                  <p className="font-semibold text-[#1A1F2B]">Paiement 100% sécurisé</p>
-                  <p className="mt-1 text-[#1A1F2B]/60">
-                    Chariow gère le paiement de manière sécurisée. Mobile Money, carte bancaire et
-                    autres méthodes acceptées.
-                  </p>
-                </div>
               </div>
 
               {/* CGV */}
@@ -481,7 +308,7 @@ export default function SubscribePage() {
               </p>
             </div>
 
-            {/* Récapitulatif + fallback licence */}
+            {/* Récapitulatif */}
             <div>
               <div className="rounded-xl border border-border bg-card p-6">
                 <h2 className="font-[family-name:var(--font-heading)] text-lg font-semibold text-card-foreground">
@@ -513,6 +340,25 @@ export default function SubscribePage() {
                   <p className="mt-1 text-sm text-muted-foreground">Valable 1 mois</p>
                 </div>
 
+                {/* Comment ça marche */}
+                <div className="mt-6 border-t border-border pt-4">
+                  <p className="mb-3 text-sm font-semibold text-foreground">Comment ça marche ?</p>
+                  <ol className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex gap-2">
+                      <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[#80368D]/10 text-xs font-bold text-[#80368D]">1</span>
+                      Clique sur le bouton pour payer
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[#80368D]/10 text-xs font-bold text-[#80368D]">2</span>
+                      Reçois ta clé de licence par email/SMS
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[#80368D]/10 text-xs font-bold text-[#80368D]">3</span>
+                      Entre ta clé ici pour activer l&apos;abonnement
+                    </li>
+                  </ol>
+                </div>
+
                 {/* Méthodes de paiement */}
                 <div className="mt-6 border-t border-border pt-4">
                   <p className="mb-3 text-xs text-muted-foreground">Méthodes de paiement acceptées :</p>
@@ -527,44 +373,6 @@ export default function SubscribePage() {
                     ))}
                   </div>
                 </div>
-              </div>
-
-              {/* Fallback licence */}
-              <div className="mt-6 rounded-xl border border-border bg-card p-6">
-                <button
-                  type="button"
-                  onClick={() => setShowLicenseInput(!showLicenseInput)}
-                  className="flex w-full items-center gap-2 text-sm font-medium text-[#1A1F2B]/70 hover:text-[#1A1F2B]"
-                >
-                  <Key className="h-4 w-4" />
-                  Tu as déjà une clé de licence ?
-                </button>
-
-                {showLicenseInput && (
-                  <div className="mt-3 space-y-3">
-                    <p className="text-xs text-muted-foreground">
-                      Si tu as reçu une clé de licence par email ou SMS, entre-la ici pour activer
-                      ton abonnement :
-                    </p>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={licenseKey}
-                        onChange={(e) => setLicenseKey(e.target.value)}
-                        placeholder="ABC-123-XYZ-789"
-                        className="h-10 flex-1 rounded-md border border-border bg-background px-3 font-mono text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[#80368D]/30"
-                      />
-                      <Button
-                        onClick={handleVerifyLicense}
-                        disabled={!licenseKey.trim() || verifyingLicense}
-                        className="h-10 bg-[#80368D] hover:bg-[#80368D]/90"
-                      >
-                        {verifyingLicense ? <Loader2 className="h-4 w-4 animate-spin" /> : "Vérifier"}
-                      </Button>
-                    </div>
-                    {licenseError && <p className="text-sm text-red-600">{licenseError}</p>}
-                  </div>
-                )}
               </div>
             </div>
           </div>

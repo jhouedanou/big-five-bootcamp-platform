@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase, supabaseAdmin } from '@/lib/supabase'
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/campaigns
  * Récupère toutes les campagnes

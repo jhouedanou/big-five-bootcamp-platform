@@ -39,32 +39,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Utilisateur non trouvé' }, { status: 404 });
     }
 
-    // 2. Vérifier si une activation récente existe déjà (anti-doublon)
-    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    // 2. Anti-doublon : vérifier si ce purchaseId a déjà été utilisé OU activation récente
+    if (purchaseId) {
+      const { data: existingPayment } = await (supabaseAdmin as any)
+        .from('payments')
+        .select('id, status, completed_at')
+        .eq('chariow_sale_id', purchaseId)
+        .eq('status', 'completed')
+        .limit(1);
+
+      if (existingPayment && existingPayment.length > 0) {
+        console.log('⚠️ PurchaseId already used, skipping duplicate:', purchaseId);
+        return NextResponse.json({
+          success: true,
+          alreadyActivated: true,
+          message: 'Ce paiement a déjà été traité',
+          subscription: {
+            plan: user.plan,
+            status: user.subscription_status,
+            endDate: user.subscription_end_date,
+          },
+        });
+      }
+    }
+
+    // Vérifier aussi les activations récentes (dernières 2 minutes)
+    const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
     const { data: recentPayment } = await (supabaseAdmin as any)
       .from('payments')
       .select('id, status, completed_at')
       .eq('user_email', email)
       .eq('status', 'completed')
-      .gte('completed_at', fiveMinAgo)
+      .gte('completed_at', twoMinAgo)
       .limit(1);
 
     if (recentPayment && recentPayment.length > 0) {
-      console.log('⚠️ Recent activation already exists, skipping duplicate');
-      // Retourner quand même les infos à jour de l'utilisateur
-      const { data: freshUser } = await (supabaseAdmin as any)
-        .from('users')
-        .select('plan, subscription_status, subscription_end_date')
-        .eq('id', user.id)
-        .single();
-
+      console.log('⚠️ Recent activation already exists (< 2min), skipping duplicate');
       return NextResponse.json({
         success: true,
         alreadyActivated: true,
         subscription: {
-          plan: freshUser?.plan,
-          status: freshUser?.subscription_status,
-          endDate: freshUser?.subscription_end_date,
+          plan: user.plan,
+          status: user.subscription_status,
+          endDate: user.subscription_end_date,
         },
       });
     }

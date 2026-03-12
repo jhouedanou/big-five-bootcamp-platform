@@ -63,12 +63,18 @@ export async function POST(
     }
 
     // 2. Vérifier le statut auprès de Chariow
-    const saleId = paymentData.chariow_sale_id;
+    const saleId = paymentData.chariow_sale_id || paymentData.metadata?.chariow_response?.sale_id;
     if (!saleId) {
-      return NextResponse.json(
-        { error: 'No Chariow sale ID found for this payment' },
-        { status: 400 }
-      );
+      // Pas de sale_id, on ne peut pas vérifier auprès de Chariow
+      // Retourner le statut actuel en attendant le webhook
+      return NextResponse.json({
+        success: false,
+        message: 'Waiting for payment confirmation (no sale ID yet)',
+        payment: {
+          ref_command: paymentData.ref_command,
+          status: paymentData.status,
+        },
+      });
     }
 
     const chariowSale = await getSale(saleId);

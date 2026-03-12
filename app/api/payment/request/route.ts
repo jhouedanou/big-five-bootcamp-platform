@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
         number: phoneNumber?.replace(/\D/g, '') || '0000000000',
         country_code: phoneCountryCode || 'CI',
       },
-      redirect_url: buildSuccessUrl('', ref_command),
+      redirect_url: buildSuccessUrl(ref_command),
       custom_metadata: {
         ref_command,
         session_id: sessionId,

@@ -11,21 +11,18 @@ export async function GET() {
   try {
     const now = Date.now();
     if (cachedProduct && now - cacheTimestamp < CACHE_TTL) {
-      console.log('💰 Product price (cached):', cachedProduct);
       return NextResponse.json(cachedProduct);
     }
 
     const productId = getSubscriptionProductId();
-    console.log('💰 Fetching product price from Chariow, productId:', productId);
     const product = await getProduct(productId);
-    console.log('💰 Chariow product response:', JSON.stringify(product.data, null, 2));
 
     const pricing = product.data.pricing;
-    const price = pricing?.current_price?.value ?? pricing?.price?.value;
+    const rawPrice = pricing?.current_price?.value ?? pricing?.price?.value;
+    const price = rawPrice != null ? Math.round(rawPrice) : null;
     const currency = pricing?.current_price?.currency ?? pricing?.price?.currency ?? 'XOF';
 
     if (price == null) {
-      console.warn('⚠️ No price found in Chariow response, using fallback');
       throw new Error('No price in product response');
     }
 
@@ -37,7 +34,6 @@ export async function GET() {
     };
     cacheTimestamp = now;
 
-    console.log('💰 Product price fetched:', cachedProduct);
     return NextResponse.json(cachedProduct);
   } catch (error) {
     console.error('❌ Error fetching product price:', error);
@@ -47,7 +43,6 @@ export async function GET() {
       formatted: `${formatPrice(PRICING_MONTHLY_VALUE)} XOF`,
       currency: 'XOF',
       name: 'Abonnement Big Five',
-      _fallback: true,
     });
   }
 }

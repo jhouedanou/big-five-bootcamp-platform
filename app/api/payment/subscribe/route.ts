@@ -37,8 +37,9 @@ export async function POST(request: NextRequest) {
       const productId = getSubscriptionProductId();
       const product = await getProduct(productId);
       const pricing = product.data.pricing;
-      subscriptionPrice = pricing?.current_price?.value ?? pricing?.price?.value ?? PRICING_MONTHLY_VALUE;
-      console.log('💰 Prix récupéré depuis Chariow:', subscriptionPrice);
+      const rawPrice = pricing?.current_price?.value ?? pricing?.price?.value;
+      subscriptionPrice = rawPrice != null ? Math.round(rawPrice) : PRICING_MONTHLY_VALUE;
+      console.log('💰 Prix récupéré depuis Chariow:', subscriptionPrice, pricing?.current_price?.currency || 'XOF');
     } catch (priceError) {
       console.warn('⚠️ Impossible de récupérer le prix Chariow, utilisation du fallback:', PRICING_MONTHLY_VALUE);
     }

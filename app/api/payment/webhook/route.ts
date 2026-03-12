@@ -309,13 +309,20 @@ async function handleFailedSale(pulseData: ChariowPulsePayload) {
  */
 async function handleLicenseIssued(pulseData: ChariowPulsePayload) {
   console.log('🔑 License issued:', pulseData.license?.key);
-  // Stocker la licence si nécessaire
   const refCommand = pulseData.sale?.custom_metadata?.ref_command;
   if (refCommand && pulseData.license) {
+    // Récupérer les metadata existantes pour ne pas les écraser
+    const { data: existing } = await (supabaseAdmin as any)
+      .from('payments')
+      .select('metadata')
+      .eq('ref_command', refCommand)
+      .single();
+
     await (supabaseAdmin as any)
       .from('payments')
       .update({
         metadata: {
+          ...(existing?.metadata || {}),
           license_key: pulseData.license.key,
           license_id: pulseData.license.id,
         },

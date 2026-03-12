@@ -615,10 +615,12 @@ export function getSubscriptionProductId(): string {
 /**
  * Construire l'URL de redirection après succès avec les paramètres de tracking
  */
-export function buildSuccessUrl(saleId: string, refCommand: string): string {
+export function buildSuccessUrl(refCommand: string, saleId?: string): string {
   const url = new URL(CHARIOW_CONFIG.SUCCESS_URL);
-  url.searchParams.set('sale_id', saleId);
   url.searchParams.set('ref_command', refCommand);
+  if (saleId) {
+    url.searchParams.set('sale_id', saleId);
+  }
   return url.toString();
 }
 
@@ -646,7 +648,7 @@ export async function createSubscriptionCheckout(params: {
       number: params.phoneNumber.replace(/\D/g, ''),
       country_code: params.phoneCountryCode,
     },
-    redirect_url: params.redirectUrl || buildSuccessUrl('', params.refCommand),
+    redirect_url: params.redirectUrl || buildSuccessUrl(params.refCommand),
     custom_metadata: {
       ref_command: params.refCommand,
       user_id: params.userId,

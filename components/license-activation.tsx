@@ -9,6 +9,10 @@ import {
   ArrowRight,
   ShieldCheck,
   Sparkles,
+  Upload,
+  FileText,
+  X,
+  ImageIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ChariowWidget } from "@/components/chariow-widget"
@@ -50,6 +54,13 @@ export function LicenseActivation({
   const [endDate, setEndDate] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  // Certificat upload
+  const [certificateFile, setCertificateFile] = useState<File | null>(null)
+  const [certificatePreview, setCertificatePreview] = useState<string | null>(null)
+  const [uploadingCertificate, setUploadingCertificate] = useState(false)
+  const [certificateUploaded, setCertificateUploaded] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   // Focus sur l'input quand on passe à l'étape licence
   useEffect(() => {
     if (step === "license" && inputRef.current) {
@@ -90,6 +101,11 @@ export function LicenseActivation({
     setError(null)
 
     try {
+      // Uploader le certificat d'abord (si présent et pas encore uploadé)
+      if (certificateFile && !certificateUploaded) {
+        await uploadCertificate()
+      }
+
       const res = await fetch("/api/license/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -120,6 +136,76 @@ export function LicenseActivation({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       handleVerifyLicense()
+    }
+  }
+
+  // ========= CERTIFICAT UPLOAD =========
+  const handleFileSelect = (file: File) => {
+    const allowedTypes = ["application/pdf", "image/jpeg", "image/png", "image/webp"]
+    if (!allowedTypes.includes(file.type)) {
+      setError("Format non supporté. Acceptés : PDF, JPG, PNG, WebP")
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setError("Fichier trop volumineux (max 10 Mo)")
+      return
+    }
+    setCertificateFile(file)
+    setError(null)
+
+    // Preview pour les images
+    if (file.type.startsWith("image/")) {
+      const reader = new FileReader()
+      reader.onloadend = () => setCertificatePreview(reader.result as string)
+      reader.readAsDataURL(file)
+    } else {
+      setCertificatePreview(null)
+    }
+  }
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) handleFileSelect(file)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    const file = e.dataTransfer.files?.[0]
+    if (file) handleFileSelect(file)
+  }
+
+  const removeCertificate = () => {
+    setCertificateFile(null)
+    setCertificatePreview(null)
+    setCertificateUploaded(false)
+    if (fileInputRef.current) fileInputRef.current.value = ""
+  }
+
+  const uploadCertificate = async () => {
+    if (!certificateFile) return
+
+    setUploadingCertificate(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", certificateFile)
+      formData.append("email", userEmail)
+      if (licenseKey.trim()) formData.append("licenseKey", licenseKey.trim())
+
+      const res = await fetch("/api/license/upload-certificate", {
+        method: "POST",
+        body: formData,
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        setCertificateUploaded(true)
+      } else {
+        setError(data.error || "Erreur lors de l'upload du certificat")
+      }
+    } catch {
+      setError("Erreur de connexion lors de l'upload")
+    } finally {
+      setUploadingCertificate(false)
     }
   }
 
@@ -189,6 +275,78 @@ export function LicenseActivation({
               autoComplete="off"
               spellCheck={false}
             />
+
+            {/* ======= UPLOAD CERTIFICAT ======= */}
+            <div className="rounded-lg border-2 border-dashed border-[#80368D]/20 bg-white/60 p-4 transition-colors hover:border-[#80368D]/40">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png,.webp"
+                onChange={handleFileInputChange}
+                className="hidden"
+                aria-label="Upload certificat d'achat"
+              />
+
+              {!certificateFile ? (
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={handleDrop}
+                  className="flex cursor-pointer flex-col items-center gap-2 py-2"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#80368D]/10">
+                    <Upload className="h-5 w-5 text-[#80368D]" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-[#1A1F2B]/80">
+                      Ajoute ton certificat d&apos;achat
+                    </p>
+                    <p className="text-xs text-[#1A1F2B]/50">
+                      PDF, JPG ou PNG · Max 10 Mo · Glisse ou clique
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  {/* Preview ou icône */}
+                  <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#80368D]/10">
+                    {certificatePreview ? (
+                      <img
+                        src={certificatePreview}
+                        alt="Aperçu certificat"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <FileText className="h-6 w-6 text-[#80368D]" />
+                    )}
+                  </div>
+
+                  {/* Infos fichier */}
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate text-sm font-medium text-[#1A1F2B]">
+                      {certificateFile.name}
+                    </p>
+                    <p className="text-xs text-[#1A1F2B]/50">
+                      {(certificateFile.size / 1024).toFixed(0)} Ko
+                      {certificateUploaded && (
+                        <span className="ml-2 text-[#10B981]">✓ Uploadé</span>
+                      )}
+                    </p>
+                  </div>
+
+                  {/* Bouton supprimer */}
+                  <button
+                    type="button"
+                    onClick={removeCertificate}
+                    aria-label="Supprimer le certificat"
+                    title="Supprimer le certificat"
+                    className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full hover:bg-red-50"
+                  >
+                    <X className="h-4 w-4 text-red-500" />
+                  </button>
+                </div>
+              )}
+            </div>
 
             <Button
               onClick={handleVerifyLicense}

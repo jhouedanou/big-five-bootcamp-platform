@@ -2,8 +2,10 @@
 
 import { useState } from "react"
 import { TableCell, TableRow } from "@/components/ui/table"
+import { Button } from "@/components/ui/button"
 import { UserStatusToggle } from "./user-status-toggle"
-import { ChevronDown, ChevronRight, CreditCard, Calendar, Clock, Heart } from "lucide-react"
+import { ChevronDown, ChevronRight, CreditCard, Calendar, Clock, Heart, XCircle, RotateCcw, Loader2 } from "lucide-react"
+import { endSubscription, resetSubscription } from "@/app/actions/user"
 
 interface Payment {
     id: string
@@ -82,11 +84,45 @@ function getPaymentStatusLabel(status: string) {
 
 export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
     const [isExpanded, setIsExpanded] = useState(false)
+    const [isEndingSubscription, setIsEndingSubscription] = useState(false)
+    const [isResettingSubscription, setIsResettingSubscription] = useState(false)
+    const [resetDays, setResetDays] = useState(30)
 
     const subStart = user.subscription_start_date as string | null | undefined
     const subEnd = user.subscription_end_date as string | null | undefined
     const daysLeft = getSubscriptionDaysLeft(subEnd)
     const hasSubscription = !!subStart
+    const isSubscriptionActive = user.subscription_status === 'active' && daysLeft !== null && daysLeft > 0
+
+    const handleEndSubscription = async () => {
+        if (!confirm(`Mettre fin a l'abonnement de ${user.name || user.email} ?`)) return
+        setIsEndingSubscription(true)
+        try {
+            const result = await endSubscription(user.id as string)
+            if (!result.success) {
+                alert('Erreur: ' + (result.error || 'Impossible de terminer l\'abonnement'))
+            }
+        } catch {
+            alert('Erreur lors de la mise a jour')
+        } finally {
+            setIsEndingSubscription(false)
+        }
+    }
+
+    const handleResetSubscription = async () => {
+        if (!confirm(`Reinitialiser l'abonnement de ${user.name || user.email} a ${resetDays} jours ?`)) return
+        setIsResettingSubscription(true)
+        try {
+            const result = await resetSubscription(user.id as string, resetDays)
+            if (!result.success) {
+                alert('Erreur: ' + (result.error || 'Impossible de reinitialiser l\'abonnement'))
+            }
+        } catch {
+            alert('Erreur lors de la mise a jour')
+        } finally {
+            setIsResettingSubscription(false)
+        }
+    }
 
     return (
         <>
@@ -171,11 +207,59 @@ export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
                 </TableCell>
             </TableRow>
 
-            {/* Expanded section: payment history */}
+            {/* Expanded section: payment history + subscription management */}
             {isExpanded && (
                 <TableRow>
                     <TableCell colSpan={10} className="bg-muted/30 p-0">
                         <div className="px-6 py-4">
+                            {/* Subscription management */}
+                            <div className="mb-4 flex items-center gap-3 rounded-lg border bg-card p-3">
+                                <span className="text-sm font-medium text-foreground mr-auto">Gestion abonnement</span>
+
+                                {isSubscriptionActive && (
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={handleEndSubscription}
+                                        disabled={isEndingSubscription}
+                                    >
+                                        {isEndingSubscription ? (
+                                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                        ) : (
+                                            <XCircle className="mr-1 h-3 w-3" />
+                                        )}
+                                        Mettre fin
+                                    </Button>
+                                )}
+
+                                <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                                    <select
+                                        value={resetDays}
+                                        onChange={(e) => setResetDays(Number(e.target.value))}
+                                        className="h-8 rounded-md border bg-background px-2 text-xs"
+                                    >
+                                        <option value={7}>7 jours</option>
+                                        <option value={15}>15 jours</option>
+                                        <option value={30}>30 jours</option>
+                                        <option value={60}>60 jours</option>
+                                        <option value={90}>90 jours</option>
+                                    </select>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleResetSubscription}
+                                        disabled={isResettingSubscription}
+                                    >
+                                        {isResettingSubscription ? (
+                                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                        ) : (
+                                            <RotateCcw className="mr-1 h-3 w-3" />
+                                        )}
+                                        {hasSubscription ? 'Reinitialiser' : 'Activer'}
+                                    </Button>
+                                </div>
+                            </div>
+
                             <div className="flex items-center gap-2 mb-3">
                                 <CreditCard className="h-4 w-4 text-muted-foreground" />
                                 <h4 className="font-semibold text-sm">

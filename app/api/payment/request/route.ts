@@ -1,28 +1,26 @@
 /**
  * API Route: POST /api/payment/request
- * 
- * Crée une demande de paiement PayTech pour une inscription à un bootcamp
- * 
+ *
+ * Cree une demande de paiement Moneroo pour une inscription a un bootcamp
+ *
  * Body:
  * - sessionId: UUID de la session
  * - userEmail: Email de l'utilisateur
- * - paymentMethod?: Méthode ciblée (ex: "Orange Money")
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { 
-  requestPayment, 
+import {
+  initializePayment,
   generateRefCommand,
-  type PaytechPaymentRequest 
-} from '@/lib/paytech';
+  getReturnUrl,
+} from '@/lib/moneroo';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { sessionId, userEmail, paymentMethod } = body;
+    const { sessionId, userEmail } = body;
 
-    // Validation
     if (!sessionId || !userEmail) {
       return NextResponse.json(
         { error: 'Session ID and user email are required' },
@@ -30,7 +28,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Récupérer les infos de la session
+    // 1. Recuperer les infos de la session
     const { data: session, error: sessionError } = await (supabaseAdmin as any)
       .from('sessions')
       .select(`
@@ -53,9 +51,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // @ts-ignore - Supabase join type
     const bootcamp = session.creative_library;
-
     if (!bootcamp) {
       return NextResponse.json(
         { error: 'Bootcamp not found for this session' },
@@ -63,7 +59,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Vérifier si un paiement existe déjà
+    // 2. Verifier si un paiement existe deja
     const { data: existingPayment } = await (supabaseAdmin as any)
       .from('payments')
       .select('id, status')
@@ -74,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     if (existingPayment) {
       return NextResponse.json(
-        { 
+        {
           error: 'A payment already exists for this session',
           paymentId: existingPayment.id,
           status: existingPayment.status
@@ -83,26 +79,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Générer la référence de commande unique
+    // 3. Generer la reference
     const ref_command = generateRefCommand('BOOTCAMP');
 
-    // 4. Préparer la demande PayTech
-    const paymentRequest: PaytechPaymentRequest = {
-      item_name: `${bootcamp.title} - Session ${new Date(session.start_date).toLocaleDateString('fr-FR')}`,
-      item_price: bootcamp.price,
-      currency: 'XOF',
-      ref_command,
-      command_name: `Inscription ${bootcamp.title} - Big Five Bootcamp`,
-      target_payment: paymentMethod, // Méthode ciblée ou undefined pour toutes les méthodes
-      custom_field: JSON.stringify({
-        sessionId,
-        userEmail,
-        bootcampSlug: bootcamp.slug,
-        bootcampTitle: bootcamp.title,
-      }),
-    };
-
-    // 5. Créer l'enregistrement de paiement dans Supabase (statut: pending)
+    // 4. Enregistrer le paiement
     const { data: payment, error: paymentError } = await (supabaseAdmin as any)
       .from('payments')
       .insert({
@@ -114,9 +94,9 @@ export async function POST(request: NextRequest) {
         status: 'pending',
         session_id: sessionId,
         user_email: userEmail,
-        item_name: paymentRequest.item_name,
+        item_name: `${bootcamp.title} - Session ${new Date(session.start_date).toLocaleDateString('fr-FR')}`,
         item_description: bootcamp.tagline,
-        env: process.env.PAYTECH_ENV || 'test',
+        payment_method: 'Moneroo',
       })
       .select()
       .single();
@@ -129,37 +109,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 6. Appeler PayTech pour obtenir l'URL de paiement
-    const paytechResponse = await requestPayment(paymentRequest);
+    // 5. Initialiser le paiement Moneroo
+    const monerooResponse = await initializePayment({
+      amount: bootcamp.price,
+      currency: 'XOF',
+      description: `${bootcamp.title} - Big Five Bootcamp (${ref_command})`,
+      return_url: getReturnUrl(ref_command),
+      customer: {
+        email: userEmail,
+        first_name: userEmail.split('@')[0],
+        last_name: 'Big Five',
+      },
+      metadata: {
+        ref_command,
+        type: 'bootcamp',
+        session_id: sessionId,
+        bootcamp_slug: bootcamp.slug,
+      },
+    });
 
-    if (paytechResponse.success !== 1) {
-      // Mettre à jour le statut à 'failed'
-      await (supabaseAdmin as any)
-        .from('payments')
-        .update({ status: 'failed' })
-        .eq('id', payment.id);
-
-      return NextResponse.json(
-        { error: paytechResponse.message || 'PayTech request failed' },
-        { status: 500 }
-      );
-    }
-
-    // 7. Mettre à jour le payment avec le token PayTech
+    // 6. Stocker l'ID Moneroo
     await (supabaseAdmin as any)
       .from('payments')
-      .update({ 
-        paytech_token: paytechResponse.token 
+      .update({
+        moneroo_payment_id: monerooResponse.data.id,
       })
       .eq('id', payment.id);
 
-    // 8. Retourner l'URL de redirection
     return NextResponse.json({
       success: true,
       paymentId: payment.id,
       ref_command,
-      redirect_url: paytechResponse.redirect_url || paytechResponse.redirectUrl,
-      token: paytechResponse.token,
+      redirect_url: monerooResponse.data.checkout_url,
     });
 
   } catch (error) {

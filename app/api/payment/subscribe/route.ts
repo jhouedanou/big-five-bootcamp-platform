@@ -1,35 +1,30 @@
 /**
  * API Route: POST /api/payment/subscribe
- * 
- * Crée une demande de paiement PayTech pour un abonnement mensuel
- * Prix: 150 XOF/mois - Valable 1 mois
- * 
+ *
+ * Cree une demande de paiement Moneroo pour un abonnement mensuel
+ * Prix: 25 000 XOF/mois - Valable 1 mois
+ *
  * Body:
  * - userEmail: Email de l'utilisateur
- * - paymentMethod?: Méthode ciblée (ex: "Orange Money", "Wave", etc.)
- * - phoneNumber?: Numéro de téléphone pour Mobile Money
+ * - userName?: Nom de l'utilisateur
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { 
-  requestPayment, 
+import {
+  initializePayment,
   generateRefCommand,
-  type PaytechPaymentRequest 
-} from '@/lib/paytech';
+  getReturnUrl,
+} from '@/lib/moneroo';
 
-// Prix de l'abonnement mensuel
 const SUBSCRIPTION_PRICE = 25000; // 25 000 XOF
-const SUBSCRIPTION_DURATION_DAYS = 30; // 1 mois
+const SUBSCRIPTION_DURATION_DAYS = 30;
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userEmail, paymentMethod, phoneNumber } = body;
+    const { userEmail, userName } = body;
 
-    console.log('📨 Requête d\'abonnement reçue:', { userEmail, paymentMethod });
-
-    // Validation
     if (!userEmail) {
       return NextResponse.json(
         { error: 'User email is required' },
@@ -37,35 +32,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vérifier si l'utilisateur existe dans la table users
+    // Verifier si l'utilisateur existe
     let { data: existingUser, error: userError } = await supabaseAdmin
       .from('users')
       .select('id, email, name, subscription_status, subscription_end_date')
       .eq('email', userEmail)
       .single();
 
-    // Si l'utilisateur n'existe pas dans la table users, le créer
+    // Si l'utilisateur n'existe pas, le creer
     if (!existingUser || userError?.code === 'PGRST116') {
-      console.log('👤 Utilisateur non trouvé dans la table users, création...');
-
-      // Chercher l'utilisateur par email dans Supabase Auth
-      const { data: authUserData, error: authListError } = await supabaseAdmin.auth.admin.getUserById(
-        '' // fallback - will use listUsers below
-      ).catch(() => ({ data: null, error: null })) as any;
-
-      // Alternative: chercher par liste
       const { data: authListData } = await supabaseAdmin.auth.admin.listUsers() as any;
-      const authUser = authListData?.users?.find((u: any) => u.email === userEmail) || authUserData?.user;
+      const authUser = authListData?.users?.find((u: any) => u.email === userEmail);
 
-      if (authListError || !authUser) {
-        console.error('❌ Utilisateur non trouvé dans Auth:', authListError);
+      if (!authUser) {
         return NextResponse.json(
-          { error: 'Utilisateur non trouvé. Veuillez vous inscrire d\'abord.' },
+          { error: 'Utilisateur non trouve. Veuillez vous inscrire d\'abord.' },
           { status: 404 }
         );
       }
 
-      // Créer l'utilisateur dans la table users
       const { data: newUser, error: createError } = await (supabaseAdmin as any)
         .from('users')
         .upsert({
@@ -80,23 +65,21 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (createError) {
-        console.error('❌ Erreur création utilisateur:', createError);
         return NextResponse.json(
-          { error: 'Impossible de créer le profil utilisateur', details: createError.message },
+          { error: 'Impossible de creer le profil utilisateur', details: createError.message },
           { status: 500 }
         );
       }
 
       existingUser = newUser;
-      console.log('✅ Utilisateur créé:', (existingUser as any)?.id);
     }
 
-    // Vérifier si un abonnement actif existe déjà
-    if ((existingUser as any).subscription_status === 'active' && 
-        (existingUser as any).subscription_end_date && 
+    // Verifier si un abonnement actif existe deja
+    if ((existingUser as any).subscription_status === 'active' &&
+        (existingUser as any).subscription_end_date &&
         new Date((existingUser as any).subscription_end_date) > new Date()) {
       return NextResponse.json(
-        { 
+        {
           error: 'You already have an active subscription',
           subscription_end_date: (existingUser as any).subscription_end_date
         },
@@ -104,46 +87,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Générer la référence de commande unique
     const ref_command = generateRefCommand('SUB');
-
-    // Date de fin de l'abonnement (1 mois à partir d'aujourd'hui)
     const subscriptionEndDate = new Date();
     subscriptionEndDate.setDate(subscriptionEndDate.getDate() + SUBSCRIPTION_DURATION_DAYS);
 
-    // Préparer la demande PayTech
-    const paymentRequest: PaytechPaymentRequest = {
-      item_name: 'Abonnement Big Five - 1 mois',
-      item_price: SUBSCRIPTION_PRICE,
-      currency: 'XOF',
-      ref_command,
-      command_name: `Abonnement mensuel Big Five - ${(existingUser as any).name || (existingUser as any).email}`,
-      target_payment: paymentMethod, // Méthode ciblée ou undefined pour toutes les méthodes
-      custom_field: JSON.stringify({
-        type: 'subscription',
-        userId: (existingUser as any).id,
-        userEmail,
-        duration_days: SUBSCRIPTION_DURATION_DAYS,
-        subscription_end_date: subscriptionEndDate.toISOString(),
-        phoneNumber: phoneNumber || null,
-      }),
-    };
+    const customerName = userName || (existingUser as any).name || userEmail.split('@')[0];
+    const nameParts = customerName.split(' ');
 
-    // Enregistrer la demande de paiement dans la base de données
-    console.log('💾 Création enregistrement paiement...');
-    
+    // Creer le paiement dans la base
     const paymentInsert = {
       user_email: userEmail,
       amount: SUBSCRIPTION_PRICE,
       status: 'pending',
-      payment_method: paymentMethod || 'Not specified',
+      payment_method: 'Moneroo',
       ref_command,
       metadata: {
         type: 'subscription',
         duration_days: SUBSCRIPTION_DURATION_DAYS,
         subscription_end_date: subscriptionEndDate.toISOString(),
-        item_name: paymentRequest.item_name,
-        phoneNumber: phoneNumber || null,
+        item_name: 'Abonnement Big Five - 1 mois',
         userId: (existingUser as any).id,
       },
     };
@@ -155,63 +117,45 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (paymentError) {
-      console.error('❌ Erreur création paiement:', paymentError);
+      console.error('Payment creation error:', paymentError);
       return NextResponse.json(
-        { 
-          error: 'Failed to create payment record',
-          details: paymentError.message,
-          hint: paymentError.hint
-        },
+        { error: 'Failed to create payment record', details: paymentError.message },
         { status: 500 }
       );
     }
 
-    console.log('✅ Paiement créé:', (payment as any)?.id);
+    // Initialiser le paiement Moneroo
+    const monerooResponse = await initializePayment({
+      amount: SUBSCRIPTION_PRICE,
+      currency: 'XOF',
+      description: `Abonnement Big Five - 1 mois (${ref_command})`,
+      return_url: getReturnUrl(ref_command),
+      customer: {
+        email: userEmail,
+        first_name: nameParts[0] || 'Client',
+        last_name: nameParts.slice(1).join(' ') || 'Big Five',
+        phone: undefined,
+      },
+      metadata: {
+        ref_command,
+        type: 'subscription',
+        user_id: (existingUser as any).id,
+      },
+    });
 
-    // Créer la demande de paiement PayTech
-    const paytechResponse = await requestPayment(paymentRequest);
-
-    if (paytechResponse.success !== 1 || !paytechResponse.redirect_url) {
-      // Mettre à jour le statut du paiement en cas d'échec
-      await (supabaseAdmin as any)
-        .from('payments')
-        .update({ 
-          status: 'failed',
-          metadata: {
-            ...(payment as any).metadata,
-            error: paytechResponse.message || 'PayTech request failed'
-          }
-        })
-        .eq('id', (payment as any).id);
-
-      return NextResponse.json(
-        { 
-          error: paytechResponse.message || 'Failed to create PayTech payment',
-          details: paytechResponse 
-        },
-        { status: 500 }
-      );
-    }
-
-    // Mettre à jour le paiement avec le token PayTech
+    // Stocker l'ID Moneroo dans le paiement
     await (supabaseAdmin as any)
       .from('payments')
-      .update({ 
-        paytech_token: paytechResponse.token,
-        metadata: {
-          ...(payment as any).metadata,
-          paytech_response: paytechResponse
-        }
+      .update({
+        moneroo_payment_id: monerooResponse.data.id,
       })
       .eq('id', (payment as any).id);
 
-    // Retourner l'URL de redirection PayTech
     return NextResponse.json({
       success: true,
       payment_id: (payment as any).id,
       ref_command,
-      redirect_url: paytechResponse.redirect_url || paytechResponse.redirectUrl,
-      token: paytechResponse.token,
+      redirect_url: monerooResponse.data.checkout_url,
       amount: SUBSCRIPTION_PRICE,
       duration_days: SUBSCRIPTION_DURATION_DAYS,
       subscription_end_date: subscriptionEndDate.toISOString(),
@@ -220,7 +164,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Subscription payment error:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error'
       },

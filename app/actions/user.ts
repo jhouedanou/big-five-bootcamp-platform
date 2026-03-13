@@ -57,6 +57,31 @@ export async function toggleUserStatus(id: string, currentStatus: string) {
     }
 }
 
+export async function updateUserPlan(id: string, plan: string) {
+    try {
+        const supabase = getSupabaseAdmin()
+        const updateData: Record<string, unknown> = { plan }
+
+        // Si le plan est Free, réinitialiser le statut d'abonnement
+        if (plan === "Free") {
+            updateData.subscription_status = "expired"
+        } else {
+            updateData.subscription_status = "active"
+        }
+
+        const { error } = await supabase
+            .from('users')
+            .update(updateData)
+            .eq('id', id)
+
+        if (error) throw error
+        revalidatePath("/admin/users")
+        return { success: true }
+    } catch (error) {
+        return { success: false, error: "Erreur lors de la mise à jour du plan" }
+    }
+}
+
 export async function getFavoritesCounts() {
     try {
         const supabase = getSupabaseAdmin()

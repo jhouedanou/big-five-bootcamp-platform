@@ -45,17 +45,48 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (!expiredUsers || expiredUsers.length === 0) {
-      console.log('✅ Aucun abonnement expiré trouvé');
-      return NextResponse.json({
-        success: true,
-        message: 'Aucun abonnement expiré',
-        downgraded: 0,
-        checked_at: now,
-      });
+    // 1b. Trouver les essais gratuits expirés (trial_end_date < NOW et subscription_status = 'trial')
+    const { data: expiredTrials } = await (supabaseAdmin as any)
+      .from('users')
+      .select('id, email, name, trial_end_date')
+      .eq('subscription_status', 'trial')
+      .lt('trial_end_date', now)
+
+    // Downgrader les essais expirés vers Free
+    if (expiredTrials && expiredTrials.length > 0) {
+      console.log(`⏰ ${expiredTrials.length} essai(s) gratuit(s) expiré(s)`)
+      const trialIds = expiredTrials.map((u: any) => u.id)
+      await (supabaseAdmin as any)
+        .from('users')
+        .update({ plan: 'Free', subscription_status: 'expired', updated_at: now })
+        .in('id', trialIds)
+
+      for (const user of expiredTrials) {
+        try {
+          await (supabaseAdmin as any).from('notifications').insert({
+            user_id: user.id,
+            type: 'trial_expired',
+            title: '⏰ Votre essai gratuit a expiré',
+            message: 'Votre essai Pro de 14 jours a pris fin. Passez à un abonnement payant pour continuer.',
+            metadata: { trial_end_date: user.trial_end_date },
+          })
+        } catch { /* ignore */ }
+      }
     }
 
-    console.log(`⏰ ${expiredUsers.length} abonnement(s) expiré(s) trouvé(s)`);
+    if (!expiredUsers || expiredUsers.length === 0) {
+      const trialCount = expiredTrials?.length || 0
+      console.log(`✅ Aucun abonnement payant expiré. ${trialCount} essai(s) downgradué(s).`)
+      return NextResponse.json({
+        success: true,
+        message: `Aucun abonnement payant expiré. ${trialCount} essai(s) downgradué(s).`,
+        downgraded: 0,
+        trials_downgraded: trialCount,
+        checked_at: now,
+      })
+    }
+
+    console.log(`⏰ ${expiredUsers.length} abonnement(s) payant(s) expiré(s) trouvé(s)`);
 
     // 2. Downgrader tous les utilisateurs expirés
     const userIds = expiredUsers.map((u: any) => u.id);
@@ -85,8 +116,8 @@ export async function GET(request: NextRequest) {
           .insert({
             user_id: user.id,
             type: 'subscription_expired',
-            title: '⏰ Votre abonnement Premium a expiré',
-            message: 'Votre abonnement Premium a expiré. Renouvelez-le pour continuer à accéder aux contenus Premium.',
+            title: '⏰ Votre abonnement a expiré',
+            message: `Votre abonnement ${user.plan || 'Pro'} a expiré. Renouvelez-le pour continuer à accéder à toutes les fonctionnalités.`,
             metadata: {
               subscription_end_date: user.subscription_end_date,
               previous_plan: user.plan,

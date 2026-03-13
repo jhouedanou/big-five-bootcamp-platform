@@ -20,20 +20,23 @@ import {
   createSubscriptionCheckout,
   generateRefCommand,
 } from '@/lib/chariow';
-import { PRICING_MONTHLY_VALUE } from '@/lib/constants';
+import { PLAN_BASIC, PLAN_PRO } from '@/lib/pricing';
 
 const SUBSCRIPTION_DURATION_DAYS = 30; // 1 mois
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userEmail, phoneNumber, phoneCountryCode, firstName, lastName } = body;
+    const { userEmail, phoneNumber, phoneCountryCode, firstName, lastName, plan } = body;
 
-    console.log('📨 Requête d\'abonnement reçue:', { userEmail });
+    console.log('📨 Requête d\'abonnement reçue:', { userEmail, plan });
 
-    // Le prix stocké en DB est le prix de référence en XOF.
-    // Chariow gère le montant réel facturé (conversion devise selon le client).
-    const subscriptionPrice = PRICING_MONTHLY_VALUE;
+    // Déterminer le prix selon le plan choisi
+    const planKey = (plan || 'pro').toLowerCase()
+    const subscriptionPrice = planKey === 'basic' ? PLAN_BASIC.price : PLAN_PRO.price
+    const planName = planKey === 'basic' ? 'Basic' : 'Pro'
+
+    console.log(`💰 Plan: ${planName} — Prix: ${subscriptionPrice} FCFA`);
 
     // Validation
     if (!userEmail) {
@@ -126,7 +129,7 @@ export async function POST(request: NextRequest) {
       status: 'pending',
       payment_method: 'Chariow',
       ref_command,
-      item_name: 'Abonnement Big Five - 1 mois',
+      item_name: `Abonnement Big Five ${planName} - 1 mois`,
       metadata: {
         type: 'subscription',
         duration_days: SUBSCRIPTION_DURATION_DAYS,

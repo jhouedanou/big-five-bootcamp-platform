@@ -7,7 +7,7 @@ import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Mail, Clock, Bell, Globe, Check, ArrowRight, Loader2, Lock, AlertTriangle, Receipt, Download, FileText, RefreshCw } from "lucide-react"
+import { Mail, Clock, Bell, Globe, Check, ArrowRight, Loader2, Lock, AlertTriangle, Receipt, Download, FileText, RefreshCw, TrendingUp } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -19,6 +19,8 @@ interface UserProfile {
   status: "trial" | "subscribed" | "expired"
   trialDaysLeft: number
   subscriptionEndDate: string
+  plan?: string
+  monthlyUsage?: number
 }
 
 interface PaymentRecord {
@@ -45,6 +47,8 @@ export default function ProfilePage() {
     status: "trial",
     trialDaysLeft: 0,
     subscriptionEndDate: "",
+    plan: "Free",
+    monthlyUsage: 0,
   })
 
   // Charger les données utilisateur depuis Supabase
@@ -83,12 +87,23 @@ export default function ProfilePage() {
 
       const completedPayments = paymentsData?.filter(p => p.status === "completed") || []
 
+      let planName = profile?.plan || "Free"
+      let monthlyUsage = 0
+
       if (profile) {
-        const isPremiumPlan = profile.plan?.toLowerCase() === "premium"
+        const isTrialActive = profile.subscription_status === 'trial' &&
+          profile.trial_end_date && new Date(profile.trial_end_date) > new Date()
+        const isPremiumPlan = ["premium", "pro", "basic"].includes(profile.plan?.toLowerCase() || "")
         const isActiveSubscription = profile.subscription_status === "active"
         const hasCompletedPayment = completedPayments.length > 0
 
-        if ((isPremiumPlan && isActiveSubscription) || hasCompletedPayment) {
+        if (isTrialActive) {
+          status = "trial"
+          planName = "Pro"
+          const trialEnd = new Date(profile.trial_end_date)
+          const now = new Date()
+          trialDaysLeft = Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+        } else if ((isPremiumPlan && isActiveSubscription) || hasCompletedPayment) {
           status = "subscribed"
           if (profile.subscription_end_date) {
             subscriptionEndDate = format(new Date(profile.subscription_end_date), "d MMMM yyyy", { locale: fr })
@@ -96,14 +111,11 @@ export default function ProfilePage() {
         } else if (profile.subscription_status === "expired") {
           status = "expired"
         } else {
-          const createdAt = new Date(profile.created_at || authUser.created_at)
-          const trialEndDate = new Date(createdAt)
-          trialEndDate.setDate(trialEndDate.getDate() + 30)
-          const now = new Date()
-          const daysLeft = Math.max(0, Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
-          trialDaysLeft = daysLeft
-          if (daysLeft === 0) status = "expired"
+          status = "expired"
         }
+
+        // Monthly usage from profile if stored
+        monthlyUsage = profile.monthly_usage || 0
       }
 
       const userName = profile?.full_name || profile?.name || authUser.user_metadata?.full_name || authUser.email?.split("@")[0] || "Utilisateur"
@@ -115,6 +127,8 @@ export default function ProfilePage() {
         status,
         trialDaysLeft,
         subscriptionEndDate,
+        plan: planName,
+        monthlyUsage,
       })
     } catch (error: any) {
       if (error?.name === 'AbortError') return
@@ -226,7 +240,7 @@ export default function ProfilePage() {
                   <div className="h-2 overflow-hidden rounded-full bg-[#10B981]/20">
                     <div 
                       className="h-full rounded-full bg-[#10B981] transition-all"
-                      style={{ width: `${(user.trialDaysLeft / 30) * 100}%` }}
+                      style={{ width: `${(user.trialDaysLeft / 14) * 100}%` }}
                     />
                   </div>
                 </div>
@@ -249,7 +263,7 @@ export default function ProfilePage() {
                   <div>
                     <span className="inline-flex items-center gap-1 rounded-full bg-[#80368D] px-2 py-0.5 text-xs font-medium text-white">
                       <Check className="h-3 w-3" />
-                      Abonné Premium
+                      Abonné {user.plan || 'Pro'}
                     </span>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {user.subscriptionEndDate ? (
@@ -269,6 +283,34 @@ export default function ProfilePage() {
             )}
           </div>
         </section>
+
+        {/* Monthly Usage Counter — Basic/Pro only */}
+        {(user.plan === "Pro" || user.plan === "Basic" || user.plan === "Premium" || user.status === "trial") && (
+          <section className="mt-6 rounded-xl border border-[#80368D]/20 bg-gradient-to-br from-[#80368D]/5 to-[#a855f7]/5 p-6">
+            <h2 className="font-[family-name:var(--font-heading)] text-lg font-semibold text-[#1A1F2B] flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-[#80368D]" />
+              Votre activité ce mois
+            </h2>
+            <div className="mt-6 flex items-end gap-3">
+              <span className="font-[family-name:var(--font-heading)] text-6xl font-extrabold bg-gradient-to-r from-[#80368D] to-[#a855f7] bg-clip-text text-transparent">
+                {user.monthlyUsage || 0}
+              </span>
+              <div className="mb-2">
+                <p className="text-base font-semibold text-[#1A1F2B]">campagnes explorées</p>
+                <p className="text-sm text-[#1A1F2B]/60">ce mois-ci · réinitialise le 1er</p>
+              </div>
+            </div>
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#80368D]/20">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[#80368D] to-[#a855f7] transition-all"
+                style={{ width: `${Math.min(100, ((user.monthlyUsage || 0) / 100) * 100)}%` }}
+              />
+            </div>
+            <p className="mt-2 text-xs text-[#1A1F2B]/50">
+              Ce compteur suit vos consultations de campagnes du mois en cours.
+            </p>
+          </section>
+        )}
 
         {/* Recent History - Dynamic from Supabase payments */}
         <section className="mt-6 rounded-xl border border-border bg-card p-6">

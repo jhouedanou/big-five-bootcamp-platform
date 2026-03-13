@@ -97,7 +97,7 @@ export function HeroSection() {
                   <CheckCircle className="h-5 w-5" />
                 </span>
                 <span className="text-base font-bold text-[#1A1F2B]">
-                  🎉 Essai gratuit de 30 jours
+                  🎉 Essai gratuit 14 jours Plan Pro
                 </span>
                 <span className="text-sm text-[#1A1F2B]/70">
                   — Sans carte bancaire
@@ -391,29 +391,47 @@ export function PreviewSection() {
 }
 
 export function PricingTeaser() {
-  const { label: priceLabel, currency: priceCurrency } = useProductPrice()
   return (
     <section className="py-16 sm:py-20 bg-[#D0E4F2]/30 relative overflow-hidden">
       <div className="absolute inset-0 bg-[linear-gradient(rgba(208,228,242,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(208,228,242,0.3)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center relative z-10">
-        {/* Free Trial Banner */}
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center relative z-10">
         <div className="mb-5 inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-[#F2B33D]/30 to-[#F2B33D]/10 px-5 py-2.5 ring-2 ring-[#F2B33D]/40 shadow-lg">
           <span className="text-base font-bold text-[#1A1F2B]">
-            🎉 Essai gratuit de 30 jours
+            🎉 Essai gratuit de 14 jours (Plan Pro)
           </span>
         </div>
 
         <h2 className="font-[family-name:var(--font-heading)] text-3xl sm:text-4xl font-bold mb-4 text-[#1A1F2B]">
           Commencez à créer des campagnes impactantes.
         </h2>
-        <p className="text-[#1A1F2B]/70 text-lg sm:text-xl mb-8 max-w-2xl mx-auto">
-          Rejoignez des centaines de créatifs qui utilisent Big Five Creative Library pour élever leur niveau de jeu. Sans carte bancaire requise à l'inscription.
+        <p className="text-[#1A1F2B]/70 text-lg sm:text-xl mb-10 max-w-2xl mx-auto">
+          Rejoignez des centaines de créatifs qui utilisent Big Five Creative Library. Sans carte bancaire requise.
         </p>
+
+        {/* 3 plans mini */}
+        <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-10">
+          <div className="rounded-xl bg-white border border-[#D0E4F2] p-4 text-center shadow-sm">
+            <p className="text-xs font-semibold text-[#1A1F2B]/60 mb-1">Gratuit</p>
+            <p className="text-xl font-extrabold text-[#1A1F2B]">0</p>
+            <p className="text-xs text-[#1A1F2B]/50">FCFA/mois</p>
+          </div>
+          <div className="rounded-xl bg-[#80368D]/10 border-2 border-[#80368D] p-4 text-center shadow-lg relative">
+            <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold bg-[#F2B33D] text-[#1A1F2B] px-2 py-0.5 rounded-full">⭐ Pro</span>
+            <p className="text-xs font-semibold text-[#80368D] mb-1 mt-1">Pro</p>
+            <p className="text-xl font-extrabold text-[#80368D]">9 900</p>
+            <p className="text-xs text-[#80368D]/60">FCFA/mois</p>
+          </div>
+          <div className="rounded-xl bg-white border border-[#D0E4F2] p-4 text-center shadow-sm">
+            <p className="text-xs font-semibold text-[#1A1F2B]/60 mb-1">Basic</p>
+            <p className="text-xl font-extrabold text-[#1A1F2B]">4 900</p>
+            <p className="text-xs text-[#1A1F2B]/50">FCFA/mois</p>
+          </div>
+        </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Button size="lg" className="h-14 px-8 text-lg bg-[#80368D] hover:bg-[#80368D]/90 text-white font-bold rounded-full shadow-lg shadow-[#80368D]/25 hover:shadow-[#80368D]/40 transition-all hover:-translate-y-1" asChild>
-            <Link href="/pricing">
+            <Link href="/register">
               Commencer gratuitement
             </Link>
           </Button>
@@ -425,7 +443,7 @@ export function PricingTeaser() {
         </div>
 
         <p className="mt-5 text-sm text-[#1A1F2B]/50">
-          Puis {priceLabel} {priceCurrency}/mois • Annulation à tout moment • Support 24/7
+          Annulation à tout moment • Support 24/7
         </p>
       </div>
     </section>

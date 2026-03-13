@@ -51,6 +51,7 @@ export function useSupabaseAuth() {
         // L'utilisateur n'existe pas dans la table users, le créer
         console.log('Profil non trouvé, création automatique...')
 
+        const trialEndDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
         const { data: newProfile, error: createError } = await supabase
           .from('users')
           .insert({
@@ -58,8 +59,10 @@ export function useSupabaseAuth() {
             email: authUser.email!,
             name: authUser.user_metadata?.name || authUser.email!.split('@')[0],
             role: 'user',
-            plan: 'Free',
+            plan: 'Pro',
             status: 'active',
+            subscription_status: 'trial',
+            trial_end_date: trialEndDate,
           })
           .select('*')
           .single()
@@ -100,15 +103,18 @@ export function useSupabaseAuth() {
       },
     })
 
-    // Créer le profil utilisateur
+    // Créer le profil utilisateur avec essai Pro 14 jours
     if (data.user && !error) {
+      const trialEndDate = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString()
       await supabase.from('users').insert({
         id: data.user.id,
         email: data.user.email!,
         name: name || data.user.email!.split('@')[0],
         role: 'user',
-        plan: 'Free',
+        plan: 'Pro',
         status: 'active',
+        subscription_status: 'trial',
+        trial_end_date: trialEndDate,
       })
     }
 

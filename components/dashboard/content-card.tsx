@@ -37,10 +37,13 @@ export interface ContentItem {
   status?: 'Publié' | 'Brouillon' | 'En attente'
   accessLevel?: 'free' | 'premium' // 'free' = visible par tous, 'premium' = réservé aux abonnés
   slug?: string // Permalien SEO-friendly
+  createdAt?: string // Date ISO de création (depuis Supabase)
 }
 
 interface ContentCardProps {
   content: ContentItem
+  onBeforeNavigate?: (content: ContentItem) => boolean
+  isBlocked?: boolean
 }
 
 const platformConfig: Record<string, { bg: string; icon: React.ReactNode }> = {
@@ -75,7 +78,7 @@ function formatDateFr(dateString: string): string {
   }
 }
 
-export function ContentCard({ content }: ContentCardProps) {
+export function ContentCard({ content, onBeforeNavigate, isBlocked }: ContentCardProps) {
   const platform = platformConfig[content.platform] || { bg: "bg-gray-500", icon: <span className="text-xs font-bold text-white">?</span> }
   const sectorColor = sectorColors[content.sector] || "bg-muted text-muted-foreground font-semibold"
   const isPremium = content.accessLevel === 'premium'
@@ -96,8 +99,21 @@ export function ContentCard({ content }: ContentCardProps) {
     setIsToggling(false)
   }
 
+  const handleClick = (e: React.MouseEvent) => {
+    if (onBeforeNavigate) {
+      const allowed = onBeforeNavigate(content)
+      if (!allowed) {
+        e.preventDefault()
+        return
+      }
+    }
+    if (isBlocked) {
+      e.preventDefault()
+    }
+  }
+
   return (
-    <Link href={`/content/${content.slug || content.id}`} className="group block">
+    <Link href={`/content/${content.slug || content.id}`} className="group block" onClick={handleClick}>
       <article className={`modern-card overflow-hidden hover-lift transition-all duration-300 hover:shadow-xl ${
         isPremium
           ? "ring-2 ring-amber-400/80 shadow-lg shadow-amber-400/20 hover:shadow-amber-400/30 hover:ring-amber-300"

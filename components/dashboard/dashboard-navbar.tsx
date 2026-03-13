@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { Menu, X, Search, User, LogOut, Settings, CreditCard, Crown, Sparkles, Clock, Users, Heart } from "lucide-react"
+import { Menu, X, Search, User, LogOut, Settings, CreditCard, Crown, Sparkles, Clock, Users, Heart, MousePointer } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase"
@@ -14,12 +14,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-export function DashboardNavbar({ 
-  searchQuery: externalSearchQuery, 
-  onSearchChange 
-}: { 
-  searchQuery?: string; 
-  onSearchChange?: (query: string) => void 
+export function DashboardNavbar({
+  searchQuery: externalSearchQuery,
+  onSearchChange,
+  userPlan: externalUserPlan,
+  dailyClicks,
+  dailyClickLimit,
+  isFreeUser,
+  isTrialUser,
+  trialDaysLeft,
+}: {
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void
+  userPlan?: string
+  dailyClicks?: number
+  dailyClickLimit?: number
+  isFreeUser?: boolean
+  isTrialUser?: boolean
+  trialDaysLeft?: number
 } = {}) {
   const [isOpen, setIsOpen] = useState(false)
   const [internalSearchQuery, setInternalSearchQuery] = useState("")
@@ -77,7 +89,9 @@ export function DashboardNavbar({
     loadUser()
   }, [])
 
-  const isPremium = userPlan.toLowerCase() === "premium" || userPlan.toLowerCase() === "pro"
+  // Use external plan if provided (from dashboard page)
+  const effectivePlan = externalUserPlan || userPlan
+  const isPremium = effectivePlan.toLowerCase() === "premium" || effectivePlan.toLowerCase() === "pro" || effectivePlan.toLowerCase() === "basic"
   const initials = userName ? userName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "?"
 
   // Calcul de la durée restante de l'abonnement
@@ -161,13 +175,36 @@ export function DashboardNavbar({
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Compteur de clics journaliers (Free) */}
+          {isFreeUser && dailyClicks !== undefined && dailyClickLimit !== undefined && (
+            <div className="hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 bg-[#D0E4F2] text-[#1A1F2B] text-xs font-semibold">
+              <MousePointer className="h-3.5 w-3.5" />
+              {dailyClicks}/{dailyClickLimit} aujourd'hui
+            </div>
+          )}
+          {/* Accès illimité (Basic/Pro payant) */}
+          {!isFreeUser && !isTrialUser && isPremium && (
+            <div className="hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 bg-[#10B981]/10 text-[#10B981] text-xs font-semibold">
+              <Sparkles className="h-3.5 w-3.5" />
+              Accès illimité
+            </div>
+          )}
+          {/* Indicateur d'essai Pro */}
+          {isTrialUser && trialDaysLeft !== undefined && (
+            <div className="hidden md:flex flex-col items-start">
+              <div className="flex items-center gap-1.5 rounded-full px-3 h-8 bg-gradient-to-r from-[#80368D]/10 to-[#a855f7]/10 text-[#80368D] text-xs font-bold border border-[#80368D]/20">
+                <Sparkles className="h-3.5 w-3.5" />
+                Essai Pro — {trialDaysLeft}j restants
+              </div>
+            </div>
+          )}
           {/* Bouton d'abonnement : durée restante ou incitatif */}
           {isPremium && subInfo.active && !subInfo.expiringSoon ? (
-            /* Premium actif, pas d'expiration proche → bouton doré "Premium · Xj" */
+            /* Plan payant actif, pas d'expiration proche → bouton doré */
             <div className="hidden md:flex">
               <div className="flex items-center gap-1.5 rounded-full px-3 h-8 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 text-xs font-bold shadow-sm">
                 <Crown className="h-3.5 w-3.5" />
-                Premium · {subInfo.label}
+                {effectivePlan} · {subInfo.label}
               </div>
             </div>
           ) : isPremium && subInfo.active && subInfo.expiringSoon ? (
@@ -183,7 +220,7 @@ export function DashboardNavbar({
               </Button>
             </Link>
           ) : isPremium && subInfo.expired ? (
-            /* Premium expiré → bouton rouge "Renouveler" */
+            /* Abonnement expiré → bouton rouge "Renouveler" */
             <Link href="/subscribe" className="hidden md:flex">
               <Button
                 variant="ghost"
@@ -195,14 +232,14 @@ export function DashboardNavbar({
               </Button>
             </Link>
           ) : (
-            /* Pas premium → bouton "Passer Premium" */
-            <Link href="/subscribe" className="hidden md:flex">
+            /* Pas de plan payant → bouton "Voir les plans" */
+            <Link href="/pricing" className="hidden md:flex">
               <Button
                 size="sm"
                 className="gap-1.5 text-xs font-semibold rounded-full px-3 h-8 bg-gradient-to-r from-[#80368D] to-[#29358B] text-white hover:opacity-90"
               >
                 <Sparkles className="h-3.5 w-3.5" />
-                Passer Premium
+                Voir les plans
               </Button>
             </Link>
           )}
@@ -225,7 +262,7 @@ export function DashboardNavbar({
                       ? "bg-[#80368D]/10 text-[#80368D]"
                       : "bg-[#10B981]/10 text-[#10B981]"
                   }`}>
-                    {isPremium ? "Premium" : "Gratuit"}
+                    {effectivePlan || "Gratuit"}
                   </span>
                 </div>
               </div>
@@ -323,7 +360,7 @@ export function DashboardNavbar({
             </Link>
             {/* Bouton abonnement mobile */}
             <Link
-              href="/subscribe"
+              href={isPremium ? "/subscribe" : "/pricing"}
               className={`rounded-md px-3 py-2 text-sm font-medium transition-colors ${
                 isPremium && subInfo.active && !subInfo.expiringSoon
                   ? "bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-800"
@@ -338,7 +375,7 @@ export function DashboardNavbar({
               {isPremium && subInfo.active && !subInfo.expiringSoon ? (
                 <span className="flex items-center gap-2">
                   <Crown className="h-4 w-4" />
-                  Premium · {subInfo.label}
+                  {effectivePlan} · {subInfo.label}
                 </span>
               ) : isPremium && subInfo.active && subInfo.expiringSoon ? (
                 <span className="flex items-center gap-2">
@@ -353,7 +390,7 @@ export function DashboardNavbar({
               ) : (
                 <span className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4" />
-                  Passer Premium
+                  Voir les plans
                 </span>
               )}
             </Link>

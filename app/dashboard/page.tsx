@@ -1,25 +1,57 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useCallback } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import type { DynamicFilterOptions } from "@/components/dashboard/filters-sidebar"
 import { ContentCard, ContentItem } from "@/components/dashboard/content-card"
 import { ContentGridSkeleton } from "@/components/dashboard/content-card-skeleton"
+import { UpgradePopup, useUpgradePopup } from "@/components/upgrade-popup"
 import { createClient } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
-import { Filter, Grid3X3, LayoutList, ChevronLeft, ChevronRight, Lock, CalendarDays } from "lucide-react"
-import { format, parseISO } from "date-fns"
+import { Filter, Grid3X3, LayoutList, ChevronLeft, ChevronRight, CalendarDays, TrendingUp, ChevronRight as ArrowRight, Sparkles } from "lucide-react"
+import { format, parseISO, startOfWeek, subDays } from "date-fns"
 import { fr } from "date-fns/locale"
+import { isPaidPlan } from "@/lib/pricing"
 
 const ParticlesBackground = dynamic(() => import("@/components/ui/particles-background").then(m => m.ParticlesBackground), { ssr: false })
 const FiltersSidebar = dynamic(() => import("@/components/dashboard/filters-sidebar").then(m => m.FiltersSidebar))
 
-const FREE_CAMPAIGN_LIMIT = 4
+// Clé localStorage pour le compteur de clics
+const CLICKS_STORAGE_KEY = "bf_daily_clicks"
+const DAILY_CLICK_LIMIT = 5
+
+function getDailyClicks(): number {
+  if (typeof window === "undefined") return 0
+  try {
+    const today = new Date().toDateString()
+    const stored = localStorage.getItem(CLICKS_STORAGE_KEY)
+    if (!stored) return 0
+    const { date, count } = JSON.parse(stored)
+    if (date !== today) return 0
+    return count || 0
+  } catch {
+    return 0
+  }
+}
+
+function incrementDailyClicks(): number {
+  if (typeof window === "undefined") return 0
+  try {
+    const today = new Date().toDateString()
+    const current = getDailyClicks()
+    const newCount = current + 1
+    localStorage.setItem(CLICKS_STORAGE_KEY, JSON.stringify({ date: today, count: newCount }))
+    return newCount
+  } catch {
+    return 0
+  }
+}
 
 export default function DashboardPage() {
   const [campaigns, setCampaigns] = useState<ContentItem[]>([])
+  const [weeklyCampaigns, setWeeklyCampaigns] = useState<ContentItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [userPlan, setUserPlan] = useState<string>("Free")
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({})
@@ -28,11 +60,20 @@ export default function DashboardPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [activeQuickFilter, setActiveQuickFilter] = useState("Tous")
   const [searchQuery, setSearchQuery] = useState("")
+  const [dailyClicks, setDailyClicks] = useState(0)
+  const [isTrialUser, setIsTrialUser] = useState(false)
+  const [trialDaysLeft, setTrialDaysLeft] = useState(0)
   const itemsPerPage = 9
 
-  const isPremium = userPlan.toLowerCase() === "premium"
-  
+  const { open: upgradeOpen, reason: upgradeReason, showUpgrade, closeUpgrade } = useUpgradePopup()
+
+  const isFreeUser = !isPaidPlan(userPlan) && !isTrialUser
   const supabase = createClient()
+
+  // Charger le compteur de clics côté client
+  useEffect(() => {
+    setDailyClicks(getDailyClicks())
+  }, [])
 
   // Extraire les options de filtres dynamiquement depuis les campagnes
   const dynamicFilterOptions = useMemo<DynamicFilterOptions>(() => {
@@ -66,7 +107,7 @@ export default function DashboardPage() {
     }
   }, [campaigns])
 
-  // Charger le plan utilisateur (avec vérification expiration côté client)
+  // Charger le plan utilisateur
   useEffect(() => {
     const loadUserPlan = async () => {
       try {
@@ -75,26 +116,40 @@ export default function DashboardPage() {
           try {
             const { data: profile, error } = await supabase
               .from('users')
-              .select('plan, subscription_status, subscription_end_date')
+              .select('plan, subscription_status, subscription_end_date, trial_end_date')
               .eq('id', session.user.id)
               .single()
             if (!error && profile) {
-              // Vérification côté client : si Premium mais expiré, traiter comme Free
-              if (
-                profile.plan?.toLowerCase() === 'premium' &&
-                profile.subscription_end_date &&
-                new Date(profile.subscription_end_date) < new Date()
+              // Vérifier si c'est un essai en cours
+              const isTrial = profile.subscription_status === 'trial'
+              const trialEnd = profile.trial_end_date ? new Date(profile.trial_end_date) : null
+              const now = new Date()
+
+              if (isTrial && trialEnd && trialEnd > now) {
+                setIsTrialUser(true)
+                const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+                setTrialDaysLeft(daysLeft)
+                setUserPlan('Pro')
+              } else if (
+                profile.plan?.toLowerCase() === 'premium' ||
+                profile.plan?.toLowerCase() === 'pro' ||
+                profile.plan?.toLowerCase() === 'basic'
               ) {
-                console.warn('⏰ Abonnement Premium expiré côté client, traitement comme Free')
-                setUserPlan('Free')
-                // Appeler le cron pour mettre à jour la base (fire & forget)
-                fetch('/api/cron/check-subscriptions').catch(() => {})
+                // Vérification expiration abonnement payant
+                if (
+                  profile.subscription_end_date &&
+                  new Date(profile.subscription_end_date) < now
+                ) {
+                  setUserPlan('Free')
+                  fetch('/api/cron/check-subscriptions').catch(() => {})
+                } else {
+                  setUserPlan(profile.plan || 'Free')
+                }
               } else {
-                setUserPlan(profile.plan || 'Free')
+                setUserPlan('Free')
               }
             }
           } catch {
-            // Table users n'existe pas encore, utiliser le plan par défaut
             console.warn('Table users non disponible, utilisation du plan par défaut')
           }
         }
@@ -116,15 +171,12 @@ export default function DashboardPage() {
           .order('created_at', { ascending: false })
 
         if (error) {
-          // Table campaigns n'existe pas encore
           console.warn('Table campaigns non disponible:', error.message)
-          // Utiliser des données d'exemple
           setCampaigns(getSampleCampaigns())
           return
         }
 
         if (!data || data.length === 0) {
-          // Pas de campagnes, utiliser des données d'exemple
           setCampaigns(getSampleCampaigns())
           return
         }
@@ -149,11 +201,20 @@ export default function DashboardPage() {
           year: campaign.year || undefined,
           status: campaign.status,
           accessLevel: campaign.access_level || 'free',
+          createdAt: campaign.created_at,
         }))
 
         setCampaigns(formattedCampaigns)
+
+        // Filtrer les campagnes de la semaine (7 derniers jours)
+        const lastMonday = startOfWeek(new Date(), { weekStartsOn: 1 })
+        const weekly = formattedCampaigns.filter(c => {
+          const date = new Date(c.createdAt || c.date)
+          return date >= lastMonday
+        })
+        setWeeklyCampaigns(weekly)
       } catch (error: any) {
-        console.warn('Erreur chargement campagnes, utilisation des données exemple:', error?.message || error)
+        console.warn('Erreur chargement campagnes:', error?.message || error)
         setCampaigns(getSampleCampaigns())
       } finally {
         setIsLoading(false)
@@ -163,7 +224,7 @@ export default function DashboardPage() {
     loadCampaigns()
   }, [])
 
-  // Données d'exemple quand la base n'est pas configurée
+  // Données d'exemple
   const getSampleCampaigns = (): ContentItem[] => [
     {
       id: "sample-1",
@@ -175,7 +236,7 @@ export default function DashboardPage() {
       sector: "Telecoms",
       format: "Vidéo",
       tags: ["Mobile Money", "Fintech", "Digital"],
-      date: "2024-01-15",
+      date: new Date().toISOString().split('T')[0],
       isVideo: true,
       brand: "MTN",
       agency: "Big Five",
@@ -192,7 +253,7 @@ export default function DashboardPage() {
       sector: "FMCG",
       format: "Image",
       tags: ["Boisson", "Lancement produit"],
-      date: "2024-02-20",
+      date: new Date().toISOString().split('T')[0],
       isVideo: false,
       brand: "Coca-Cola",
       agency: "Big Five",
@@ -235,9 +296,8 @@ export default function DashboardPage() {
     },
   ]
 
-  // Générer les quick filters dynamiquement à partir des secteurs les plus utilisés
+  // Quick filters
   const quickFilters = useMemo(() => {
-    // Couleurs disponibles pour les filtres rapides
     const colors = [
       "bg-blue-600 text-white shadow-blue-600/25",
       "bg-orange-500 text-white shadow-orange-500/25",
@@ -247,7 +307,6 @@ export default function DashboardPage() {
       "bg-cyan-500 text-white shadow-cyan-500/25",
     ]
 
-    // Compter les occurrences de chaque secteur
     const sectorCounts: Record<string, number> = {}
     campaigns.forEach((campaign) => {
       if (campaign.sector) {
@@ -255,7 +314,6 @@ export default function DashboardPage() {
       }
     })
 
-    // Trier les secteurs par fréquence et prendre les 5 premiers
     const topSectors = Object.entries(sectorCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
@@ -266,7 +324,6 @@ export default function DashboardPage() {
         color: colors[index % colors.length],
       }))
 
-    // Toujours commencer par "Tous"
     return [
       { label: "Tous", type: "all" as const, value: "all", color: "bg-primary text-primary-foreground shadow-primary/25" },
       ...topSectors,
@@ -288,10 +345,9 @@ export default function DashboardPage() {
 
   const filteredContent = useMemo(() => {
     return campaigns.filter((content) => {
-      // Filtre de recherche textuelle
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase()
-        const matchesSearch = 
+        const matchesSearch =
           content.title.toLowerCase().includes(query) ||
           content.description?.toLowerCase().includes(query) ||
           content.brand?.toLowerCase().includes(query) ||
@@ -321,15 +377,20 @@ export default function DashboardPage() {
     })
   }, [selectedFilters, campaigns, searchQuery])
 
-  // Filtrer les campagnes premium pour les utilisateurs Free
-  const visibleContent = isPremium
-    ? filteredContent
-    : filteredContent.filter((c) => c.accessLevel !== 'premium')
-  const accessibleContent = isPremium
-    ? visibleContent
-    : visibleContent.slice(0, FREE_CAMPAIGN_LIMIT)
-  const showPaywall = !isPremium && visibleContent.length > FREE_CAMPAIGN_LIMIT
+  const handleContentClick = useCallback((content: ContentItem): boolean => {
+    if (isFreeUser) {
+      const clicks = getDailyClicks()
+      if (clicks >= DAILY_CLICK_LIMIT) {
+        showUpgrade("clicks")
+        return false
+      }
+      const newCount = incrementDailyClicks()
+      setDailyClicks(newCount)
+    }
+    return true
+  }, [isFreeUser, showUpgrade])
 
+  const accessibleContent = filteredContent
   const totalPages = Math.ceil(accessibleContent.length / itemsPerPage)
   const paginatedContent = accessibleContent.slice(
     (currentPage - 1) * itemsPerPage,
@@ -339,7 +400,7 @@ export default function DashboardPage() {
   // Grouper les campagnes par mois/année
   const groupedContent = useMemo(() => {
     const groups: Record<string, ContentItem[]> = {}
-    
+
     paginatedContent.forEach((content) => {
       let monthKey: string
       try {
@@ -348,28 +409,26 @@ export default function DashboardPage() {
       } catch {
         monthKey = content.year ? `Année ${content.year}` : "Non daté"
       }
-      
+
       if (!groups[monthKey]) {
         groups[monthKey] = []
       }
       groups[monthKey].push(content)
     })
 
-    // Trier les groupes par date décroissante
     const sortedKeys = Object.keys(groups).sort((a, b) => {
-      // Extraire l'année pour la comparaison
       const getYear = (key: string) => {
         const match = key.match(/\d{4}/)
         return match ? parseInt(match[0]) : 0
       }
       const getMonth = (key: string) => {
-        const months = ["janvier", "février", "mars", "avril", "mai", "juin", 
-                       "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
+        const months = ["janvier", "février", "mars", "avril", "mai", "juin",
+          "juillet", "août", "septembre", "octobre", "novembre", "décembre"]
         const lowerKey = key.toLowerCase()
         const idx = months.findIndex(m => lowerKey.includes(m))
         return idx >= 0 ? idx : 0
       }
-      
+
       const yearA = getYear(a)
       const yearB = getYear(b)
       if (yearA !== yearB) return yearB - yearA
@@ -384,17 +443,66 @@ export default function DashboardPage() {
 
   const handleFilterChange = (filters: Record<string, string[]>) => {
     setSelectedFilters(filters)
-    setActiveQuickFilter("") // Reset quick filter active state when manual filters are used
+    setActiveQuickFilter("")
     setCurrentPage(1)
   }
+
+  const weekLabel = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "d MMMM yyyy", { locale: fr })
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-white to-[#D0E4F2]/20 relative">
       <ParticlesBackground color="#80368D" particleCount={40} />
       <div className="relative z-10">
-        <DashboardNavbar searchQuery={searchQuery} onSearchChange={(q) => { setSearchQuery(q); setCurrentPage(1); }} />
+        <DashboardNavbar
+          searchQuery={searchQuery}
+          onSearchChange={(q) => { setSearchQuery(q); setCurrentPage(1) }}
+          userPlan={userPlan}
+          dailyClicks={dailyClicks}
+          dailyClickLimit={DAILY_CLICK_LIMIT}
+          isFreeUser={isFreeUser}
+          isTrialUser={isTrialUser}
+          trialDaysLeft={trialDaysLeft}
+        />
 
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+
+          {/* Section "Les meilleures campagnes de la semaine" */}
+          {weeklyCampaigns.length > 0 && (
+            <section className="mb-10 rounded-2xl bg-gradient-to-r from-[#F2B33D]/5 to-white border border-[#F2B33D]/20 p-6">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#F2B33D] to-[#f59e0b] shadow-lg shadow-[#F2B33D]/25">
+                    <TrendingUp className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#1A1F2B]">
+                      Les meilleures campagnes de la semaine
+                    </h2>
+                    <p className="text-sm text-[#1A1F2B]/60">
+                      Sélectionnées pour vous · Semaine du {weekLabel}
+                    </p>
+                  </div>
+                </div>
+                <span className="hidden sm:flex items-center gap-1 rounded-full bg-[#F2B33D]/20 px-3 py-1 text-xs font-semibold text-[#b45309]">
+                  <Sparkles className="h-3 w-3" />
+                  {weeklyCampaigns.length} nouvelles
+                </span>
+              </div>
+
+              {/* Carousel horizontal */}
+              <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+                {weeklyCampaigns.slice(0, 8).map((campaign) => (
+                  <div key={campaign.id} className="flex-shrink-0 w-56">
+                    <ContentCard
+                      content={campaign}
+                      onBeforeNavigate={() => handleContentClick(campaign)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div className="animate-fade-in-up">
               <h1 className="font-[family-name:var(--font-heading)] text-4xl font-bold tracking-tight text-[#1A1F2B]">
@@ -411,6 +519,7 @@ export default function DashboardPage() {
                 {quickFilters.map((filter) => (
                   <button
                     key={filter.label}
+                    type="button"
                     onClick={() => handleQuickFilter(filter)}
                     className={`whitespace-nowrap rounded-full px-5 py-2 text-sm font-semibold transition-all duration-300 ${activeQuickFilter === filter.label
                       ? `${filter.color} shadow-lg scale-105`
@@ -462,6 +571,8 @@ export default function DashboardPage() {
               onFilterChange={handleFilterChange}
               className="hidden w-64 shrink-0 lg:block"
               dynamicOptions={dynamicFilterOptions}
+              isFreeUser={isFreeUser}
+              onLockedFilterClick={() => showUpgrade("filters")}
             />
 
             {/* Mobile Filters */}
@@ -479,6 +590,8 @@ export default function DashboardPage() {
                     selectedFilters={selectedFilters}
                     onFilterChange={handleFilterChange}
                     dynamicOptions={dynamicFilterOptions}
+                    isFreeUser={isFreeUser}
+                    onLockedFilterClick={() => { setShowMobileFilters(false); showUpgrade("filters") }}
                   />
                 </div>
               </div>
@@ -490,11 +603,9 @@ export default function DashboardPage() {
                 <ContentGridSkeleton count={6} />
               ) : paginatedContent.length > 0 ? (
                 <>
-                  {/* Campagnes groupées par mois/année */}
                   <div className="space-y-10">
                     {groupedContent.map((group) => (
                       <section key={group.monthYear} className="animate-fade-in-up">
-                        {/* En-tête du mois */}
                         <div className="mb-6 flex items-center gap-3">
                           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#80368D] to-[#a855f7] shadow-lg shadow-[#80368D]/25">
                             <CalendarDays className="h-5 w-5 text-white" />
@@ -510,13 +621,17 @@ export default function DashboardPage() {
                           <div className="ml-4 flex-1 border-b-2 border-dashed border-[#D0E4F2]" />
                         </div>
 
-                        {/* Grille de campagnes */}
                         <div className={`grid gap-6 ${viewMode === "grid"
                           ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
                           : "grid-cols-1"
                           }`}>
                           {group.campaigns.map((content) => (
-                            <ContentCard key={content.id} content={content} />
+                            <ContentCard
+                              key={content.id}
+                              content={content}
+                              onBeforeNavigate={() => handleContentClick(content)}
+                              isBlocked={isFreeUser && dailyClicks >= DAILY_CLICK_LIMIT}
+                            />
                           ))}
                         </div>
                       </section>
@@ -559,7 +674,7 @@ export default function DashboardPage() {
                         onClick={() => { setCurrentPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
                         disabled={currentPage === totalPages}
                       >
-                        <ChevronRight className="h-5 w-5" />
+                        <ArrowRight className="h-5 w-5" />
                       </Button>
                     </div>
                   )}
@@ -582,33 +697,17 @@ export default function DashboardPage() {
                   </Button>
                 </div>
               )}
-
-              {/* Paywall pour utilisateurs Free */}
-              {showPaywall && (
-                <div className="relative mt-12">
-                  <div className="absolute inset-x-0 -top-24 h-24 bg-gradient-to-t from-white to-transparent pointer-events-none z-10" />
-                  <div className="text-center py-14 bg-gradient-to-br from-white to-[#D0E4F2]/30 rounded-2xl border-2 border-[#D0E4F2] shadow-lg">
-                    <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#80368D] to-[#a855f7] shadow-lg shadow-[#80368D]/30">
-                      <Lock className="h-8 w-8 text-white" />
-                    </div>
-                    <h3 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[#1A1F2B]">
-                      Débloquez toute la bibliothèque
-                    </h3>
-                    <p className="mt-3 text-base font-medium text-[#1A1F2B]/70">
-                      <span className="text-lg font-bold text-[#80368D]">{filteredContent.length - FREE_CAMPAIGN_LIMIT}</span> campagnes supplémentaires disponibles avec l'abonnement Premium
-                    </p>
-                    <Link href="/subscribe">
-                      <Button className="mt-8 h-12 px-8 text-base font-bold bg-gradient-to-r from-[#80368D] to-[#a855f7] hover:from-[#6b2d76] hover:to-[#9333ea] text-white shadow-xl shadow-[#80368D]/30 transition-all duration-300 hover:scale-105">
-                        Passer Premium
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Upgrade Popup */}
+      <UpgradePopup
+        open={upgradeOpen}
+        onClose={closeUpgrade}
+        reason={upgradeReason}
+      />
     </div>
   )
 }

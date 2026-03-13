@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, Suspense } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import {
   ArrowLeft,
   Check,
@@ -11,38 +11,65 @@ import {
   PartyPopper,
   ArrowRight,
   AlertCircle,
+  ShieldCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
-import { useProductPrice } from "@/hooks/use-product-price"
 import { LegalModal } from "@/components/legal-modal"
-import { LicenseActivation } from "@/components/license-activation"
+import { ChariowWidget } from "@/components/chariow-widget"
+import { PLAN_BASIC, PLAN_PRO } from "@/lib/pricing"
 
-export default function SubscribePage() {
+function SubscribePageInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const planParam = (searchParams.get("plan") || "pro").toLowerCase() as "basic" | "pro"
   const { user, userProfile, loading } = useSupabaseAuth()
-  const { label: priceLabel, currency: priceCurrency } = useProductPrice()
 
-  // État de l'activation
+  const [selectedPlan, setSelectedPlan] = useState<"basic" | "pro">(
+    planParam === "basic" ? "basic" : "pro"
+  )
   const [subscriptionActivated, setSubscriptionActivated] = useState(false)
   const [newEndDate, setNewEndDate] = useState<string | null>(null)
   const [isRenewal, setIsRenewal] = useState(false)
 
-  // Redirection si non connecté
+  const planConfig = selectedPlan === "basic" ? PLAN_BASIC : PLAN_PRO
+  const priceLabel = planConfig.price.toLocaleString("fr-FR")
+
+  const [activating, setActivating] = useState(false)
+
   useEffect(() => {
     if (!loading && !user) {
-      router.push("/login?redirect=/subscribe")
+      router.push("/login?redirect=/subscribe?plan=" + selectedPlan)
     }
-  }, [user, loading, router])
+  }, [user, loading, router, selectedPlan])
 
-  // Callback quand la licence est validée
-  const handleActivated = (data: { endDate: string; isRenewal: boolean }) => {
-    setSubscriptionActivated(true)
-    setNewEndDate(data.endDate)
-    setIsRenewal(data.isRenewal)
-  }
+  // Activation automatique après paiement via widget
+  const handlePaymentSuccess = useCallback(async (data: { purchaseId?: string; returnUrl?: string }) => {
+    if (!user?.email) return
+    setActivating(true)
+    try {
+      const res = await fetch("/api/payment/activate-widget", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: user.email,
+          purchaseId: data.purchaseId,
+          plan: selectedPlan,
+        }),
+      })
+      const result = await res.json()
+      if (result.success) {
+        setSubscriptionActivated(true)
+        setNewEndDate(result.subscription?.endDate || null)
+        setIsRenewal(result.subscription?.isRenewal || false)
+      }
+    } catch (err) {
+      console.error("Erreur activation:", err)
+    } finally {
+      setActivating(false)
+    }
+  }, [user?.email, selectedPlan])
 
-  // Loading
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -69,7 +96,7 @@ export default function SubscribePage() {
           <p className="mt-3 text-[#1A1F2B]/70">
             {isRenewal
               ? "Ton abonnement a été prolongé avec succès."
-              : "Bienvenue dans la famille Premium ! Tu as maintenant accès à toute la bibliothèque créative."}
+              : `Bienvenue dans la famille ${planConfig.name} ! Tu as maintenant accès à toute la bibliothèque créative.`}
           </p>
 
           {newEndDate && (
@@ -105,7 +132,10 @@ export default function SubscribePage() {
   // ===============================
   // PAGE PRINCIPALE
   // ===============================
-  const isAlreadyPremium = userProfile?.plan === "Premium"
+  const isAlreadyPremium =
+    userProfile?.plan === "Premium" ||
+    userProfile?.plan === "Pro" ||
+    userProfile?.plan === "Basic"
 
   return (
     <div className="min-h-screen bg-white">
@@ -141,7 +171,7 @@ export default function SubscribePage() {
               </div>
 
               <h1 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[#1A1F2B]">
-                Tu es Premium !
+                Abonnement actif !
               </h1>
 
               <p className="mt-3 text-[#1A1F2B]/70">
@@ -163,7 +193,6 @@ export default function SubscribePage() {
               )}
             </div>
 
-            {/* Section renouvellement */}
             <div className="mt-8 rounded-xl border-2 border-[#80368D]/20 bg-[#80368D]/5 p-6">
               <h2 className="font-[family-name:var(--font-heading)] text-lg font-semibold text-[#1A1F2B]">
                 🔄 Renouveler maintenant
@@ -173,36 +202,8 @@ export default function SubscribePage() {
                 <strong> 30 jours seront ajoutés</strong> à ta date d&apos;expiration actuelle.
               </p>
 
-              {(userProfile as any)?.subscription_end_date && (
-                <div className="mt-3 rounded-lg bg-white p-3 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[#1A1F2B]/60">Date actuelle de fin</span>
-                    <span className="font-medium">
-                      {new Date((userProfile as any).subscription_end_date).toLocaleDateString("fr-FR", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </div>
-                  <div className="mt-1 flex items-center justify-between">
-                    <span className="text-[#1A1F2B]/60">Nouvelle date de fin</span>
-                    <span className="font-semibold text-[#10B981]">
-                      {new Date(
-                        new Date((userProfile as any).subscription_end_date).getTime() + 30 * 24 * 60 * 60 * 1000
-                      ).toLocaleDateString("fr-FR", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Notice email */}
               {user?.email && (
-                <div className="mt-4 flex items-start gap-2 rounded-lg bg-blue-50 p-3">
+                <div className="flex items-start gap-2 rounded-lg bg-blue-50 p-3">
                   <AlertCircle className="mt-0.5 h-4 w-4 flex-shrink-0 text-blue-600" />
                   <p className="text-xs text-blue-700">
                     Utilise le même email (<strong>{user.email}</strong>) lors du paiement pour que
@@ -211,17 +212,23 @@ export default function SubscribePage() {
                 </div>
               )}
 
-              {/* Composant d'activation par licence — flux en 2 étapes */}
               <div className="mt-5">
-                {user?.email && (
-                  <LicenseActivation
-                    userEmail={user.email}
-                    onActivated={handleActivated}
-                  />
+                {activating ? (
+                  <div className="flex items-center justify-center gap-2 py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-[#80368D]" />
+                    <span className="text-sm text-[#1A1F2B]/70">Activation en cours...</span>
+                  </div>
+                ) : (
+                  <ChariowWidget onPaymentSuccess={handlePaymentSuccess} />
                 )}
+                <div className="mt-3 flex items-start gap-2 rounded-lg bg-[#10B981]/5 p-3">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#10B981]" />
+                  <p className="text-xs text-[#1A1F2B]/60">
+                    Paiement sécurisé via Chariow. Ton abonnement sera activé automatiquement après le paiement.
+                  </p>
+                </div>
               </div>
 
-              {/* CGV */}
               <p className="mt-3 text-center text-xs text-[#1A1F2B]/50">
                 En procédant au paiement, tu acceptes les{" "}
                 <LegalModal
@@ -240,16 +247,57 @@ export default function SubscribePage() {
             </Button>
           </div>
         ) : (
-          /* ====== NOUVEAU — Passer à Premium ====== */
+          /* ====== NOUVEAU — Choisir un plan ====== */
           <div className="grid gap-8 lg:grid-cols-2">
             {/* Informations */}
             <div>
               <h1 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-foreground">
-                Passe à Premium
+                Choisissez votre plan
               </h1>
               <p className="mt-2 text-muted-foreground">
                 Accède à toute la bibliothèque créative Big Five et booste tes campagnes publicitaires.
               </p>
+
+              {/* Sélecteur de plan */}
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setSelectedPlan("pro")}
+                  className={`rounded-xl border-2 p-4 text-left transition-all ${
+                    selectedPlan === "pro"
+                      ? "border-[#80368D] bg-[#80368D]/5"
+                      : "border-[#D0E4F2] hover:border-[#80368D]/40"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-[#80368D]">Pro</span>
+                    <span className="text-[10px] font-bold bg-[#F2B33D] text-[#1A1F2B] px-2 py-0.5 rounded-full">
+                      ⭐ Populaire
+                    </span>
+                  </div>
+                  <p className="text-xl font-extrabold text-[#1A1F2B]">
+                    {PLAN_PRO.price.toLocaleString("fr-FR")} FCFA
+                  </p>
+                  <p className="text-xs text-[#1A1F2B]/60">par mois · Recherches illimitées</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedPlan("basic")}
+                  className={`rounded-xl border-2 p-4 text-left transition-all ${
+                    selectedPlan === "basic"
+                      ? "border-[#80368D] bg-[#80368D]/5"
+                      : "border-[#D0E4F2] hover:border-[#80368D]/40"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-bold text-[#1A1F2B]">Basic</span>
+                  </div>
+                  <p className="text-xl font-extrabold text-[#1A1F2B]">
+                    {PLAN_BASIC.price.toLocaleString("fr-FR")} FCFA
+                  </p>
+                  <p className="text-xs text-[#1A1F2B]/60">par mois · 10 recherches/jour</p>
+                </button>
+              </div>
 
               <div className="mt-8 space-y-4">
                 <h2 className="text-lg font-semibold">Ce qui est inclus :</h2>
@@ -257,8 +305,9 @@ export default function SubscribePage() {
                   "Accès illimité à toutes les campagnes",
                   "Filtres avancés par secteur, pays, format",
                   "Téléchargement des ressources créatives",
+                  "Favoris & collections personnalisées",
                   "Nouvelles campagnes ajoutées chaque semaine",
-                  "Analyses et insights exclusifs",
+                  ...(selectedPlan === "pro" ? ["Recherches illimitées par filtre"] : ["10 recherches par filtre/jour"]),
                 ].map((feature, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#10B981]/20">
@@ -269,7 +318,6 @@ export default function SubscribePage() {
                 ))}
               </div>
 
-              {/* Notice email */}
               {user?.email && (
                 <div className="mt-6 flex items-start gap-2 rounded-lg bg-blue-50 p-4">
                   <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600" />
@@ -277,24 +325,29 @@ export default function SubscribePage() {
                     <p className="font-semibold">Important</p>
                     <p className="mt-1">
                       Utilise le même email (<strong>{user.email}</strong>) lors du paiement
-                      Chariow pour que ton abonnement soit activé automatiquement.
+                      pour que ton abonnement soit activé automatiquement.
                     </p>
                   </div>
                 </div>
               )}
 
-              {/* Composant d'activation par licence — flux en 2 étapes */}
               <div className="mt-6">
-                {user?.email && (
-                  <LicenseActivation
-                    userEmail={user.email}
-                    onActivated={handleActivated}
-                    paymentDescription="Procède au paiement, puis entre la clé de licence que tu recevras par email ou SMS."
-                  />
+                {activating ? (
+                  <div className="flex items-center justify-center gap-2 py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-[#80368D]" />
+                    <span className="text-sm text-[#1A1F2B]/70">Activation en cours...</span>
+                  </div>
+                ) : (
+                  <ChariowWidget onPaymentSuccess={handlePaymentSuccess} />
                 )}
+                <div className="mt-3 flex items-start gap-2 rounded-lg bg-[#10B981]/5 p-3">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#10B981]" />
+                  <p className="text-xs text-[#1A1F2B]/60">
+                    Paiement sécurisé via Chariow. Ton abonnement sera activé automatiquement après le paiement.
+                  </p>
+                </div>
               </div>
 
-              {/* CGV */}
               <p className="mt-3 text-xs text-muted-foreground">
                 En procédant au paiement, tu acceptes les{" "}
                 <LegalModal
@@ -317,8 +370,10 @@ export default function SubscribePage() {
 
                 <div className="mt-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Abonnement mensuel Big Five</span>
-                    <span className="font-medium text-foreground">{priceLabel} {priceCurrency}</span>
+                    <span className="text-muted-foreground">
+                      Abonnement mensuel Big Five — {planConfig.name}
+                    </span>
+                    <span className="font-medium text-foreground">{priceLabel} FCFA</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Durée</span>
@@ -334,7 +389,7 @@ export default function SubscribePage() {
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-foreground">Total</span>
                     <span className="font-[family-name:var(--font-heading)] text-2xl font-bold text-primary">
-                      {priceLabel} {priceCurrency}
+                      {priceLabel} FCFA
                     </span>
                   </div>
                   <p className="mt-1 text-sm text-muted-foreground">Valable 1 mois</p>
@@ -350,11 +405,11 @@ export default function SubscribePage() {
                     </li>
                     <li className="flex gap-2">
                       <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[#80368D]/10 text-xs font-bold text-[#80368D]">2</span>
-                      Reçois ta clé de licence par email/SMS
+                      Confirme le paiement via Mobile Money ou carte
                     </li>
                     <li className="flex gap-2">
                       <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[#80368D]/10 text-xs font-bold text-[#80368D]">3</span>
-                      Entre ta clé ici pour activer l&apos;abonnement
+                      Ton abonnement est activé automatiquement 🎉
                     </li>
                   </ol>
                 </div>
@@ -379,5 +434,17 @@ export default function SubscribePage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function SubscribePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[#80368D]" />
+      </div>
+    }>
+      <SubscribePageInner />
+    </Suspense>
   )
 }

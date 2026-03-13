@@ -17,17 +17,23 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { CHARIOW_CONFIG, generateRefCommand, getSale } from '@/lib/chariow';
+import { PLAN_BASIC, PLAN_PRO } from '@/lib/pricing';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, purchaseId } = body;
+    const { email, purchaseId, plan } = body;
 
     if (!email) {
       return NextResponse.json({ error: 'Email requis' }, { status: 400 });
     }
 
-    console.log('🎯 Widget activation request:', { email, purchaseId });
+    // Déterminer le plan
+    const planKey = (plan || 'pro').toLowerCase();
+    const planConfig = planKey === 'basic' ? PLAN_BASIC : PLAN_PRO;
+    const planLabel = planConfig.name; // "Basic" ou "Pro"
+
+    console.log('🎯 Widget activation request:', { email, purchaseId, plan: planLabel });
 
     // 1. Trouver l'utilisateur
     const { data: user, error: userError } = await (supabaseAdmin as any)
@@ -130,7 +136,7 @@ export async function POST(request: NextRequest) {
     const { error: updateError } = await (supabaseAdmin as any)
       .from('users')
       .update({
-        plan: 'Premium',
+        plan: planLabel,
         subscription_status: 'active',
         subscription_start_date: isRenewal
           ? (user.subscription_start_date || now.toISOString())
@@ -147,23 +153,25 @@ export async function POST(request: NextRequest) {
 
     // 6. Créer l'enregistrement de paiement
     const widgetRef = generateRefCommand('WDG');
+    const defaultAmount = planConfig.price;
     const { error: paymentError } = await (supabaseAdmin as any)
       .from('payments')
       .insert({
         ref_command: widgetRef,
         user_email: email,
-        amount: verifiedAmount || 25000,
-        final_amount: verifiedAmount || 25000,
+        amount: verifiedAmount || defaultAmount,
+        final_amount: verifiedAmount || defaultAmount,
         currency: saleData?.amount?.currency || 'XOF',
         status: 'completed',
         payment_method: 'Chariow Widget',
         chariow_sale_id: purchaseId || null,
         completed_at: now.toISOString(),
-        item_name: 'Abonnement Big Five - Widget',
+        item_name: `Abonnement Big Five ${planLabel} - Widget`,
         metadata: {
           type: 'subscription',
           userId: user.id,
           source: 'widget_activation',
+          plan: planLabel,
           verified_by_api: !!saleData,
           purchase_id: purchaseId,
         },
@@ -184,19 +192,19 @@ export async function POST(request: NextRequest) {
     try {
       await (supabaseAdmin as any).rpc('notify_payment_success', {
         p_user_id: user.id,
-        p_amount: verifiedAmount || 25000,
+        p_amount: verifiedAmount || defaultAmount,
         p_subscription_end_date: subscriptionEndDate.toISOString(),
       });
     } catch (notifError) {
       console.warn('Notification error (non-critical):', notifError);
     }
 
-    console.log('✅ Widget subscription activated for:', user.id, '→ until', subscriptionEndDate.toISOString());
+    console.log('✅ Widget subscription activated for:', user.id, `→ plan: ${planLabel}, until`, subscriptionEndDate.toISOString());
 
     return NextResponse.json({
       success: true,
       subscription: {
-        plan: 'Premium',
+        plan: planLabel,
         status: 'active',
         startDate: isRenewal ? user.subscription_start_date : now.toISOString(),
         endDate: subscriptionEndDate.toISOString(),

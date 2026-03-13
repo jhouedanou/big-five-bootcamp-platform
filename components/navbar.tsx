@@ -118,7 +118,7 @@ export function Navbar() {
               </Button>
               <Button asChild className="group font-semibold shadow-lg shadow-[#80368D]/25 transition-all duration-300 hover:shadow-xl hover:shadow-[#80368D]/30 hover:scale-105 bg-[#80368D] hover:bg-[#80368D]/90">
                 <Link href="/pricing">
-                  Essai gratuit 30 jours
+                  Essai gratuit 14 jours
                   <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                 </Link>
               </Button>
@@ -210,7 +210,7 @@ export function Navbar() {
                 </Link>
                 <Button asChild className="mt-3 h-12 font-semibold shadow-lg shadow-[#80368D]/25 bg-[#80368D] hover:bg-[#80368D]/90">
                   <Link href="/pricing" onClick={() => setIsOpen(false)}>
-                    Essai gratuit 30 jours
+                    Essai gratuit 14 jours
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>

@@ -1,29 +1,16 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { Clock, Check, LogOut, Sparkles, Smartphone, CreditCard } from "lucide-react"
-import { useProductPrice } from "@/hooks/use-product-price"
-import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
-import { LicenseActivation } from "@/components/license-activation"
+import { Clock, Check, ArrowRight, LogOut, Sparkles, Smartphone, CreditCard } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 export default function PaywallPage() {
-  const router = useRouter()
-  const { label: priceLabel, currency: priceCurrency } = useProductPrice()
-  const { user } = useSupabaseAuth()
-
   const benefits = [
     "Acces illimite a toute la bibliotheque",
     "Nouveaux contenus ajoutes quotidiennement",
     "Filtres et recherche avances",
-    "Annulation possible a tout moment",
+    "Annulation possible a tout moment"
   ]
-
-  // Callback quand la licence est validée
-  const handleActivated = () => {
-    router.push("/dashboard?activated=true")
-  }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#D0E4F2]/30 to-white px-4">
@@ -34,9 +21,7 @@ export default function PaywallPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#80368D]">
               <Sparkles className="h-6 w-6 text-white" />
             </div>
-            <span className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[#1A1F2B]">
-              Big Five
-            </span>
+            <span className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[#1A1F2B]">Big Five</span>
           </Link>
         </div>
 
@@ -46,17 +31,14 @@ export default function PaywallPage() {
           <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#F2B33D]/20">
             <Clock className="h-10 w-10 text-[#F2B33D]" />
           </div>
-
+          
           <h1 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[#1A1F2B]">
             Ton essai gratuit est termine
           </h1>
-
+          
           <p className="mt-3 text-[#1A1F2B]/70">
             Tu as kiffe ces 30 jours ? Continue {"l'aventure"} pour{" "}
-            <span className="font-semibold text-[#1A1F2B]">
-              {priceLabel} {priceCurrency}/mois
-            </span>{" "}
-            seulement.
+            <span className="font-semibold text-[#1A1F2B]">25 000 XOF/mois</span> seulement.
           </p>
 
           {/* Benefits */}
@@ -74,16 +56,11 @@ export default function PaywallPage() {
           {/* Pricing Card */}
           <div className="mt-8 rounded-xl bg-[#80368D] p-6 text-left">
             <div className="flex items-baseline gap-1">
-              <span className="font-[family-name:var(--font-heading)] text-4xl font-bold text-white">
-                {priceLabel}
-              </span>
-              <span className="text-lg text-white/70">{priceCurrency}/mois</span>
+              <span className="font-[family-name:var(--font-heading)] text-4xl font-bold text-white">25 000</span>
+              <span className="text-lg text-white/70">XOF/mois</span>
             </div>
-            <p className="mt-1 text-sm text-white/60">
-              Soit ~{Math.round(Number(priceLabel.replace(/\s/g, "")) / 30).toLocaleString("fr-FR")}{" "}
-              {priceCurrency}/jour pour booster ta créa
-            </p>
-
+            <p className="mt-1 text-sm text-white/60">Soit ~833 XOF/jour pour booster ta créa</p>
+            
             {/* Payment options */}
             <div className="mt-4 flex items-center gap-3">
               <div className="flex items-center gap-1 rounded bg-white/10 px-2 py-1">
@@ -97,34 +74,16 @@ export default function PaywallPage() {
             </div>
           </div>
 
-          {/* Composant d'activation par licence — flux en 2 étapes */}
-          <div className="mt-6 text-left">
-            {user?.email ? (
-              <LicenseActivation
-                userEmail={user.email}
-                onActivated={handleActivated}
-                compact
-              />
-            ) : (
-              <Link
-                href="/login?redirect=/paywall"
-                className="block w-full rounded-lg bg-[#80368D] px-6 py-3 text-center font-semibold text-white hover:bg-[#80368D]/90"
-              >
-                Se connecter pour s&apos;abonner
-              </Link>
-            )}
-          </div>
-
-          {/* Lien vers la page subscribe pour plus d'options */}
-          <p className="mt-3 text-xs text-[#1A1F2B]/50">
-            Ou{" "}
-            <Link href="/subscribe" className="font-medium text-[#80368D] hover:underline">
-              voir les détails et options de paiement
+          {/* CTA */}
+          <Button asChild className="mt-6 h-12 w-full text-base shadow-lg shadow-[#80368D]/25 bg-[#80368D] hover:bg-[#80368D]/90 text-white">
+            <Link href="/subscribe">
+              {"S'abonner"} maintenant
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
-          </p>
+          </Button>
 
           {/* Logout link */}
-          <Link
+          <Link 
             href="/"
             className="mt-4 inline-flex items-center gap-1 text-sm text-[#1A1F2B]/60 transition-colors hover:text-[#1A1F2B]"
           >

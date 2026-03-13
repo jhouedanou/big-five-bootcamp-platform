@@ -1,7 +1,7 @@
 /**
  * Page: /payment/success
  * 
- * Page de confirmation après paiement réussi via Chariow
+ * Page de confirmation après paiement réussi
  * Vérifie le statut du paiement et affiche les détails de l'inscription
  */
 
@@ -97,20 +97,17 @@ function PaymentSuccessContent() {
       setPendingPayment(data.payment);
       setRetryCount(attempt + 1);
 
-      // Si on a atteint le max de tentatives, vérifier directement auprès de Chariow
+      // Si on a atteint le max de tentatives, vérifier directement auprès de PayTech
       if (attempt >= maxRetries) {
-        // Tenter une vérification directe auprès de Chariow
+        // Tenter une vérification directe auprès de PayTech
         try {
-          const storedSaleId = sessionStorage.getItem('payment_sale_id');
           const checkResponse = await fetch(`/api/payment/check/${ref_command}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sale_id: storedSaleId || undefined }),
           });
           const checkData = await checkResponse.json();
           
           if (checkData.success && checkData.payment?.status === 'completed') {
-            // Chariow confirme le paiement, re-vérifier notre statut
+            // PayTech confirme le paiement, re-vérifier notre statut
             const refreshResponse = await fetch(`/api/payment/status/${ref_command}`);
             const refreshData = await refreshResponse.json();
             if (refreshData.success && refreshData.payment?.status === 'completed') {
@@ -124,7 +121,7 @@ function PaymentSuccessContent() {
             }
           }
         } catch (checkErr) {
-          console.error('Chariow check error:', checkErr);
+          console.error('PayTech check error:', checkErr);
         }
         
         setLoading(false);
@@ -157,12 +154,6 @@ function PaymentSuccessContent() {
     const refFromUrl = searchParams.get('ref_command') || searchParams.get('ref');
     const refFromStorage = sessionStorage.getItem('payment_ref');
     const ref_command = refFromUrl || refFromStorage;
-
-    // Récupérer le sale_id si Chariow l'a ajouté à l'URL de redirect
-    const saleIdFromUrl = searchParams.get('sale_id') || searchParams.get('purchase_id');
-    if (saleIdFromUrl) {
-      sessionStorage.setItem('payment_sale_id', saleIdFromUrl);
-    }
 
     if (!ref_command) {
       setError('Référence de paiement introuvable');
@@ -270,18 +261,15 @@ function PaymentSuccessContent() {
                   setLoading(true);
                   setShowPendingMessage(false);
                   
-                  // D'abord vérifier directement auprès de Chariow
+                  // D'abord vérifier directement auprès de PayTech
                   try {
-                    const storedSaleId = sessionStorage.getItem('payment_sale_id');
                     const checkResponse = await fetch(`/api/payment/check/${pendingPayment.ref_command}`, {
                       method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ sale_id: storedSaleId || undefined }),
                     });
                     const checkData = await checkResponse.json();
                     
                     if (checkData.success && checkData.payment?.status === 'completed') {
-                      // Paiement confirmé par Chariow !
+                      // Paiement confirmé par PayTech!
                       const refreshResponse = await fetch(`/api/payment/status/${pendingPayment.ref_command}`);
                       const refreshData = await refreshResponse.json();
                       if (refreshData.success) {
@@ -293,7 +281,7 @@ function PaymentSuccessContent() {
                       }
                     }
                   } catch (err) {
-                    console.error('Chariow check error:', err);
+                    console.error('PayTech check error:', err);
                   }
                   
                   // Sinon, reprendre la vérification normale

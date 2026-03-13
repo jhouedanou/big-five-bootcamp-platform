@@ -1,39 +1,33 @@
 /**
  * API Route: POST /api/payment/subscribe
- *
- * Crée une demande de paiement Chariow pour un abonnement mensuel
- * Le prix de référence (XOF) est stocké en DB. Chariow gère la conversion devise.
- *
+ * 
+ * Crée une demande de paiement PayTech pour un abonnement mensuel
+ * Prix: 150 XOF/mois - Valable 1 mois
+ * 
  * Body:
  * - userEmail: Email de l'utilisateur
- * - phoneNumber?: Numéro de téléphone
- * - phoneCountryCode?: Code pays ISO (ex: "CI", "SN", "BJ")
- * - firstName?: Prénom de l'utilisateur
- * - lastName?: Nom de l'utilisateur
+ * - paymentMethod?: Méthode ciblée (ex: "Orange Money", "Wave", etc.)
+ * - phoneNumber?: Numéro de téléphone pour Mobile Money
  */
-
-export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import {
-  createSubscriptionCheckout,
+import { 
+  requestPayment, 
   generateRefCommand,
-} from '@/lib/chariow';
-import { PRICING_MONTHLY_VALUE } from '@/lib/constants';
+  type PaytechPaymentRequest 
+} from '@/lib/paytech';
 
+// Prix de l'abonnement mensuel
+const SUBSCRIPTION_PRICE = 25000; // 25 000 XOF
 const SUBSCRIPTION_DURATION_DAYS = 30; // 1 mois
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userEmail, phoneNumber, phoneCountryCode, firstName, lastName } = body;
+    const { userEmail, paymentMethod, phoneNumber } = body;
 
-    console.log('📨 Requête d\'abonnement reçue:', { userEmail });
-
-    // Le prix stocké en DB est le prix de référence en XOF.
-    // Chariow gère le montant réel facturé (conversion devise selon le client).
-    const subscriptionPrice = PRICING_MONTHLY_VALUE;
+    console.log('📨 Requête d\'abonnement reçue:', { userEmail, paymentMethod });
 
     // Validation
     if (!userEmail) {
@@ -54,17 +48,24 @@ export async function POST(request: NextRequest) {
     if (!existingUser || userError?.code === 'PGRST116') {
       console.log('👤 Utilisateur non trouvé dans la table users, création...');
 
-      const { data: authListData } = await supabaseAdmin.auth.admin.listUsers() as any;
-      const authUser = authListData?.users?.find((u: any) => u.email === userEmail);
+      // Chercher l'utilisateur par email dans Supabase Auth
+      const { data: authUserData, error: authListError } = await supabaseAdmin.auth.admin.getUserById(
+        '' // fallback - will use listUsers below
+      ).catch(() => ({ data: null, error: null })) as any;
 
-      if (!authUser) {
-        console.error('❌ Utilisateur non trouvé dans Auth');
+      // Alternative: chercher par liste
+      const { data: authListData } = await supabaseAdmin.auth.admin.listUsers() as any;
+      const authUser = authListData?.users?.find((u: any) => u.email === userEmail) || authUserData?.user;
+
+      if (authListError || !authUser) {
+        console.error('❌ Utilisateur non trouvé dans Auth:', authListError);
         return NextResponse.json(
           { error: 'Utilisateur non trouvé. Veuillez vous inscrire d\'abord.' },
           { status: 404 }
         );
       }
 
+      // Créer l'utilisateur dans la table users
       const { data: newUser, error: createError } = await (supabaseAdmin as any)
         .from('users')
         .upsert({
@@ -90,49 +91,60 @@ export async function POST(request: NextRequest) {
       console.log('✅ Utilisateur créé:', (existingUser as any)?.id);
     }
 
-    // Permettre le renouvellement anticipé :
-    // Si l'abonnement est encore actif, on ajoute 30 jours à la date de fin existante
-    // Sinon on part d'aujourd'hui + 30 jours
-    const isRenewal = (existingUser as any).subscription_status === 'active' && 
+    // Vérifier si un abonnement actif existe déjà
+    if ((existingUser as any).subscription_status === 'active' && 
         (existingUser as any).subscription_end_date && 
-        new Date((existingUser as any).subscription_end_date) > new Date();
-
-    if (isRenewal) {
-      console.log('🔄 Renouvellement anticipé détecté — abonnement actif jusqu\'au', (existingUser as any).subscription_end_date);
+        new Date((existingUser as any).subscription_end_date) > new Date()) {
+      return NextResponse.json(
+        { 
+          error: 'You already have an active subscription',
+          subscription_end_date: (existingUser as any).subscription_end_date
+        },
+        { status: 409 }
+      );
     }
 
     // Générer la référence de commande unique
-    const ref_command = generateRefCommand(isRenewal ? 'REN' : 'SUB');
+    const ref_command = generateRefCommand('SUB');
 
-    // Date de fin de l'abonnement :
-    // - Renouvellement : date_fin_existante + 30 jours (on ne perd pas les jours restants)
-    // - Nouvel abonnement : aujourd'hui + 30 jours
-    const subscriptionEndDate = isRenewal
-      ? new Date(new Date((existingUser as any).subscription_end_date).getTime() + SUBSCRIPTION_DURATION_DAYS * 24 * 60 * 60 * 1000)
-      : new Date(Date.now() + SUBSCRIPTION_DURATION_DAYS * 24 * 60 * 60 * 1000);
+    // Date de fin de l'abonnement (1 mois à partir d'aujourd'hui)
+    const subscriptionEndDate = new Date();
+    subscriptionEndDate.setDate(subscriptionEndDate.getDate() + SUBSCRIPTION_DURATION_DAYS);
 
-    // Extraire prénom/nom
-    const userName = (existingUser as any).name || '';
-    const nameParts = userName.split(' ');
-    const userFirstName = firstName || nameParts[0] || userEmail.split('@')[0];
-    const userLastName = lastName || nameParts.slice(1).join(' ') || 'Client';
+    // Préparer la demande PayTech
+    const paymentRequest: PaytechPaymentRequest = {
+      item_name: 'Abonnement Big Five - 1 mois',
+      item_price: SUBSCRIPTION_PRICE,
+      currency: 'XOF',
+      ref_command,
+      command_name: `Abonnement mensuel Big Five - ${(existingUser as any).name || (existingUser as any).email}`,
+      target_payment: paymentMethod, // Méthode ciblée ou undefined pour toutes les méthodes
+      custom_field: JSON.stringify({
+        type: 'subscription',
+        userId: (existingUser as any).id,
+        userEmail,
+        duration_days: SUBSCRIPTION_DURATION_DAYS,
+        subscription_end_date: subscriptionEndDate.toISOString(),
+        phoneNumber: phoneNumber || null,
+      }),
+    };
 
     // Enregistrer la demande de paiement dans la base de données
     console.log('💾 Création enregistrement paiement...');
     
     const paymentInsert = {
       user_email: userEmail,
-      amount: subscriptionPrice,
+      amount: SUBSCRIPTION_PRICE,
       status: 'pending',
-      payment_method: 'Chariow',
+      payment_method: paymentMethod || 'Not specified',
       ref_command,
-      item_name: 'Abonnement Big Five - 1 mois',
       metadata: {
         type: 'subscription',
         duration_days: SUBSCRIPTION_DURATION_DAYS,
         subscription_end_date: subscriptionEndDate.toISOString(),
-        userId: (existingUser as any).id,
+        item_name: paymentRequest.item_name,
         phoneNumber: phoneNumber || null,
+        userId: (existingUser as any).id,
       },
     };
 
@@ -156,97 +168,54 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Paiement créé:', (payment as any)?.id);
 
-    // Valider le numéro de téléphone
-    if (!phoneNumber || phoneNumber.replace(/\D/g, '').length < 8) {
-      return NextResponse.json(
-        { error: 'Un numéro de téléphone valide est requis pour le paiement Mobile Money' },
-        { status: 400 }
-      );
-    }
+    // Créer la demande de paiement PayTech
+    const paytechResponse = await requestPayment(paymentRequest);
 
-    // Créer le checkout Chariow
-    const chariowResponse = await createSubscriptionCheckout({
-      email: userEmail,
-      firstName: userFirstName,
-      lastName: userLastName,
-      phoneNumber,
-      phoneCountryCode: phoneCountryCode || 'CI',
-      refCommand: ref_command,
-      userId: (existingUser as any).id,
-    });
-
-    // Vérifier la réponse selon le step
-    if (chariowResponse.data.step === 'already_purchased') {
-      return NextResponse.json(
-        { error: 'Vous avez déjà acheté ce produit' },
-        { status: 409 }
-      );
-    }
-
-    if (chariowResponse.data.step === 'payment' && chariowResponse.data.payment?.checkout_url) {
-      const saleId = chariowResponse.data.purchase?.id;
-      const transactionId = chariowResponse.data.payment?.transaction_id;
-      console.log('🎫 Chariow sale_id:', saleId, '| transaction_id:', transactionId);
-
-      // Mettre à jour le paiement avec l'ID de vente Chariow
-      if (saleId) {
-        await (supabaseAdmin as any)
-          .from('payments')
-          .update({
-            chariow_sale_id: saleId,
-            metadata: {
-              ...(payment as any).metadata,
-              chariow_response: {
-                sale_id: saleId,
-                transaction_id: transactionId,
-              }
-            }
-          })
-          .eq('id', (payment as any).id);
-      }
-
-      return NextResponse.json({
-        success: true,
-        payment_id: (payment as any).id,
-        ref_command,
-        redirect_url: chariowResponse.data.payment.checkout_url,
-        sale_id: chariowResponse.data.purchase?.id,
-        amount: subscriptionPrice,
-        duration_days: SUBSCRIPTION_DURATION_DAYS,
-        subscription_end_date: subscriptionEndDate.toISOString(),
-      });
-    }
-
-    if (chariowResponse.data.step === 'completed') {
-      // Produit gratuit - complété directement
+    if (paytechResponse.success !== 1 || !paytechResponse.redirect_url) {
+      // Mettre à jour le statut du paiement en cas d'échec
       await (supabaseAdmin as any)
         .from('payments')
         .update({ 
-          status: 'completed',
-          chariow_sale_id: chariowResponse.data.purchase?.id,
-          completed_at: new Date().toISOString(),
+          status: 'failed',
+          metadata: {
+            ...(payment as any).metadata,
+            error: paytechResponse.message || 'PayTech request failed'
+          }
         })
         .eq('id', (payment as any).id);
 
-      return NextResponse.json({
-        success: true,
-        payment_id: (payment as any).id,
-        ref_command,
-        completed: true,
-        sale_id: chariowResponse.data.purchase?.id,
-      });
+      return NextResponse.json(
+        { 
+          error: paytechResponse.message || 'Failed to create PayTech payment',
+          details: paytechResponse 
+        },
+        { status: 500 }
+      );
     }
 
-    // Échec
+    // Mettre à jour le paiement avec le token PayTech
     await (supabaseAdmin as any)
       .from('payments')
-      .update({ status: 'failed' })
+      .update({ 
+        paytech_token: paytechResponse.token,
+        metadata: {
+          ...(payment as any).metadata,
+          paytech_response: paytechResponse
+        }
+      })
       .eq('id', (payment as any).id);
 
-    return NextResponse.json(
-      { error: 'Impossible de créer le checkout Chariow' },
-      { status: 500 }
-    );
+    // Retourner l'URL de redirection PayTech
+    return NextResponse.json({
+      success: true,
+      payment_id: (payment as any).id,
+      ref_command,
+      redirect_url: paytechResponse.redirect_url || paytechResponse.redirectUrl,
+      token: paytechResponse.token,
+      amount: SUBSCRIPTION_PRICE,
+      duration_days: SUBSCRIPTION_DURATION_DAYS,
+      subscription_end_date: subscriptionEndDate.toISOString(),
+    });
 
   } catch (error) {
     console.error('Subscription payment error:', error);

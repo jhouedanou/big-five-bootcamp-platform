@@ -3,7 +3,7 @@
  *
  * Cree une demande de paiement Moneroo pour un abonnement mensuel
  * Prix: 25 000 XOF/mois - Valable 1 mois
- * Supporte le renouvellement anticipé : les jours restants sont conserves
+ * Supporte le renouvellement anticipe : les jours restants sont conserves
  *
  * Body:
  * - userEmail: Email de l'utilisateur
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       existingUser = newUser;
     }
 
-    // Calculer la date de fin : si abonnement actif, prolonger a partir de la fin actuelle
+    // Calculer la date de fin
     const now = new Date();
     const currentEndDate = (existingUser as any).subscription_end_date
       ? new Date((existingUser as any).subscription_end_date)
@@ -85,7 +85,6 @@ export async function POST(request: NextRequest) {
       && currentEndDate
       && currentEndDate > now;
 
-    // Si actif, on ajoute 30 jours a la fin actuelle ; sinon, 30 jours a partir de maintenant
     const baseDate = isCurrentlyActive ? currentEndDate : now;
     const subscriptionEndDate = new Date(baseDate!);
     subscriptionEndDate.setDate(subscriptionEndDate.getDate() + SUBSCRIPTION_DURATION_DAYS);
@@ -131,24 +130,41 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialiser le paiement Moneroo
-    const monerooResponse = await initializePayment({
-      amount: SUBSCRIPTION_PRICE,
-      currency: 'XOF',
-      description,
-      return_url: getReturnUrl(ref_command),
-      customer: {
-        email: userEmail,
-        first_name: nameParts[0] || 'Client',
-        last_name: nameParts.slice(1).join(' ') || 'Big Five',
-        phone: undefined,
-      },
-      metadata: {
-        ref_command,
-        type: 'subscription',
-        user_id: (existingUser as any).id,
-        renewal: isCurrentlyActive ? 'true' : 'false',
-      },
-    });
+    let monerooResponse;
+    try {
+      monerooResponse = await initializePayment({
+        amount: SUBSCRIPTION_PRICE,
+        currency: 'XOF',
+        description,
+        return_url: getReturnUrl(ref_command),
+        customer: {
+          email: userEmail,
+          first_name: nameParts[0] || 'Client',
+          last_name: nameParts.slice(1).join(' ') || 'Big Five',
+          phone: undefined,
+        },
+        metadata: {
+          ref_command,
+          type: 'subscription',
+          user_id: (existingUser as any).id,
+          renewal: isCurrentlyActive ? 'true' : 'false',
+        },
+      });
+    } catch (monerooError) {
+      console.error('Moneroo initialization error:', monerooError);
+
+      // Marquer le paiement comme echoue
+      await (supabaseAdmin as any)
+        .from('payments')
+        .update({ status: 'failed' })
+        .eq('id', (payment as any).id);
+
+      const errorMsg = monerooError instanceof Error ? monerooError.message : 'Erreur Moneroo';
+      return NextResponse.json(
+        { error: 'Le service de paiement est temporairement indisponible. Veuillez reessayer.', details: errorMsg },
+        { status: 502 }
+      );
+    }
 
     // Stocker l'ID Moneroo dans le paiement
     await (supabaseAdmin as any)

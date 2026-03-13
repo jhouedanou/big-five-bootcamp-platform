@@ -38,6 +38,7 @@ export interface ContentItem {
   accessLevel?: 'free' | 'premium' // 'free' = visible par tous, 'premium' = réservé aux abonnés
   slug?: string // Permalien SEO-friendly
   createdAt?: string // Date ISO de création (depuis Supabase)
+  featured?: boolean // Mise en avant par l'admin (campagne de la semaine)
 }
 
 interface ContentCardProps {

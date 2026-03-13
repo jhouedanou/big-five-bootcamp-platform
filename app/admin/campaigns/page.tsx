@@ -48,6 +48,7 @@ import {
   Upload,
   Crown,
   Users,
+  Star,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -117,6 +118,7 @@ const defaultFormData: Omit<ContentItem, "id"> = {
   status: "Brouillon",
   accessLevel: "free",
   slug: "",
+  featured: false,
 };
 
 function CampaignsPageContent() {
@@ -220,6 +222,7 @@ function CampaignsPageContent() {
       accessLevel: item.accessLevel || "free",
       slug: item.slug || "",
       axe: item.axe || [],
+      featured: item.featured || false,
     });
     setTagInput("");
     setImageInput("");
@@ -454,6 +457,12 @@ function CampaignsPageContent() {
                             <><Users className="h-3 w-3" /> Gratuit</>
                           )}
                         </span>
+                        {/* Badge Featured */}
+                        {item.featured && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-[#F2B33D]/20 text-[#b45309]">
+                            <Star className="h-3 w-3 fill-current" /> Semaine
+                          </span>
+                        )}
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${sectorColor(item.sector)}`}>
                           {item.sector}
                         </span>
@@ -510,6 +519,15 @@ function CampaignsPageContent() {
                       >
                         <Send className="h-4 w-4 mr-2" />
                         {item.status === "Publié" ? "Dépublier" : "Publier"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => updateCampaign(item.id, { featured: !item.featured })}
+                        className={`hover:bg-gray-100 cursor-pointer ${
+                          item.featured ? "text-[#b45309]" : "text-gray-600"
+                        }`}
+                      >
+                        <Star className={`h-4 w-4 mr-2 ${item.featured ? "fill-current" : ""}`} />
+                        {item.featured ? "Retirer de la semaine" : "Campagne de la semaine"}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handleOpenEdit(item)}
@@ -1021,6 +1039,35 @@ function CampaignsPageContent() {
                   <p className="text-xs text-gray-500">
                     Les campagnes Premium ne sont pas visibles sur la page Démo.
                   </p>
+                </div>
+
+                {/* Featured - Campagne de la semaine */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className={cn(
+                      "flex h-10 w-10 items-center justify-center rounded-lg border-2 transition-all",
+                      formData.featured
+                        ? "border-[#F2B33D] bg-[#F2B33D]/10"
+                        : "border-gray-300 bg-white group-hover:border-[#F2B33D]/50"
+                    )}>
+                      <Star className={cn(
+                        "h-5 w-5 transition-colors",
+                        formData.featured ? "text-[#F2B33D] fill-[#F2B33D]" : "text-gray-400"
+                      )} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900">Campagne de la semaine</span>
+                        <Checkbox
+                          checked={formData.featured || false}
+                          onCheckedChange={(checked) => setFormData({ ...formData, featured: !!checked })}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        Mise en avant dans la section « Meilleures campagnes de la semaine » du dashboard.
+                      </p>
+                    </div>
+                  </label>
                 </div>
               </div>
             )}

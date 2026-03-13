@@ -202,16 +202,22 @@ export default function DashboardPage() {
           status: campaign.status,
           accessLevel: campaign.access_level || 'free',
           createdAt: campaign.created_at,
+          featured: campaign.featured || false,
         }))
 
         setCampaigns(formattedCampaigns)
 
-        // Filtrer les campagnes de la semaine (7 derniers jours)
+        // Filtrer les campagnes de la semaine
+        // Priorité 1 : campagnes marquées "featured" par l'admin
+        // Priorité 2 : campagnes ajoutées dans les 7 derniers jours
         const lastMonday = startOfWeek(new Date(), { weekStartsOn: 1 })
-        const weekly = formattedCampaigns.filter(c => {
+        const featuredCampaigns = formattedCampaigns.filter(c => c.featured)
+        const recentCampaigns = formattedCampaigns.filter(c => {
           const date = new Date(c.createdAt || c.date)
-          return date >= lastMonday
+          return date >= lastMonday && !c.featured
         })
+        // Featured d'abord, puis les récentes
+        const weekly = [...featuredCampaigns, ...recentCampaigns]
         setWeeklyCampaigns(weekly)
       } catch (error: any) {
         console.warn('Erreur chargement campagnes:', error?.message || error)
@@ -485,7 +491,10 @@ export default function DashboardPage() {
                 </div>
                 <span className="hidden sm:flex items-center gap-1 rounded-full bg-[#F2B33D]/20 px-3 py-1 text-xs font-semibold text-[#b45309]">
                   <Sparkles className="h-3 w-3" />
-                  {weeklyCampaigns.length} nouvelles
+                  {weeklyCampaigns.filter(c => c.featured).length > 0
+                    ? `${weeklyCampaigns.filter(c => c.featured).length} sélection${weeklyCampaigns.filter(c => c.featured).length > 1 ? 's' : ''} éditeur`
+                    : `${weeklyCampaigns.length} nouvelles`
+                  }
                 </span>
               </div>
 

@@ -278,6 +278,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         status: campaign.status || 'Brouillon',
         accessLevel: campaign.access_level || 'free',
         slug: campaign.slug || '',
+        featured: campaign.featured || false,
       }));
 
       setCampaigns(formattedCampaigns);
@@ -315,6 +316,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     if (data.status !== undefined) record.status = data.status;
     if (data.accessLevel !== undefined) record.access_level = data.accessLevel;
     if (data.slug !== undefined) record.slug = data.slug;
+    if (data.featured !== undefined) record.featured = data.featured;
     return record;
   };
 

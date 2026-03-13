@@ -2,14 +2,12 @@
  * API Route: GET/POST /api/payment/check
  * 
  * Outil de diagnostic et récupération de paiements
- * Permet de vérifier un paiement dans la base de données
- * et de le créer/mettre à jour si nécessaire
+ * Permet de vérifier un paiement directement auprès de PayTech
+ * et de le créer/mettre à jour dans la base de données si nécessaire
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-
-export const dynamic = 'force-dynamic';
 
 const SUBSCRIPTION_DURATION_DAYS = 30;
 
@@ -26,44 +24,13 @@ async function activatePremiumForPayment(payment: any) {
   }
 
   const now = new Date();
-
-  // Récupérer l'abonnement actuel pour gérer le renouvellement anticipé
-  let currentUser: any = null;
-  try {
-    let selectQuery = (supabaseAdmin as any)
-      .from('users')
-      .select('subscription_status, subscription_end_date, subscription_start_date');
-    
-    if (userId) {
-      selectQuery = selectQuery.eq('id', userId);
-    } else {
-      selectQuery = selectQuery.eq('email', userEmail);
-    }
-
-    const { data } = await selectQuery.single();
-    currentUser = data;
-  } catch {
-    // Pas d'utilisateur existant, on continue avec une nouvelle subscription
-  }
-
-  const isRenewal = currentUser?.subscription_status === 'active' &&
-    currentUser?.subscription_end_date &&
-    new Date(currentUser.subscription_end_date) > now;
-
-  let endDate: Date;
-  if (isRenewal) {
-    const existingEnd = new Date(currentUser.subscription_end_date);
-    endDate = new Date(existingEnd.getTime() + SUBSCRIPTION_DURATION_DAYS * 24 * 60 * 60 * 1000);
-    console.log('🔄 Renouvellement anticipé:', existingEnd.toISOString(), '→', endDate.toISOString());
-  } else {
-    endDate = new Date(now.getTime() + SUBSCRIPTION_DURATION_DAYS * 24 * 60 * 60 * 1000);
-  }
+  const endDate = new Date(now.getTime() + SUBSCRIPTION_DURATION_DAYS * 24 * 60 * 60 * 1000);
 
   try {
     let query = (supabaseAdmin as any).from('users').update({
       plan: 'Premium',
       subscription_status: 'active',
-      subscription_start_date: isRenewal ? (currentUser.subscription_start_date || now.toISOString()) : now.toISOString(),
+      subscription_start_date: now.toISOString(),
       subscription_end_date: endDate.toISOString(),
       updated_at: now.toISOString(),
     });

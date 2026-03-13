@@ -1,33 +1,26 @@
 /**
  * API Route: POST /api/payment/request
- * 
- * Crée une demande de paiement Chariow pour une inscription à un bootcamp
- * 
+ *
+ * Cree une demande de paiement Moneroo pour une inscription a un bootcamp
+ *
  * Body:
  * - sessionId: UUID de la session
  * - userEmail: Email de l'utilisateur
- * - firstName?: Prénom
- * - lastName?: Nom
- * - phoneNumber?: Numéro de téléphone
- * - phoneCountryCode?: Code pays ISO (ex: "CI")
  */
-
-export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { 
-  initCheckout,
+import {
+  initializePayment,
   generateRefCommand,
-  buildSuccessUrl,
-} from '@/lib/chariow';
+  getReturnUrl,
+} from '@/lib/moneroo';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { sessionId, userEmail, firstName, lastName, phoneNumber, phoneCountryCode } = body;
+    const { sessionId, userEmail } = body;
 
-    // Validation
     if (!sessionId || !userEmail) {
       return NextResponse.json(
         { error: 'Session ID and user email are required' },
@@ -35,7 +28,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Récupérer les infos de la session
+    // 1. Recuperer les infos de la session
     const { data: session, error: sessionError } = await (supabaseAdmin as any)
       .from('sessions')
       .select(`
@@ -59,7 +52,6 @@ export async function POST(request: NextRequest) {
     }
 
     const bootcamp = session.creative_library;
-
     if (!bootcamp) {
       return NextResponse.json(
         { error: 'Bootcamp not found for this session' },
@@ -67,7 +59,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Vérifier si un paiement existe déjà
+    // 2. Verifier si un paiement existe deja
     const { data: existingPayment } = await (supabaseAdmin as any)
       .from('payments')
       .select('id, status')
@@ -78,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     if (existingPayment) {
       return NextResponse.json(
-        { 
+        {
           error: 'A payment already exists for this session',
           paymentId: existingPayment.id,
           status: existingPayment.status
@@ -87,10 +79,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Générer la référence de commande unique
+    // 3. Generer la reference
     const ref_command = generateRefCommand('BOOTCAMP');
 
-    // 4. Créer l'enregistrement de paiement dans Supabase (statut: pending)
+    // 4. Enregistrer le paiement
     const { data: payment, error: paymentError } = await (supabaseAdmin as any)
       .from('payments')
       .insert({
@@ -104,6 +96,7 @@ export async function POST(request: NextRequest) {
         user_email: userEmail,
         item_name: `${bootcamp.title} - Session ${new Date(session.start_date).toLocaleDateString('fr-FR')}`,
         item_description: bootcamp.tagline,
+        payment_method: 'Moneroo',
       })
       .select()
       .single();
@@ -116,54 +109,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Appeler Chariow Checkout
-    const chariowResponse = await initCheckout({
-      product_id: process.env.CHARIOW_BOOTCAMP_PRODUCT_ID || process.env.CHARIOW_PRODUCT_ID || '',
-      email: userEmail,
-      first_name: firstName || userEmail.split('@')[0],
-      last_name: lastName || 'Client',
-      phone: {
-        number: phoneNumber?.replace(/\D/g, '') || '0000000000',
-        country_code: phoneCountryCode || 'CI',
+    // 5. Initialiser le paiement Moneroo
+    const monerooResponse = await initializePayment({
+      amount: bootcamp.price,
+      currency: 'XOF',
+      description: `${bootcamp.title} - Big Five Bootcamp (${ref_command})`,
+      return_url: getReturnUrl(ref_command),
+      customer: {
+        email: userEmail,
+        first_name: userEmail.split('@')[0],
+        last_name: 'Big Five',
       },
-      redirect_url: buildSuccessUrl(ref_command),
-      custom_metadata: {
+      metadata: {
         ref_command,
+        type: 'bootcamp',
         session_id: sessionId,
         bootcamp_slug: bootcamp.slug,
-        bootcamp_title: bootcamp.title,
-        type: 'bootcamp',
       },
     });
 
-    if (chariowResponse.data.step !== 'payment' || !chariowResponse.data.payment?.checkout_url) {
-      // Mettre à jour le statut à 'failed'
-      await (supabaseAdmin as any)
-        .from('payments')
-        .update({ status: 'failed' })
-        .eq('id', payment.id);
-
-      return NextResponse.json(
-        { error: chariowResponse.data.message || 'Chariow checkout failed' },
-        { status: 500 }
-      );
-    }
-
-    // 6. Mettre à jour le payment avec l'ID de vente Chariow
+    // 6. Stocker l'ID Moneroo
     await (supabaseAdmin as any)
       .from('payments')
-      .update({ 
-        chariow_sale_id: chariowResponse.data.purchase?.id,
+      .update({
+        moneroo_payment_id: monerooResponse.data.id,
       })
       .eq('id', payment.id);
 
-    // 7. Retourner l'URL de redirection
     return NextResponse.json({
       success: true,
       paymentId: payment.id,
       ref_command,
-      redirect_url: chariowResponse.data.payment.checkout_url,
-      sale_id: chariowResponse.data.purchase?.id,
+      redirect_url: monerooResponse.data.checkout_url,
     });
 
   } catch (error) {

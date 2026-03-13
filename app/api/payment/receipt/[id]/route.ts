@@ -3,8 +3,6 @@ import { createClient } from '@supabase/supabase-js'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-export const dynamic = 'force-dynamic';
-
 async function getAuthUser() {
   const cookieStore = await cookies()
   const supabase = createServerClient(

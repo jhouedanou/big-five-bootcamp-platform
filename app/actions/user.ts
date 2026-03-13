@@ -105,3 +105,51 @@ export async function getFavoritesCounts() {
         return { success: true, data: {} }
     }
 }
+
+export async function endSubscription(userId: string) {
+    try {
+        const supabase = getSupabaseAdmin()
+        const { error } = await supabase
+            .from('users')
+            .update({
+                plan: 'Free',
+                subscription_status: 'expired',
+                subscription_end_date: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', userId)
+
+        if (error) throw error
+        revalidatePath("/admin/users")
+        return { success: true }
+    } catch (error) {
+        console.error('Error ending subscription:', error)
+        return { success: false, error: "Failed to end subscription" }
+    }
+}
+
+export async function resetSubscription(userId: string, days: number = 30) {
+    try {
+        const supabase = getSupabaseAdmin()
+        const now = new Date()
+        const endDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000)
+
+        const { error } = await supabase
+            .from('users')
+            .update({
+                plan: 'Premium',
+                subscription_status: 'active',
+                subscription_start_date: now.toISOString(),
+                subscription_end_date: endDate.toISOString(),
+                updated_at: now.toISOString(),
+            })
+            .eq('id', userId)
+
+        if (error) throw error
+        revalidatePath("/admin/users")
+        return { success: true }
+    } catch (error) {
+        console.error('Error resetting subscription:', error)
+        return { success: false, error: "Failed to reset subscription" }
+    }
+}

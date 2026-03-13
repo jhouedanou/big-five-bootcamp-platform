@@ -1,8 +1,7 @@
 /**
  * Composant: PaymentButton
- * 
- * Bouton de paiement simplifié — redirige vers la page de checkout Chariow
- * Chariow gère la sélection de méthode de paiement sur sa propre page
+ *
+ * Bouton de paiement - redirige vers Moneroo checkout
  */
 
 'use client';
@@ -16,7 +15,6 @@ interface PaymentButtonProps {
   sessionId: string;
   userEmail: string;
   amount: number;
-  currency?: string;
   bootcampTitle: string;
   onSuccess?: () => void;
   className?: string;
@@ -26,7 +24,6 @@ export default function PaymentButton({
   sessionId,
   userEmail,
   amount,
-  currency = 'XOF',
   bootcampTitle,
   onSuccess,
   className,
@@ -37,38 +34,27 @@ export default function PaymentButton({
     setIsProcessing(true);
 
     try {
-      // Appel à l'API pour créer le checkout Chariow
       const response = await fetch('/api/payment/request', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sessionId,
-          userEmail,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, userEmail }),
       });
 
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Erreur lors de la création du paiement');
+        throw new Error(data.error || 'Erreur lors de la creation du paiement');
       }
 
-      // Rediriger vers la page de checkout Chariow
       if (data.redirect_url) {
-        // Stocker la référence de commande dans sessionStorage pour la page de retour
         sessionStorage.setItem('payment_ref', data.ref_command);
         sessionStorage.setItem('payment_session_id', sessionId);
-        
-        // Redirection vers Chariow checkout
         window.location.href = data.redirect_url;
       } else {
-        throw new Error('URL de paiement non reçue');
+        throw new Error('URL de paiement non recue');
       }
 
       onSuccess?.();
-
     } catch (error: any) {
       console.error('Payment error:', error);
       toast.error(error.message || 'Une erreur est survenue lors du paiement');
@@ -88,13 +74,13 @@ export default function PaymentButton({
     >
       {isProcessing ? (
         <>
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-          Redirection vers le paiement...
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Redirection...
         </>
       ) : (
         <>
           <CreditCard className="mr-2 h-5 w-5" />
-          Procéder au paiement ({amount.toLocaleString('fr-FR')} {currency})
+          Payer ({amount.toLocaleString('fr-FR')} FCFA)
         </>
       )}
     </Button>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,11 @@ export function Lightbox({ images: rawImages, initialIndex = 0, isOpen, onClose 
   const images = rawImages.map(getGoogleDriveImageUrl);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isZoomed, setIsZoomed] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Reset index when opening
   useEffect(() => {
@@ -60,7 +66,7 @@ export function Lightbox({ images: rawImages, initialIndex = 0, isOpen, onClose 
     };
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
   const goToPrevious = () => {
     setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
@@ -82,9 +88,10 @@ export function Lightbox({ images: rawImages, initialIndex = 0, isOpen, onClose 
     link.click();
   };
 
-  return (
+  const lightboxContent = (
     <div 
-      className="fixed inset-0 z-50 bg-black/95 backdrop-blur-sm"
+      className="fixed inset-0 bg-black/95 backdrop-blur-sm"
+      style={{ zIndex: 9999 }}
       onClick={onClose}
     >
       {/* Header with controls */}
@@ -212,6 +219,8 @@ export function Lightbox({ images: rawImages, initialIndex = 0, isOpen, onClose 
       )}
     </div>
   );
+
+  return createPortal(lightboxContent, document.body);
 }
 
 interface ImageGalleryProps {

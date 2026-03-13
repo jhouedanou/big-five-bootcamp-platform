@@ -124,13 +124,8 @@ export function useAuth() {
   // Derived state from DB user or fallbacks
   const isAdmin = dbUser?.role === "admin"
   const isModerator = dbUser?.role === "moderator" || isAdmin
-  
-  // Vérification Premium avec contrôle d'expiration
-  const hasPremiumPlan = dbUser?.plan?.toLowerCase() === "premium" || dbUser?.plan?.toLowerCase() === "enterprise"
-  const subscriptionEndDate = dbUser?.subscription_end_date ? new Date(dbUser.subscription_end_date) : null
-  const isSubscriptionExpired = subscriptionEndDate ? subscriptionEndDate < new Date() : false
-  const isPremium = hasPremiumPlan && !isSubscriptionExpired
-  const isEnterprise = dbUser?.plan?.toLowerCase() === "enterprise" && !isSubscriptionExpired
+  const isPremium = dbUser?.plan?.toLowerCase() === "premium" || dbUser?.plan?.toLowerCase() === "enterprise"
+  const isEnterprise = dbUser?.plan?.toLowerCase() === "enterprise"
 
   return {
     user,

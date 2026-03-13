@@ -1,44 +1,31 @@
 /**
  * API Route: POST /api/payment/subscribe
  *
- * Crée une demande de paiement Chariow pour un abonnement mensuel
- * Le prix de référence (XOF) est stocké en DB. Chariow gère la conversion devise.
+ * Cree une demande de paiement Moneroo pour un abonnement mensuel
+ * Prix: 25 000 XOF/mois - Valable 1 mois
+ * Supporte le renouvellement anticipe : les jours restants sont conserves
  *
  * Body:
  * - userEmail: Email de l'utilisateur
- * - phoneNumber?: Numéro de téléphone
- * - phoneCountryCode?: Code pays ISO (ex: "CI", "SN", "BJ")
- * - firstName?: Prénom de l'utilisateur
- * - lastName?: Nom de l'utilisateur
+ * - userName?: Nom de l'utilisateur
  */
-
-export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import {
-  createSubscriptionCheckout,
+  initializePayment,
   generateRefCommand,
-} from '@/lib/chariow';
-import { PLAN_BASIC, PLAN_PRO } from '@/lib/pricing';
+  getReturnUrl,
+} from '@/lib/moneroo';
 
-const SUBSCRIPTION_DURATION_DAYS = 30; // 1 mois
+const SUBSCRIPTION_PRICE = 25000; // 25 000 XOF
+const SUBSCRIPTION_DURATION_DAYS = 30;
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userEmail, phoneNumber, phoneCountryCode, firstName, lastName, plan } = body;
+    const { userEmail, userName } = body;
 
-    console.log('📨 Requête d\'abonnement reçue:', { userEmail, plan });
-
-    // Déterminer le prix selon le plan choisi
-    const planKey = (plan || 'pro').toLowerCase()
-    const subscriptionPrice = planKey === 'basic' ? PLAN_BASIC.price : PLAN_PRO.price
-    const planName = planKey === 'basic' ? 'Basic' : 'Pro'
-
-    console.log(`💰 Plan: ${planName} — Prix: ${subscriptionPrice} FCFA`);
-
-    // Validation
     if (!userEmail) {
       return NextResponse.json(
         { error: 'User email is required' },
@@ -46,24 +33,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Vérifier si l'utilisateur existe dans la table users
+    // Verifier si l'utilisateur existe
     let { data: existingUser, error: userError } = await supabaseAdmin
       .from('users')
       .select('id, email, name, subscription_status, subscription_end_date')
       .eq('email', userEmail)
       .single();
 
-    // Si l'utilisateur n'existe pas dans la table users, le créer
+    // Si l'utilisateur n'existe pas, le creer
     if (!existingUser || userError?.code === 'PGRST116') {
-      console.log('👤 Utilisateur non trouvé dans la table users, création...');
-
       const { data: authListData } = await supabaseAdmin.auth.admin.listUsers() as any;
       const authUser = authListData?.users?.find((u: any) => u.email === userEmail);
 
       if (!authUser) {
-        console.error('❌ Utilisateur non trouvé dans Auth');
         return NextResponse.json(
-          { error: 'Utilisateur non trouvé. Veuillez vous inscrire d\'abord.' },
+          { error: 'Utilisateur non trouve. Veuillez vous inscrire d\'abord.' },
           { status: 404 }
         );
       }
@@ -82,60 +66,52 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (createError) {
-        console.error('❌ Erreur création utilisateur:', createError);
         return NextResponse.json(
-          { error: 'Impossible de créer le profil utilisateur', details: createError.message },
+          { error: 'Impossible de creer le profil utilisateur', details: createError.message },
           { status: 500 }
         );
       }
 
       existingUser = newUser;
-      console.log('✅ Utilisateur créé:', (existingUser as any)?.id);
     }
 
-    // Permettre le renouvellement anticipé :
-    // Si l'abonnement est encore actif, on ajoute 30 jours à la date de fin existante
-    // Sinon on part d'aujourd'hui + 30 jours
-    const isRenewal = (existingUser as any).subscription_status === 'active' && 
-        (existingUser as any).subscription_end_date && 
-        new Date((existingUser as any).subscription_end_date) > new Date();
+    // Calculer la date de fin
+    const now = new Date();
+    const currentEndDate = (existingUser as any).subscription_end_date
+      ? new Date((existingUser as any).subscription_end_date)
+      : null;
 
-    if (isRenewal) {
-      console.log('🔄 Renouvellement anticipé détecté — abonnement actif jusqu\'au', (existingUser as any).subscription_end_date);
-    }
+    const isCurrentlyActive = (existingUser as any).subscription_status === 'active'
+      && currentEndDate
+      && currentEndDate > now;
 
-    // Générer la référence de commande unique
-    const ref_command = generateRefCommand(isRenewal ? 'REN' : 'SUB');
+    const baseDate = isCurrentlyActive ? currentEndDate : now;
+    const subscriptionEndDate = new Date(baseDate!);
+    subscriptionEndDate.setDate(subscriptionEndDate.getDate() + SUBSCRIPTION_DURATION_DAYS);
 
-    // Date de fin de l'abonnement :
-    // - Renouvellement : date_fin_existante + 30 jours (on ne perd pas les jours restants)
-    // - Nouvel abonnement : aujourd'hui + 30 jours
-    const subscriptionEndDate = isRenewal
-      ? new Date(new Date((existingUser as any).subscription_end_date).getTime() + SUBSCRIPTION_DURATION_DAYS * 24 * 60 * 60 * 1000)
-      : new Date(Date.now() + SUBSCRIPTION_DURATION_DAYS * 24 * 60 * 60 * 1000);
+    const ref_command = generateRefCommand('SUB');
+    const customerName = userName || (existingUser as any).name || userEmail.split('@')[0];
+    const nameParts = customerName.split(' ');
 
-    // Extraire prénom/nom
-    const userName = (existingUser as any).name || '';
-    const nameParts = userName.split(' ');
-    const userFirstName = firstName || nameParts[0] || userEmail.split('@')[0];
-    const userLastName = lastName || nameParts.slice(1).join(' ') || 'Client';
+    const description = isCurrentlyActive
+      ? `Renouvellement Big Five - 1 mois (${ref_command})`
+      : `Abonnement Big Five - 1 mois (${ref_command})`;
 
-    // Enregistrer la demande de paiement dans la base de données
-    console.log('💾 Création enregistrement paiement...');
-    
+    // Creer le paiement dans la base
     const paymentInsert = {
       user_email: userEmail,
-      amount: subscriptionPrice,
+      amount: SUBSCRIPTION_PRICE,
       status: 'pending',
-      payment_method: 'Chariow',
+      payment_method: 'Moneroo',
       ref_command,
-      item_name: `Abonnement Big Five ${planName} - 1 mois`,
       metadata: {
         type: 'subscription',
+        renewal: isCurrentlyActive,
         duration_days: SUBSCRIPTION_DURATION_DAYS,
         subscription_end_date: subscriptionEndDate.toISOString(),
+        previous_end_date: isCurrentlyActive ? currentEndDate!.toISOString() : null,
+        item_name: isCurrentlyActive ? 'Renouvellement Big Five - 1 mois' : 'Abonnement Big Five - 1 mois',
         userId: (existingUser as any).id,
-        phoneNumber: phoneNumber || null,
       },
     };
 
@@ -146,115 +122,73 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (paymentError) {
-      console.error('❌ Erreur création paiement:', paymentError);
+      console.error('Payment creation error:', paymentError);
       return NextResponse.json(
-        { 
-          error: 'Failed to create payment record',
-          details: paymentError.message,
-          hint: paymentError.hint
-        },
+        { error: 'Failed to create payment record', details: paymentError.message },
         { status: 500 }
       );
     }
 
-    console.log('✅ Paiement créé:', (payment as any)?.id);
-
-    // Valider le numéro de téléphone
-    if (!phoneNumber || phoneNumber.replace(/\D/g, '').length < 8) {
-      return NextResponse.json(
-        { error: 'Un numéro de téléphone valide est requis pour le paiement Mobile Money' },
-        { status: 400 }
-      );
-    }
-
-    // Créer le checkout Chariow
-    const chariowResponse = await createSubscriptionCheckout({
-      email: userEmail,
-      firstName: userFirstName,
-      lastName: userLastName,
-      phoneNumber,
-      phoneCountryCode: phoneCountryCode || 'CI',
-      refCommand: ref_command,
-      userId: (existingUser as any).id,
-    });
-
-    // Vérifier la réponse selon le step
-    if (chariowResponse.data.step === 'already_purchased') {
-      return NextResponse.json(
-        { error: 'Vous avez déjà acheté ce produit' },
-        { status: 409 }
-      );
-    }
-
-    if (chariowResponse.data.step === 'payment' && chariowResponse.data.payment?.checkout_url) {
-      const saleId = chariowResponse.data.purchase?.id;
-      const transactionId = chariowResponse.data.payment?.transaction_id;
-      console.log('🎫 Chariow sale_id:', saleId, '| transaction_id:', transactionId);
-
-      // Mettre à jour le paiement avec l'ID de vente Chariow
-      if (saleId) {
-        await (supabaseAdmin as any)
-          .from('payments')
-          .update({
-            chariow_sale_id: saleId,
-            metadata: {
-              ...(payment as any).metadata,
-              chariow_response: {
-                sale_id: saleId,
-                transaction_id: transactionId,
-              }
-            }
-          })
-          .eq('id', (payment as any).id);
-      }
-
-      return NextResponse.json({
-        success: true,
-        payment_id: (payment as any).id,
-        ref_command,
-        redirect_url: chariowResponse.data.payment.checkout_url,
-        sale_id: chariowResponse.data.purchase?.id,
-        amount: subscriptionPrice,
-        duration_days: SUBSCRIPTION_DURATION_DAYS,
-        subscription_end_date: subscriptionEndDate.toISOString(),
+    // Initialiser le paiement Moneroo
+    let monerooResponse;
+    try {
+      monerooResponse = await initializePayment({
+        amount: SUBSCRIPTION_PRICE,
+        currency: 'XOF',
+        description,
+        return_url: getReturnUrl(ref_command),
+        customer: {
+          email: userEmail,
+          first_name: nameParts[0] || 'Client',
+          last_name: nameParts.slice(1).join(' ') || 'Big Five',
+          phone: undefined,
+        },
+        metadata: {
+          ref_command,
+          type: 'subscription',
+          user_id: (existingUser as any).id,
+          renewal: isCurrentlyActive ? 'true' : 'false',
+        },
       });
-    }
+    } catch (monerooError) {
+      console.error('Moneroo initialization error:', monerooError);
 
-    if (chariowResponse.data.step === 'completed') {
-      // Produit gratuit - complété directement
+      // Marquer le paiement comme echoue
       await (supabaseAdmin as any)
         .from('payments')
-        .update({ 
-          status: 'completed',
-          chariow_sale_id: chariowResponse.data.purchase?.id,
-          completed_at: new Date().toISOString(),
-        })
+        .update({ status: 'failed' })
         .eq('id', (payment as any).id);
 
-      return NextResponse.json({
-        success: true,
-        payment_id: (payment as any).id,
-        ref_command,
-        completed: true,
-        sale_id: chariowResponse.data.purchase?.id,
-      });
+      const errorMsg = monerooError instanceof Error ? monerooError.message : 'Erreur Moneroo';
+      return NextResponse.json(
+        { error: 'Le service de paiement est temporairement indisponible. Veuillez reessayer.', details: errorMsg },
+        { status: 502 }
+      );
     }
 
-    // Échec
+    // Stocker l'ID Moneroo dans le paiement
     await (supabaseAdmin as any)
       .from('payments')
-      .update({ status: 'failed' })
+      .update({
+        moneroo_payment_id: monerooResponse.data.id,
+      })
       .eq('id', (payment as any).id);
 
-    return NextResponse.json(
-      { error: 'Impossible de créer le checkout Chariow' },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      success: true,
+      payment_id: (payment as any).id,
+      ref_command,
+      redirect_url: monerooResponse.data.checkout_url,
+      amount: SUBSCRIPTION_PRICE,
+      duration_days: SUBSCRIPTION_DURATION_DAYS,
+      subscription_end_date: subscriptionEndDate.toISOString(),
+      renewal: isCurrentlyActive,
+    });
 
   } catch (error) {
     console.error('Subscription payment error:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error'
       },

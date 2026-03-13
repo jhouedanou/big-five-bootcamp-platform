@@ -1,19 +1,13 @@
 /**
  * API Route: POST /api/payment/check/[ref_command]
  *
- * Vérifie le statut d'un paiement directement auprès de Chariow
- * et met à jour la base de données si le paiement est complété.
- *
- * Fallback si le webhook Pulse n'a pas été reçu.
- *
- * Body (optionnel):
- * - sale_id?: ID de vente Chariow (passé par la page de succès si dispo dans l'URL)
+ * Verifie le statut d'un paiement directement aupres de Moneroo
+ * et met a jour la base de donnees si le paiement est complete.
+ * Fallback si le webhook n'a pas ete recu.
  */
 
-export const dynamic = 'force-dynamic';
-
 import { NextRequest, NextResponse } from 'next/server';
-import { getSale } from '@/lib/chariow';
+import { retrievePayment } from '@/lib/moneroo';
 import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
@@ -35,18 +29,7 @@ export async function POST(
       );
     }
 
-    // Lire le body optionnel (peut contenir sale_id)
-    let bodySaleId: string | undefined;
-    try {
-      const body = await request.json();
-      bodySaleId = body?.sale_id;
-    } catch {
-      // Pas de body, c'est OK
-    }
-
-    console.log('🔍 Checking payment status with Chariow:', ref_command, bodySaleId ? `(sale_id from body: ${bodySaleId})` : '');
-
-    // 1. Récupérer le paiement dans notre base
+    // 1. Recuperer le paiement dans notre base
     const { data: payment, error: paymentError } = await supabase
       .from('payments')
       .select('*')
@@ -62,7 +45,7 @@ export async function POST(
 
     const paymentData = payment as any;
 
-    // Si déjà complété, retourner les infos
+    // Deja complete
     if (paymentData.status === 'completed') {
       return NextResponse.json({
         success: true,
@@ -76,116 +59,56 @@ export async function POST(
       });
     }
 
-    // 2. Déterminer le sale_id : DB > body > metadata
-    const saleId = paymentData.chariow_sale_id
-      || bodySaleId
-      || paymentData.metadata?.chariow_response?.sale_id;
-
-    if (!saleId) {
-      console.log('⚠️ No sale_id available for', ref_command);
-      return NextResponse.json({
-        success: false,
-        message: 'Waiting for payment confirmation (no sale ID yet)',
-        payment: {
-          ref_command: paymentData.ref_command,
-          status: paymentData.status,
-        },
-      });
+    // 2. Verifier aupres de Moneroo
+    const monerooId = paymentData.moneroo_payment_id;
+    if (!monerooId) {
+      return NextResponse.json(
+        { error: 'No Moneroo payment ID found' },
+        { status: 400 }
+      );
     }
 
-    // Si on a un sale_id du body mais pas en DB, le sauvegarder
-    if (!paymentData.chariow_sale_id && saleId) {
-      await supabase
-        .from('payments')
-        .update({ chariow_sale_id: saleId })
-        .eq('id', paymentData.id);
-    }
+    const monerooResult = await retrievePayment(monerooId);
+    const monerooData = monerooResult.data;
 
-    const chariowSale = await getSale(saleId);
-    console.log('📥 Chariow sale status:', chariowSale.data?.status);
+    console.log('Moneroo check result:', {
+      id: monerooData.id,
+      status: monerooData.status,
+    });
 
-    if (!chariowSale.data) {
-      return NextResponse.json({
-        success: false,
-        message: 'Could not verify payment with Chariow',
-        payment: {
-          ref_command: paymentData.ref_command,
-          status: paymentData.status,
-        },
-      });
-    }
-
-    // 3. Si le paiement est confirmé par Chariow, mettre à jour notre base
-    if (chariowSale.data.status === 'completed') {
-      console.log('✅ Chariow confirms payment success, updating database...');
-
+    // 3. Si le paiement est confirme, mettre a jour
+    if (monerooData.status === 'success') {
       const updateData: Record<string, unknown> = {
         status: 'completed',
-        payment_method: chariowSale.data.payment?.method?.name || 'Chariow',
-        completed_at: chariowSale.data.completed_at || new Date().toISOString(),
-        final_amount: chariowSale.data.amount?.value || paymentData.amount,
-        chariow_sale_id: saleId,
+        payment_method: monerooData.method?.name || 'Moneroo',
+        client_phone: monerooData.payment_phone_number || monerooData.customer?.phone,
+        completed_at: monerooData.processed_at || new Date().toISOString(),
+        final_amount: monerooData.amount,
       };
 
-      const { error: updateError } = await supabase
+      await supabase
         .from('payments')
         .update(updateData)
         .eq('id', paymentData.id);
 
-      if (updateError) {
-        console.error('Error updating payment:', updateError);
-        return NextResponse.json(
-          { error: 'Failed to update payment status' },
-          { status: 500 }
-        );
-      }
-
       // Si c'est un abonnement, activer l'utilisateur
       if (paymentData.metadata?.type === 'subscription' && paymentData.metadata?.userId) {
-        const userId = paymentData.metadata.userId;
+        const subscriptionEndDate = paymentData.metadata.subscription_end_date
+          ? new Date(paymentData.metadata.subscription_end_date)
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-        // Récupérer l'abonnement actuel pour gérer le renouvellement anticipé
-        const { data: currentUser } = await supabase
+        await supabase
           .from('users')
-          .select('subscription_status, subscription_end_date, subscription_start_date')
-          .eq('id', userId)
-          .single();
+          .update({
+            plan: 'Premium',
+            subscription_status: 'active',
+            subscription_start_date: new Date().toISOString(),
+            subscription_end_date: subscriptionEndDate.toISOString(),
+            updated_at: new Date().toISOString(),
+          } as any)
+          .eq('id', paymentData.metadata.userId);
 
-        const now = new Date();
-        const isRenewal = (currentUser as any)?.subscription_status === 'active' &&
-          (currentUser as any)?.subscription_end_date &&
-          new Date((currentUser as any).subscription_end_date) > now;
-
-        // Si renouvellement anticipé, ajouter 30 jours à la date de fin existante
-        let subscriptionEndDate: Date;
-        if (isRenewal) {
-          const existingEnd = new Date((currentUser as any).subscription_end_date);
-          subscriptionEndDate = new Date(existingEnd.getTime() + 30 * 24 * 60 * 60 * 1000);
-          console.log('🔄 Renouvellement anticipé:', existingEnd.toISOString(), '→', subscriptionEndDate.toISOString());
-        } else {
-          subscriptionEndDate = paymentData.metadata.subscription_end_date
-            ? new Date(paymentData.metadata.subscription_end_date)
-            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-        }
-
-        const userUpdateData: Record<string, unknown> = {
-          plan: 'Premium',
-          subscription_status: 'active',
-          subscription_start_date: isRenewal ? (currentUser as any).subscription_start_date || now.toISOString() : now.toISOString(),
-          subscription_end_date: subscriptionEndDate.toISOString(),
-          updated_at: now.toISOString(),
-        };
-
-        const { error: userError } = await supabase
-          .from('users')
-          .update(userUpdateData)
-          .eq('id', userId);
-
-        if (userError) {
-          console.error('Error updating user:', userError);
-        } else {
-          console.log('✅ User subscription activated:', userId);
-        }
+        console.log('User subscription activated:', paymentData.metadata.userId);
       }
 
       return NextResponse.json({
@@ -194,20 +117,19 @@ export async function POST(
         payment: {
           ref_command: paymentData.ref_command,
           status: 'completed',
-          amount: chariowSale.data.amount?.value || paymentData.amount,
-          completed_at: chariowSale.data.completed_at,
+          amount: monerooData.amount,
         },
       });
     }
 
-    // Paiement pas encore complété
+    // Paiement pas encore complete
     return NextResponse.json({
       success: false,
       message: 'Payment not yet completed',
       payment: {
         ref_command: paymentData.ref_command,
         status: paymentData.status,
-        chariow_status: chariowSale.data.status,
+        moneroo_status: monerooData.status,
       },
     });
 

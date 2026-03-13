@@ -12,7 +12,6 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, Shield, Scale } from "lucide-react";
-import { useProductPrice } from "@/hooks/use-product-price";
 
 interface LegalModalProps {
   trigger?: React.ReactNode;
@@ -20,7 +19,6 @@ interface LegalModalProps {
 }
 
 export function LegalModal({ trigger, defaultTab = "cgu" }: LegalModalProps) {
-  const { label: priceLabel, currency: priceCurrency } = useProductPrice();
   const [open, setOpen] = useState(false);
 
   return (
@@ -169,7 +167,7 @@ export function LegalModal({ trigger, defaultTab = "cgu" }: LegalModalProps) {
                 <ul className="list-disc pl-6 space-y-1 text-sm">
                   <li><strong>Plan Gratuit (Free) :</strong> 0 FCFA - Accès limité aux contenus de base</li>
                   <li><strong>Plan Pro :</strong> 15 000 FCFA/mois - Accès complet aux contenus premium</li>
-                  <li><strong>Plan Premium :</strong> {priceLabel} {priceCurrency}/mois - Tous les avantages Pro + support prioritaire</li>
+                  <li><strong>Plan Premium :</strong> 25 000 FCFA/mois - Tous les avantages Pro + support prioritaire</li>
                 </ul>
                 <p className="text-sm leading-relaxed mt-2">
                   Les prix peuvent être modifiés à tout moment, mais les abonnements en cours 
@@ -180,7 +178,7 @@ export function LegalModal({ trigger, defaultTab = "cgu" }: LegalModalProps) {
                 <p className="text-sm leading-relaxed">
                   Les paiements sont acceptés via Mobile Money (Orange Money, MTN Mobile Money, Moov 
                   Money) et carte bancaire. Les paiements sont traités de manière sécurisée via notre 
-                  partenaire Chariow. Tous les paiements sont finalisés au moment de l&apos;achat.
+                  partenaire PayTech. Tous les paiements sont finalisés au moment de l&apos;achat.
                 </p>
 
                 <h3 className="text-lg font-semibold mt-6 mb-3">4. Abonnements et renouvellement</h3>
@@ -259,7 +257,7 @@ export function LegalModal({ trigger, defaultTab = "cgu" }: LegalModalProps) {
                 </p>
                 <ul className="list-disc pl-6 space-y-1 text-sm">
                   <li><strong>Informations d&apos;identification :</strong> nom, prénom, adresse email</li>
-                  <li><strong>Informations de paiement :</strong> coordonnées de paiement (traitées de manière sécurisée par Chariow)</li>
+                  <li><strong>Informations de paiement :</strong> coordonnées de paiement (traitées de manière sécurisée par PayTech)</li>
                   <li><strong>Informations d&apos;utilisation :</strong> pages visitées, contenus consultés, temps passé</li>
                   <li><strong>Informations techniques :</strong> adresse IP, type de navigateur, système d&apos;exploitation</li>
                   <li><strong>Cookies et technologies similaires :</strong> pour améliorer votre expérience</li>
@@ -285,7 +283,7 @@ export function LegalModal({ trigger, defaultTab = "cgu" }: LegalModalProps) {
                   informations avec :
                 </p>
                 <ul className="list-disc pl-6 space-y-1 text-sm">
-                  <li><strong>Prestataires de services :</strong> Chariow (paiements), Supabase (hébergement données)</li>
+                  <li><strong>Prestataires de services :</strong> PayTech (paiements), Supabase (hébergement données)</li>
                   <li><strong>Partenaires commerciaux :</strong> uniquement avec votre consentement explicite</li>
                   <li><strong>Autorités légales :</strong> si requis par la loi</li>
                 </ul>

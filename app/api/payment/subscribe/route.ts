@@ -3,6 +3,7 @@
  *
  * Cree une demande de paiement Moneroo pour un abonnement mensuel
  * Prix: 25 000 XOF/mois - Valable 1 mois
+ * Supporte le renouvellement anticipé : les jours restants sont conserves
  *
  * Body:
  * - userEmail: Email de l'utilisateur
@@ -74,25 +75,28 @@ export async function POST(request: NextRequest) {
       existingUser = newUser;
     }
 
-    // Verifier si un abonnement actif existe deja
-    if ((existingUser as any).subscription_status === 'active' &&
-        (existingUser as any).subscription_end_date &&
-        new Date((existingUser as any).subscription_end_date) > new Date()) {
-      return NextResponse.json(
-        {
-          error: 'You already have an active subscription',
-          subscription_end_date: (existingUser as any).subscription_end_date
-        },
-        { status: 409 }
-      );
-    }
+    // Calculer la date de fin : si abonnement actif, prolonger a partir de la fin actuelle
+    const now = new Date();
+    const currentEndDate = (existingUser as any).subscription_end_date
+      ? new Date((existingUser as any).subscription_end_date)
+      : null;
 
-    const ref_command = generateRefCommand('SUB');
-    const subscriptionEndDate = new Date();
+    const isCurrentlyActive = (existingUser as any).subscription_status === 'active'
+      && currentEndDate
+      && currentEndDate > now;
+
+    // Si actif, on ajoute 30 jours a la fin actuelle ; sinon, 30 jours a partir de maintenant
+    const baseDate = isCurrentlyActive ? currentEndDate : now;
+    const subscriptionEndDate = new Date(baseDate!);
     subscriptionEndDate.setDate(subscriptionEndDate.getDate() + SUBSCRIPTION_DURATION_DAYS);
 
+    const ref_command = generateRefCommand('SUB');
     const customerName = userName || (existingUser as any).name || userEmail.split('@')[0];
     const nameParts = customerName.split(' ');
+
+    const description = isCurrentlyActive
+      ? `Renouvellement Big Five - 1 mois (${ref_command})`
+      : `Abonnement Big Five - 1 mois (${ref_command})`;
 
     // Creer le paiement dans la base
     const paymentInsert = {
@@ -103,9 +107,11 @@ export async function POST(request: NextRequest) {
       ref_command,
       metadata: {
         type: 'subscription',
+        renewal: isCurrentlyActive,
         duration_days: SUBSCRIPTION_DURATION_DAYS,
         subscription_end_date: subscriptionEndDate.toISOString(),
-        item_name: 'Abonnement Big Five - 1 mois',
+        previous_end_date: isCurrentlyActive ? currentEndDate!.toISOString() : null,
+        item_name: isCurrentlyActive ? 'Renouvellement Big Five - 1 mois' : 'Abonnement Big Five - 1 mois',
         userId: (existingUser as any).id,
       },
     };
@@ -128,7 +134,7 @@ export async function POST(request: NextRequest) {
     const monerooResponse = await initializePayment({
       amount: SUBSCRIPTION_PRICE,
       currency: 'XOF',
-      description: `Abonnement Big Five - 1 mois (${ref_command})`,
+      description,
       return_url: getReturnUrl(ref_command),
       customer: {
         email: userEmail,
@@ -140,6 +146,7 @@ export async function POST(request: NextRequest) {
         ref_command,
         type: 'subscription',
         user_id: (existingUser as any).id,
+        renewal: isCurrentlyActive ? 'true' : 'false',
       },
     });
 
@@ -159,6 +166,7 @@ export async function POST(request: NextRequest) {
       amount: SUBSCRIPTION_PRICE,
       duration_days: SUBSCRIPTION_DURATION_DAYS,
       subscription_end_date: subscriptionEndDate.toISOString(),
+      renewal: isCurrentlyActive,
     });
 
   } catch (error) {

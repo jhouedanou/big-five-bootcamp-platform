@@ -123,8 +123,9 @@ export function useSupabaseAuth() {
   }
 
   const resetPassword = async (email: string) => {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: `${baseUrl}/auth/callback?type=recovery&next=/update-password`,
     })
     return { data, error }
   }

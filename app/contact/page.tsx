@@ -1,9 +1,51 @@
+"use client"
+
+import { useState } from "react"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
-import { Mail, MapPin, Phone, Send } from "lucide-react"
+import { Mail, MapPin, Phone, Send, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
 
 export default function ContactPage() {
+    const [formData, setFormData] = useState({
+        firstName: "",
+        lastName: "",
+        email: "",
+        message: "",
+    })
+    const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
+    const [errorMessage, setErrorMessage] = useState("")
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault()
+        setStatus("loading")
+        setErrorMessage("")
+
+        try {
+            const res = await fetch("/api/contact", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(formData),
+            })
+
+            const data = await res.json()
+
+            if (!res.ok) {
+                throw new Error(data.error || "Une erreur est survenue")
+            }
+
+            setStatus("success")
+            setFormData({ firstName: "", lastName: "", email: "", message: "" })
+        } catch (err) {
+            setStatus("error")
+            setErrorMessage(err instanceof Error ? err.message : "Une erreur est survenue")
+        }
+    }
+
     return (
         <div className="flex min-h-screen flex-col bg-background">
             <Navbar />
@@ -18,7 +60,7 @@ export default function ContactPage() {
                         <h1 className="text-4xl lg:text-6xl font-extrabold tracking-tight mb-6 text-[#1A1F2B]">
                             On discute ?
                         </h1>
-                        <p className="text-lg text-[#1A1F2B]/70 max-w-2xl mx-auto">
+                        <p className=" text-lg text-[#1A1F2B]/70 pt-12 text-center my-8">
                             Une question sur nos offres ? Besoin d'une démo personnalisée ? Notre équipe est là pour vous aider à décoller.
                         </p>
                     </div>
@@ -38,7 +80,7 @@ export default function ContactPage() {
                                             </div>
                                             <div>
                                                 <p className="font-medium">Email</p>
-                                                <p className="text-sm text-muted-foreground">hello@bigfiveCreative Library.com</p>
+                                                <p className="text-sm text-muted-foreground">contact@bigfive.solutions.com</p>
                                             </div>
                                         </div>
                                         <div className="flex items-start gap-4">
@@ -47,7 +89,7 @@ export default function ContactPage() {
                                             </div>
                                             <div>
                                                 <p className="font-medium">Bureau</p>
-                                                <p className="text-sm text-muted-foreground">Abidjan, Côte d'Ivoire<br />Cocody Rivera 3</p>
+                                                <p className="text-sm text-muted-foreground">Abidjan, Côte d'Ivoire<br />Treichville Rue des Carrossiers, Immeuble Habitat Africain</p>
                                             </div>
                                         </div>
                                         <div className="flex items-start gap-4">
@@ -56,7 +98,7 @@ export default function ContactPage() {
                                             </div>
                                             <div>
                                                 <p className="font-medium">Téléphone</p>
-                                                <p className="text-sm text-muted-foreground">+225 07 00 00 00 00</p>
+                                                <p className="text-sm text-muted-foreground">+225 07 47 97 06 27</p>
                                             </div>
                                         </div>
                                     </div>
@@ -67,28 +109,87 @@ export default function ContactPage() {
                             <div className="lg:col-span-2">
                                 <div className="p-8 rounded-2xl bg-card border border-border shadow-xl">
                                     <h3 className="font-bold text-xl mb-6">Envoyez-nous un message</h3>
-                                    <form className="space-y-6">
+
+                                    {status === "success" && (
+                                        <div className="mb-6 flex items-center gap-3 rounded-lg bg-green-50 border border-green-200 p-4 text-green-800">
+                                            <CheckCircle2 className="h-5 w-5 shrink-0" />
+                                            <p className="text-sm font-medium">Votre message a bien été envoyé ! Nous vous répondrons dans les plus brefs délais.</p>
+                                        </div>
+                                    )}
+
+                                    {status === "error" && (
+                                        <div className="mb-6 flex items-center gap-3 rounded-lg bg-red-50 border border-red-200 p-4 text-red-800">
+                                            <AlertCircle className="h-5 w-5 shrink-0" />
+                                            <p className="text-sm font-medium">{errorMessage}</p>
+                                        </div>
+                                    )}
+
+                                    <form onSubmit={handleSubmit} className="space-y-6">
                                         <div className="grid md:grid-cols-2 gap-6">
                                             <div className="space-y-2">
                                                 <label className="text-sm font-medium">Prénom</label>
-                                                <input type="text" className="w-full h-12 rounded-lg border border-input bg-background px-3 focus:ring-2 focus:ring-primary/20 transition-all outline-none" placeholder="Jean" />
+                                                <input
+                                                    type="text"
+                                                    name="firstName"
+                                                    value={formData.firstName}
+                                                    onChange={handleChange}
+                                                    required
+                                                    className="w-full h-12 rounded-lg border border-input bg-background px-3 focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                                                    placeholder="Jean"
+                                                />
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-sm font-medium">Nom</label>
-                                                <input type="text" className="w-full h-12 rounded-lg border border-input bg-background px-3 focus:ring-2 focus:ring-primary/20 transition-all outline-none" placeholder="Kouassi" />
+                                                <input
+                                                    type="text"
+                                                    name="lastName"
+                                                    value={formData.lastName}
+                                                    onChange={handleChange}
+                                                    required
+                                                    className="w-full h-12 rounded-lg border border-input bg-background px-3 focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                                                    placeholder="Kouassi"
+                                                />
                                             </div>
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-sm font-medium">Email professionnel</label>
-                                            <input type="email" className="w-full h-12 rounded-lg border border-input bg-background px-3 focus:ring-2 focus:ring-primary/20 transition-all outline-none" placeholder="jean@agence.com" />
+                                            <input
+                                                type="email"
+                                                name="email"
+                                                value={formData.email}
+                                                onChange={handleChange}
+                                                required
+                                                className="w-full h-12 rounded-lg border border-input bg-background px-3 focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+                                                placeholder="jean@agence.com"
+                                            />
                                         </div>
                                         <div className="space-y-2">
                                             <label className="text-sm font-medium">Message</label>
-                                            <textarea className="w-full min-h-[150px] rounded-lg border border-input bg-background p-3 focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-y" placeholder="Comment pouvons-nous vous aider ?" />
+                                            <textarea
+                                                name="message"
+                                                value={formData.message}
+                                                onChange={handleChange}
+                                                required
+                                                className="w-full min-h-[150px] rounded-lg border border-input bg-background p-3 focus:ring-2 focus:ring-primary/20 transition-all outline-none resize-y"
+                                                placeholder="Comment pouvons-nous vous aider ?"
+                                            />
                                         </div>
-                                        <Button className="w-full h-12 text-base font-semibold shadow-lg shadow-primary/25">
-                                            Envoyer le message
-                                            <Send className="ml-2 h-4 w-4" />
+                                        <Button
+                                            type="submit"
+                                            disabled={status === "loading"}
+                                            className="w-full h-12 text-base font-semibold shadow-lg shadow-primary/25"
+                                        >
+                                            {status === "loading" ? (
+                                                <>
+                                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    Envoi en cours...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    Envoyer le message
+                                                    <Send className="ml-2 h-4 w-4" />
+                                                </>
+                                            )}
                                         </Button>
                                     </form>
                                 </div>

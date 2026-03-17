@@ -183,15 +183,61 @@ export default function ContentDetailClient({ id }: { id: string }) {
 
         setContent(campaign);
 
-        // Récupérer les contenus similaires
-        const { data: related } = await supabase
-          .from('campaigns')
-          .select('*')
-          .neq('id', id)
-          .eq('status', 'Publié')
-          .limit(4);
+        // Récupérer les contenus similaires basés sur les tags, catégorie et marque
+        let related: Campaign[] = [];
 
-        setRelatedContent(related || []);
+        // 1. Chercher par tags communs (meilleure pertinence)
+        if (campaign.tags && campaign.tags.length > 0) {
+          const { data: tagMatches } = await supabase
+            .from('campaigns')
+            .select('*')
+            .neq('id', campaign.id)
+            .eq('status', 'Publié')
+            .overlaps('tags', campaign.tags)
+            .limit(4);
+          if (tagMatches) related = tagMatches;
+        }
+
+        // 2. Si pas assez, compléter par catégorie
+        if (related.length < 4 && campaign.category) {
+          const existingIds = [campaign.id, ...related.map(r => r.id)];
+          const { data: catMatches } = await supabase
+            .from('campaigns')
+            .select('*')
+            .not('id', 'in', `(${existingIds.join(',')})`)
+            .eq('status', 'Publié')
+            .eq('category', campaign.category)
+            .limit(4 - related.length);
+          if (catMatches) related = [...related, ...catMatches];
+        }
+
+        // 3. Si pas assez, compléter par marque
+        if (related.length < 4 && campaign.brand) {
+          const existingIds = [campaign.id, ...related.map(r => r.id)];
+          const { data: brandMatches } = await supabase
+            .from('campaigns')
+            .select('*')
+            .not('id', 'in', `(${existingIds.join(',')})`)
+            .eq('status', 'Publié')
+            .eq('brand', campaign.brand)
+            .limit(4 - related.length);
+          if (brandMatches) related = [...related, ...brandMatches];
+        }
+
+        // 4. Si toujours pas assez, compléter avec des campagnes récentes
+        if (related.length < 4) {
+          const existingIds = [campaign.id, ...related.map(r => r.id)];
+          const { data: recentMatches } = await supabase
+            .from('campaigns')
+            .select('*')
+            .not('id', 'in', `(${existingIds.join(',')})`)
+            .eq('status', 'Publié')
+            .order('created_at', { ascending: false })
+            .limit(4 - related.length);
+          if (recentMatches) related = [...related, ...recentMatches];
+        }
+
+        setRelatedContent(related);
       } catch (err) {
         console.error('Error:', err);
         setError('Erreur lors du chargement');
@@ -445,39 +491,6 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 </CardContent>
               </Card>
             )}
-
-            {/* Tags */}
-            {content.tags && content.tags.length > 0 && (
-              <Card>
-                <CardContent className="p-6">
-                  <h2 className="font-semibold text-lg mb-3">Tags</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {content.tags.map((tag) => (
-                      <Badge
-                        key={tag}
-                        variant="secondary"
-                        className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Sidebar - sticky avec galerie */}
-          <div className="lg:sticky lg:top-6 space-y-6">
-            {/* Galerie d'images */}
-            {hasGallery && (
-              <ImageGallery
-                mainImage={content.thumbnail}
-                images={content.images || []}
-                title={content.title}
-              />
-            )}
-
             {/* Metadata card */}
             <Card>
               <CardContent className="p-6 space-y-4">
@@ -548,6 +561,39 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 </div>
               </CardContent>
             </Card>
+            {/* Tags */}
+            {content.tags && content.tags.length > 0 && (
+              <Card>
+                <CardContent className="p-6">
+                  <h2 className="font-semibold text-lg mb-3">Tags</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {content.tags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant="secondary"
+                        className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Sidebar - sticky avec galerie */}
+          <div className="lg:sticky lg:top-6 space-y-6">
+            {/* Galerie d'images */}
+            {hasGallery && (
+              <ImageGallery
+                mainImage={content.thumbnail}
+                images={content.images || []}
+                title={content.title}
+              />
+            )}
+
+
 
             {/* Related content */}
             {relatedContent.length > 0 && (

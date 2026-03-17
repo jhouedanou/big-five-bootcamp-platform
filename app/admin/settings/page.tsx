@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Save, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Save, Lock, Eye, EyeOff, Loader2, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
@@ -16,6 +16,58 @@ export default function SettingsPage() {
     emailNotifications: true,
     publicAccess: true,
   });
+
+  // Email contact settings
+  const [contactToEmail, setContactToEmail] = useState("");
+  const [contactFromEmail, setContactFromEmail] = useState("");
+  const [isLoadingEmailSettings, setIsLoadingEmailSettings] = useState(true);
+  const [isSavingEmailSettings, setIsSavingEmailSettings] = useState(false);
+
+  // Charger les paramètres email depuis la BDD
+  useEffect(() => {
+    const fetchEmailSettings = async () => {
+      try {
+        const res = await fetch("/api/admin/settings");
+        const data = await res.json();
+        if (data.settings) {
+          setContactToEmail(data.settings.contact_to_email || "contact@bigfive.solutions.com");
+          setContactFromEmail(data.settings.contact_from_email || "Big Five <onboarding@resend.dev>");
+        }
+      } catch {
+        console.error("Erreur chargement paramètres email");
+      } finally {
+        setIsLoadingEmailSettings(false);
+      }
+    };
+    fetchEmailSettings();
+  }, []);
+
+  const handleSaveEmailSettings = async () => {
+    setIsSavingEmailSettings(true);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          settings: {
+            contact_to_email: contactToEmail,
+            contact_from_email: contactFromEmail,
+          },
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Erreur");
+      }
+
+      toast.success("Paramètres email enregistrés");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur lors de la sauvegarde");
+    } finally {
+      setIsSavingEmailSettings(false);
+    }
+  };
 
   // Password change state
   const [currentPassword, setCurrentPassword] = useState("");
@@ -178,6 +230,73 @@ export default function SettingsPage() {
                 </>
               )}
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Email Contact Settings */}
+        <Card className="bg-white border-gray-200 shadow-sm">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-purple-500/10">
+                <Mail className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <CardTitle className="text-gray-900">Emails de contact</CardTitle>
+                <CardDescription className="text-gray-600">
+                  Configurez les adresses email utilisées par le formulaire de contact
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 max-w-lg">
+            {isLoadingEmailSettings ? (
+              <div className="flex items-center gap-2 text-gray-500 py-4">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm">Chargement des paramètres...</span>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <Label htmlFor="contactToEmail" className="text-gray-900">Email destinataire</Label>
+                  <p className="text-xs text-gray-500 mb-1.5">L'adresse qui reçoit les messages du formulaire</p>
+                  <Input
+                    id="contactToEmail"
+                    type="email"
+                    value={contactToEmail}
+                    onChange={(e) => setContactToEmail(e.target.value)}
+                    placeholder="contact@bigfive.solutions.com"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="contactFromEmail" className="text-gray-900">Email expéditeur</Label>
+                  <p className="text-xs text-gray-500 mb-1.5">L'adresse affichée comme expéditeur (doit être vérifiée sur Resend)</p>
+                  <Input
+                    id="contactFromEmail"
+                    type="text"
+                    value={contactFromEmail}
+                    onChange={(e) => setContactFromEmail(e.target.value)}
+                    placeholder="Big Five <onboarding@resend.dev>"
+                  />
+                </div>
+                <Button
+                  onClick={handleSaveEmailSettings}
+                  disabled={isSavingEmailSettings || !contactToEmail}
+                  className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-lg shadow-purple-500/25"
+                >
+                  {isSavingEmailSettings ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Enregistrement...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Enregistrer les emails
+                    </>
+                  )}
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
 

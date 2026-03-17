@@ -39,7 +39,7 @@ export async function POST(request: Request) {
     }
 
     const { name, email, password } = validation.data
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://v0-big-five-bootcamp-platform.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://library.bigfive.solutions'
 
     // Méthode principale : signUp() pour que Supabase envoie l'email de confirmation
     const supabaseAnon = createClient(

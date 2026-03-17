@@ -135,6 +135,8 @@ function CampaignsPageContent() {
   const [previewImageIndex, setPreviewImageIndex] = useState(0);
   const [currentStep, setCurrentStep] = useState(1);
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
 
   // Extraire tous les tags existants des campagnes pour les suggestions
   const existingTags = useMemo(() => {
@@ -189,6 +191,12 @@ function CampaignsPageContent() {
     const matchesSector = filterSector === "all" || item.sector === filterSector;
     return matchesSearch && matchesSector;
   });
+
+  const totalPages = Math.ceil(filteredCampaigns.length / ITEMS_PER_PAGE);
+  const paginatedCampaigns = filteredCampaigns.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   const handleOpenAdd = () => {
     setEditingCampaign(null);
@@ -376,11 +384,11 @@ function CampaignsPageContent() {
               <Input
                 placeholder="Rechercher par titre, marque ou agence..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                 className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
               />
             </div>
-            <Select value={filterSector} onValueChange={setFilterSector}>
+            <Select value={filterSector} onValueChange={(v) => { setFilterSector(v); setCurrentPage(1); }}>
               <SelectTrigger className="w-full sm:w-[200px] bg-white border-gray-300 text-gray-900">
                 <SelectValue placeholder="Filtrer par secteur" />
               </SelectTrigger>
@@ -405,7 +413,7 @@ function CampaignsPageContent() {
             </CardContent>
           </Card>
         ) : (
-          filteredCampaigns.map((item) => (
+          paginatedCampaigns.map((item) => (
             <Card key={item.id} className="bg-white border-gray-200 shadow-sm hover:shadow-md transition-shadow">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-4">
@@ -551,6 +559,61 @@ function CampaignsPageContent() {
           ))
         )}
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-4">
+          <p className="text-sm text-gray-500">
+            Affichage {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredCampaigns.length)} sur {filteredCampaigns.length} campagnes
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="text-gray-700 border-gray-300"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Précédent
+            </Button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(page => {
+                  if (totalPages <= 7) return true;
+                  if (page === 1 || page === totalPages) return true;
+                  if (Math.abs(page - currentPage) <= 1) return true;
+                  return false;
+                })
+                .map((page, idx, arr) => (
+                  <span key={page}>
+                    {idx > 0 && arr[idx - 1] !== page - 1 && (
+                      <span className="px-1 text-gray-400">…</span>
+                    )}
+                    <Button
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                      className={currentPage === page ? "bg-[#FF6B35] hover:bg-[#e55a2b] text-white min-w-[36px]" : "text-gray-700 border-gray-300 min-w-[36px]"}
+                    >
+                      {page}
+                    </Button>
+                  </span>
+                ))}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="text-gray-700 border-gray-300"
+            >
+              Suivant
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Preview Dialog */}
       <Dialog open={!!previewCampaign} onOpenChange={() => { setPreviewCampaign(null); setPreviewImageIndex(0); }}>

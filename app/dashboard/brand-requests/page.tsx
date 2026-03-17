@@ -43,8 +43,13 @@ export default function BrandRequestsPage() {
   const [brandSector, setBrandSector] = useState("")
   const [notes, setNotes] = useState("")
 
+  // Suggestions depuis la base de données
+  const [suggestedBrands, setSuggestedBrands] = useState<string[]>([])
+  const [suggestedCountries, setSuggestedCountries] = useState<string[]>([])
+  const [suggestedSectors, setSuggestedSectors] = useState<string[]>([])
+
   const supabase = createClient()
-  const isAllowed = ['pro', 'premium', 'agency', 'enterprise'].includes(userPlan.toLowerCase())
+  const isAllowed = ['agency', 'enterprise'].includes(userPlan.toLowerCase())
 
   useEffect(() => {
     loadData()
@@ -71,6 +76,17 @@ export default function BrandRequestsPage() {
         const data = await res.json()
         setRequests(data.requests || [])
       }
+
+      // Charger les suggestions depuis la base de données
+      try {
+        const suggestionsRes = await fetch('/api/campaigns/suggestions')
+        if (suggestionsRes.ok) {
+          const suggestions = await suggestionsRes.json()
+          setSuggestedBrands(suggestions.brands || [])
+          setSuggestedCountries(suggestions.countries || [])
+          setSuggestedSectors(suggestions.categories || [])
+        }
+      } catch { /* ignore */ }
     } catch { /* ignore */ } finally { setLoading(false) }
   }
 
@@ -126,9 +142,9 @@ export default function BrandRequestsPage() {
           ) : !isAllowed ? (
             <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#D0E4F2] bg-white p-12 text-center">
               <Lock className="h-12 w-12 text-[#1A1F2B]/20 mb-4" />
-              <h3 className="text-xl font-bold text-[#1A1F2B] mb-2">Fonctionnalité Pro / Agency</h3>
+              <h3 className="text-xl font-bold text-[#1A1F2B] mb-2">Fonctionnalité Agency</h3>
               <p className="text-[#1A1F2B]/60 max-w-md mb-6">
-                Le suivi de marques est disponible avec les plans Pro et Agency. Passez à un plan supérieur pour en profiter.
+                Le suivi de marques est réservé aux agences. Passez au plan Agency pour en profiter.
               </p>
               <Link href="/pricing">
                 <Button className="bg-[#80368D] hover:bg-[#80368D]/90">Voir les plans</Button>
@@ -163,9 +179,18 @@ export default function BrandRequestsPage() {
                     <div>
                       <label htmlFor="brandName" className="block text-sm font-medium text-[#1A1F2B]/70 mb-1">Nom de la marque *</label>
                       <input id="brandName" type="text" value={brandName} onChange={(e) => setBrandName(e.target.value)}
+                        list="brand-suggestions"
                         placeholder="Ex: MTN, Orange, Coca-Cola..."
                         className="w-full rounded-lg border border-[#D0E4F2] px-3 py-2 text-sm text-[#1A1F2B] outline-none focus:border-[#80368D] focus:ring-2 focus:ring-[#80368D]/20"
                         required />
+                      <datalist id="brand-suggestions">
+                        {suggestedBrands.map((b) => <option key={b} value={b} />)}
+                      </datalist>
+                      {brandName && suggestedBrands.some(b => b.toLowerCase() === brandName.toLowerCase()) && (
+                        <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" /> Cette marque existe dans notre base
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label htmlFor="brandUrl" className="block text-sm font-medium text-[#1A1F2B]/70 mb-1">Site web / Page sociale</label>
@@ -176,14 +201,32 @@ export default function BrandRequestsPage() {
                     <div>
                       <label htmlFor="brandCountry" className="block text-sm font-medium text-[#1A1F2B]/70 mb-1">Pays</label>
                       <input id="brandCountry" type="text" value={brandCountry} onChange={(e) => setBrandCountry(e.target.value)}
+                        list="country-suggestions"
                         placeholder="Ex: Côte d'Ivoire, Sénégal..."
                         className="w-full rounded-lg border border-[#D0E4F2] px-3 py-2 text-sm text-[#1A1F2B] outline-none focus:border-[#80368D] focus:ring-2 focus:ring-[#80368D]/20" />
+                      <datalist id="country-suggestions">
+                        {suggestedCountries.map((c) => <option key={c} value={c} />)}
+                      </datalist>
+                      {brandCountry && suggestedCountries.some(c => c.toLowerCase() === brandCountry.toLowerCase()) && (
+                        <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" /> Ce pays existe dans notre base
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label htmlFor="brandSector" className="block text-sm font-medium text-[#1A1F2B]/70 mb-1">Secteur</label>
                       <input id="brandSector" type="text" value={brandSector} onChange={(e) => setBrandSector(e.target.value)}
+                        list="sector-suggestions"
                         placeholder="Ex: Telecoms, FMCG, Banque..."
                         className="w-full rounded-lg border border-[#D0E4F2] px-3 py-2 text-sm text-[#1A1F2B] outline-none focus:border-[#80368D] focus:ring-2 focus:ring-[#80368D]/20" />
+                      <datalist id="sector-suggestions">
+                        {suggestedSectors.map((s) => <option key={s} value={s} />)}
+                      </datalist>
+                      {brandSector && suggestedSectors.some(s => s.toLowerCase() === brandSector.toLowerCase()) && (
+                        <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3" /> Ce secteur existe dans notre base
+                        </p>
+                      )}
                     </div>
                     <div className="sm:col-span-2">
                       <label htmlFor="notes" className="block text-sm font-medium text-[#1A1F2B]/70 mb-1">Notes / Contexte</label>

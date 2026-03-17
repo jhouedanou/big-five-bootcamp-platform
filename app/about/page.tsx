@@ -17,14 +17,14 @@ export default function AboutPage() {
                         <h1 className="font-[family-name:var(--font-heading)] text-4xl lg:text-6xl font-extrabold tracking-tight mb-6 text-[#1A1F2B]">
                             Inspirer la créativité <br /> <span className="text-[#80368D]">Africaine</span>
                         </h1>
-                        <p className="text-lg text-[#1A1F2B]/70 max-w-2xl mx-auto">
+                                               <p className=" text-lg text-[#1A1F2B]/70 pt-4 text-center">
                             Big Five Creative Library est né d'un constat simple : les créatifs africains manquent d'outils adaptés pour benchmarker et s'inspirer des meilleures campagnes locales.
                         </p>
                     </div>
                 </section>
 
                 {/* Values Section */}
-                <section className="py-20 lg:py-32 bg-white">
+                <section className="py-20 lg:py-2 bg-white">
                     <div className="container mx-auto px-4">
                         <div className="grid md:grid-cols-3 gap-8">
                             {[
@@ -56,23 +56,7 @@ export default function AboutPage() {
                     </div>
                 </section>
 
-                {/* Team Section (Placeholder) */}
-                <section className="py-20 bg-[#D0E4F2]/20">
-                    <div className="container mx-auto px-4 text-center">
-                        <h2 className="font-[family-name:var(--font-heading)] text-3xl font-bold mb-12 text-[#1A1F2B]">L'équipe derrière Big Five</h2>
-                        <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-                            {[1, 2, 3].map((i) => (
-                                <div key={i} className="group">
-                                    <div className="bg-[#D0E4F2] aspect-square rounded-2xl mb-4 overflow-hidden relative">
-                                        <div className="absolute inset-0 bg-[#80368D]/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                    </div>
-                                    <h3 className="font-bold text-lg text-[#1A1F2B]">Membre de l'équipe</h3>
-                                    <p className="text-[#80368D] text-sm">Cofondateur</p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </section>
+
             </main>
             <Footer />
         </div>

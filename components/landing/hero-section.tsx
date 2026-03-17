@@ -398,10 +398,10 @@ export function PricingTeaser() {
           </span>
         </div>
 
-        <h2 className="font-[family-name:var(--font-heading)] text-3xl sm:text-4xl font-bold mb-4 text-[#1A1F2B]">
+        <h2 id="samer" className="font-[family-name:var(--font-heading)] text-3xl sm:text-4xl font-bold mb-4 text-[#1A1F2B] mb">
           Commencez à créer des campagnes impactantes.
         </h2>
-        <p className="text-[#1A1F2B]/70 text-lg sm:text-xl mb-8 max-w-2xl mx-auto">
+        <p id="lagross" className="text-[#1A1F2B]/70 text-lg sm:text-xl mb-8 max-w-2xl mx-auto">
           Rejoignez des centaines de créatifs qui utilisent Big Five Creative Library pour élever leur niveau de jeu. Sans carte bancaire requise à l'inscription.
         </p>
 

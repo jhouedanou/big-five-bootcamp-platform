@@ -55,9 +55,9 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    const allowedPlans = ['agency', 'enterprise', 'premium', 'pro']
+    const allowedPlans = ['agency', 'enterprise']
     if (!profile || !allowedPlans.includes(profile.plan?.toLowerCase() || '')) {
-      return NextResponse.json({ error: 'Cette fonctionnalité est réservée aux abonnés Pro et Agency' }, { status: 403 })
+      return NextResponse.json({ error: 'Cette fonctionnalité est réservée aux abonnés Agency' }, { status: 403 })
     }
 
     const body = await request.json()

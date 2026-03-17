@@ -68,5 +68,5 @@ export function getPlanConfig(plan: PlanKey) {
 
 export function isPaidPlan(plan: string): boolean {
   const p = plan.toLowerCase()
-  return p === "basic" || p === "pro" || p === "premium"
+  return p === "basic" || p === "pro" || p === "premium" || p === "agency" || p === "enterprise"
 }

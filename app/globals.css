@@ -560,7 +560,7 @@
 }
 
 .sidebar-content h3,h1,h2, p{
-  margin:2px 0 !important;
+  margin:2px 0 ;
 }
 
 /* Tiptap Rich Text Editor Styles */

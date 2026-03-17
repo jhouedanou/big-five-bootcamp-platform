@@ -128,7 +128,24 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 4. Logger les résultats
+    // 4. Reset mensuel des compteurs de clics (le 1er du mois)
+    const today = new Date()
+    if (today.getDate() === 1) {
+      const { error: resetError, count: resetCount } = await (supabaseAdmin as any)
+        .from('users')
+        .update({ 
+          monthly_click_count: 0, 
+          monthly_campaigns_explored: 0,
+          monthly_click_reset: now,
+        })
+        .lt('monthly_click_reset', new Date(today.getFullYear(), today.getMonth(), 1).toISOString())
+
+      if (!resetError) {
+        console.log(`🔄 Compteurs mensuels réinitialisés`)
+      }
+    }
+
+    // 5. Logger les résultats
     const downgraded = expiredUsers.map((u: any) => ({
       email: u.email,
       name: u.name,

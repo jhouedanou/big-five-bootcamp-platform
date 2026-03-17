@@ -2,7 +2,7 @@ export const PLAN_FREE = {
   name: "Gratuit",
   price: 0,
   annualPrice: null,
-  clicksPerDay: 5,
+  clicksPerMonth: 5,
   searchesPerDay: 3,
   features: {
     library: "preview_scroll" as const,
@@ -20,7 +20,7 @@ export const PLAN_BASIC = {
   name: "Basic",
   price: 4900,
   annualPrice: 49000,
-  clicksPerDay: Infinity,
+  clicksPerMonth: Infinity,
   searchesPerDay: 10,
   features: {
     library: "full" as const,
@@ -38,7 +38,7 @@ export const PLAN_PRO = {
   name: "Pro",
   price: 9900,
   annualPrice: 99000,
-  clicksPerDay: Infinity,
+  clicksPerMonth: Infinity,
   searchesPerDay: Infinity,
   features: {
     library: "full" as const,
@@ -48,7 +48,7 @@ export const PLAN_PRO = {
     weeklyEmail: true,
     usageCounter: true,
     multiUsers: 1,
-    brandCollection: false,
+    brandCollection: true,
   },
 }
 

@@ -14,7 +14,7 @@ export default function PricingPage() {
                         <div className="mb-8 inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-[#F2B33D]/30 to-[#F2B33D]/10 px-6 py-3 ring-2 ring-[#F2B33D]/40 shadow-lg">
                             <Gift className="h-6 w-6 text-[#F2B33D]" />
                             <span className="text-lg font-bold text-[#1A1F2B]">
-                                🎉 Essai gratuit de 30 jours — Sans carte bancaire !
+                                🎉 Essai gratuit de 14 jours — Sans carte bancaire !
                             </span>
                         </div>
                         
@@ -57,7 +57,7 @@ export default function PricingPage() {
                             {/* Pro Tier (Highlighted) */}
                             <div className="rounded-2xl border-2 border-[#80368D] bg-white p-8 shadow-2xl shadow-[#80368D]/20 relative flex flex-col transform md:-translate-y-4">
                                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#F2B33D] text-[#1A1F2B] px-4 py-1.5 rounded-full text-sm font-bold shadow-lg">
-                                    ⭐ 30 jours gratuits
+                                    ⭐ 14 jours gratuits
                                 </div>
                                 <div className="mb-6 mt-2">
                                     <h3 className="font-bold text-xl mb-2 text-[#80368D]">Pro</h3>
@@ -68,7 +68,7 @@ export default function PricingPage() {
                                     <span className="text-[#1A1F2B]/60 ml-2">XOF / mois</span>
                                 </div>
                                 <p className="text-sm text-[#F2B33D] font-medium mb-6">
-                                    Après votre essai gratuit de 30 jours
+                                    Après votre essai gratuit de 14 jours
                                 </p>
                                 <Button asChild className="w-full mb-8 font-bold shadow-lg shadow-[#80368D]/25 h-12 text-base bg-[#80368D] hover:bg-[#80368D]/90 text-white">
                                     <a href="/register">Commencer l'essai gratuit</a>
@@ -84,7 +84,15 @@ export default function PricingPage() {
                                     </li>
                                     <li className="flex items-center gap-2 text-[#1A1F2B]">
                                         <Check className="h-4 w-4 text-[#80368D]" />
+                                        Collections personnalisées
+                                    </li>
+                                    <li className="flex items-center gap-2 text-[#1A1F2B]">
+                                        <Check className="h-4 w-4 text-[#80368D]" />
                                         Téléchargement des vidéos
+                                    </li>
+                                    <li className="flex items-center gap-2 text-[#1A1F2B]">
+                                        <Check className="h-4 w-4 text-[#80368D]" />
+                                        Suivi de marques
                                     </li>
                                     <li className="flex items-center gap-2 text-[#1A1F2B]">
                                         <Check className="h-4 w-4 text-[#80368D]" />
@@ -121,6 +129,10 @@ export default function PricingPage() {
                                     <li className="flex items-center gap-2 text-[#1A1F2B]/70">
                                         <Check className="h-4 w-4 text-[#80368D]" />
                                         Onboarding dédié
+                                    </li>
+                                    <li className="flex items-center gap-2 text-[#1A1F2B]">
+                                        <Check className="h-4 w-4 text-[#F2B33D]" />
+                                        <strong>Demande de suivi de marques</strong>
                                     </li>
                                 </ul>
                             </div>

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { Menu, X, Search, User, LogOut, Settings, CreditCard, Crown, Sparkles, Clock, Users, Heart, MousePointer } from "lucide-react"
+import { Menu, X, Search, User, LogOut, Settings, CreditCard, Crown, Sparkles, Clock, Users, Heart, MousePointer, Building2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase"
@@ -18,20 +18,22 @@ export function DashboardNavbar({
   searchQuery: externalSearchQuery,
   onSearchChange,
   userPlan: externalUserPlan,
-  dailyClicks,
-  dailyClickLimit,
+  monthlyClicks,
+  monthlyClickLimit,
   isFreeUser,
   isTrialUser,
   trialDaysLeft,
+  monthlyExplored,
 }: {
   searchQuery?: string;
   onSearchChange?: (query: string) => void
   userPlan?: string
-  dailyClicks?: number
-  dailyClickLimit?: number
+  monthlyClicks?: number
+  monthlyClickLimit?: number
   isFreeUser?: boolean
   isTrialUser?: boolean
   trialDaysLeft?: number
+  monthlyExplored?: number
 } = {}) {
   const [isOpen, setIsOpen] = useState(false)
   const [internalSearchQuery, setInternalSearchQuery] = useState("")
@@ -158,6 +160,15 @@ export function DashboardNavbar({
               <Heart className="h-3.5 w-3.5" />
               Favoris
             </Link>
+            {isPremium && (
+              <Link
+                href="/dashboard/brand-requests"
+                className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] flex items-center gap-1"
+              >
+                <Building2 className="h-3.5 w-3.5" />
+                Marques
+              </Link>
+            )}
           </nav>
         </div>
 
@@ -175,15 +186,21 @@ export function DashboardNavbar({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Compteur de clics journaliers (Free) */}
-          {isFreeUser && dailyClicks !== undefined && dailyClickLimit !== undefined && (
+          {/* Compteur de clics mensuel (Free) */}
+          {isFreeUser && monthlyClicks !== undefined && monthlyClickLimit !== undefined && (
             <div className="hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 bg-[#D0E4F2] text-[#1A1F2B] text-xs font-semibold">
               <MousePointer className="h-3.5 w-3.5" />
-              {dailyClicks}/{dailyClickLimit} aujourd'hui
+              {monthlyClicks}/{monthlyClickLimit} ce mois
             </div>
           )}
-          {/* Accès illimité (Basic/Pro payant) */}
-          {!isFreeUser && !isTrialUser && isPremium && (
+          {/* Compteur d'usage mensuel (Pro/Agency payant) */}
+          {!isFreeUser && !isTrialUser && isPremium && monthlyExplored !== undefined && monthlyExplored > 0 && (
+            <div className="hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 bg-[#10B981]/10 text-[#10B981] text-xs font-semibold">
+              <Sparkles className="h-3.5 w-3.5" />
+              {monthlyExplored} explorée{monthlyExplored > 1 ? 's' : ''} ce mois
+            </div>
+          )}
+          {!isFreeUser && !isTrialUser && isPremium && (monthlyExplored === undefined || monthlyExplored === 0) && (
             <div className="hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 bg-[#10B981]/10 text-[#10B981] text-xs font-semibold">
               <Sparkles className="h-3.5 w-3.5" />
               Accès illimité
@@ -285,6 +302,14 @@ export function DashboardNavbar({
                   Mes Favoris
                 </Link>
               </DropdownMenuItem>
+              {isPremium && (
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/brand-requests" className="flex items-center gap-2 text-[#1A1F2B]">
+                    <Building2 className="h-4 w-4" />
+                    Suivi de marques
+                  </Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem asChild>
                 <Link href="/settings" className="flex items-center gap-2 text-[#1A1F2B]">
                   <Settings className="h-4 w-4" />

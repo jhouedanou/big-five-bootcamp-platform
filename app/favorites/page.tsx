@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react"
 import { useFavorites } from "@/hooks/use-favorites"
 import { Button } from "@/components/ui/button"
-import { Heart, Loader2, LogIn, Trash2, BookmarkCheck, ArrowLeft, FolderOpen, FolderPlus, X, Lock } from "lucide-react"
+import { Heart, Loader2, LogIn, Trash2, BookmarkCheck, ArrowLeft, FolderOpen, FolderPlus, X, Lock, Pencil, MoreVertical, FolderInput } from "lucide-react"
 import Link from "next/link"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { Footer } from "@/components/footer"
@@ -17,6 +17,8 @@ interface Collection {
   id: string
   name: string
   created_at: string
+  item_count: number
+  campaign_ids: string[]
 }
 
 export default function FavoritesPage() {
@@ -36,7 +38,9 @@ export default function FavoritesPage() {
   const [newCollectionName, setNewCollectionName] = useState("")
   const [showNewCollectionInput, setShowNewCollectionInput] = useState(false)
   const [creatingCollection, setCreatingCollection] = useState(false)
-  const [collectionItems, setCollectionItems] = useState<Record<string, string[]>>({})
+  const [editingCollectionId, setEditingCollectionId] = useState<string | null>(null)
+  const [editingCollectionName, setEditingCollectionName] = useState("")
+  const [addToCollectionCampaignId, setAddToCollectionCampaignId] = useState<string | null>(null)
 
   const supabase = createClient()
   const isPaid = isPaidPlan(userPlan)
@@ -73,23 +77,10 @@ export default function FavoritesPage() {
 
   const loadCollections = async (userId: string) => {
     try {
-      const { data } = await supabase
-        .from('collections')
-        .select('id, name, created_at')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: true })
-      if (data) setCollections(data)
-      const { data: items } = await supabase
-        .from('collection_items')
-        .select('collection_id, campaign_id')
-        .in('collection_id', (data || []).map((c: Collection) => c.id))
-      if (items) {
-        const map: Record<string, string[]> = {}
-        items.forEach((item: any) => {
-          if (!map[item.collection_id]) map[item.collection_id] = []
-          map[item.collection_id].push(item.campaign_id)
-        })
-        setCollectionItems(map)
+      const res = await fetch('/api/collections')
+      if (res.ok) {
+        const data = await res.json()
+        setCollections(data.collections || [])
       }
     } catch { /* Table pas encore créée */ }
   }
@@ -98,18 +89,89 @@ export default function FavoritesPage() {
     if (!newCollectionName.trim()) return
     setCreatingCollection(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) return
-      const { data } = await supabase
-        .from('collections')
-        .insert({ user_id: session.user.id, name: newCollectionName.trim() })
-        .select().single()
-      if (data) {
-        setCollections(prev => [...prev, data])
+      const res = await fetch('/api/collections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newCollectionName.trim() }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setCollections(prev => [...prev, data.collection])
         setNewCollectionName("")
         setShowNewCollectionInput(false)
       }
     } catch { /* ignore */ } finally { setCreatingCollection(false) }
+  }
+
+  const renameCollection = async (id: string, newName: string) => {
+    if (!newName.trim()) return
+    try {
+      const res = await fetch('/api/collections', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, name: newName.trim() }),
+      })
+      if (res.ok) {
+        setCollections(prev => prev.map(c => c.id === id ? { ...c, name: newName.trim() } : c))
+      }
+    } catch { /* ignore */ }
+    setEditingCollectionId(null)
+    setEditingCollectionName("")
+  }
+
+  const deleteCollection = async (id: string) => {
+    if (!confirm('Supprimer cette collection ? Les favoris ne seront pas supprimés.')) return
+    try {
+      const res = await fetch(`/api/collections?id=${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setCollections(prev => prev.filter(c => c.id !== id))
+        if (activeCollection === id) setActiveCollection(null)
+      }
+    } catch { /* ignore */ }
+  }
+
+  const addToCollection = async (collectionId: string, campaignId: string) => {
+    try {
+      const res = await fetch('/api/collections/items', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ collectionId, campaignId }),
+      })
+      if (res.ok) {
+        // Mettre à jour localement
+        setCollections(prev => prev.map(c => {
+          if (c.id === collectionId) {
+            return {
+              ...c,
+              item_count: c.item_count + 1,
+              campaign_ids: [...c.campaign_ids, campaignId],
+            }
+          }
+          return c
+        }))
+      }
+    } catch { /* ignore */ }
+    setAddToCollectionCampaignId(null)
+  }
+
+  const removeFromCollection = async (collectionId: string, campaignId: string) => {
+    try {
+      const res = await fetch(`/api/collections/items?collectionId=${collectionId}&campaignId=${campaignId}`, {
+        method: 'DELETE',
+      })
+      if (res.ok) {
+        setCollections(prev => prev.map(c => {
+          if (c.id === collectionId) {
+            return {
+              ...c,
+              item_count: Math.max(0, c.item_count - 1),
+              campaign_ids: c.campaign_ids.filter(id => id !== campaignId),
+            }
+          }
+          return c
+        }))
+      }
+    } catch { /* ignore */ }
   }
 
   const handleRemove = async (campaignId: string) => {
@@ -123,7 +185,10 @@ export default function FavoritesPage() {
     : []
 
   const filteredCampaigns = activeCollection
-    ? campaigns.filter(f => collectionItems[activeCollection]?.includes(f.campaign_id))
+    ? campaigns.filter(f => {
+        const col = collections.find(c => c.id === activeCollection)
+        return col?.campaign_ids?.includes(f.campaign_id)
+      })
     : campaigns
 
   const renderContent = () => {
@@ -239,10 +304,64 @@ export default function FavoritesPage() {
                     <Link href={`/content/${c.slug || c.id}`}>
                       <Button variant="ghost" size="sm" className="text-xs text-[#80368D] hover:bg-[#80368D]/10">Voir détails →</Button>
                     </Link>
-                    <button onClick={() => handleRemove(fav.campaign_id)} disabled={isRemoving}
-                      className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50">
-                      <Trash2 className="h-3.5 w-3.5" />Retirer
-                    </button>
+                    <div className="flex items-center gap-1">
+                      {/* Bouton ajouter à une collection */}
+                      {isPaid && collections.length > 0 && (
+                        <div className="relative">
+                          <button
+                            type="button"
+                            title="Ajouter à une collection"
+                            onClick={() => setAddToCollectionCampaignId(
+                              addToCollectionCampaignId === fav.campaign_id ? null : fav.campaign_id
+                            )}
+                            className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-xs font-medium text-[#80368D] hover:bg-[#80368D]/10 transition-colors"
+                          >
+                            <FolderInput className="h-3.5 w-3.5" />
+                          </button>
+                          {/* Dropdown de sélection de collection */}
+                          {addToCollectionCampaignId === fav.campaign_id && (
+                            <div className="absolute right-0 bottom-full mb-1 z-50 w-48 rounded-lg border border-[#D0E4F2] bg-white shadow-lg py-1">
+                              <p className="px-3 py-1.5 text-xs font-semibold text-[#1A1F2B]/60">Ajouter à...</p>
+                              {collections.map((col) => {
+                                const isInCollection = col.campaign_ids.includes(fav.campaign_id)
+                                return (
+                                  <button
+                                    key={col.id}
+                                    type="button"
+                                    onClick={() => isInCollection
+                                      ? removeFromCollection(col.id, fav.campaign_id)
+                                      : addToCollection(col.id, fav.campaign_id)
+                                    }
+                                    className={cn(
+                                      "w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors text-left",
+                                      isInCollection
+                                        ? "bg-[#80368D]/10 text-[#80368D] font-semibold"
+                                        : "text-[#1A1F2B] hover:bg-[#D0E4F2]/50"
+                                    )}
+                                  >
+                                    <FolderOpen className="h-3 w-3 shrink-0" />
+                                    <span className="truncate">{col.name}</span>
+                                    {isInCollection && <span className="ml-auto text-[10px]">✓</span>}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {/* Bouton retirer des favoris */}
+                      {activeCollection ? (
+                        <button onClick={() => removeFromCollection(activeCollection, fav.campaign_id)} disabled={isRemoving}
+                          className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-orange-500 hover:bg-orange-50 transition-colors disabled:opacity-50">
+                          <FolderOpen className="h-3.5 w-3.5" />Retirer
+                        </button>
+                      ) : (
+                        <button onClick={() => handleRemove(fav.campaign_id)} disabled={isRemoving}
+                          className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50">
+                          <Trash2 className="h-3.5 w-3.5" />Retirer
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -285,14 +404,43 @@ export default function FavoritesPage() {
                 {isPaid ? (
                   <>
                     {collections.map((col) => (
-                      <button key={col.id} type="button" onClick={() => setActiveCollection(col.id)}
-                        className={`w-full flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all ${
-                          activeCollection === col.id ? "bg-[#80368D] text-white shadow-md" : "bg-white border border-[#D0E4F2] text-[#1A1F2B] hover:border-[#80368D]/30"
-                        }`}>
-                        <FolderOpen className="h-4 w-4" />
-                        <span className="truncate">{col.name}</span>
-                        <span className="ml-auto text-xs opacity-70">{collectionItems[col.id]?.length || 0}</span>
-                      </button>
+                      <div key={col.id} className="group relative">
+                        {editingCollectionId === col.id ? (
+                          <div className="rounded-lg border border-[#80368D]/30 p-2 bg-white">
+                            <input type="text" placeholder="Nom de la collection" value={editingCollectionName} onChange={(e) => setEditingCollectionName(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') renameCollection(col.id, editingCollectionName); if (e.key === 'Escape') setEditingCollectionId(null) }}
+                              className="w-full text-sm border-none outline-none bg-transparent text-[#1A1F2B]" autoFocus />
+                            <div className="mt-1 flex gap-1">
+                              <Button size="sm" className="h-6 text-xs bg-[#80368D] hover:bg-[#80368D]/90"
+                                onClick={() => renameCollection(col.id, editingCollectionName)}>OK</Button>
+                              <Button size="sm" variant="ghost" className="h-6 text-xs"
+                                onClick={() => setEditingCollectionId(null)}><X className="h-3 w-3" /></Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <button type="button" onClick={() => setActiveCollection(col.id)}
+                            className={`w-full flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all ${
+                              activeCollection === col.id ? "bg-[#80368D] text-white shadow-md" : "bg-white border border-[#D0E4F2] text-[#1A1F2B] hover:border-[#80368D]/30"
+                            }`}>
+                            <FolderOpen className="h-4 w-4 shrink-0" />
+                            <span className="truncate flex-1 text-left">{col.name}</span>
+                            <span className="text-xs opacity-70 shrink-0">{col.item_count}</span>
+                          </button>
+                        )}
+                        {/* Menu contextuel (visible au hover) */}
+                        {editingCollectionId !== col.id && (
+                          <div className="absolute right-1 top-1 hidden group-hover:flex gap-0.5">
+                            <button type="button" title="Renommer" onClick={(e) => { e.stopPropagation(); setEditingCollectionId(col.id); setEditingCollectionName(col.name) }}
+                              className="rounded p-1 hover:bg-[#D0E4F2]/50 text-[#1A1F2B]/40 hover:text-[#1A1F2B]">
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                            <button type="button" title="Supprimer" onClick={(e) => { e.stopPropagation(); deleteCollection(col.id) }}
+                              className="rounded p-1 hover:bg-red-50 text-[#1A1F2B]/40 hover:text-red-500">
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     ))}
 
                     {showNewCollectionInput ? (

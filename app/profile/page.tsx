@@ -115,7 +115,7 @@ export default function ProfilePage() {
         }
 
         // Monthly usage from profile if stored
-        monthlyUsage = profile.monthly_usage || 0
+        monthlyUsage = profile.monthly_campaigns_explored || profile.monthly_usage || 0
       }
 
       const userName = profile?.full_name || profile?.name || authUser.user_metadata?.full_name || authUser.email?.split("@")[0] || "Utilisateur"

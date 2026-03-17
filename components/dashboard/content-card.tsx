@@ -43,7 +43,7 @@ export interface ContentItem {
 
 interface ContentCardProps {
   content: ContentItem
-  onBeforeNavigate?: (content: ContentItem) => boolean
+  onBeforeNavigate?: (content: ContentItem) => boolean | Promise<boolean>
   isBlocked?: boolean
 }
 
@@ -100,9 +100,9 @@ export function ContentCard({ content, onBeforeNavigate, isBlocked }: ContentCar
     setIsToggling(false)
   }
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = async (e: React.MouseEvent) => {
     if (onBeforeNavigate) {
-      const allowed = onBeforeNavigate(content)
+      const allowed = await onBeforeNavigate(content)
       if (!allowed) {
         e.preventDefault()
         return

@@ -18,36 +18,10 @@ import { isPaidPlan } from "@/lib/pricing"
 const ParticlesBackground = dynamic(() => import("@/components/ui/particles-background").then(m => m.ParticlesBackground), { ssr: false })
 const FiltersSidebar = dynamic(() => import("@/components/dashboard/filters-sidebar").then(m => m.FiltersSidebar))
 
-// Clé localStorage pour le compteur de clics
-const CLICKS_STORAGE_KEY = "bf_daily_clicks"
-const DAILY_CLICK_LIMIT = 5
+// Compteur mensuel de clics (côté serveur via API)
+const MONTHLY_CLICK_LIMIT = 5
 
-function getDailyClicks(): number {
-  if (typeof window === "undefined") return 0
-  try {
-    const today = new Date().toDateString()
-    const stored = localStorage.getItem(CLICKS_STORAGE_KEY)
-    if (!stored) return 0
-    const { date, count } = JSON.parse(stored)
-    if (date !== today) return 0
-    return count || 0
-  } catch {
-    return 0
-  }
-}
-
-function incrementDailyClicks(): number {
-  if (typeof window === "undefined") return 0
-  try {
-    const today = new Date().toDateString()
-    const current = getDailyClicks()
-    const newCount = current + 1
-    localStorage.setItem(CLICKS_STORAGE_KEY, JSON.stringify({ date: today, count: newCount }))
-    return newCount
-  } catch {
-    return 0
-  }
-}
+// Les compteurs de clics sont maintenant gérés côté serveur via /api/track-click
 
 export default function DashboardPage() {
   const [campaigns, setCampaigns] = useState<ContentItem[]>([])
@@ -60,7 +34,8 @@ export default function DashboardPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [activeQuickFilter, setActiveQuickFilter] = useState("Tous")
   const [searchQuery, setSearchQuery] = useState("")
-  const [dailyClicks, setDailyClicks] = useState(0)
+  const [monthlyClicks, setMonthlyClicks] = useState(0)
+  const [monthlyExplored, setMonthlyExplored] = useState(0)
   const [isTrialUser, setIsTrialUser] = useState(false)
   const [trialDaysLeft, setTrialDaysLeft] = useState(0)
   const itemsPerPage = 9
@@ -70,9 +45,19 @@ export default function DashboardPage() {
   const isFreeUser = !isPaidPlan(userPlan) && !isTrialUser
   const supabase = createClient()
 
-  // Charger le compteur de clics côté client
+  // Charger le compteur de clics depuis le serveur
   useEffect(() => {
-    setDailyClicks(getDailyClicks())
+    const loadClickCounter = async () => {
+      try {
+        const res = await fetch('/api/track-click')
+        if (res.ok) {
+          const data = await res.json()
+          setMonthlyClicks(data.clicks || 0)
+          setMonthlyExplored(data.explored || 0)
+        }
+      } catch { /* fallback: compteur à 0 */ }
+    }
+    loadClickCounter()
   }, [])
 
   // Extraire les options de filtres dynamiquement depuis les campagnes
@@ -383,18 +368,24 @@ export default function DashboardPage() {
     })
   }, [selectedFilters, campaigns, searchQuery])
 
-  const handleContentClick = useCallback((content: ContentItem): boolean => {
-    if (isFreeUser) {
-      const clicks = getDailyClicks()
-      if (clicks >= DAILY_CLICK_LIMIT) {
+  const handleContentClick = useCallback(async (content: ContentItem): Promise<boolean> => {
+    // Appeler l'API pour tracker le clic
+    try {
+      const res = await fetch('/api/track-click', { method: 'POST' })
+      const data = await res.json()
+
+      if (!res.ok || !data.allowed) {
         showUpgrade("clicks")
         return false
       }
-      const newCount = incrementDailyClicks()
-      setDailyClicks(newCount)
+
+      if (data.clicks !== null) setMonthlyClicks(data.clicks)
+      if (data.explored !== undefined) setMonthlyExplored(data.explored)
+    } catch {
+      // En cas d'erreur réseau, laisser passer
     }
     return true
-  }, [isFreeUser, showUpgrade])
+  }, [showUpgrade])
 
   const accessibleContent = filteredContent
   const totalPages = Math.ceil(accessibleContent.length / itemsPerPage)
@@ -463,11 +454,12 @@ export default function DashboardPage() {
           searchQuery={searchQuery}
           onSearchChange={(q) => { setSearchQuery(q); setCurrentPage(1) }}
           userPlan={userPlan}
-          dailyClicks={dailyClicks}
-          dailyClickLimit={DAILY_CLICK_LIMIT}
+          monthlyClicks={monthlyClicks}
+          monthlyClickLimit={MONTHLY_CLICK_LIMIT}
           isFreeUser={isFreeUser}
           isTrialUser={isTrialUser}
           trialDaysLeft={trialDaysLeft}
+          monthlyExplored={monthlyExplored}
         />
 
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -504,7 +496,7 @@ export default function DashboardPage() {
                   <div key={campaign.id} className="flex-shrink-0 w-56">
                     <ContentCard
                       content={campaign}
-                      onBeforeNavigate={() => handleContentClick(campaign)}
+                      onBeforeNavigate={(c) => handleContentClick(c)}
                     />
                   </div>
                 ))}
@@ -638,8 +630,8 @@ export default function DashboardPage() {
                             <ContentCard
                               key={content.id}
                               content={content}
-                              onBeforeNavigate={() => handleContentClick(content)}
-                              isBlocked={isFreeUser && dailyClicks >= DAILY_CLICK_LIMIT}
+                              onBeforeNavigate={(c) => handleContentClick(c)}
+                              isBlocked={isFreeUser && monthlyClicks >= MONTHLY_CLICK_LIMIT}
                             />
                           ))}
                         </div>

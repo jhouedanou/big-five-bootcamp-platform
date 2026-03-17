@@ -3,8 +3,18 @@
 import { useState } from "react"
 import { TableCell, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@/components/ui/dialog"
 import { UserStatusToggle } from "./user-status-toggle"
-import { ChevronDown, ChevronRight, CreditCard, Calendar, Clock, Heart, XCircle, RotateCcw, Loader2 } from "lucide-react"
+import { ChevronDown, ChevronRight, CreditCard, Calendar, Clock, Heart, XCircle, RotateCcw, Loader2, Mail, Send } from "lucide-react"
 import { endSubscription, resetSubscription } from "@/app/actions/user"
 
 interface Payment {
@@ -86,6 +96,11 @@ export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
     const [isExpanded, setIsExpanded] = useState(false)
     const [isEndingSubscription, setIsEndingSubscription] = useState(false)
     const [isResettingSubscription, setIsResettingSubscription] = useState(false)
+    const [isSendingEmail, setIsSendingEmail] = useState(false)
+    const [emailSent, setEmailSent] = useState(false)
+    const [emailDialogOpen, setEmailDialogOpen] = useState(false)
+    const [emailSubject, setEmailSubject] = useState("Nouveautés - Big Five Creative Library")
+    const [emailMessage, setEmailMessage] = useState("")
     const [resetDays, setResetDays] = useState(30)
 
     const subStart = user.subscription_start_date as string | null | undefined
@@ -106,6 +121,45 @@ export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
             alert('Erreur lors de la mise a jour')
         } finally {
             setIsEndingSubscription(false)
+        }
+    }
+
+    const openEmailDialog = () => {
+        setEmailSubject("Nouveautés - Big Five Creative Library")
+        setEmailMessage(`Salut ${(user.name as string)?.split(' ')[0] || ''} !\n\nOn a ajouté de nouvelles campagnes sur Big Five.\nViens les découvrir.\n\nL'équipe Big Five`)
+        setEmailSent(false)
+        setEmailDialogOpen(true)
+    }
+
+    const handleSendEmail = async () => {
+        if (!emailSubject.trim() || !emailMessage.trim()) return
+        setIsSendingEmail(true)
+        setEmailSent(false)
+        try {
+            const res = await fetch('/api/admin/send-test-email', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: user.email,
+                    name: user.name,
+                    subject: emailSubject,
+                    message: emailMessage,
+                }),
+            })
+            const data = await res.json()
+            if (!res.ok) {
+                alert('Erreur: ' + (data.error || 'Impossible d\'envoyer l\'email'))
+            } else {
+                setEmailSent(true)
+                setTimeout(() => {
+                    setEmailDialogOpen(false)
+                    setEmailSent(false)
+                }, 1500)
+            }
+        } catch {
+            alert('Erreur lors de l\'envoi')
+        } finally {
+            setIsSendingEmail(false)
         }
     }
 
@@ -203,7 +257,18 @@ export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
                     {formatDate(user.created_at as string)}
                 </TableCell>
                 <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                    <UserStatusToggle id={user.id as string} status={(user.status as string) || 'active'} />
+                    <div className="flex items-center justify-end gap-2">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={openEmailDialog}
+                            className="h-8 px-2"
+                            title="Envoyer un email"
+                        >
+                            <Mail className="h-4 w-4" />
+                        </Button>
+                        <UserStatusToggle id={user.id as string} status={(user.status as string) || 'active'} />
+                    </div>
                 </TableCell>
             </TableRow>
 
@@ -336,6 +401,73 @@ export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
                     </TableCell>
                 </TableRow>
             )}
+
+            {/* Email dialog */}
+            <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+                <DialogContent className="sm:max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Mail className="h-5 w-5" />
+                            Envoyer un email à {(user.name as string) || (user.email as string)}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-2">
+                        <div className="text-sm text-muted-foreground">
+                            Destinataire : <span className="font-medium text-foreground">{user.email as string}</span>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="email-subject">Objet</Label>
+                            <Input
+                                id="email-subject"
+                                value={emailSubject}
+                                onChange={(e) => setEmailSubject(e.target.value)}
+                                placeholder="Objet de l'email"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="email-message">Message</Label>
+                            <Textarea
+                                id="email-message"
+                                value={emailMessage}
+                                onChange={(e) => setEmailMessage(e.target.value)}
+                                placeholder="Votre message..."
+                                rows={8}
+                                className="resize-y"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Les retours à la ligne seront respectés dans l{"'"}email.
+                            </p>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
+                            Annuler
+                        </Button>
+                        <Button
+                            onClick={handleSendEmail}
+                            disabled={isSendingEmail || !emailSubject.trim() || !emailMessage.trim()}
+                            className={emailSent ? 'bg-green-600 hover:bg-green-600' : ''}
+                        >
+                            {isSendingEmail ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Envoi...
+                                </>
+                            ) : emailSent ? (
+                                <>
+                                    <Mail className="mr-2 h-4 w-4" />
+                                    Envoyé !
+                                </>
+                            ) : (
+                                <>
+                                    <Send className="mr-2 h-4 w-4" />
+                                    Envoyer
+                                </>
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </>
     )
 }

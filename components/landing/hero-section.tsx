@@ -72,8 +72,8 @@ export function HeroSection() {
   const recentCampaigns = useRecentCampaigns()
 
   // Fallback si pas encore chargé
-  const displayUsers = recentUsers.length > 0 
-    ? recentUsers 
+  const displayUsers = recentUsers.length > 0
+    ? recentUsers
     : [{ initials: '...' }, { initials: '...' }, { initials: '...' }, { initials: '...' }]
 
   return (
@@ -200,42 +200,42 @@ export function HeroSection() {
                   <div className="grid grid-cols-2 gap-4">
                     {recentCampaigns.length > 0
                       ? recentCampaigns.map((campaign) => (
-                          <Link key={campaign.id} href={`/content/${campaign.slug || campaign.id}`} className="group cursor-pointer rounded-lg border border-[#D0E4F2] bg-white p-2 transition-all hover:shadow-lg hover:-translate-y-1">
-                            <div className="aspect-video w-full rounded-md bg-[#D0E4F2] relative overflow-hidden">
-                              {campaign.thumbnail ? (
-                                <Image
-                                  src={getGoogleDriveImageUrl(campaign.thumbnail)}
-                                  alt={campaign.title}
-                                  fill
-                                  className="object-cover"
-                                  unoptimized
-                                />
-                              ) : (
-                                <div className="absolute inset-0 bg-gradient-to-br from-[#80368D]/30 to-[#29358B]/30 flex items-center justify-center text-white/80 text-xs font-bold">
-                                  {campaign.title.substring(0, 2).toUpperCase()}
-                                </div>
-                              )}
-                              <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
-                              <div className="absolute bottom-2 right-2 h-6 w-6 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                <Play className="h-3 w-3 text-white fill-current" />
+                        <Link key={campaign.id} href={`/content/${campaign.slug || campaign.id}`} className="group cursor-pointer rounded-lg border border-[#D0E4F2] bg-white p-2 transition-all hover:shadow-lg hover:-translate-y-1">
+                          <div className="aspect-video w-full rounded-md bg-[#D0E4F2] relative overflow-hidden">
+                            {campaign.thumbnail ? (
+                              <Image
+                                src={getGoogleDriveImageUrl(campaign.thumbnail)}
+                                alt={campaign.title}
+                                fill
+                                className="object-cover"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="absolute inset-0 bg-gradient-to-br from-[#80368D]/30 to-[#29358B]/30 flex items-center justify-center text-white/80 text-xs font-bold">
+                                {campaign.title.substring(0, 2).toUpperCase()}
                               </div>
-                            </div>
-                            <div className="mt-3 px-1">
-                              <h4 className="font-semibold text-sm text-[#1A1F2B] line-clamp-1">{campaign.title}</h4>
-                              <span className="text-xs text-[#1A1F2B]/60">{campaign.category || "Campagne"}</span>
-                            </div>
-                          </Link>
-                        ))
-                      : /* Skeleton placeholders while loading */
-                        Array.from({ length: 4 }).map((_, i) => (
-                          <div key={i} className="rounded-lg border border-[#D0E4F2] bg-white p-2">
-                            <div className="aspect-video w-full rounded-md skeleton-shimmer" />
-                            <div className="mt-3 px-1 space-y-1.5">
-                              <div className="skeleton-line h-4 w-3/4 rounded" />
-                              <div className="skeleton-line h-3 w-1/2 rounded" />
+                            )}
+                            <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
+                            <div className="absolute bottom-2 right-2 h-6 w-6 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Play className="h-3 w-3 text-white fill-current" />
                             </div>
                           </div>
-                        ))
+                          <div className="mt-3 px-1">
+                            <h4 className="font-semibold text-sm text-[#1A1F2B] line-clamp-1">{campaign.title}</h4>
+                            <span className="text-xs text-[#1A1F2B]/60">{campaign.category || "Campagne"}</span>
+                          </div>
+                        </Link>
+                      ))
+                      : /* Skeleton placeholders while loading */
+                      Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="rounded-lg border border-[#D0E4F2] bg-white p-2">
+                          <div className="aspect-video w-full rounded-md skeleton-shimmer" />
+                          <div className="mt-3 px-1 space-y-1.5">
+                            <div className="skeleton-line h-4 w-3/4 rounded" />
+                            <div className="skeleton-line h-3 w-1/2 rounded" />
+                          </div>
+                        </div>
+                      ))
                     }
                   </div>
                 </div>
@@ -419,7 +419,6 @@ export function PricingTeaser() {
         </div>
 
         <p className="mt-5 text-sm text-[#1A1F2B]/50">
-          Puis 25 000 XOF/mois • Annulation à tout moment • Support 24/7
         </p>
       </div>
     </section>

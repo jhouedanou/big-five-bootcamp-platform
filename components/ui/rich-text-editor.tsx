@@ -81,9 +81,27 @@ export function RichTextEditor({
     if (!editor) return null
 
     const addLink = () => {
+        // If already a link, allow removing it
+        if (editor.isActive('link')) {
+            editor.chain().focus().unsetLink().run()
+            return
+        }
+
         const url = window.prompt('URL du lien:')
-        if (url) {
-            editor.chain().focus().setLink({ href: url }).run()
+        if (!url) return
+
+        const { from, to } = editor.state.selection
+        if (from === to) {
+            // No text selected: insert the URL as linked text
+            editor.chain().focus()
+                .insertContent(`<a href="${url}">${url}</a>`)
+                .run()
+        } else {
+            // Text selected: wrap it with the link
+            editor.chain().focus()
+                .extendMarkRange('link')
+                .setLink({ href: url })
+                .run()
         }
     }
 

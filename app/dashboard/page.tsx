@@ -36,13 +36,11 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [monthlyClicks, setMonthlyClicks] = useState(0)
   const [monthlyExplored, setMonthlyExplored] = useState(0)
-  const [isTrialUser, setIsTrialUser] = useState(false)
-  const [trialDaysLeft, setTrialDaysLeft] = useState(0)
   const itemsPerPage = 9
 
   const { open: upgradeOpen, reason: upgradeReason, showUpgrade, closeUpgrade } = useUpgradePopup()
 
-  const isFreeUser = !isPaidPlan(userPlan) && !isTrialUser
+  const isFreeUser = !isPaidPlan(userPlan)
   const supabase = createClient()
 
   // Charger le compteur de clics depuis le serveur
@@ -101,21 +99,12 @@ export default function DashboardPage() {
           try {
             const { data: profile, error } = await supabase
               .from('users')
-              .select('plan, subscription_status, subscription_end_date, trial_end_date')
+              .select('plan, subscription_status, subscription_end_date')
               .eq('id', session.user.id)
               .single()
             if (!error && profile) {
-              // Vérifier si c'est un essai en cours
-              const isTrial = profile.subscription_status === 'trial'
-              const trialEnd = profile.trial_end_date ? new Date(profile.trial_end_date) : null
               const now = new Date()
-
-              if (isTrial && trialEnd && trialEnd > now) {
-                setIsTrialUser(true)
-                const daysLeft = Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-                setTrialDaysLeft(daysLeft)
-                setUserPlan('Pro')
-              } else if (
+              if (
                 profile.plan?.toLowerCase() === 'premium' ||
                 profile.plan?.toLowerCase() === 'pro' ||
                 profile.plan?.toLowerCase() === 'basic'
@@ -457,8 +446,6 @@ export default function DashboardPage() {
           monthlyClicks={monthlyClicks}
           monthlyClickLimit={MONTHLY_CLICK_LIMIT}
           isFreeUser={isFreeUser}
-          isTrialUser={isTrialUser}
-          trialDaysLeft={trialDaysLeft}
           monthlyExplored={monthlyExplored}
         />
 

@@ -92,16 +92,16 @@ export default function RegisterPage() {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-[#80368D]/20 via-transparent to-transparent" />
           <div className="flex h-full flex-col items-center justify-center p-12">
             <div className="max-w-md">
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#10B981]/20 px-4 py-1.5 text-sm text-[#10B981] font-medium">
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#80368D]/15 px-4 py-1.5 text-sm text-[#80368D] font-medium">
                 <Shield className="h-4 w-4" />
-                30 jours gratuits, sans CB
+                Inscription gratuite
               </div>
               
               <h2 className="font-[family-name:var(--font-heading)] text-3xl font-bold text-[#1A1F2B]">
                 Rejoins des milliers de creatifs africains
               </h2>
               <p className="mt-4 text-lg text-[#1A1F2B]/70">
-                Commence ton essai gratuit et decouvre les meilleures campagnes marketing du continent.
+                Decouvre les meilleures campagnes marketing du continent africain.
               </p>
               
               <ul className="mt-8 space-y-4">
@@ -149,10 +149,10 @@ export default function RegisterPage() {
 
           <div>
             <h1 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-foreground">
-              Commence ton essai gratuit
+              Créer ton compte
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              30 jours, acces complet, sans CB
+              Gratuit — Accède à la bibliothèque créative
             </p>
           </div>
 

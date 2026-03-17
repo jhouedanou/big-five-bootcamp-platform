@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     // Récupérer le profil utilisateur
     const { data: profile, error: profileError } = await admin
       .from('users')
-      .select('id, plan, subscription_status, trial_end_date, monthly_click_count, monthly_click_reset, monthly_campaigns_explored')
+      .select('id, plan, subscription_status, monthly_click_count, monthly_click_reset, monthly_campaigns_explored')
       .eq('id', user.id)
       .single()
 
@@ -52,10 +52,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Déterminer si l'utilisateur est free
-    const isTrial = profile.subscription_status === 'trial' && 
-      profile.trial_end_date && new Date(profile.trial_end_date) > now
-    const isPaid = ['pro', 'premium', 'basic'].includes(profile.plan?.toLowerCase() || '')
-    const isFree = !isPaid && !isTrial
+    const isPaid = ['pro', 'premium', 'basic'].includes(profile.plan?.toLowerCase() || '') && profile.subscription_status === 'active'
+    const isFree = !isPaid
 
     // Pour les free users : vérifier la limite
     if (isFree && currentClicks >= MONTHLY_CLICK_LIMIT) {
@@ -82,11 +80,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Pour les free users, on met à jour le compteur de clics aussi
-    if (isFree || isTrial) {
+    if (isFree) {
       updateData.monthly_click_count = newClicks
-    } else {
-      // Pour les payants, on met à jour juste l'exploration 
-      updateData.monthly_click_count = isFree ? newClicks : (profile.monthly_click_count || 0)
     }
 
     const { error: updateError } = await admin
@@ -126,7 +121,7 @@ export async function GET(request: NextRequest) {
 
     const { data: profile } = await admin
       .from('users')
-      .select('plan, subscription_status, trial_end_date, monthly_click_count, monthly_click_reset, monthly_campaigns_explored')
+      .select('plan, subscription_status, monthly_click_count, monthly_click_reset, monthly_campaigns_explored')
       .eq('id', user.id)
       .single()
 
@@ -156,10 +151,8 @@ export async function GET(request: NextRequest) {
         .eq('id', user.id)
     }
 
-    const isTrial = profile.subscription_status === 'trial' &&
-      profile.trial_end_date && new Date(profile.trial_end_date) > now
-    const isPaid = ['pro', 'premium', 'basic'].includes(profile.plan?.toLowerCase() || '')
-    const isFree = !isPaid && !isTrial
+    const isPaid = ['pro', 'premium', 'basic'].includes(profile.plan?.toLowerCase() || '') && profile.subscription_status === 'active'
+    const isFree = !isPaid
 
     return NextResponse.json({
       clicks,

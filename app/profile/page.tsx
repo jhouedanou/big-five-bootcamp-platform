@@ -7,7 +7,7 @@ import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Mail, Clock, Bell, Globe, Check, ArrowRight, Loader2, Lock, AlertTriangle, Receipt, Download, FileText, RefreshCw, TrendingUp } from "lucide-react"
+import { Mail, Clock, Bell, Globe, Check, ArrowRight, Loader2, Lock, AlertTriangle, Receipt, Download, FileText, RefreshCw, TrendingUp, CreditCard } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -16,8 +16,7 @@ interface UserProfile {
   name: string
   email: string
   avatar: string
-  status: "trial" | "subscribed" | "expired"
-  trialDaysLeft: number
+  status: "subscribed" | "expired" | "none"
   subscriptionEndDate: string
   plan?: string
   monthlyUsage?: number
@@ -44,8 +43,7 @@ export default function ProfilePage() {
     name: "",
     email: "",
     avatar: "",
-    status: "trial",
-    trialDaysLeft: 0,
+    status: "none",
     subscriptionEndDate: "",
     plan: "Free",
     monthlyUsage: 0,
@@ -81,8 +79,7 @@ export default function ProfilePage() {
       }
 
       // Calculer le statut d'abonnement
-      let status: "trial" | "subscribed" | "expired" = "trial"
-      let trialDaysLeft = 0
+      let status: "subscribed" | "expired" | "none" = "none"
       let subscriptionEndDate = ""
 
       const completedPayments = paymentsData?.filter(p => p.status === "completed") || []
@@ -91,19 +88,11 @@ export default function ProfilePage() {
       let monthlyUsage = 0
 
       if (profile) {
-        const isTrialActive = profile.subscription_status === 'trial' &&
-          profile.trial_end_date && new Date(profile.trial_end_date) > new Date()
         const isPremiumPlan = ["premium", "pro", "basic"].includes(profile.plan?.toLowerCase() || "")
         const isActiveSubscription = profile.subscription_status === "active"
         const hasCompletedPayment = completedPayments.length > 0
 
-        if (isTrialActive) {
-          status = "trial"
-          planName = "Pro"
-          const trialEnd = new Date(profile.trial_end_date)
-          const now = new Date()
-          trialDaysLeft = Math.max(0, Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
-        } else if ((isPremiumPlan && isActiveSubscription) || hasCompletedPayment) {
+        if ((isPremiumPlan && isActiveSubscription) || hasCompletedPayment) {
           status = "subscribed"
           if (profile.subscription_end_date) {
             subscriptionEndDate = format(new Date(profile.subscription_end_date), "d MMMM yyyy", { locale: fr })
@@ -111,7 +100,7 @@ export default function ProfilePage() {
         } else if (profile.subscription_status === "expired") {
           status = "expired"
         } else {
-          status = "expired"
+          status = "none"
         }
 
         // Monthly usage from profile if stored
@@ -125,7 +114,6 @@ export default function ProfilePage() {
         email: authUser.email || "",
         avatar: profile?.avatar_url || authUser.user_metadata?.avatar_url || "",
         status,
-        trialDaysLeft,
         subscriptionEndDate,
         plan: planName,
         monthlyUsage,
@@ -216,44 +204,30 @@ export default function ProfilePage() {
           <h2 className="font-[family-name:var(--font-heading)] text-lg font-semibold text-card-foreground">Abonnement</h2>
           
           <div className="mt-4">
-            {user.status === "trial" && (
-              <div className="rounded-lg bg-[#10B981]/10 p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#10B981]/20">
-                      <Clock className="h-5 w-5 text-[#10B981]" />
-                    </div>
-                    <div>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#10B981] px-2 py-0.5 text-xs font-medium text-white">
-                        <Check className="h-3 w-3" />
-                        Essai gratuit
-                      </span>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Il te reste <span className="font-semibold text-foreground">{user.trialDaysLeft} jours</span> {"d'essai gratuit"}
-                      </p>
-                    </div>
+            {user.status === "none" && (
+              <div className="rounded-lg bg-[#D0E4F2]/30 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#D0E4F2]/50">
+                    <CreditCard className="h-5 w-5 text-[#1A1F2B]/60" />
+                  </div>
+                  <div>
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#D0E4F2] px-2 py-0.5 text-xs font-medium text-[#1A1F2B]">
+                      Plan Gratuit
+                    </span>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Passez à un abonnement payant pour débloquer toutes les fonctionnalités.
+                    </p>
                   </div>
                 </div>
-                
-                {/* Progress bar */}
-                <div className="mt-4">
-                  <div className="h-2 overflow-hidden rounded-full bg-[#10B981]/20">
-                    <div 
-                      className="h-full rounded-full bg-[#10B981] transition-all"
-                      style={{ width: `${(user.trialDaysLeft / 14) * 100}%` }}
-                    />
-                  </div>
-                </div>
-                
-                <Button asChild className="mt-4 w-full shadow-lg shadow-primary/25 sm:w-auto">
+                <Button asChild className="mt-4 w-full shadow-lg shadow-primary/25 sm:w-auto bg-[#80368D] hover:bg-[#80368D]/90">
                   <Link href="/subscribe">
-                    Passer a {"l'abonnement"} payant
+                    Choisir une formule
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
               </div>
             )}
-            
+
             {user.status === "subscribed" && (
               <div className="rounded-lg bg-[#80368D]/10 p-4">
                 <div className="flex items-center gap-3">
@@ -285,7 +259,7 @@ export default function ProfilePage() {
         </section>
 
         {/* Monthly Usage Counter — Basic/Pro only */}
-        {(user.plan === "Pro" || user.plan === "Basic" || user.plan === "Premium" || user.status === "trial") && (
+        {(user.plan === "Pro" || user.plan === "Basic" || user.plan === "Premium") && user.status === "subscribed" && (
           <section className="mt-6 rounded-xl border border-[#80368D]/20 bg-gradient-to-br from-[#80368D]/5 to-[#a855f7]/5 p-6">
             <h2 className="font-[family-name:var(--font-heading)] text-lg font-semibold text-[#1A1F2B] flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-[#80368D]" />

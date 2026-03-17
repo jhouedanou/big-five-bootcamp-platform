@@ -60,13 +60,11 @@ export default function FavoritesPage() {
       if (!session?.user) return
       const { data: profile } = await supabase
         .from('users')
-        .select('plan, subscription_status, trial_end_date')
+        .select('plan, subscription_status')
         .eq('id', session.user.id)
         .single()
       if (profile) {
-        const isTrial = profile.subscription_status === 'trial' &&
-          profile.trial_end_date && new Date(profile.trial_end_date) > new Date()
-        const effectivePlan = isTrial ? 'Pro' : (profile.plan || 'Free')
+        const effectivePlan = profile.plan || 'Free'
         setUserPlan(effectivePlan)
         if (isPaidPlan(effectivePlan)) {
           loadCollections(session.user.id)

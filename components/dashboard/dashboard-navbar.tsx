@@ -21,8 +21,6 @@ export function DashboardNavbar({
   monthlyClicks,
   monthlyClickLimit,
   isFreeUser,
-  isTrialUser,
-  trialDaysLeft,
   monthlyExplored,
 }: {
   searchQuery?: string;
@@ -31,8 +29,6 @@ export function DashboardNavbar({
   monthlyClicks?: number
   monthlyClickLimit?: number
   isFreeUser?: boolean
-  isTrialUser?: boolean
-  trialDaysLeft?: number
   monthlyExplored?: number
 } = {}) {
   const [isOpen, setIsOpen] = useState(false)
@@ -194,25 +190,16 @@ export function DashboardNavbar({
             </div>
           )}
           {/* Compteur d'usage mensuel (Pro/Agency payant) */}
-          {!isFreeUser && !isTrialUser && isPremium && monthlyExplored !== undefined && monthlyExplored > 0 && (
+          {!isFreeUser && isPremium && monthlyExplored !== undefined && monthlyExplored > 0 && (
             <div className="hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 bg-[#10B981]/10 text-[#10B981] text-xs font-semibold">
               <Sparkles className="h-3.5 w-3.5" />
               {monthlyExplored} explorée{monthlyExplored > 1 ? 's' : ''} ce mois
             </div>
           )}
-          {!isFreeUser && !isTrialUser && isPremium && (monthlyExplored === undefined || monthlyExplored === 0) && (
+          {!isFreeUser && isPremium && (monthlyExplored === undefined || monthlyExplored === 0) && (
             <div className="hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 bg-[#10B981]/10 text-[#10B981] text-xs font-semibold">
               <Sparkles className="h-3.5 w-3.5" />
               Accès illimité
-            </div>
-          )}
-          {/* Indicateur d'essai Pro */}
-          {isTrialUser && trialDaysLeft !== undefined && (
-            <div className="hidden md:flex flex-col items-start">
-              <div className="flex items-center gap-1.5 rounded-full px-3 h-8 bg-gradient-to-r from-[#80368D]/10 to-[#a855f7]/10 text-[#80368D] text-xs font-bold border border-[#80368D]/20">
-                <Sparkles className="h-3.5 w-3.5" />
-                Essai Pro — {trialDaysLeft}j restants
-              </div>
             </div>
           )}
           {/* Bouton d'abonnement : durée restante ou incitatif */}

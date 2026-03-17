@@ -1,7 +1,7 @@
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
-import { Check, Gift, X } from "lucide-react"
+import { Check, X } from "lucide-react"
 import Link from "next/link"
 
 export default function PricingPage() {
@@ -11,13 +11,6 @@ export default function PricingPage() {
             <main className="flex-1">
                 <section className="relative py-20 lg:py-32 overflow-hidden bg-gradient-to-b from-[#D0E4F2] to-white">
                     <div className="container relative mx-auto px-4 text-center">
-                        <div className="mb-8 inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-[#F2B33D]/30 to-[#F2B33D]/10 px-6 py-3 ring-2 ring-[#F2B33D]/40 shadow-lg">
-                            <Gift className="h-6 w-6 text-[#F2B33D]" />
-                            <span className="text-lg font-bold text-[#1A1F2B]">
-                                Essai gratuit de 14 jours sur le plan Pro — Sans carte bancaire !
-                            </span>
-                        </div>
-
                         <h1 className="font-[family-name:var(--font-heading)] text-4xl lg:text-6xl font-extrabold tracking-tight mb-6 text-[#1A1F2B]">
                             Des tarifs adaptés à <br /> <span className="text-[#80368D]">votre ambition</span>
                         </h1>
@@ -111,7 +104,7 @@ export default function PricingPage() {
                             {/* Pro Tier (Highlighted) */}
                             <div className="rounded-2xl border-2 border-[#80368D] bg-white p-8 shadow-2xl shadow-[#80368D]/20 relative flex flex-col transform lg:-translate-y-4">
                                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-[#F2B33D] text-[#1A1F2B] px-4 py-1.5 rounded-full text-sm font-bold shadow-lg whitespace-nowrap">
-                                    14 jours gratuits
+                                    Populaire
                                 </div>
                                 <div className="mb-6 mt-2">
                                     <h3 className="font-bold text-xl mb-2 text-[#80368D]">Pro</h3>
@@ -123,7 +116,7 @@ export default function PricingPage() {
                                 </div>
                                 <p className="text-xs text-[#1A1F2B]/50 mb-6">soit 99 000 XOF / an</p>
                                 <Button asChild className="w-full mb-8 font-bold shadow-lg shadow-[#80368D]/25 h-12 text-base bg-[#80368D] hover:bg-[#80368D]/90 text-white">
-                                    <Link href="/register">Commencer l{"'"}essai gratuit</Link>
+                                    <Link href="/subscribe?plan=pro">Choisir Pro</Link>
                                 </Button>
                                 <ul className="space-y-3 text-sm flex-1">
                                     <li className="flex items-center gap-2 text-[#1A1F2B]">

@@ -88,17 +88,14 @@ export function HeroSection() {
 
           {/* Text Content */}
           <div className="flex flex-col items-start text-left z-10">
-            {/* Free Trial Banner - Prominent */}
+            {/* Value Proposition Banner */}
             <div className="mb-6 w-full sm:w-auto animate-fade-in-up">
-              <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#F2B33D]/20 to-[#F2B33D]/10 px-5 py-3 ring-2 ring-[#F2B33D]/30 shadow-lg shadow-[#F2B33D]/10">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F2B33D] text-white">
+              <div className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#80368D]/15 to-[#80368D]/5 px-5 py-3 ring-2 ring-[#80368D]/20 shadow-lg shadow-[#80368D]/10">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#80368D] text-white">
                   <CheckCircle className="h-5 w-5" />
                 </span>
                 <span className="text-base font-bold text-[#1A1F2B]">
-                  🎉 Essai gratuit de 30 jours
-                </span>
-                <span className="text-sm text-[#1A1F2B]/70">
-                  — Sans carte bancaire
+                  La plus grande bibliothèque créative africaine
                 </span>
               </div>
             </div>
@@ -144,7 +141,7 @@ export function HeroSection() {
 
             {/* Price info below buttons */}
             <p className="mt-4 text-sm text-[#1A1F2B]/60 animate-fade-in-up delay-300">
-              Puis seulement <span className="font-semibold text-foreground">25 000 XOF/mois</span> après l'essai
+              À partir de <span className="font-semibold text-foreground">4 900 XOF/mois</span> — Accès illimité
             </p>
 
             <div className="mt-10 flex items-center gap-6 animate-fade-in-up delay-400">
@@ -394,10 +391,10 @@ export function PricingTeaser() {
       <div className="absolute inset-0 bg-[linear-gradient(rgba(208,228,242,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(208,228,242,0.3)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center relative z-10">
-        {/* Free Trial Banner */}
-        <div className="mb-5 inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-[#F2B33D]/30 to-[#F2B33D]/10 px-5 py-2.5 ring-2 ring-[#F2B33D]/40 shadow-lg">
+        {/* Pricing teaser */}
+        <div className="mb-5 inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-[#80368D]/15 to-[#80368D]/5 px-5 py-2.5 ring-2 ring-[#80368D]/20 shadow-lg">
           <span className="text-base font-bold text-[#1A1F2B]">
-            🎉 Essai gratuit de 30 jours
+            À partir de 4 900 XOF/mois
           </span>
         </div>
 

@@ -57,14 +57,12 @@ export default function BrandRequestsPage() {
 
       const { data: profile } = await supabase
         .from('users')
-        .select('plan, subscription_status, trial_end_date')
+        .select('plan, subscription_status')
         .eq('id', session.user.id)
         .single()
 
       if (profile) {
-        const isTrial = profile.subscription_status === 'trial' &&
-          profile.trial_end_date && new Date(profile.trial_end_date) > new Date()
-        setUserPlan(isTrial ? 'Pro' : (profile.plan || 'Free'))
+        setUserPlan(profile.plan || 'Free')
       }
 
       // Charger les demandes existantes

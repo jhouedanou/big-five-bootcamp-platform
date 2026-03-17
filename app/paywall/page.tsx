@@ -33,12 +33,12 @@ export default function PaywallPage() {
           </div>
           
           <h1 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[#1A1F2B]">
-            Ton essai gratuit est termine
+            Passez à un abonnement payant
           </h1>
-          
+
           <p className="mt-3 text-[#1A1F2B]/70">
-            Tu as kiffe ces 30 jours ? Continue {"l'aventure"} pour{" "}
-            <span className="font-semibold text-[#1A1F2B]">25 000 XOF/mois</span> seulement.
+            Débloquez {"l'accès"} complet à la bibliothèque à partir de{" "}
+            <span className="font-semibold text-[#1A1F2B]">4 900 XOF/mois</span>.
           </p>
 
           {/* Benefits */}

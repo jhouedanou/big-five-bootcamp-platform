@@ -45,43 +45,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 1b. Trouver les essais gratuits expirés (trial_end_date < NOW et subscription_status = 'trial')
-    const { data: expiredTrials } = await (supabaseAdmin as any)
-      .from('users')
-      .select('id, email, name, trial_end_date')
-      .eq('subscription_status', 'trial')
-      .lt('trial_end_date', now)
-
-    // Downgrader les essais expirés vers Free
-    if (expiredTrials && expiredTrials.length > 0) {
-      console.log(`⏰ ${expiredTrials.length} essai(s) gratuit(s) expiré(s)`)
-      const trialIds = expiredTrials.map((u: any) => u.id)
-      await (supabaseAdmin as any)
-        .from('users')
-        .update({ plan: 'Free', subscription_status: 'expired', updated_at: now })
-        .in('id', trialIds)
-
-      for (const user of expiredTrials) {
-        try {
-          await (supabaseAdmin as any).from('notifications').insert({
-            user_id: user.id,
-            type: 'trial_expired',
-            title: '⏰ Votre essai gratuit a expiré',
-            message: 'Votre essai Pro de 14 jours a pris fin. Passez à un abonnement payant pour continuer.',
-            metadata: { trial_end_date: user.trial_end_date },
-          })
-        } catch { /* ignore */ }
-      }
-    }
-
     if (!expiredUsers || expiredUsers.length === 0) {
-      const trialCount = expiredTrials?.length || 0
-      console.log(`✅ Aucun abonnement payant expiré. ${trialCount} essai(s) downgradué(s).`)
+      console.log(`Aucun abonnement expiré.`)
       return NextResponse.json({
         success: true,
-        message: `Aucun abonnement payant expiré. ${trialCount} essai(s) downgradué(s).`,
+        message: 'Aucun abonnement expiré.',
         downgraded: 0,
-        trials_downgraded: trialCount,
         checked_at: now,
       })
     }

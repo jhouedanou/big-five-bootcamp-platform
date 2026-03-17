@@ -125,10 +125,14 @@ async function handlePaymentSuccess(payment: any, details: any) {
       ? new Date(metadata.subscription_end_date)
       : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
+    // Utiliser le plan choisi (basic/pro) stocké dans les metadata du paiement
+    const planLabel = metadata.plan_label || metadata.plan || 'Pro';
+    const planName = planLabel.charAt(0).toUpperCase() + planLabel.slice(1).toLowerCase();
+
     const { error: userUpdateError } = await (supabaseAdmin as any)
       .from('users')
       .update({
-        plan: 'Premium',
+        plan: planName,
         subscription_status: 'active',
         subscription_start_date: new Date().toISOString(),
         subscription_end_date: subscriptionEndDate.toISOString(),

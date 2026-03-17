@@ -65,9 +65,9 @@ export function UpgradePopup({ open, onClose, reason }: UpgradePopupProps) {
             asChild
             className="w-full h-12 text-base font-bold bg-gradient-to-r from-[#80368D] to-[#a855f7] hover:from-[#6b2d76] hover:to-[#9333ea] text-white shadow-lg shadow-[#80368D]/25"
           >
-            <Link href="/register" onClick={onClose}>
+            <Link href="/subscribe" onClick={onClose}>
               <Star className="mr-2 h-4 w-4" />
-              Essai gratuit 14 jours (Pro)
+              Choisir une formule
             </Link>
           </Button>
           <Button

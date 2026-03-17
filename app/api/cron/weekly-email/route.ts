@@ -1,8 +1,15 @@
 /**
  * API Route: GET /api/cron/weekly-email
  *
- * Envoie un récapitulatif hebdomadaire des nouvelles campagnes à tous les utilisateurs inscrits.
- * À appeler chaque lundi matin via un cron Vercel ou un service externe.
+ * Envoie un récapitulatif hebdomadaire éditorialisé des nouvelles campagnes
+ * à tous les utilisateurs inscrits.
+ * Départ : chaque lundi à 8h (contenus chargés les vendredis soirs)
+ *
+ * Contenu :
+ * - Volume de contenus chargés
+ * - Industries (secteurs) couverts
+ * - Pays représentés
+ * - Liens vers des campagnes spécifiques
  *
  * Sécurité: Protégé par CRON_SECRET header
  */
@@ -30,18 +37,18 @@ export async function GET(request: NextRequest) {
     // 1. Récupérer les nouvelles campagnes de la semaine
     const { data: newCampaigns, error: campaignsError } = await (supabaseAdmin as any)
       .from('campaigns')
-      .select('id, title, description, category, country, thumbnail, slug')
+      .select('id, title, description, brand, category, country, thumbnail, slug, platforms, format, featured')
       .eq('status', 'Publié')
       .gte('created_at', lastMonday.toISOString())
       .order('created_at', { ascending: false })
 
     if (campaignsError) {
-      console.error('❌ Erreur récupération campagnes:', campaignsError.message)
+      console.error('Erreur récupération campagnes:', campaignsError.message)
       return NextResponse.json({ error: campaignsError.message }, { status: 500 })
     }
 
     if (!newCampaigns || newCampaigns.length === 0) {
-      console.log('ℹ️ Aucune nouvelle campagne cette semaine')
+      console.log('Aucune nouvelle campagne cette semaine')
       return NextResponse.json({
         success: true,
         message: 'Aucune nouvelle campagne cette semaine, email non envoyé',
@@ -49,7 +56,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // 2. Récupérer tous les utilisateurs abonnés aux emails (sans unsubscribed)
+    // 2. Récupérer tous les utilisateurs abonnés aux emails
     const { data: users, error: usersError } = await (supabaseAdmin as any)
       .from('users')
       .select('id, email, name, email_unsubscribed')
@@ -57,7 +64,7 @@ export async function GET(request: NextRequest) {
       .neq('email_unsubscribed', true)
 
     if (usersError) {
-      console.error('❌ Erreur récupération utilisateurs:', usersError.message)
+      console.error('Erreur récupération utilisateurs:', usersError.message)
       return NextResponse.json({ error: usersError.message }, { status: 500 })
     }
 
@@ -65,77 +72,167 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, message: 'Aucun destinataire', sent: 0 })
     }
 
-    // 3. Grouper les campagnes par pays et secteur pour le contenu email
-    const byCountry: Record<string, typeof newCampaigns> = {}
-    const bySector: Record<string, typeof newCampaigns> = {}
+    // 3. Analyser les campagnes : industries, pays, marques
+    const industries = new Set<string>()
+    const countries = new Set<string>()
+    const brands = new Set<string>()
+    const featuredCampaigns = newCampaigns.filter((c: any) => c.featured)
 
     newCampaigns.forEach((c: any) => {
-      if (c.country) {
-        if (!byCountry[c.country]) byCountry[c.country] = []
-        byCountry[c.country].push(c)
-      }
-      if (c.category) {
-        if (!bySector[c.category]) bySector[c.category] = []
-        bySector[c.category].push(c)
-      }
+      if (c.category) industries.add(c.category)
+      if (c.country) countries.add(c.country)
+      if (c.brand) brands.add(c.brand)
     })
 
-    // 4. Construire le HTML de l'email
+    const industriesList = Array.from(industries)
+    const countriesList = Array.from(countries)
+
+    // 4. Construire le HTML éditorialisé
     const weekLabel = lastMonday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://big-five-bootcamp-platform.vercel.app'
 
-    const campaignRows = newCampaigns.slice(0, 6).map((c: any) => `
+    // Top campagnes à mettre en avant (featured d'abord, puis les plus récentes)
+    const topCampaigns = featuredCampaigns.length > 0
+      ? featuredCampaigns.slice(0, 3)
+      : newCampaigns.slice(0, 3)
+
+    // Campagne vedette
+    const starCampaign = topCampaigns[0]
+
+    // Lignes détaillées des campagnes
+    const campaignCards = newCampaigns.slice(0, 8).map((c: any) => `
       <tr>
-        <td style="padding: 8px 0; border-bottom: 1px solid #f0f0f0;">
-          <a href="${appUrl}/content/${c.slug || c.id}" style="font-weight: 600; color: #80368D; text-decoration: none;">
-            ${c.title}
-          </a>
-          <br/>
-          <span style="font-size: 12px; color: #666;">${c.country || ''} · ${c.category || ''}</span>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #f0f0f0;">
+          <table cellpadding="0" cellspacing="0" border="0" width="100%">
+            <tr>
+              ${c.thumbnail ? `<td width="80" style="vertical-align: top; padding-right: 12px;">
+                <img src="${c.thumbnail}" alt="" width="80" height="60" style="border-radius: 8px; object-fit: cover; display: block;" />
+              </td>` : ''}
+              <td style="vertical-align: top;">
+                <a href="${appUrl}/dashboard" style="font-weight: 600; color: #80368D; text-decoration: none; font-size: 14px;">
+                  ${c.title}
+                </a>
+                <br/>
+                <span style="font-size: 12px; color: #999; line-height: 1.6;">
+                  ${c.brand ? `<strong>${c.brand}</strong> · ` : ''}${c.country || ''}${c.category ? ` · ${c.category}` : ''}${c.format ? ` · ${c.format}` : ''}
+                </span>
+              </td>
+            </tr>
+          </table>
         </td>
       </tr>
     `).join('')
 
+    // Tags industries
+    const industryTags = industriesList.slice(0, 6).map(ind =>
+      `<span style="display: inline-block; background: #f3e8ff; color: #80368D; padding: 4px 12px; border-radius: 50px; font-size: 12px; font-weight: 500; margin: 2px 4px 2px 0;">${ind}</span>`
+    ).join('')
+
+    // Tags pays
+    const countryTags = countriesList.slice(0, 6).map(c =>
+      `<span style="display: inline-block; background: #e0f2fe; color: #0369a1; padding: 4px 12px; border-radius: 50px; font-size: 12px; font-weight: 500; margin: 2px 4px 2px 0;">${c}</span>`
+    ).join('')
+
     const emailHtml = `
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><title>Big Five — Nouvelles campagnes de la semaine</title></head>
-<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 20px;">
-  <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Big Five — Votre veille créative de la semaine</title></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 20px;">
+  <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
     <!-- Header -->
-    <div style="background: linear-gradient(135deg, #80368D, #a855f7); padding: 32px 24px; text-align: center;">
-      <h1 style="color: white; margin: 0; font-size: 24px;">Big Five Creative Library</h1>
-      <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0;">Semaine du ${weekLabel}</p>
+    <div style="background: linear-gradient(135deg, #80368D, #a855f7); padding: 36px 24px; text-align: center;">
+      <h1 style="color: white; margin: 0; font-size: 26px; letter-spacing: -0.5px;">Big Five Creative Library</h1>
+      <p style="color: rgba(255,255,255,0.85); margin: 10px 0 0; font-size: 15px;">Votre veille créative — Semaine du ${weekLabel}</p>
     </div>
 
-    <!-- Content -->
-    <div style="padding: 24px;">
-      <h2 style="color: #1A1F2B; font-size: 20px; margin-bottom: 8px;">
-        📚 ${newCampaigns.length} nouvelles campagnes cette semaine
-      </h2>
-      <p style="color: #666; margin-bottom: 24px;">
-        Voici les meilleures campagnes ajoutées à la bibliothèque cette semaine, sélectionnées pour vous.
+    <!-- Intro éditorialisée -->
+    <div style="padding: 28px 24px 0;">
+      <p style="color: #1A1F2B; font-size: 16px; line-height: 1.6; margin: 0 0 6px;">
+        Bonjour,
       </p>
+      <p style="color: #444; font-size: 15px; line-height: 1.7; margin: 0;">
+        Cette semaine, <strong style="color: #80368D;">${newCampaigns.length} nouvelle${newCampaigns.length > 1 ? 's' : ''} campagne${newCampaigns.length > 1 ? 's' : ''}</strong>
+        ${newCampaigns.length > 1 ? 'ont été ajoutées' : 'a été ajoutée'} à la bibliothèque,
+        couvrant <strong>${industriesList.length} secteur${industriesList.length > 1 ? 's' : ''}</strong>
+        et <strong>${countriesList.length} pays</strong>.
+      </p>
+    </div>
 
-      <table style="width: 100%; border-collapse: collapse;">
-        ${campaignRows}
+    <!-- Stats rapides -->
+    <div style="padding: 20px 24px;">
+      <table cellpadding="0" cellspacing="0" border="0" width="100%">
+        <tr>
+          <td width="33%" style="text-align: center; padding: 16px 8px; background: #faf5ff; border-radius: 12px;">
+            <div style="font-size: 28px; font-weight: 800; color: #80368D;">${newCampaigns.length}</div>
+            <div style="font-size: 11px; color: #80368D; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">Campagnes</div>
+          </td>
+          <td width="4%"></td>
+          <td width="33%" style="text-align: center; padding: 16px 8px; background: #f0f9ff; border-radius: 12px;">
+            <div style="font-size: 28px; font-weight: 800; color: #0369a1;">${industriesList.length}</div>
+            <div style="font-size: 11px; color: #0369a1; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">Secteurs</div>
+          </td>
+          <td width="4%"></td>
+          <td width="33%" style="text-align: center; padding: 16px 8px; background: #fefce8; border-radius: 12px;">
+            <div style="font-size: 28px; font-weight: 800; color: #a16207;">${countriesList.length}</div>
+            <div style="font-size: 11px; color: #a16207; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">Pays</div>
+          </td>
+        </tr>
       </table>
+    </div>
 
-      ${newCampaigns.length > 6 ? `<p style="color: #666; font-size: 13px; margin-top: 12px;">+ ${newCampaigns.length - 6} autres campagnes disponibles</p>` : ''}
+    <!-- Industries couvertes -->
+    <div style="padding: 0 24px 16px;">
+      <h3 style="color: #1A1F2B; font-size: 14px; font-weight: 700; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px;">Industries couvertes</h3>
+      <div>${industryTags}</div>
+    </div>
 
-      <!-- CTA -->
-      <div style="text-align: center; margin-top: 32px;">
-        <a href="${appUrl}/dashboard" style="display: inline-block; background: #80368D; color: white; padding: 14px 32px; border-radius: 50px; text-decoration: none; font-weight: 700; font-size: 16px;">
-          Voir toutes les campagnes →
+    <!-- Pays représentés -->
+    <div style="padding: 0 24px 20px;">
+      <h3 style="color: #1A1F2B; font-size: 14px; font-weight: 700; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px;">Pays représentés</h3>
+      <div>${countryTags}</div>
+    </div>
+
+    <!-- Campagne vedette -->
+    ${starCampaign ? `
+    <div style="padding: 0 24px 20px;">
+      <div style="background: linear-gradient(135deg, #faf5ff, #f0f9ff); border: 2px solid #e9d5ff; border-radius: 12px; padding: 20px; text-align: center;">
+        <div style="font-size: 11px; color: #80368D; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Campagne de la semaine</div>
+        ${starCampaign.thumbnail ? `<img src="${starCampaign.thumbnail}" alt="" width="100%" style="border-radius: 8px; max-height: 200px; object-fit: cover; margin-bottom: 12px;" />` : ''}
+        <h3 style="color: #1A1F2B; font-size: 18px; margin: 0 0 4px;">${starCampaign.title}</h3>
+        <p style="color: #666; font-size: 13px; margin: 0 0 12px;">
+          ${starCampaign.brand ? `${starCampaign.brand} · ` : ''}${starCampaign.country || ''}${starCampaign.category ? ` · ${starCampaign.category}` : ''}
+        </p>
+        <a href="${appUrl}/dashboard" style="display: inline-block; background: #80368D; color: white; padding: 10px 24px; border-radius: 50px; text-decoration: none; font-weight: 600; font-size: 14px;">
+          Voir la campagne
         </a>
       </div>
     </div>
+    ` : ''}
+
+    <!-- Liste des campagnes -->
+    <div style="padding: 0 24px 24px;">
+      <h3 style="color: #1A1F2B; font-size: 14px; font-weight: 700; margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+        Toutes les nouveautés
+      </h3>
+      <table style="width: 100%; border-collapse: collapse; background: #fafafa; border-radius: 12px; overflow: hidden;">
+        ${campaignCards}
+      </table>
+
+      ${newCampaigns.length > 8 ? `<p style="color: #999; font-size: 13px; margin-top: 8px; text-align: center;">+ ${newCampaigns.length - 8} autres campagnes sur la plateforme</p>` : ''}
+    </div>
+
+    <!-- CTA principal -->
+    <div style="text-align: center; padding: 0 24px 32px;">
+      <a href="${appUrl}/dashboard" style="display: inline-block; background: linear-gradient(135deg, #80368D, #a855f7); color: white; padding: 16px 40px; border-radius: 50px; text-decoration: none; font-weight: 700; font-size: 16px; box-shadow: 0 4px 12px rgba(128,54,141,0.3);">
+        Explorer la bibliothèque
+      </a>
+    </div>
 
     <!-- Footer -->
-    <div style="background: #f8f9fa; padding: 16px 24px; text-align: center; border-top: 1px solid #e5e7eb;">
-      <p style="color: #999; font-size: 12px; margin: 0;">
+    <div style="background: #f8f9fa; padding: 20px 24px; text-align: center; border-top: 1px solid #e5e7eb;">
+      <p style="color: #999; font-size: 12px; margin: 0; line-height: 1.6;">
         Vous recevez cet email car vous êtes inscrit sur Big Five Creative Library.<br/>
-        <a href="${appUrl}/profile" style="color: #80368D;">Se désabonner</a>
+        <a href="${appUrl}/profile" style="color: #80368D;">Gérer mes préférences</a> · <a href="${appUrl}/profile" style="color: #999;">Se désabonner</a>
       </p>
     </div>
   </div>
@@ -143,7 +240,7 @@ export async function GET(request: NextRequest) {
 </html>
     `
 
-    // 5. Envoyer les emails via Resend (si configuré) ou logguer
+    // 5. Envoyer les emails via Resend
     const resendApiKey = process.env.RESEND_API_KEY
     let sent = 0
     let failed = 0
@@ -160,7 +257,7 @@ export async function GET(request: NextRequest) {
             body: JSON.stringify({
               from: 'Big Five Creative Library <noreply@bigfiveabidjan.com>',
               to: user.email,
-              subject: `📚 ${newCampaigns.length} nouvelles campagnes cette semaine — Big Five`,
+              subject: `${newCampaigns.length} nouvelles campagnes cette semaine — ${industriesList.slice(0, 3).join(', ')}`,
               html: emailHtml,
             }),
           })
@@ -169,32 +266,34 @@ export async function GET(request: NextRequest) {
             sent++
           } else {
             failed++
-            console.warn(`⚠️ Email failed for ${user.email}:`, response.status)
+            const err = await response.text()
+            console.warn(`Email failed for ${user.email}: ${response.status} ${err}`)
           }
         } catch (emailError) {
           failed++
-          console.warn(`⚠️ Email error for ${user.email}:`, emailError)
+          console.warn(`Email error for ${user.email}:`, emailError)
         }
       }
     } else {
-      // Mode simulation si pas de clé Resend
-      console.log(`📧 [SIMULATION] Envoi de ${users.length} emails (RESEND_API_KEY non configuré)`)
+      console.log(`[SIMULATION] Envoi de ${users.length} emails (RESEND_API_KEY non configuré)`)
       sent = users.length
     }
 
-    console.log(`✅ Emails envoyés: ${sent}/${users.length} (${failed} échecs)`)
+    console.log(`Emails envoyés: ${sent}/${users.length} (${failed} échecs)`)
 
     return NextResponse.json({
       success: true,
       message: `Email hebdo envoyé à ${sent} utilisateurs`,
       campaigns: newCampaigns.length,
+      industries: industriesList,
+      countries: countriesList,
       recipients: users.length,
       sent,
       failed,
       week_start: lastMonday.toISOString(),
     })
   } catch (error: any) {
-    console.error('❌ Erreur cron weekly-email:', error)
+    console.error('Erreur cron weekly-email:', error)
     return NextResponse.json(
       { error: 'Internal server error', details: error.message },
       { status: 500 }

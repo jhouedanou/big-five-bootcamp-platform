@@ -2,12 +2,13 @@
  * API Route: POST /api/payment/subscribe
  *
  * Cree une demande de paiement Moneroo pour un abonnement mensuel
- * Prix: 25 000 XOF/mois - Valable 1 mois
+ * Supporte Basic (4 900 XOF) et Pro (9 900 XOF)
  * Supporte le renouvellement anticipe : les jours restants sont conserves
  *
  * Body:
  * - userEmail: Email de l'utilisateur
  * - userName?: Nom de l'utilisateur
+ * - plan: "basic" | "pro"
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -18,13 +19,17 @@ import {
   getReturnUrl,
 } from '@/lib/moneroo';
 
-const SUBSCRIPTION_PRICE = 25000; // 25 000 XOF
+const PLAN_PRICES: Record<string, { price: number; label: string }> = {
+  basic: { price: 4900, label: 'Basic' },
+  pro: { price: 9900, label: 'Pro' },
+};
+
 const SUBSCRIPTION_DURATION_DAYS = 30;
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userEmail, userName } = body;
+    const { userEmail, userName, plan } = body;
 
     if (!userEmail) {
       return NextResponse.json(
@@ -33,10 +38,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const planKey = (plan || 'pro').toLowerCase();
+    const planConfig = PLAN_PRICES[planKey];
+
+    if (!planConfig) {
+      return NextResponse.json(
+        { error: 'Plan invalide. Choisissez "basic" ou "pro".' },
+        { status: 400 }
+      );
+    }
+
+    const SUBSCRIPTION_PRICE = planConfig.price;
+
     // Verifier si l'utilisateur existe
     let { data: existingUser, error: userError } = await supabaseAdmin
       .from('users')
-      .select('id, email, name, subscription_status, subscription_end_date')
+      .select('id, email, name, subscription_status, subscription_end_date, plan')
       .eq('email', userEmail)
       .single();
 
@@ -62,7 +79,7 @@ export async function POST(request: NextRequest) {
           plan: 'Free',
           status: 'active',
         }, { onConflict: 'id' })
-        .select('id, email, name, subscription_status, subscription_end_date')
+        .select('id, email, name, subscription_status, subscription_end_date, plan')
         .single();
 
       if (createError) {
@@ -94,8 +111,8 @@ export async function POST(request: NextRequest) {
     const nameParts = customerName.split(' ');
 
     const description = isCurrentlyActive
-      ? `Renouvellement Big Five - 1 mois (${ref_command})`
-      : `Abonnement Big Five - 1 mois (${ref_command})`;
+      ? `Renouvellement Big Five ${planConfig.label} - 1 mois (${ref_command})`
+      : `Abonnement Big Five ${planConfig.label} - 1 mois (${ref_command})`;
 
     // Creer le paiement dans la base
     const paymentInsert = {
@@ -106,11 +123,15 @@ export async function POST(request: NextRequest) {
       ref_command,
       metadata: {
         type: 'subscription',
+        plan: planKey,
+        plan_label: planConfig.label,
         renewal: isCurrentlyActive,
         duration_days: SUBSCRIPTION_DURATION_DAYS,
         subscription_end_date: subscriptionEndDate.toISOString(),
         previous_end_date: isCurrentlyActive ? currentEndDate!.toISOString() : null,
-        item_name: isCurrentlyActive ? 'Renouvellement Big Five - 1 mois' : 'Abonnement Big Five - 1 mois',
+        item_name: isCurrentlyActive
+          ? `Renouvellement Big Five ${planConfig.label} - 1 mois`
+          : `Abonnement Big Five ${planConfig.label} - 1 mois`,
         userId: (existingUser as any).id,
       },
     };
@@ -146,6 +167,7 @@ export async function POST(request: NextRequest) {
         metadata: {
           ref_command,
           type: 'subscription',
+          plan: planKey,
           user_id: (existingUser as any).id,
           renewal: isCurrentlyActive ? 'true' : 'false',
         },
@@ -153,7 +175,6 @@ export async function POST(request: NextRequest) {
     } catch (monerooError) {
       console.error('Moneroo initialization error:', monerooError);
 
-      // Marquer le paiement comme echoue
       await (supabaseAdmin as any)
         .from('payments')
         .update({ status: 'failed' })
@@ -180,6 +201,8 @@ export async function POST(request: NextRequest) {
       ref_command,
       redirect_url: monerooResponse.data.checkout_url,
       amount: SUBSCRIPTION_PRICE,
+      plan: planKey,
+      plan_label: planConfig.label,
       duration_days: SUBSCRIPTION_DURATION_DAYS,
       subscription_end_date: subscriptionEndDate.toISOString(),
       renewal: isCurrentlyActive,

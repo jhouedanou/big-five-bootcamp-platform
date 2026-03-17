@@ -52,7 +52,7 @@ export const PLAN_PRO = {
   },
 }
 
-export type PlanKey = "Free" | "Basic" | "Pro" | "Premium"
+export type PlanKey = "Free" | "Basic" | "Pro" | "Premium" | "Agency"
 
 export function getPlanConfig(plan: PlanKey) {
   switch (plan.toLowerCase()) {

@@ -257,19 +257,22 @@ export function ImageGallery({ mainImage, images: rawImages, title }: ImageGalle
   return (
     <>
       <div className="space-y-4">
-        {/* Main image - full width */}
-        <div 
-          className="relative aspect-video bg-muted rounded-xl overflow-hidden cursor-pointer group"
+        {/* Main image - full width, no crop */}
+        <div
+          className="relative bg-gray-50 rounded-xl overflow-hidden cursor-pointer group"
           onClick={() => openLightbox(0)}
         >
-          <Image
-            src={convertedMainImage || allImages[0]}
-            alt={title}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-            sizes="(max-width: 768px) 100vw, 66vw"
-            priority
-          />
+          <div className="relative w-full" style={{ minHeight: "200px" }}>
+            <Image
+              src={convertedMainImage || allImages[0]}
+              alt={title}
+              width={800}
+              height={800}
+              className="w-full h-auto object-contain transition-transform duration-300 group-hover:scale-[1.02]"
+              sizes="(max-width: 768px) 100vw, 33vw"
+              priority
+            />
+          </div>
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
             <ZoomIn className="h-10 w-10 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
           </div>

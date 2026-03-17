@@ -27,6 +27,7 @@ import { ImageGallery } from "@/components/ui/lightbox";
 import { useFavorites } from "@/hooks/use-favorites";
 import { cn, getGoogleDriveImageUrl } from "@/lib/utils";
 import { detectVideoPlatform, getEmbedUrl, getVideoPlatformLabel, getOriginalVideoUrl } from "@/lib/video-utils";
+import { isPaidPlan } from "@/lib/pricing";
 
 interface Campaign {
   id: string;
@@ -50,6 +51,34 @@ interface Campaign {
   created_at: string;
 }
 
+/**
+ * Formate le texte de description en HTML.
+ * - Si c'est déjà du HTML (contient des balises), le retourne tel quel
+ * - Sinon, convertit les retours à la ligne en <br>, **bold** en <strong>, etc.
+ */
+function formatDescription(text: string): string {
+  // Si c'est déjà du HTML (contient des balises), retourner tel quel
+  if (/<[a-z][\s\S]*>/i.test(text)) {
+    return text;
+  }
+
+  let html = text
+    // Échapper les caractères HTML dangereux
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    // **bold** → <strong>
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    // *italic* → <em>
+    .replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>')
+    // Les lignes vides → paragraphes
+    .replace(/\n\s*\n/g, '</p><p>')
+    // Les retours à la ligne simples → <br>
+    .replace(/\n/g, '<br/>')
+
+  return `<p>${html}</p>`;
+}
+
 export default function ContentDetailClient({ id }: { id: string }) {
   const [content, setContent] = useState<Campaign | null>(null);
   const [relatedContent, setRelatedContent] = useState<Campaign[]>([]);
@@ -60,6 +89,38 @@ export default function ContentDetailClient({ id }: { id: string }) {
   const [isToggling, setIsToggling] = useState(false);
   const [readProgress, setReadProgress] = useState(0);
   const articleRef = useRef<HTMLDivElement>(null);
+  const [userPlan, setUserPlan] = useState("Free");
+  const [monthlyClicks, setMonthlyClicks] = useState(0);
+  const [monthlyExplored, setMonthlyExplored] = useState(0);
+  const isFreeUser = !isPaidPlan(userPlan);
+
+  // Charger le plan utilisateur et compteur de clics
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('users')
+            .select('plan, subscription_status')
+            .eq('id', session.user.id)
+            .single();
+          if (profile) {
+            const plan = profile.plan || 'Free';
+            setUserPlan(plan);
+          }
+        }
+        const res = await fetch('/api/track-click');
+        if (res.ok) {
+          const data = await res.json();
+          setMonthlyClicks(data.clicks || 0);
+          setMonthlyExplored(data.explored || 0);
+        }
+      } catch { /* ignore */ }
+    };
+    loadUserData();
+  }, []);
 
   // Barre de progression de lecture
   useEffect(() => {
@@ -145,7 +206,13 @@ export default function ContentDetailClient({ id }: { id: string }) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <DashboardNavbar />
+        <DashboardNavbar
+          userPlan={userPlan}
+          monthlyClicks={monthlyClicks}
+          monthlyClickLimit={5}
+          isFreeUser={isFreeUser}
+          monthlyExplored={monthlyExplored}
+        />
         <div className="flex items-center justify-center h-[60vh]">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -156,7 +223,13 @@ export default function ContentDetailClient({ id }: { id: string }) {
   if (error || !content) {
     return (
       <div className="min-h-screen bg-background">
-        <DashboardNavbar />
+        <DashboardNavbar
+          userPlan={userPlan}
+          monthlyClicks={monthlyClicks}
+          monthlyClickLimit={5}
+          isFreeUser={isFreeUser}
+          monthlyExplored={monthlyExplored}
+        />
         <main className="container mx-auto px-4 py-8">
           <Link
             href="/dashboard"
@@ -367,7 +440,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                   <h2 className="font-semibold text-lg mb-3">Description</h2>
                   <div
                     className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: content.description }}
+                    dangerouslySetInnerHTML={{ __html: formatDescription(content.description) }}
                   />
                 </CardContent>
               </Card>

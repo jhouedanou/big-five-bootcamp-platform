@@ -49,6 +49,10 @@ export function DashboardNavbar({
     }
   }
   
+  const [internalMonthlyClicks, setInternalMonthlyClicks] = useState(0)
+  const [internalMonthlyExplored, setInternalMonthlyExplored] = useState(0)
+  const [internalIsFreeUser, setInternalIsFreeUser] = useState(true)
+
   const supabase = createClient()
 
   useEffect(() => {
@@ -74,22 +78,38 @@ export function DashboardNavbar({
           ) {
             setUserPlan('Free')
             setSubscriptionStatus('expired')
+            setInternalIsFreeUser(true)
             // Fire & forget : appeler le cron pour synchroniser la base
             fetch('/api/cron/check-subscriptions').catch(() => {})
           } else {
             setUserPlan(profile.plan || "Free")
             setSubscriptionStatus(profile.subscription_status || null)
+            const p = (profile.plan || "Free").toLowerCase()
+            setInternalIsFreeUser(!["basic", "pro", "premium"].includes(p) || profile.subscription_status !== "active")
           }
           setSubscriptionEndDate(profile.subscription_end_date || null)
         }
       }
+
+      // Charger les compteurs de clics (toujours, indépendamment des props)
+      try {
+        const res = await fetch('/api/track-click')
+        if (res.ok) {
+          const data = await res.json()
+          setInternalMonthlyClicks(data.clicks || 0)
+          setInternalMonthlyExplored(data.explored || 0)
+        }
+      } catch { /* ignore */ }
     }
     loadUser()
   }, [])
 
-  // Use external plan if provided (from dashboard page)
+  // Use external props if provided, otherwise use internally loaded data
   const effectivePlan = externalUserPlan || userPlan
   const isPremium = effectivePlan.toLowerCase() === "premium" || effectivePlan.toLowerCase() === "pro" || effectivePlan.toLowerCase() === "basic"
+  const effectiveIsFreeUser = isFreeUser !== undefined ? isFreeUser : internalIsFreeUser
+  const effectiveMonthlyClicks = monthlyClicks !== undefined ? monthlyClicks : internalMonthlyClicks
+  const effectiveMonthlyExplored = monthlyExplored !== undefined ? monthlyExplored : internalMonthlyExplored
   const initials = userName ? userName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "?"
 
   // Calcul de la durée restante de l'abonnement
@@ -183,23 +203,23 @@ export function DashboardNavbar({
 
         <div className="flex items-center gap-2">
           {/* Compteur de clics mensuel (Free) */}
-          {isFreeUser && monthlyClicks !== undefined && monthlyClickLimit !== undefined && (
+          {effectiveIsFreeUser && (
             <div className="hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 bg-[#D0E4F2] text-[#1A1F2B] text-xs font-semibold">
               <MousePointer className="h-3.5 w-3.5" />
-              {monthlyClicks}/{monthlyClickLimit} ce mois
+              {effectiveMonthlyClicks}/{monthlyClickLimit || 5} ce mois
             </div>
           )}
           {/* Compteur d'usage mensuel (Pro/Agency payant) */}
-          {!isFreeUser && isPremium && monthlyExplored !== undefined && monthlyExplored > 0 && (
+          {!effectiveIsFreeUser && isPremium && effectiveMonthlyExplored > 0 && (
             <div className="hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 bg-[#10B981]/10 text-[#10B981] text-xs font-semibold">
               <Sparkles className="h-3.5 w-3.5" />
-              {monthlyExplored} explorée{monthlyExplored > 1 ? 's' : ''} ce mois
+              {effectiveMonthlyExplored} explorée{effectiveMonthlyExplored > 1 ? 's' : ''} ce mois
             </div>
           )}
-          {!isFreeUser && isPremium && (monthlyExplored === undefined || monthlyExplored === 0) && (
+          {!effectiveIsFreeUser && isPremium && effectiveMonthlyExplored === 0 && (
             <div className="hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 bg-[#10B981]/10 text-[#10B981] text-xs font-semibold">
               <Sparkles className="h-3.5 w-3.5" />
-              Accès illimité
+              0 explorée ce mois
             </div>
           )}
           {/* Bouton d'abonnement : durée restante ou incitatif */}

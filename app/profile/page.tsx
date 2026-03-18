@@ -88,7 +88,7 @@ export default function ProfilePage() {
       let monthlyUsage = 0
 
       if (profile) {
-        const isPremiumPlan = ["premium", "pro", "basic"].includes(profile.plan?.toLowerCase() || "")
+        const isPremiumPlan = ["premium", "pro", "basic", "agency", "enterprise"].includes(profile.plan?.toLowerCase() || "")
         const isActiveSubscription = profile.subscription_status === "active"
         const hasCompletedPayment = completedPayments.length > 0
 
@@ -259,7 +259,7 @@ export default function ProfilePage() {
         </section>
 
         {/* Monthly Usage Counter — Basic/Pro only */}
-        {(user.plan === "Pro" || user.plan === "Basic" || user.plan === "Premium") && user.status === "subscribed" && (
+        {["Pro", "Basic", "Premium", "Agency", "Enterprise"].includes(user.plan || "") && user.status === "subscribed" && (
           <section className="mt-6 rounded-xl border border-[#80368D]/20 bg-gradient-to-br from-[#80368D]/5 to-[#a855f7]/5 p-6">
             <h2 className="font-[family-name:var(--font-heading)] text-lg font-semibold text-[#1A1F2B] flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-[#80368D]" />

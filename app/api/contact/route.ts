@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { getSupabaseAdmin } from '@/lib/supabase-server'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 // Valeurs par défaut
 // IMPORTANT : Avec onboarding@resend.dev, Resend n'envoie qu'au propriétaire du compte.
 // Pour envoyer à d'autres destinataires, vérifiez un domaine sur resend.com/domains
@@ -60,6 +58,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const resend = new Resend(process.env.RESEND_API_KEY)
     const contactEmails = await getContactEmails()
 
     // 1. Email principal à l'équipe

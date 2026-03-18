@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Déterminer si l'utilisateur est free
-    const isPaid = ['pro', 'premium', 'basic'].includes(profile.plan?.toLowerCase() || '') && profile.subscription_status === 'active'
+    const isPaid = ['pro', 'premium', 'basic', 'agency', 'enterprise'].includes(profile.plan?.toLowerCase() || '') && profile.subscription_status === 'active'
     const isFree = !isPaid
 
     // Pour les free users : vérifier la limite
@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
         .eq('id', user.id)
     }
 
-    const isPaid = ['pro', 'premium', 'basic'].includes(profile.plan?.toLowerCase() || '') && profile.subscription_status === 'active'
+    const isPaid = ['pro', 'premium', 'basic', 'agency', 'enterprise'].includes(profile.plan?.toLowerCase() || '') && profile.subscription_status === 'active'
     const isFree = !isPaid
 
     return NextResponse.json({

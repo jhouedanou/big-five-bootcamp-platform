@@ -72,7 +72,7 @@ export function DashboardNavbar({
           setUserName(profile.name || "")
           // Vérification côté client : si Premium mais expiré, traiter comme Free
           if (
-            profile.plan?.toLowerCase() === 'premium' &&
+            ['premium', 'pro', 'basic', 'agency', 'enterprise'].includes(profile.plan?.toLowerCase() || '') &&
             profile.subscription_end_date &&
             new Date(profile.subscription_end_date) < new Date()
           ) {
@@ -85,7 +85,7 @@ export function DashboardNavbar({
             setUserPlan(profile.plan || "Free")
             setSubscriptionStatus(profile.subscription_status || null)
             const p = (profile.plan || "Free").toLowerCase()
-            setInternalIsFreeUser(!["basic", "pro", "premium"].includes(p) || profile.subscription_status !== "active")
+            setInternalIsFreeUser(!["basic", "pro", "premium", "agency", "enterprise"].includes(p) || profile.subscription_status !== "active")
           }
           setSubscriptionEndDate(profile.subscription_end_date || null)
         }
@@ -106,7 +106,7 @@ export function DashboardNavbar({
 
   // Use external props if provided, otherwise use internally loaded data
   const effectivePlan = externalUserPlan || userPlan
-  const isPremium = effectivePlan.toLowerCase() === "premium" || effectivePlan.toLowerCase() === "pro" || effectivePlan.toLowerCase() === "basic"
+  const isPremium = ["premium", "pro", "basic", "agency", "enterprise"].includes(effectivePlan.toLowerCase())
   const effectiveIsFreeUser = isFreeUser !== undefined ? isFreeUser : internalIsFreeUser
   const effectiveMonthlyClicks = monthlyClicks !== undefined ? monthlyClicks : internalMonthlyClicks
   const effectiveMonthlyExplored = monthlyExplored !== undefined ? monthlyExplored : internalMonthlyExplored

@@ -105,9 +105,7 @@ export default function DashboardPage() {
             if (!error && profile) {
               const now = new Date()
               if (
-                profile.plan?.toLowerCase() === 'premium' ||
-                profile.plan?.toLowerCase() === 'pro' ||
-                profile.plan?.toLowerCase() === 'basic'
+                ['premium', 'pro', 'basic', 'agency', 'enterprise'].includes(profile.plan?.toLowerCase() || '')
               ) {
                 // Vérification expiration abonnement payant
                 if (

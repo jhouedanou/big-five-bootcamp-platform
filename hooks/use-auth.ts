@@ -124,7 +124,7 @@ export function useAuth() {
   // Derived state from DB user or fallbacks
   const isAdmin = dbUser?.role === "admin"
   const isModerator = dbUser?.role === "moderator" || isAdmin
-  const isPremium = dbUser?.plan?.toLowerCase() === "premium" || dbUser?.plan?.toLowerCase() === "enterprise"
+  const isPremium = ["premium", "pro", "basic", "agency", "enterprise"].includes(dbUser?.plan?.toLowerCase() || "")
   const isEnterprise = dbUser?.plan?.toLowerCase() === "enterprise"
 
   return {

@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, Suspense } from "react"
+import { useSearchParams, useRouter } from "next/navigation"
 import { useFavorites } from "@/hooks/use-favorites"
 import { Button } from "@/components/ui/button"
-import { Heart, Loader2, LogIn, Trash2, BookmarkCheck, ArrowLeft, FolderOpen, FolderPlus, X, Lock, Pencil, MoreVertical, FolderInput } from "lucide-react"
+import { Heart, Loader2, LogIn, Trash2, BookmarkCheck, ArrowLeft, FolderOpen, FolderPlus, X, Lock, Pencil, FolderInput, Share2, Globe, Link2, Check, XCircle, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { Footer } from "@/components/footer"
@@ -12,6 +13,8 @@ import Image from "next/image"
 import { cn, getGoogleDriveImageUrl } from "@/lib/utils"
 import { createClient } from "@/lib/supabase"
 import { isPaidPlan } from "@/lib/pricing"
+import { toast } from "sonner"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface Collection {
   id: string
@@ -19,9 +22,11 @@ interface Collection {
   created_at: string
   item_count: number
   campaign_ids: string[]
+  share_token?: string | null
+  is_shared?: boolean
 }
 
-export default function FavoritesPage() {
+function FavoritesPageContent() {
   const {
     favoritesWithCampaigns,
     fetchFavoritesWithCampaigns,
@@ -41,6 +46,13 @@ export default function FavoritesPage() {
   const [editingCollectionId, setEditingCollectionId] = useState<string | null>(null)
   const [editingCollectionName, setEditingCollectionName] = useState("")
   const [addToCollectionCampaignId, setAddToCollectionCampaignId] = useState<string | null>(null)
+  const [sharingCollectionId, setSharingCollectionId] = useState<string | null>(null)
+  const [copiedCollectionId, setCopiedCollectionId] = useState<string | null>(null)
+  const [shareModalCollection, setShareModalCollection] = useState<Collection | null>(null)
+
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const activeTab = searchParams.get('tab') === 'moodboards' ? 'moodboards' : 'favorites'
 
   const supabase = createClient()
   const isPaid = isPaidPlan(userPlan)
@@ -97,8 +109,11 @@ export default function FavoritesPage() {
         setCollections(prev => [...prev, data.collection])
         setNewCollectionName("")
         setShowNewCollectionInput(false)
+        toast.success(`Moodboard « ${data.collection.name} » créé`)
+      } else {
+        toast.error("Impossible de créer le moodboard")
       }
-    } catch { /* ignore */ } finally { setCreatingCollection(false) }
+    } catch { toast.error("Erreur lors de la création") } finally { setCreatingCollection(false) }
   }
 
   const renameCollection = async (id: string, newName: string) => {
@@ -111,6 +126,7 @@ export default function FavoritesPage() {
       })
       if (res.ok) {
         setCollections(prev => prev.map(c => c.id === id ? { ...c, name: newName.trim() } : c))
+        toast.success("Moodboard renommé")
       }
     } catch { /* ignore */ }
     setEditingCollectionId(null)
@@ -119,16 +135,21 @@ export default function FavoritesPage() {
 
   const deleteCollection = async (id: string) => {
     if (!confirm('Supprimer cette collection ? Les favoris ne seront pas supprimés.')) return
+    const name = collections.find(c => c.id === id)?.name
     try {
       const res = await fetch(`/api/collections?id=${id}`, { method: 'DELETE' })
       if (res.ok) {
         setCollections(prev => prev.filter(c => c.id !== id))
         if (activeCollection === id) setActiveCollection(null)
+        toast.success(`Moodboard « ${name} » supprimé`)
+      } else {
+        toast.error("Impossible de supprimer le moodboard")
       }
-    } catch { /* ignore */ }
+    } catch { toast.error("Erreur lors de la suppression") }
   }
 
   const addToCollection = async (collectionId: string, campaignId: string) => {
+    const colName = collections.find(c => c.id === collectionId)?.name
     try {
       const res = await fetch('/api/collections/items', {
         method: 'POST',
@@ -136,7 +157,6 @@ export default function FavoritesPage() {
         body: JSON.stringify({ collectionId, campaignId }),
       })
       if (res.ok) {
-        // Mettre à jour localement
         setCollections(prev => prev.map(c => {
           if (c.id === collectionId) {
             return {
@@ -147,12 +167,21 @@ export default function FavoritesPage() {
           }
           return c
         }))
+        toast.success(`Ajouté au moodboard « ${colName} »`)
+      } else {
+        const data = await res.json()
+        if (res.status === 409) {
+          toast.info(`Déjà dans « ${colName} »`)
+        } else {
+          toast.error(data.error || "Impossible d'ajouter au moodboard")
+        }
       }
-    } catch { /* ignore */ }
+    } catch { toast.error("Erreur lors de l'ajout") }
     setAddToCollectionCampaignId(null)
   }
 
   const removeFromCollection = async (collectionId: string, campaignId: string) => {
+    const colName = collections.find(c => c.id === collectionId)?.name
     try {
       const res = await fetch(`/api/collections/items?collectionId=${collectionId}&campaignId=${campaignId}`, {
         method: 'DELETE',
@@ -168,8 +197,73 @@ export default function FavoritesPage() {
           }
           return c
         }))
+        toast.success(`Retiré du moodboard « ${colName} »`)
       }
     } catch { /* ignore */ }
+  }
+
+  const openShareModal = async (col: Collection) => {
+    if (col.is_shared && col.share_token) {
+      setShareModalCollection(col)
+      return
+    }
+    // Générer le token d'abord
+    setSharingCollectionId(col.id)
+    try {
+      const res = await fetch('/api/collections/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ collectionId: col.id }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const updated = { ...col, share_token: data.share_token, is_shared: true }
+        setCollections(prev => prev.map(c => c.id === col.id ? updated : c))
+        setShareModalCollection(updated)
+      } else {
+        toast.error("Impossible d'activer le partage")
+      }
+    } catch { toast.error("Erreur réseau") } finally { setSharingCollectionId(null) }
+  }
+
+  const shareCollection = async (collectionId: string) => {
+    setSharingCollectionId(collectionId)
+    try {
+      const res = await fetch('/api/collections/share', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ collectionId }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setCollections(prev => prev.map(c =>
+          c.id === collectionId ? { ...c, share_token: data.share_token, is_shared: true } : c
+        ))
+        toast.success("Lien de partage activé")
+      } else {
+        toast.error("Impossible d'activer le partage")
+      }
+    } catch { toast.error("Erreur lors du partage") } finally { setSharingCollectionId(null) }
+  }
+
+  const revokeShare = async (collectionId: string) => {
+    try {
+      const res = await fetch(`/api/collections/share?id=${collectionId}`, { method: 'DELETE' })
+      if (res.ok) {
+        setCollections(prev => prev.map(c =>
+          c.id === collectionId ? { ...c, share_token: null, is_shared: false } : c
+        ))
+        toast.success("Partage révoqué")
+      }
+    } catch { /* ignore */ }
+  }
+
+  const copyShareLink = (token: string, collectionId: string) => {
+    const url = `${window.location.origin}/shared/${token}`
+    navigator.clipboard.writeText(url)
+    setCopiedCollectionId(collectionId)
+    setTimeout(() => setCopiedCollectionId(null), 2000)
+    toast.success("Lien copié dans le presse-papier")
   }
 
   const handleRemove = async (campaignId: string) => {
@@ -349,12 +443,12 @@ export default function FavoritesPage() {
                       )}
                       {/* Bouton retirer des favoris */}
                       {activeCollection ? (
-                        <button onClick={() => removeFromCollection(activeCollection, fav.campaign_id)} disabled={isRemoving}
+                        <button type="button" onClick={() => removeFromCollection(activeCollection, fav.campaign_id)} disabled={isRemoving}
                           className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-orange-500 hover:bg-orange-50 transition-colors disabled:opacity-50">
                           <FolderOpen className="h-3.5 w-3.5" />Retirer
                         </button>
                       ) : (
-                        <button onClick={() => handleRemove(fav.campaign_id)} disabled={isRemoving}
+                        <button type="button" onClick={() => handleRemove(fav.campaign_id)} disabled={isRemoving}
                           className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50">
                           <Trash2 className="h-3.5 w-3.5" />Retirer
                         </button>
@@ -373,21 +467,183 @@ export default function FavoritesPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[#F4F8FB]">
       {isAuthenticated ? <DashboardNavbar /> : <Navbar />}
+      {/* Modal de partage réseaux sociaux */}
+      <Dialog open={!!shareModalCollection} onOpenChange={(open) => !open && setShareModalCollection(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Share2 className="h-5 w-5 text-[#80368D]" />
+              Partager « {shareModalCollection?.name} »
+            </DialogTitle>
+          </DialogHeader>
+          {shareModalCollection?.share_token && (() => {
+            const shareUrl = typeof window !== 'undefined'
+              ? `${window.location.origin}/shared/${shareModalCollection.share_token}`
+              : `/shared/${shareModalCollection.share_token}`
+            const shareText = `Découvrez mon moodboard « ${shareModalCollection.name} » sur Big Five Creative Library !`
+            const encodedUrl = encodeURIComponent(shareUrl)
+            const encodedText = encodeURIComponent(shareText)
+
+            const socials = [
+              {
+                name: 'WhatsApp',
+                href: `https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`,
+                bg: 'bg-[#25D366] hover:bg-[#1ebe57]',
+                icon: (
+                  <svg viewBox="0 0 24 24" className="h-5 w-5 fill-white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                ),
+              },
+              {
+                name: 'X / Twitter',
+                href: `https://x.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`,
+                bg: 'bg-black hover:bg-zinc-800',
+                icon: (
+                  <svg viewBox="0 0 24 24" className="h-5 w-5 fill-white"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.253 5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                ),
+              },
+              {
+                name: 'Facebook',
+                href: `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`,
+                bg: 'bg-[#1877F2] hover:bg-[#166fe5]',
+                icon: (
+                  <svg viewBox="0 0 24 24" className="h-5 w-5 fill-white"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                ),
+              },
+              {
+                name: 'LinkedIn',
+                href: `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`,
+                bg: 'bg-[#0A66C2] hover:bg-[#0958a8]',
+                icon: (
+                  <svg viewBox="0 0 24 24" className="h-5 w-5 fill-white"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                ),
+              },
+            ]
+
+            return (
+              <div className="space-y-4 pt-2">
+                {/* Boutons réseaux sociaux */}
+                <div className="grid grid-cols-2 gap-3">
+                  {socials.map((s) => (
+                    <a
+                      key={s.name}
+                      href={s.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(
+                        "flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-semibold text-white transition-all hover:scale-[1.02] active:scale-100",
+                        s.bg
+                      )}
+                    >
+                      {s.icon}
+                      {s.name}
+                    </a>
+                  ))}
+                </div>
+
+                {/* Séparateur */}
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#D0E4F2]" /></div>
+                  <div className="relative flex justify-center text-xs text-muted-foreground">
+                    <span className="bg-white px-2">ou copier le lien</span>
+                  </div>
+                </div>
+
+                {/* Champ lien + copie */}
+                <div className="flex gap-2">
+                  <input
+                    readOnly
+                    value={shareUrl}
+                    className="flex-1 rounded-lg border border-[#D0E4F2] bg-[#F4F8FB] px-3 py-2 text-xs text-[#1A1F2B] outline-none select-all"
+                    onFocus={e => e.target.select()}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => { navigator.clipboard.writeText(shareUrl); toast.success("Lien copié !"); setShareModalCollection(null) }}
+                    className="flex items-center gap-1.5 rounded-lg bg-[#80368D] px-3 py-2 text-xs font-semibold text-white hover:bg-[#6b2d78] transition-colors"
+                  >
+                    <Link2 className="h-3.5 w-3.5" />
+                    Copier
+                  </button>
+                </div>
+
+                {/* Révoquer */}
+                {shareModalCollection.is_shared && (
+                  <button
+                    type="button"
+                    onClick={() => { revokeShare(shareModalCollection.id); setShareModalCollection(null) }}
+                    className="w-full flex items-center justify-center gap-1.5 text-xs text-red-500 hover:text-red-700 transition-colors pt-1"
+                  >
+                    <XCircle className="h-3.5 w-3.5" />
+                    Révoquer le lien public
+                  </button>
+                )}
+              </div>
+            )
+          })()}
+        </DialogContent>
+      </Dialog>
+
       <main className="flex-1">
         <div className="container mx-auto px-4 pb-12 pt-8">
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-red-500 to-pink-500 shadow-lg shadow-red-500/20">
-                <Heart className="h-5 w-5 text-white fill-white" />
+              <div className={`flex h-10 w-10 items-center justify-center rounded-xl shadow-lg ${
+                activeTab === 'moodboards'
+                  ? 'bg-gradient-to-br from-[#80368D] to-[#29358B] shadow-[#80368D]/20'
+                  : 'bg-gradient-to-br from-red-500 to-pink-500 shadow-red-500/20'
+              }`}>
+                {activeTab === 'moodboards'
+                  ? <FolderOpen className="h-5 w-5 text-white" />
+                  : <Heart className="h-5 w-5 text-white fill-white" />
+                }
               </div>
-              <h1 className="text-3xl font-bold tracking-tight text-[#1A1F2B]">Mes Favoris</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-[#1A1F2B]">
+                {activeTab === 'moodboards' ? 'Mes Moodboards' : 'Mes Favoris'}
+              </h1>
             </div>
-            <p className="text-muted-foreground">Retrouvez toutes les campagnes que vous avez sauvegardées.</p>
+            <p className="text-muted-foreground">
+              {activeTab === 'moodboards'
+                ? 'Organisez vos campagnes favorites dans des collections thématiques.'
+                : 'Retrouvez toutes les campagnes que vous avez sauvegardées.'}
+            </p>
+
+            {/* Onglets */}
+            <div className="mt-4 flex gap-1 rounded-lg bg-[#D0E4F2]/40 p-1 w-fit">
+              <button
+                type="button"
+                onClick={() => router.push('/favorites')}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-all",
+                  activeTab === 'favorites'
+                    ? "bg-white text-[#1A1F2B] shadow-sm"
+                    : "text-[#1A1F2B]/60 hover:text-[#1A1F2B]"
+                )}
+              >
+                <Heart className="h-3.5 w-3.5" />
+                Favoris
+                <span className="ml-1 text-xs opacity-60">{campaigns.length}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push('/favorites?tab=moodboards')}
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-all",
+                  activeTab === 'moodboards'
+                    ? "bg-white text-[#1A1F2B] shadow-sm"
+                    : "text-[#1A1F2B]/60 hover:text-[#1A1F2B]"
+                )}
+              >
+                <FolderOpen className="h-3.5 w-3.5" />
+                Moodboards
+                {isPaid && <span className="ml-1 text-xs opacity-60">{collections.length}</span>}
+                {!isPaid && <Lock className="h-3 w-3 ml-1 opacity-40" />}
+              </button>
+            </div>
           </div>
 
           <div className="flex gap-8">
-            {/* Sidebar collections */}
-            <aside className="hidden w-56 shrink-0 lg:block">
+            {/* Sidebar collections (visible seulement sur l'onglet Moodboards) */}
+            <aside className={cn("hidden w-56 shrink-0 lg:block", activeTab !== 'moodboards' && "!hidden")}>
               <div className="sticky top-20 space-y-2">
                 <h2 className="text-sm font-bold uppercase tracking-wider text-[#1A1F2B]/60 mb-3">Collections</h2>
                 <button type="button" onClick={() => setActiveCollection(null)}
@@ -416,14 +672,46 @@ export default function FavoritesPage() {
                             </div>
                           </div>
                         ) : (
-                          <button type="button" onClick={() => setActiveCollection(col.id)}
-                            className={`w-full flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all ${
-                              activeCollection === col.id ? "bg-[#80368D] text-white shadow-md" : "bg-white border border-[#D0E4F2] text-[#1A1F2B] hover:border-[#80368D]/30"
-                            }`}>
-                            <FolderOpen className="h-4 w-4 shrink-0" />
-                            <span className="truncate flex-1 text-left">{col.name}</span>
-                            <span className="text-xs opacity-70 shrink-0">{col.item_count}</span>
-                          </button>
+                          <>
+                            <button type="button" onClick={() => setActiveCollection(col.id)}
+                              className={`w-full flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all ${
+                                activeCollection === col.id ? "bg-[#80368D] text-white shadow-md" : "bg-white border border-[#D0E4F2] text-[#1A1F2B] hover:border-[#80368D]/30"
+                              }`}>
+                              {col.is_shared ? (
+                                <Globe className="h-4 w-4 shrink-0 text-emerald-500" />
+                              ) : (
+                                <FolderOpen className="h-4 w-4 shrink-0" />
+                              )}
+                              <span className="truncate flex-1 text-left">{col.name}</span>
+                              <span className="text-xs opacity-70 shrink-0">{col.item_count}</span>
+                            </button>
+                            {/* Share panel (visible when collection is active) */}
+                            {activeCollection === col.id && (
+                              <div className="mt-1 rounded-lg border border-[#D0E4F2] bg-white p-2.5 space-y-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => openShareModal(col)}
+                                  disabled={sharingCollectionId === col.id}
+                                  className="w-full flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-[#80368D] hover:bg-[#80368D]/10 transition-colors disabled:opacity-50"
+                                >
+                                  {sharingCollectionId === col.id ? (
+                                    <><Loader2 className="h-3 w-3 animate-spin" />Activation...</>
+                                  ) : (
+                                    <><Share2 className="h-3 w-3" />Partager sur les réseaux</>
+                                  )}
+                                </button>
+                                {col.is_shared && (
+                                  <button
+                                    type="button"
+                                    onClick={() => revokeShare(col.id)}
+                                    className="w-full flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 transition-colors"
+                                  >
+                                    <XCircle className="h-3 w-3" />Révoquer le partage
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </>
                         )}
                         {/* Menu contextuel (visible au hover) */}
                         {editingCollectionId !== col.id && (
@@ -477,11 +765,145 @@ export default function FavoritesPage() {
               </div>
             </aside>
 
-            <div className="flex-1">{renderContent()}</div>
+            <div className="flex-1">
+              {activeTab === 'moodboards' && activeCollection && isPaid ? (
+              /* Vue campagnes d'un moodboard spécifique */
+              <>
+                <div className="flex items-center gap-2 mb-6">
+                  <button
+                    type="button"
+                    onClick={() => setActiveCollection(null)}
+                    className="flex items-center gap-1.5 text-sm font-medium text-[#80368D] hover:underline"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Mes moodboards
+                  </button>
+                  <span className="text-[#1A1F2B]/30">/</span>
+                  <span className="text-sm font-semibold text-[#1A1F2B]">
+                    {collections.find(c => c.id === activeCollection)?.name}
+                  </span>
+                </div>
+                {renderContent()}
+              </>
+            ) : activeTab === 'moodboards' && !activeCollection && isPaid ? (
+                /* Vue grille des moodboards */
+                <div>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    <FolderOpen className="h-4 w-4 inline mr-1" />
+                    {collections.length} collection{collections.length > 1 ? 's' : ''}
+                  </p>
+                  {collections.length === 0 ? (
+                    <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#D0E4F2] bg-gradient-to-br from-[#f8fafc] to-[#f0f4ff] p-8 text-center">
+                      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#80368D]/10">
+                        <FolderOpen className="h-10 w-10 text-[#80368D]/60" />
+                      </div>
+                      <h3 className="mt-6 text-xl font-bold text-[#1A1F2B]">Aucun moodboard</h3>
+                      <p className="mt-2 text-muted-foreground max-w-md">
+                        Créez votre premier moodboard pour organiser vos campagnes favorites par thème.
+                      </p>
+                      <Button className="mt-6 bg-[#80368D] hover:bg-[#6b2d78]" onClick={() => setShowNewCollectionInput(true)}>
+                        <FolderPlus className="h-4 w-4 mr-2" />Créer un moodboard
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {collections.map((col) => (
+                        <div
+                          key={col.id}
+                          className="group relative rounded-xl border border-[#D0E4F2] bg-white p-5 shadow-sm transition-all hover:shadow-lg hover:-translate-y-1 hover:border-[#80368D]/30 cursor-pointer"
+                          onClick={() => setActiveCollection(col.id)}
+                        >
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#80368D]/10 shrink-0">
+                              {col.is_shared ? <Globe className="h-5 w-5 text-emerald-500" /> : <FolderOpen className="h-5 w-5 text-[#80368D]" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-bold text-[#1A1F2B] truncate">{col.name}</h3>
+                              <p className="text-xs text-muted-foreground">
+                                {col.item_count} campagne{col.item_count > 1 ? 's' : ''}
+                                {col.is_shared && <span className="ml-1.5 text-emerald-500">· Partagé</span>}
+                              </p>
+                            </div>
+                            {/* Bouton partage */}
+                            <button
+                              type="button"
+                              title="Partager"
+                              disabled={sharingCollectionId === col.id}
+                              onClick={(e) => { e.stopPropagation(); openShareModal(col) }}
+                              className={cn(
+                                "shrink-0 flex h-8 w-8 items-center justify-center rounded-lg transition-colors opacity-0 group-hover:opacity-100",
+                                col.is_shared
+                                  ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                                  : "bg-[#80368D]/10 text-[#80368D] hover:bg-[#80368D]/20"
+                              )}
+                            >
+                              {sharingCollectionId === col.id
+                                ? <Loader2 className="h-4 w-4 animate-spin" />
+                                : <Share2 className="h-4 w-4" />
+                              }
+                            </button>
+                          </div>
+                          {/* Preview thumbnails */}
+                          <div className="grid grid-cols-3 gap-1 rounded-lg overflow-hidden h-20 bg-[#D0E4F2]/30">
+                            {campaigns
+                              .filter(f => col.campaign_ids?.includes(f.campaign_id))
+                              .slice(0, 3)
+                              .map((fav) => (
+                                <div key={fav.id} className="relative overflow-hidden">
+                                  {fav.campaign?.thumbnail ? (
+                                    <Image src={getGoogleDriveImageUrl(fav.campaign.thumbnail)} alt="" fill className="object-cover" />
+                                  ) : (
+                                    <div className="h-full w-full bg-[#D0E4F2]/50" />
+                                  )}
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      ))}
+                      {/* Bouton nouvelle collection */}
+                      <button
+                        type="button"
+                        onClick={() => setShowNewCollectionInput(true)}
+                        className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[#80368D]/30 bg-white/50 p-5 text-center transition-all hover:bg-[#80368D]/5 hover:border-[#80368D]/50 min-h-[160px]"
+                      >
+                        <FolderPlus className="h-8 w-8 text-[#80368D]/40 mb-2" />
+                        <span className="text-sm font-medium text-[#80368D]">Nouveau moodboard</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : activeTab === 'moodboards' && !isPaid ? (
+                /* Moodboards bloqué pour Free */
+                <div className="flex min-h-[400px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#D0E4F2] bg-gradient-to-br from-[#f8fafc] to-[#f0f4ff] p-8 text-center">
+                  <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#80368D]/10">
+                    <Lock className="h-10 w-10 text-[#80368D]/60" />
+                  </div>
+                  <h3 className="mt-6 text-xl font-bold text-[#1A1F2B]">Fonctionnalité Premium</h3>
+                  <p className="mt-2 text-muted-foreground max-w-md">
+                    Les moodboards vous permettent d&apos;organiser vos campagnes favorites dans des collections thématiques et de les partager.
+                  </p>
+                  <Link href="/pricing" className="mt-6">
+                    <Button className="bg-[#80368D] hover:bg-[#6b2d78]">
+                      <Sparkles className="h-4 w-4 mr-2" />Voir les plans
+                    </Button>
+                  </Link>
+                </div>
+              ) : (
+                renderContent()
+              )}
+            </div>
           </div>
         </div>
       </main>
       <Footer />
     </div>
+  )
+}
+
+export default function FavoritesPage() {
+  return (
+    <Suspense>
+      <FavoritesPageContent />
+    </Suspense>
   )
 }

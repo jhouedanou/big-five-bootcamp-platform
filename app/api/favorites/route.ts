@@ -33,6 +33,7 @@ export async function GET(request: Request) {
           campaign:campaigns!campaign_id (
             id,
             title,
+            slug,
             thumbnail,
             platforms,
             category,
@@ -67,7 +68,7 @@ export async function GET(request: Request) {
         if (campaignIds.length > 0) {
           const { data: campaigns } = await supabase
             .from('campaigns')
-            .select('id, title, thumbnail, platforms, category, format, description, video_url')
+            .select('id, title, slug, thumbnail, platforms, category, format, description, video_url')
             .in('id', campaignIds)
 
           if (campaigns) {

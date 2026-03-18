@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { Menu, X, Search, User, LogOut, Settings, CreditCard, Crown, Sparkles, Clock, Users, Heart, MousePointer, Building2 } from "lucide-react"
+import { Menu, X, Search, User, LogOut, Settings, CreditCard, Crown, Sparkles, Clock, Users, Heart, MousePointer, Building2, FolderOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase"
@@ -178,6 +178,15 @@ export function DashboardNavbar({
             </Link>
             {isPremium && (
               <Link
+                href="/favorites?tab=moodboards"
+                className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] flex items-center gap-1"
+              >
+                <FolderOpen className="h-3.5 w-3.5" />
+                Moodboards
+              </Link>
+            )}
+            {isPremium && (
+              <Link
                 href="/dashboard/brand-requests"
                 className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] flex items-center gap-1"
               >
@@ -311,6 +320,14 @@ export function DashboardNavbar({
               </DropdownMenuItem>
               {isPremium && (
                 <DropdownMenuItem asChild>
+                  <Link href="/favorites?tab=moodboards" className="flex items-center gap-2 text-[#1A1F2B]">
+                    <FolderOpen className="h-4 w-4" />
+                    Moodboards
+                  </Link>
+                </DropdownMenuItem>
+              )}
+              {isPremium && (
+                <DropdownMenuItem asChild>
                   <Link href="/dashboard/brand-requests" className="flex items-center gap-2 text-[#1A1F2B]">
                     <Building2 className="h-4 w-4" />
                     Suivi de marques
@@ -390,6 +407,16 @@ export function DashboardNavbar({
               <Heart className="h-4 w-4 text-red-500" />
               Mes Favoris
             </Link>
+            {isPremium && (
+              <Link
+                href="/favorites?tab=moodboards"
+                className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] flex items-center gap-1.5"
+                onClick={() => setIsOpen(false)}
+              >
+                <FolderOpen className="h-4 w-4 text-[#80368D]" />
+                Moodboards
+              </Link>
+            )}
             {/* Bouton abonnement mobile */}
             <Link
               href={isPremium ? "/subscribe" : "/pricing"}

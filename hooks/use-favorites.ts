@@ -13,6 +13,7 @@ interface FavoriteWithCampaign extends Favorite {
   campaign?: {
     id: string
     title: string
+    slug?: string
     thumbnail: string
     platforms: string[]
     category: string

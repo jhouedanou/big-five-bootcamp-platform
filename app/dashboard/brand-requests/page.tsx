@@ -35,6 +35,7 @@ export default function BrandRequestsPage() {
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   // Form state
   const [brandName, setBrandName] = useState("")
@@ -52,49 +53,58 @@ export default function BrandRequestsPage() {
   const isAllowed = ['agency', 'enterprise'].includes(userPlan.toLowerCase())
 
   useEffect(() => {
-    loadData()
-  }, [])
+    let mounted = true
 
-  const loadData = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) return
-
-      const { data: profile } = await supabase
-        .from('users')
-        .select('plan, subscription_status')
-        .eq('id', session.user.id)
-        .single()
-
-      if (profile) {
-        setUserPlan(profile.plan || 'Free')
-      }
-
-      // Charger les demandes existantes
-      const res = await fetch('/api/brand-requests')
-      if (res.ok) {
-        const data = await res.json()
-        setRequests(data.requests || [])
-      }
-
-      // Charger les suggestions depuis la base de données
+    const loadData = async () => {
       try {
-        const suggestionsRes = await fetch('/api/campaigns/suggestions')
-        if (suggestionsRes.ok) {
-          const suggestions = await suggestionsRes.json()
-          setSuggestedBrands(suggestions.brands || [])
-          setSuggestedCountries(suggestions.countries || [])
-          setSuggestedSectors(suggestions.categories || [])
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!mounted || !session?.user) return
+
+        const { data: profile } = await supabase
+          .from('users')
+          .select('plan, subscription_status')
+          .eq('id', session.user.id)
+          .single()
+
+        if (!mounted) return
+        if (profile) {
+          setUserPlan(profile.plan || 'Free')
         }
-      } catch { /* ignore */ }
-    } catch { /* ignore */ } finally { setLoading(false) }
-  }
+
+        const res = await fetch('/api/brand-requests')
+        if (!mounted) return
+        if (res.ok) {
+          const data = await res.json()
+          setRequests(data.requests || [])
+        }
+
+        try {
+          const suggestionsRes = await fetch('/api/campaigns/suggestions')
+          if (!mounted) return
+          if (suggestionsRes.ok) {
+            const suggestions = await suggestionsRes.json()
+            setSuggestedBrands(suggestions.brands || [])
+            setSuggestedCountries(suggestions.countries || [])
+            setSuggestedSectors(suggestions.categories || [])
+          }
+        } catch { /* ignore */ }
+      } catch (err: any) {
+        if (err?.name === 'AbortError') return
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+
+    loadData()
+    return () => { mounted = false }
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!brandName.trim()) return
     setSubmitting(true)
     setSuccess(false)
+    setSubmitError(null)
 
     try {
       const res = await fetch('/api/brand-requests', {
@@ -103,8 +113,9 @@ export default function BrandRequestsPage() {
         body: JSON.stringify({ brandName, brandUrl, brandCountry, brandSector, notes }),
       })
 
+      const data = await res.json()
+
       if (res.ok) {
-        const data = await res.json()
         setRequests(prev => [data.request, ...prev])
         setBrandName("")
         setBrandUrl("")
@@ -114,8 +125,12 @@ export default function BrandRequestsPage() {
         setShowForm(false)
         setSuccess(true)
         setTimeout(() => setSuccess(false), 5000)
+      } else {
+        setSubmitError(data.error || `Erreur ${res.status}`)
       }
-    } catch { /* ignore */ } finally { setSubmitting(false) }
+    } catch (err: any) {
+      setSubmitError("Erreur réseau, veuillez réessayer")
+    } finally { setSubmitting(false) }
   }
 
   return (
@@ -236,6 +251,12 @@ export default function BrandRequestsPage() {
                         className="w-full rounded-lg border border-[#D0E4F2] px-3 py-2 text-sm text-[#1A1F2B] outline-none focus:border-[#80368D] focus:ring-2 focus:ring-[#80368D]/20 resize-none" />
                     </div>
                   </div>
+                  {submitError && (
+                    <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                      <AlertTriangle className="h-4 w-4 shrink-0" />
+                      {submitError}
+                    </div>
+                  )}
                   <div className="mt-4 flex gap-3">
                     <Button type="submit" disabled={submitting || !brandName.trim()} className="bg-[#80368D] hover:bg-[#80368D]/90">
                       {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}

@@ -169,26 +169,24 @@ export default function ContentDetailClient({ id }: { id: string }) {
         // Déterminer si l'id est un UUID ou un slug
         const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-        // Récupérer le contenu par UUID ou slug
+        // Récupérer le contenu par UUID ou slug (avec timeout de 8s)
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout')), 8000)
+        );
+
         let campaign = null;
         let campaignError = null;
 
-        if (isUUID) {
-          const result = await supabase
-            .from('campaigns')
-            .select('*')
-            .eq('id', id)
-            .single();
+        const query = isUUID
+          ? supabase.from('campaigns').select('*').eq('id', id).single()
+          : supabase.from('campaigns').select('*').eq('slug', id).single();
+
+        try {
+          const result = await Promise.race([query, timeout]);
           campaign = result.data;
           campaignError = result.error;
-        } else {
-          const result = await supabase
-            .from('campaigns')
-            .select('*')
-            .eq('slug', id)
-            .single();
-          campaign = result.data;
-          campaignError = result.error;
+        } catch {
+          campaignError = { message: 'La requête a expiré' };
         }
 
         if (campaignError || !campaign) {
@@ -488,18 +486,18 @@ export default function ContentDetailClient({ id }: { id: string }) {
                       return;
                     }
                     setIsToggling(true);
-                    await toggleFavorite(id);
+                    await toggleFavorite(content.id);
                     setIsToggling(false);
                   }}
                   disabled={isToggling}
                   className={cn(
-                    isFavorite(id) ? "text-red-500 border-red-500" : "",
+                    isFavorite(content.id) ? "text-red-500 border-red-500" : "",
                     isToggling && "opacity-50 cursor-wait"
                   )}
-                  title={isFavorite(id) ? "Retirer des favoris" : "Ajouter aux favoris"}
+                  title={isFavorite(content.id) ? "Retirer des favoris" : "Ajouter aux favoris"}
                 >
                   <Heart
-                    className={cn("h-5 w-5", isFavorite(id) && "fill-current")}
+                    className={cn("h-5 w-5", isFavorite(content.id) && "fill-current")}
                   />
                 </Button>
                 <Button

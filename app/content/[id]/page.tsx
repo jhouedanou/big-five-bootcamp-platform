@@ -20,28 +20,22 @@ function isUUID(value: string): boolean {
 }
 
 /**
- * Récupère une campagne par slug ou par UUID
+ * Récupère une campagne par slug ou par UUID, avec timeout pour éviter
+ * que la page ne bloque indéfiniment si Supabase ne répond pas.
  */
-async function getCampaignByIdOrSlug(idOrSlug: string) {
+async function getCampaignByIdOrSlug(idOrSlug: string, timeoutMs = 5000) {
   const supabase = getSupabaseAdmin();
 
-  if (isUUID(idOrSlug)) {
-    // Chercher par UUID
-    const { data } = await supabase
-      .from("campaigns")
-      .select("*")
-      .eq("id", idOrSlug)
-      .single();
-    return data;
-  } else {
-    // Chercher par slug
-    const { data } = await supabase
-      .from("campaigns")
-      .select("*")
-      .eq("slug", idOrSlug)
-      .single();
-    return data;
-  }
+  const query = isUUID(idOrSlug)
+    ? supabase.from("campaigns").select("*").eq("id", idOrSlug).single()
+    : supabase.from("campaigns").select("*").eq("slug", idOrSlug).single();
+
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error("Supabase query timeout")), timeoutMs)
+  );
+
+  const { data } = await Promise.race([query, timeout]);
+  return data;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -106,17 +100,17 @@ export default async function ContentDetailPage({ params }: PageProps) {
 
   // Si c'est un UUID et que la campagne a un slug, rediriger vers l'URL avec slug (301)
   if (isUUID(id)) {
+    let slugRedirect: string | null = null;
     try {
       const campaign = await getCampaignByIdOrSlug(id);
       if (campaign?.slug) {
-        redirect(`/content/${campaign.slug}`);
+        slugRedirect = campaign.slug;
       }
-    } catch (error: any) {
-      // redirect() lance une erreur NEXT_REDIRECT, il faut la propager
-      if (error?.digest?.startsWith('NEXT_REDIRECT')) {
-        throw error;
-      }
-      // Sinon, continuer avec l'UUID
+    } catch {
+      // Timeout ou erreur Supabase, continuer avec l'UUID
+    }
+    if (slugRedirect) {
+      redirect(`/content/${slugRedirect}`);
     }
   }
 

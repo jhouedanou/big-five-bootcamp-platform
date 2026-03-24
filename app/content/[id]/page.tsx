@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getSupabaseAdmin } from "@/lib/supabase-server";
 import ContentDetailClient from "./content-detail-client";
 import { redirect } from "next/navigation";
+import { fixBrokenEncoding } from "@/lib/utils";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -56,10 +57,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     }
 
     const description = campaign.description
-      ? stripHtml(campaign.description).slice(0, 160)
-      : `${campaign.brand || ""} ${campaign.category ? `- ${campaign.category}` : ""} | Découvrez cette campagne créative`.trim();
+      ? stripHtml(fixBrokenEncoding(campaign.description)).slice(0, 160)
+      : `${fixBrokenEncoding(campaign.brand) || ""} ${campaign.category ? `- ${fixBrokenEncoding(campaign.category)}` : ""} | Découvrez cette campagne créative`.trim();
 
-    const title = `${campaign.title} | Big Five Creative Library`;
+    const title = `${fixBrokenEncoding(campaign.title)} | Big Five Creative Library`;
 
     // URL canonique avec le slug pour le SEO
     const canonicalSlug = campaign.slug || campaign.id;
@@ -71,7 +72,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         canonical: `/content/${canonicalSlug}`,
       },
       openGraph: {
-        title: campaign.title,
+        title: fixBrokenEncoding(campaign.title),
         description,
         type: "article",
         url: `/content/${canonicalSlug}`,
@@ -81,14 +82,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
               url: campaign.thumbnail,
               width: 1200,
               height: 630,
-              alt: campaign.title,
+              alt: fixBrokenEncoding(campaign.title),
             },
           ],
         }),
       },
       twitter: {
         card: "summary_large_image",
-        title: campaign.title,
+        title: fixBrokenEncoding(campaign.title),
         description,
         ...(campaign.thumbnail && { images: [campaign.thumbnail] }),
       },

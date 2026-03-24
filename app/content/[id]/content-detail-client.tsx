@@ -25,7 +25,7 @@ import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar";
 import { createClient } from "@/lib/supabase";
 import { ImageGallery } from "@/components/ui/lightbox";
 import { useFavorites } from "@/hooks/use-favorites";
-import { cn, getGoogleDriveImageUrl } from "@/lib/utils";
+import { cn, getGoogleDriveImageUrl, fixBrokenEncoding } from "@/lib/utils";
 import { detectVideoPlatform, getEmbedUrl, getVideoPlatformLabel, getOriginalVideoUrl } from "@/lib/video-utils";
 import { isPaidPlan } from "@/lib/pricing";
 
@@ -46,6 +46,7 @@ interface Campaign {
   date?: string | null;
   year?: number | null;
   images?: string[] | null;
+  why_this_angle?: string | null;
   slug?: string | null;
   axe?: string[] | null;
   created_at: string;
@@ -147,6 +148,22 @@ export default function ContentDetailClient({ id }: { id: string }) {
       setError(null);
 
       try {
+        // Vérifier le cache sessionStorage
+        const cacheKey = `campaign_${id}`;
+        const cachedData = sessionStorage.getItem(cacheKey);
+        if (cachedData) {
+          try {
+            const { campaign: cached, related: cachedRelated, timestamp } = JSON.parse(cachedData);
+            // Cache valide pendant 5 minutes
+            if (Date.now() - timestamp < 5 * 60 * 1000) {
+              setContent(cached);
+              setRelatedContent(cachedRelated || []);
+              setIsLoading(false);
+              return;
+            }
+          } catch { /* cache invalide, on continue */ }
+        }
+
         const supabase = createClient();
 
         // Déterminer si l'id est un UUID ou un slug
@@ -181,7 +198,15 @@ export default function ContentDetailClient({ id }: { id: string }) {
           return;
         }
 
-        setContent(campaign);
+        setContent({
+          ...campaign,
+          title: fixBrokenEncoding(campaign.title),
+          description: fixBrokenEncoding(campaign.description),
+          brand: fixBrokenEncoding(campaign.brand),
+          agency: fixBrokenEncoding(campaign.agency),
+          country: fixBrokenEncoding(campaign.country),
+          category: fixBrokenEncoding(campaign.category),
+        } as Campaign);
 
         // Récupérer les contenus similaires basés sur les tags, catégorie et marque
         let related: Campaign[] = [];
@@ -237,7 +262,25 @@ export default function ContentDetailClient({ id }: { id: string }) {
           if (recentMatches) related = [...related, ...recentMatches];
         }
 
-        setRelatedContent(related);
+        setRelatedContent(related.map(r => ({
+          ...r,
+          title: fixBrokenEncoding(r.title),
+          description: fixBrokenEncoding(r.description),
+          brand: fixBrokenEncoding(r.brand),
+          agency: fixBrokenEncoding(r.agency),
+          country: fixBrokenEncoding(r.country),
+          category: fixBrokenEncoding(r.category),
+        })));
+
+        // Sauvegarder en cache sessionStorage
+        try {
+          const cacheKey = `campaign_${id}`;
+          sessionStorage.setItem(cacheKey, JSON.stringify({
+            campaign,
+            related,
+            timestamp: Date.now(),
+          }));
+        } catch { /* quota exceeded, ignore */ }
       } catch (err) {
         console.error('Error:', err);
         setError('Erreur lors du chargement');
@@ -324,7 +367,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
           className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Retour a la bibliotheque
+          Retour à la bibliothèque
         </Link>
 
         <div className="grid lg:grid-cols-3 gap-8 items-start">
@@ -479,14 +522,27 @@ export default function ContentDetailClient({ id }: { id: string }) {
               </div>
             </div>
 
-            {/* Description */}
+            {/* Analyse */}
             {content.description && (
               <Card>
                 <CardContent className="p-6">
-                  <h2 className="font-semibold text-lg mb-3">Description</h2>
+                  <h2 className="font-semibold text-lg mb-3">Analyse</h2>
                   <div
                     className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
                     dangerouslySetInnerHTML={{ __html: formatDescription(content.description) }}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Pourquoi cet axe */}
+            {content.why_this_angle && (
+              <Card>
+                <CardContent className="p-6">
+                  <h2 className="font-semibold text-lg mb-3">Pourquoi cet axe</h2>
+                  <div
+                    className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: formatDescription(content.why_this_angle) }}
                   />
                 </CardContent>
               </Card>

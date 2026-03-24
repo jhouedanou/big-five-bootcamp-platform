@@ -78,7 +78,7 @@ const statuses = ["Brouillon", "En attente", "Publié"] as const;
 const FORM_STEPS = [
   { id: 1, title: "Informations", icon: FileText, description: "Détails de base" },
   { id: 2, title: "Médias", icon: Image, description: "Images et vidéos" },
-  { id: 3, title: "Description", icon: Sparkles, description: "Analyse et conseils" },
+  { id: 3, title: "Analyse", icon: Sparkles, description: "Analyse et pourquoi cet axe" },
 ];
 
 /**
@@ -117,6 +117,7 @@ const defaultFormData: Omit<ContentItem, "id"> = {
   isVideo: false,
   status: "Brouillon",
   accessLevel: "free",
+  whyThisAngle: "",
   slug: "",
   featured: false,
 };
@@ -684,10 +685,22 @@ function CampaignsPageContent() {
                   </div>
                 )}
                 {previewCampaign.description && (
-                  <div 
-                    className="text-gray-600 prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: previewCampaign.description }}
-                  />
+                  <div>
+                    <h4 className="font-semibold text-gray-800 mb-1">Analyse</h4>
+                    <div
+                      className="text-gray-600 prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: previewCampaign.description }}
+                    />
+                  </div>
+                )}
+                {previewCampaign.whyThisAngle && (
+                  <div>
+                    <h4 className="font-semibold text-gray-800 mb-1">Pourquoi cet axe</h4>
+                    <div
+                      className="text-gray-600 prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: previewCampaign.whyThisAngle }}
+                    />
+                  </div>
                 )}
                 <div className="grid grid-cols-2 gap-3 text-sm bg-gray-50 rounded-lg p-4">
                   <div>
@@ -1405,13 +1418,24 @@ function CampaignsPageContent() {
             {/* Step 3: Description & Tags */}
             {currentStep === 3 && (
               <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-                {/* Description with WYSIWYG */}
+                {/* Analyse with WYSIWYG */}
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Description</Label>
+                  <Label className="text-gray-700">Analyse</Label>
                   <RichTextEditor
                     content={formData.description}
                     onChange={(content) => setFormData({ ...formData, description: content })}
-                    placeholder="Decrivez la campagne, son contexte, ses resultats..."
+                    placeholder="Analysez la campagne, son contexte, ses résultats..."
+                    className="bg-white border-gray-300"
+                  />
+                </div>
+
+                {/* Pourquoi cet axe with WYSIWYG */}
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Pourquoi cet axe</Label>
+                  <RichTextEditor
+                    content={formData.whyThisAngle || ""}
+                    onChange={(content) => setFormData({ ...formData, whyThisAngle: content })}
+                    placeholder="Expliquez pourquoi cet axe a été choisi pour cette campagne..."
                     className="bg-white border-gray-300"
                   />
                 </div>

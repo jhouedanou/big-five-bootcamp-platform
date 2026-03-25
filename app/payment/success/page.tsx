@@ -259,7 +259,7 @@ function PaymentSuccessContent() {
 
               <div className="grid grid-cols-2 gap-2">
                 <Button variant="outline" onClick={() => router.push('/dashboard')} className="h-11 border-2 font-semibold">
-                  Bibliotheque
+                  Bibliothèque
                 </Button>
                 <Button variant="outline" onClick={() => router.push('/contact')} className="h-11 border-2 font-semibold">
                   Nous contacter
@@ -329,7 +329,7 @@ function PaymentSuccessContent() {
               </p>
               <div className="flex gap-2">
                 <Button variant="outline" onClick={() => router.push('/dashboard')} className="flex-1 h-11 border-2">
-                  Bibliotheque
+                  Bibliothèque
                 </Button>
                 <Button variant="outline" onClick={() => router.push('/contact')} className="flex-1 h-11 border-2">
                   Contact
@@ -359,8 +359,8 @@ function PaymentSuccessContent() {
 
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Details du paiement</CardTitle>
-            <CardDescription>Votre transaction a ete traitee avec succes</CardDescription>
+            <CardTitle>Détails du paiement</CardTitle>
+            <CardDescription>Votre transaction a été traitée avec succès</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

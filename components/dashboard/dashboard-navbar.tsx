@@ -343,13 +343,13 @@ export function DashboardNavbar({
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={async () => {
-                  await supabase.auth.signOut()
+                  await supabase.auth.signOut({ scope: 'local' })
                   window.location.href = "/login"
                 }}
                 className="flex items-center gap-2 text-red-600 cursor-pointer"
               >
                 <LogOut className="h-4 w-4" />
-                Deconnexion
+                Déconnexion
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

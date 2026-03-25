@@ -108,7 +108,7 @@ export function useAuth() {
   }
 
   const logout = async () => {
-    await supabase.auth.signOut()
+    await supabase.auth.signOut({ scope: 'local' })
     setSession(null)
     setUser(null)
     setDbUser(null)

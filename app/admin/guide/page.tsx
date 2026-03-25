@@ -118,8 +118,8 @@ const steps = [
     bgColor: "bg-cyan-500/20",
     content: [
       "Utilisez la barre de recherche pour trouver une campagne par titre, marque ou agence",
-      "Utilisez le filtre par secteur pour afficher uniquement les campagnes d'un secteur specifique",
-      "Les filtres se combinent pour affiner vos resultats",
+      "Utilisez le filtre par secteur pour afficher uniquement les campagnes d'un secteur spécifique",
+      "Les filtres se combinent pour affiner vos résultats",
     ],
   },
 ];

@@ -5,12 +5,12 @@ import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
 const questrial = Questrial({
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   weight: "400",
   variable: "--font-questrial"
 });
 const montserrat = Montserrat({
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   weight: ["400", "500", "600", "700", "800", "900"],
   variable: "--font-montserrat"
 });

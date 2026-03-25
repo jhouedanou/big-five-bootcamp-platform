@@ -14,12 +14,43 @@ import { Filter, Grid3X3, LayoutList, ChevronLeft, ChevronRight, CalendarDays, T
 import { format, parseISO, startOfWeek, subDays } from "date-fns"
 import { fr } from "date-fns/locale"
 import { isPaidPlan } from "@/lib/pricing"
+import { fixBrokenEncoding } from "@/lib/utils"
 
 const ParticlesBackground = dynamic(() => import("@/components/ui/particles-background").then(m => m.ParticlesBackground), { ssr: false })
 const FiltersSidebar = dynamic(() => import("@/components/dashboard/filters-sidebar").then(m => m.FiltersSidebar))
 
 // Compteur mensuel de clics (côté serveur via API)
 const MONTHLY_CLICK_LIMIT = 5
+
+// Normalisation des noms de pays pour corriger les imports CSV mal encodés
+// Ex: "Cote d'Ivoire" (ASCII) → "Côte d'Ivoire" (UTF-8 canonique)
+const COUNTRY_ALIASES: Record<string, string> = {
+  "cote d'ivoire":        "Côte d'Ivoire",
+  "côte d'ivoire":        "Côte d'Ivoire",
+  "senegal":              "Sénégal",
+  "sénégal":              "Sénégal",
+  "benin":                "Bénin",
+  "bénin":                "Bénin",
+  "guinee":               "Guinée",
+  "guinée":               "Guinée",
+  "guinee-bissau":        "Guinée-Bissau",
+  "guinée-bissau":        "Guinée-Bissau",
+  "mali":                 "Mali",
+  "niger":                "Niger",
+  "togo":                 "Togo",
+  "burkina faso":         "Burkina Faso",
+  "cameroun":             "Cameroun",
+  "cameroon":             "Cameroun",
+}
+
+function normalizeCountry(raw: string | null | undefined): string {
+  if (!raw) return ""
+  const trimmed = raw.trim()
+  // Remplace le caractère de remplacement U+FFFD par la lettre correcte
+  // Ex: "C\uFFFDte d'Ivoire" → "Côte d'Ivoire"
+  const degarbled = trimmed.replace(/C\uFFFDte d['']Ivoire/i, "Côte d'Ivoire")
+  return COUNTRY_ALIASES[degarbled.toLowerCase()] ?? degarbled
+}
 
 // Les compteurs de clics sont maintenant gérés côté serveur via /api/track-click
 
@@ -68,7 +99,7 @@ export default function DashboardPage() {
     const years = new Set<number>()
 
     campaigns.forEach((campaign) => {
-      if (campaign.country) countries.add(campaign.country)
+      if (campaign.country) countries.add(normalizeCountry(campaign.country))
       if (campaign.sector) sectors.add(campaign.sector)
       if (campaign.format) formats.add(campaign.format)
       if (campaign.platform) platforms.add(campaign.platform)
@@ -155,21 +186,21 @@ export default function DashboardPage() {
 
         const formattedCampaigns: ContentItem[] = (data || []).map((campaign: any) => ({
           id: campaign.id,
-          title: campaign.title,
-          summary: campaign.summary || '',
-          description: campaign.description || '',
+          title: fixBrokenEncoding(campaign.title),
+          summary: fixBrokenEncoding(campaign.summary),
+          description: fixBrokenEncoding(campaign.description),
           imageUrl: campaign.thumbnail || '',
           platform: campaign.platforms?.[0] || 'Facebook',
-          country: campaign.country || '',
-          sector: campaign.category || '',
+          country: normalizeCountry(campaign.country),
+          sector: fixBrokenEncoding(campaign.category) || '',
           format: campaign.format || '',
           tags: campaign.tags || [],
           date: new Date(campaign.created_at).toISOString().split('T')[0],
           isVideo: !!campaign.video_url,
           images: campaign.images || [],
           videoUrl: campaign.video_url || undefined,
-          brand: campaign.brand || '',
-          agency: campaign.agency || '',
+          brand: fixBrokenEncoding(campaign.brand) || '',
+          agency: fixBrokenEncoding(campaign.agency) || '',
           year: campaign.year || undefined,
           status: campaign.status,
           accessLevel: campaign.access_level || 'free',
@@ -344,7 +375,7 @@ export default function DashboardPage() {
       const tagsFilter = selectedFilters["Tags"] || []
       const yearFilter = selectedFilters["Année"] || []
 
-      if (countryFilter.length > 0 && !countryFilter.includes(content.country)) return false
+      if (countryFilter.length > 0 && !countryFilter.includes(normalizeCountry(content.country))) return false
       if (sectorFilter.length > 0 && !sectorFilter.includes(content.sector)) return false
       if (formatFilter.length > 0 && !formatFilter.includes(content.format)) return false
       if (platformFilter.length > 0 && !platformFilter.includes(content.platform)) return false

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { ArrowRight, Play, Target, BarChart3, Search, CheckCircle, Zap, RefreshCw, Globe, Layers, Sparkles } from "lucide-react"
 import { createClient } from "@/lib/supabase"
-import { getGoogleDriveImageUrl } from "@/lib/utils"
+import { getGoogleDriveImageUrl, fixBrokenEncoding } from "@/lib/utils"
 
 function useStats() {
   const [stats, setStats] = useState({ users: 0, campaigns: 0, brands: 0, countries: 0 })
@@ -53,7 +53,13 @@ function useRecentCampaigns() {
       .eq("status", "Publié")
       .order("created_at", { ascending: false })
       .limit(4)
-      .then(({ data }) => setCampaigns(data || []))
+      .then(({ data }) => setCampaigns(
+        (data || []).map((c: any) => ({
+          ...c,
+          title: fixBrokenEncoding(c.title),
+          category: fixBrokenEncoding(c.category),
+        }))
+      ))
   }, [])
 
   return campaigns

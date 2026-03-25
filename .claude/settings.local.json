@@ -57,7 +57,8 @@
       "WebFetch(domain:doc-0g-10-docstext.googleusercontent.com)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(git status:*)"
+      "Bash(git status:*)",
+      "Bash(wc:*)"
     ]
   }
 }

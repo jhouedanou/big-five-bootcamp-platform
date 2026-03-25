@@ -9,7 +9,7 @@ import {
   Users, Heart, Crown, Loader2, ArrowLeft, ChevronLeft, ChevronRight, 
   Calendar, Search, Eye, Sparkles 
 } from "lucide-react"
-import { getGoogleDriveImageUrl } from "@/lib/utils"
+import { getGoogleDriveImageUrl, fixBrokenEncoding } from "@/lib/utils"
 
 interface UserProfile {
   id: string
@@ -72,7 +72,13 @@ export default function CommunityPage() {
     try {
       const res = await fetch(`/api/users/${user.id}/favorites`)
       const data = await res.json()
-      setSelectedUserFavorites(data.favorites || [])
+      setSelectedUserFavorites((data.favorites || []).map((f: FavoriteCampaign) => ({
+        ...f,
+        title: fixBrokenEncoding(f.title),
+        brand: fixBrokenEncoding(f.brand),
+        country: fixBrokenEncoding(f.country),
+        category: fixBrokenEncoding(f.category),
+      })))
     } catch {
       console.error('Erreur chargement favoris')
       setSelectedUserFavorites([])

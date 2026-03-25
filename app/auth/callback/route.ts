@@ -1,6 +1,7 @@
 
 import { NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import { getSupabaseAdmin } from '@/lib/supabase-server'
 
 export async function GET(request: Request) {
@@ -10,13 +11,34 @@ export async function GET(request: Request) {
     const type = searchParams.get('type') // recovery, signup, invite, etc.
 
     if (code) {
-        const supabase = await createClient()
+        const cookieStore = await cookies()
+
+        // Collecter les cookies à écrire sur la réponse de redirection
+        const cookiesToSet: { name: string; value: string; options: any }[] = []
+
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    getAll() {
+                        return cookieStore.getAll()
+                    },
+                    setAll(cookies) {
+                        cookies.forEach(({ name, value, options }) => {
+                            cookiesToSet.push({ name, value, options })
+                        })
+                    },
+                },
+            }
+        )
+
         const { data, error } = await supabase.auth.exchangeCodeForSession(code)
-        
+
         if (!error && data.session) {
             // Auto-créer le profil dans public.users si manquant
             try {
-                const { data: { user } } = await supabase.auth.getUser()
+                const user = data.session.user
                 if (user) {
                     const admin = getSupabaseAdmin()
                     const { data: existing } = await admin
@@ -40,12 +62,18 @@ export async function GET(request: Request) {
                 console.error('Auto-profile creation error:', e)
             }
 
-            // Si c'est une réinitialisation de mot de passe, forcer la redirection vers update-password
+            // Déterminer l'URL de redirection
+            let redirectUrl = `${origin}${next}`
             if (type === 'recovery' || next.includes('update-password')) {
-                return NextResponse.redirect(`${origin}/update-password`)
+                redirectUrl = `${origin}/update-password`
             }
 
-            return NextResponse.redirect(`${origin}${next}`)
+            // Créer la réponse de redirection AVEC les cookies de session
+            const response = NextResponse.redirect(redirectUrl)
+            cookiesToSet.forEach(({ name, value, options }) => {
+                response.cookies.set(name, value, options)
+            })
+            return response
         } else {
             console.error('Auth callback error:', error)
         }

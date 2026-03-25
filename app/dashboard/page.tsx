@@ -125,13 +125,13 @@ export default function DashboardPage() {
   useEffect(() => {
     const loadUserPlan = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session?.user) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
           try {
             const { data: profile, error } = await supabase
               .from('users')
               .select('plan, subscription_status, subscription_end_date')
-              .eq('id', session.user.id)
+              .eq('id', user.id)
               .single()
             if (!error && profile) {
               const now = new Date()

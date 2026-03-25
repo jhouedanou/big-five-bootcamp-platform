@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { createClient } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
 
@@ -8,24 +8,30 @@ export function useSupabaseAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [userProfile, setUserProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  
+  const initialCheckDone = useRef(false)
+
   const supabase = useMemo(() => createClient(), [])
 
   useEffect(() => {
-    // Récupérer la session actuelle
-    supabase.auth.getSession().then(({ data: { session } }: { data: { session: any } }) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchUserProfile(session.user)
+    // 1. Vérification initiale via getUser() (valide le token côté serveur)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user ?? null)
+      initialCheckDone.current = true
+      if (user) {
+        fetchUserProfile(user)
       } else {
         setLoading(false)
       }
     })
 
-    // Écouter les changements d'authentification
+    // 2. Écouter les changements APRÈS l'init (login, logout, token refresh)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+      // Ignorer les events tant que getUser() n'a pas fini
+      // pour éviter que INITIAL_SESSION écrase user à null
+      if (!initialCheckDone.current) return
+
       setUser(session?.user ?? null)
       if (session?.user) {
         fetchUserProfile(session.user)

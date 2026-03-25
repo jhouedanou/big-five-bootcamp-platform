@@ -24,10 +24,15 @@ import { useAuth } from "@/hooks/use-auth";
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar";
 import { createClient } from "@/lib/supabase";
 import { ImageGallery } from "@/components/ui/lightbox";
+import { getCreativeByIdOrSlug, getRelatedCampaigns } from "@/app/actions/creative";
 import { useFavorites } from "@/hooks/use-favorites";
 import { cn, getGoogleDriveImageUrl, fixBrokenEncoding } from "@/lib/utils";
 import { detectVideoPlatform, getEmbedUrl, getVideoPlatformLabel, getOriginalVideoUrl } from "@/lib/video-utils";
 import { isPaidPlan } from "@/lib/pricing";
+import { UpgradePopup } from "@/components/upgrade-popup";
+import { useRouter } from "next/navigation";
+
+const MONTHLY_CLICK_LIMIT = 5;
 
 interface Campaign {
   id: string;
@@ -93,34 +98,61 @@ export default function ContentDetailClient({ id }: { id: string }) {
   const [userPlan, setUserPlan] = useState("Free");
   const [monthlyClicks, setMonthlyClicks] = useState(0);
   const [monthlyExplored, setMonthlyExplored] = useState(0);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [clickTracked, setClickTracked] = useState(false);
   const isFreeUser = !isPaidPlan(userPlan);
+  const router = useRouter();
 
-  // Charger le plan utilisateur et compteur de clics
+  // Charger le plan utilisateur, vérifier la limite, et tracker le clic
+  // Utilise l'API serveur (cookies fiables) plutôt que getSession() client (cache stale)
   useEffect(() => {
-    const loadUserData = async () => {
+    const loadUserDataAndTrack = async () => {
       try {
-        const supabase = createClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          const { data: profile } = await supabase
-            .from('users')
-            .select('plan, subscription_status')
-            .eq('id', session.user.id)
-            .single();
-          if (profile) {
-            const plan = profile.plan || 'Free';
-            setUserPlan(plan);
-          }
+        // L'API track-click utilise getSupabaseServer() côté serveur
+        // qui lit les cookies de session (fiable même après refresh)
+        const getRes = await fetch('/api/track-click');
+
+        if (getRes.status === 401) {
+          // Utilisateur non authentifié - le proxy devrait rediriger,
+          // mais au cas où, on ne fait rien (pas de gating possible)
+          return;
         }
-        const res = await fetch('/api/track-click');
-        if (res.ok) {
-          const data = await res.json();
-          setMonthlyClicks(data.clicks || 0);
-          setMonthlyExplored(data.explored || 0);
+
+        if (getRes.ok) {
+          const getData = await getRes.json();
+          setMonthlyClicks(getData.clicks || 0);
+          setMonthlyExplored(getData.explored || 0);
+
+          // Mettre à jour le plan depuis les données serveur
+          if (!getData.isFree) {
+            setUserPlan('Pro'); // L'API a confirmé que c'est un utilisateur payant
+          }
+
+          // Si free user et limite atteinte → bloquer l'accès
+          if (getData.isFree && (getData.clicks || 0) >= MONTHLY_CLICK_LIMIT) {
+            setIsBlocked(true);
+            setShowUpgrade(true);
+            return;
+          }
+
+          // Si free user et pas encore à la limite → tracker ce clic
+          if (getData.isFree) {
+            const postRes = await fetch('/api/track-click', { method: 'POST' });
+            if (postRes.ok) {
+              const postData = await postRes.json();
+              if (!postData.allowed) {
+                setIsBlocked(true);
+                setShowUpgrade(true);
+                return;
+              }
+              setMonthlyClicks(postData.clicks || getData.clicks || 0);
+            }
+          }
         }
       } catch { /* ignore */ }
     };
-    loadUserData();
+    loadUserDataAndTrack();
   }, []);
 
   // Barre de progression de lecture
@@ -164,37 +196,16 @@ export default function ContentDetailClient({ id }: { id: string }) {
           } catch { /* cache invalide, on continue */ }
         }
 
-        const supabase = createClient();
+        // Utiliser la server action (service role, pas de RLS)
+        const result = await getCreativeByIdOrSlug(id);
 
-        // Déterminer si l'id est un UUID ou un slug
-        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-
-        // Récupérer le contenu par UUID ou slug (avec timeout de 8s)
-        const timeout = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Timeout')), 8000)
-        );
-
-        let campaign = null;
-        let campaignError = null;
-
-        const query = isUUID
-          ? supabase.from('campaigns').select('*').eq('id', id).single()
-          : supabase.from('campaigns').select('*').eq('slug', id).single();
-
-        try {
-          const result = await Promise.race([query, timeout]);
-          campaign = result.data;
-          campaignError = result.error;
-        } catch {
-          campaignError = { message: 'La requête a expiré' };
-        }
-
-        if (campaignError || !campaign) {
-          console.error('Error fetching campaign:', campaignError);
+        if (!result.success || !result.data) {
           setError('Contenu non trouvé');
           setIsLoading(false);
           return;
         }
+
+        const campaign = result.data;
 
         setContent({
           ...campaign,
@@ -206,61 +217,15 @@ export default function ContentDetailClient({ id }: { id: string }) {
           category: fixBrokenEncoding(campaign.category),
         } as Campaign);
 
-        // Récupérer les contenus similaires basés sur les tags, catégorie et marque
-        let related: Campaign[] = [];
+        // Récupérer les contenus similaires via server action
+        const relatedResult = await getRelatedCampaigns(
+          campaign.id,
+          campaign.tags,
+          campaign.category,
+          campaign.brand
+        );
 
-        // 1. Chercher par tags communs (meilleure pertinence)
-        if (campaign.tags && campaign.tags.length > 0) {
-          const { data: tagMatches } = await supabase
-            .from('campaigns')
-            .select('*')
-            .neq('id', campaign.id)
-            .eq('status', 'Publié')
-            .overlaps('tags', campaign.tags)
-            .limit(4);
-          if (tagMatches) related = tagMatches;
-        }
-
-        // 2. Si pas assez, compléter par catégorie
-        if (related.length < 4 && campaign.category) {
-          const existingIds = [campaign.id, ...related.map(r => r.id)];
-          const { data: catMatches } = await supabase
-            .from('campaigns')
-            .select('*')
-            .not('id', 'in', `(${existingIds.join(',')})`)
-            .eq('status', 'Publié')
-            .eq('category', campaign.category)
-            .limit(4 - related.length);
-          if (catMatches) related = [...related, ...catMatches];
-        }
-
-        // 3. Si pas assez, compléter par marque
-        if (related.length < 4 && campaign.brand) {
-          const existingIds = [campaign.id, ...related.map(r => r.id)];
-          const { data: brandMatches } = await supabase
-            .from('campaigns')
-            .select('*')
-            .not('id', 'in', `(${existingIds.join(',')})`)
-            .eq('status', 'Publié')
-            .eq('brand', campaign.brand)
-            .limit(4 - related.length);
-          if (brandMatches) related = [...related, ...brandMatches];
-        }
-
-        // 4. Si toujours pas assez, compléter avec des campagnes récentes
-        if (related.length < 4) {
-          const existingIds = [campaign.id, ...related.map(r => r.id)];
-          const { data: recentMatches } = await supabase
-            .from('campaigns')
-            .select('*')
-            .not('id', 'in', `(${existingIds.join(',')})`)
-            .eq('status', 'Publié')
-            .order('created_at', { ascending: false })
-            .limit(4 - related.length);
-          if (recentMatches) related = [...related, ...recentMatches];
-        }
-
-        setRelatedContent(related.map(r => ({
+        const related = (relatedResult.data || []).map((r: any) => ({
           ...r,
           title: fixBrokenEncoding(r.title),
           description: fixBrokenEncoding(r.description),
@@ -268,11 +233,12 @@ export default function ContentDetailClient({ id }: { id: string }) {
           agency: fixBrokenEncoding(r.agency),
           country: fixBrokenEncoding(r.country),
           category: fixBrokenEncoding(r.category),
-        })));
+        }));
+
+        setRelatedContent(related);
 
         // Sauvegarder en cache sessionStorage
         try {
-          const cacheKey = `campaign_${id}`;
           sessionStorage.setItem(cacheKey, JSON.stringify({
             campaign,
             related,
@@ -303,6 +269,48 @@ export default function ContentDetailClient({ id }: { id: string }) {
         <div className="flex items-center justify-center h-[60vh]">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
+      </div>
+    );
+  }
+
+  // Si l'utilisateur free a atteint sa limite, bloquer l'accès à la page
+  if (isBlocked) {
+    return (
+      <div className="min-h-screen bg-background">
+        <DashboardNavbar
+          userPlan={userPlan}
+          monthlyClicks={monthlyClicks}
+          monthlyClickLimit={MONTHLY_CLICK_LIMIT}
+          isFreeUser={isFreeUser}
+          monthlyExplored={monthlyExplored}
+        />
+        <main className="container mx-auto px-4 py-8">
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Retour à la bibliothèque
+          </Link>
+          <Card>
+            <CardContent className="p-8 text-center">
+              <p className="text-muted-foreground">
+                Vous avez atteint votre limite de {MONTHLY_CLICK_LIMIT} campagnes consultées ce mois-ci.
+              </p>
+              <Button
+                className="mt-4 bg-gradient-to-r from-[#80368D] to-[#a855f7] hover:from-[#6b2d76] hover:to-[#9333ea] text-white"
+                onClick={() => router.push('/subscribe')}
+              >
+                Passer à un plan payant
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+        <UpgradePopup
+          open={showUpgrade}
+          onClose={() => setShowUpgrade(false)}
+          reason="clicks"
+        />
       </div>
     );
   }
@@ -621,7 +629,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 <CardContent className="p-6">
                   <h2 className="font-semibold text-lg mb-3">Tags</h2>
                   <div className="flex flex-wrap gap-2">
-                    {content.tags.map((tag) => (
+                    {[...new Set(content.tags)].map((tag) => (
                       <Badge
                         key={tag}
                         variant="secondary"
@@ -660,6 +668,23 @@ export default function ContentDetailClient({ id }: { id: string }) {
                         key={item.id}
                         href={`/content/${item.slug || item.id}`}
                         className="flex gap-3 group"
+                        onClick={async (e) => {
+                          if (!isFreeUser) return; // Paid users: navigation libre
+                          e.preventDefault();
+                          try {
+                            const res = await fetch('/api/track-click', { method: 'POST' });
+                            const data = await res.json();
+                            if (!res.ok || !data.allowed) {
+                              setIsBlocked(true);
+                              setShowUpgrade(true);
+                              return;
+                            }
+                            setMonthlyClicks(data.clicks || 0);
+                            router.push(`/content/${item.slug || item.id}`);
+                          } catch {
+                            router.push(`/content/${item.slug || item.id}`);
+                          }
+                        }}
                       >
                         <div className="relative w-16 h-16 bg-muted rounded-lg overflow-hidden flex-shrink-0">
                           {item.thumbnail ? (

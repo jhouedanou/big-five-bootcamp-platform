@@ -68,18 +68,18 @@ function FavoritesPageContent() {
 
   const loadUserPlan = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.user) return
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
       const { data: profile } = await supabase
         .from('users')
         .select('plan, subscription_status')
-        .eq('id', session.user.id)
+        .eq('id', user.id)
         .single()
       if (profile) {
         const effectivePlan = profile.plan || 'Free'
         setUserPlan(effectivePlan)
         if (isPaidPlan(effectivePlan)) {
-          loadCollections(session.user.id)
+          loadCollections(user.id)
         }
       }
     } catch { /* ignore */ }

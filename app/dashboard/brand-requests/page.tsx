@@ -57,13 +57,13 @@ export default function BrandRequestsPage() {
 
     const loadData = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!mounted || !session?.user) return
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!mounted || !user) return
 
         const { data: profile } = await supabase
           .from('users')
           .select('plan, subscription_status')
-          .eq('id', session.user.id)
+          .eq('id', user.id)
           .single()
 
         if (!mounted) return

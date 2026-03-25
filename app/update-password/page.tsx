@@ -63,17 +63,17 @@ function UpdatePasswordContent() {
           }
         }
 
-        // Vérifier si on a une session valide
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
+        // Vérifier si on a un utilisateur valide (getUser valide le token côté serveur)
+        const { data: { user }, error } = await supabase.auth.getUser();
+
         if (error) {
-          console.error('Session error:', error);
+          console.error('Auth error:', error);
           setErrorMessage(error.message);
           setIsValidSession(false);
           return;
         }
 
-        setIsValidSession(!!session);
+        setIsValidSession(!!user);
         
         // Si pas de session, écouter les changements d'auth (pour le hash processing)
         if (!session) {

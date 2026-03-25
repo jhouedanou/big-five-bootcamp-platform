@@ -42,6 +42,24 @@ export async function getCreativeById(id: string) {
     }
 }
 
+export async function getCreativeByIdOrSlug(idOrSlug: string) {
+    try {
+        const supabase = getSupabaseAdmin()
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug)
+
+        const { data, error } = await supabase
+            .from('campaigns')
+            .select('*')
+            .eq(isUUID ? 'id' : 'slug', idOrSlug)
+            .single()
+
+        if (error) throw error
+        return { success: true, data }
+    } catch (error) {
+        return { success: false, error: "Failed to fetch creative" }
+    }
+}
+
 export async function createCreative(formData: FormData) {
     const title = formData.get("title") as string
     const platform = formData.get("platform") as string
@@ -163,6 +181,68 @@ export async function deleteCreative(id: string) {
         return { success: true }
     } catch (error) {
         return { success: false, error: "Failed to delete creative" }
+    }
+}
+
+export async function getRelatedCampaigns(campaignId: string, tags: string[] | null, category: string | null, brand: string | null) {
+    try {
+        const supabase = getSupabaseAdmin()
+        let related: any[] = []
+
+        // 1. Par tags communs
+        if (tags && tags.length > 0) {
+            const { data } = await supabase
+                .from('campaigns')
+                .select('*')
+                .neq('id', campaignId)
+                .eq('status', 'Publié')
+                .overlaps('tags', tags)
+                .limit(4)
+            if (data) related = data
+        }
+
+        // 2. Compléter par catégorie
+        if (related.length < 4 && category) {
+            const existingIds = [campaignId, ...related.map(r => r.id)]
+            const { data } = await supabase
+                .from('campaigns')
+                .select('*')
+                .not('id', 'in', `(${existingIds.join(',')})`)
+                .eq('status', 'Publié')
+                .eq('category', category)
+                .limit(4 - related.length)
+            if (data) related = [...related, ...data]
+        }
+
+        // 3. Compléter par marque
+        if (related.length < 4 && brand) {
+            const existingIds = [campaignId, ...related.map(r => r.id)]
+            const { data } = await supabase
+                .from('campaigns')
+                .select('*')
+                .not('id', 'in', `(${existingIds.join(',')})`)
+                .eq('status', 'Publié')
+                .eq('brand', brand)
+                .limit(4 - related.length)
+            if (data) related = [...related, ...data]
+        }
+
+        // 4. Compléter avec des récentes
+        if (related.length < 4) {
+            const existingIds = [campaignId, ...related.map(r => r.id)]
+            const { data } = await supabase
+                .from('campaigns')
+                .select('*')
+                .not('id', 'in', `(${existingIds.join(',')})`)
+                .eq('status', 'Publié')
+                .order('created_at', { ascending: false })
+                .limit(4 - related.length)
+            if (data) related = [...related, ...data]
+        }
+
+        return { success: true, data: related }
+    } catch (error) {
+        return { success: false, data: [], error: "Failed to fetch related campaigns" }
     }
 }
 

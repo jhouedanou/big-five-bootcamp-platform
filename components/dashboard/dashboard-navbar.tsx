@@ -57,13 +57,13 @@ export function DashboardNavbar({
 
   useEffect(() => {
     const loadUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        setUserEmail(session.user.email || "")
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setUserEmail(user.email || "")
         const { data: profile, error: profileError } = await supabase
           .from('users')
           .select('*')
-          .eq('id', session.user.id)
+          .eq('id', user.id)
           .single()
         if (profileError) {
           console.warn('Erreur chargement profil navbar:', profileError.message)

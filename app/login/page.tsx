@@ -4,7 +4,7 @@ import React from "react"
 
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -21,6 +21,8 @@ function formatNumber(n: number): string {
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirect') || '/dashboard'
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [email, setEmail] = useState("")
@@ -68,7 +70,7 @@ export default function LoginPage() {
       })
       
       // Forcer le rechargement complet pour que le middleware détecte la session
-      window.location.href = "/dashboard"
+      window.location.href = redirectTo
     } catch (err) {
       toast.error("Une erreur inattendue est survenue", {
         description: "Veuillez réessayer plus tard.",

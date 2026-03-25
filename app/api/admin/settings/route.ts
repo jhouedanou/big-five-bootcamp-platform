@@ -36,15 +36,15 @@ export async function PUT(request: NextRequest) {
     // Vérifier que l'utilisateur est admin (via session)
     const { getSupabaseServer } = await import('@/lib/supabase-server')
     const supabaseServer = await getSupabaseServer()
-    const { data: { session } } = await supabaseServer.auth.getSession()
+    const { data: { user } } = await supabaseServer.auth.getUser()
 
-    if (!session) {
+    if (!user) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
     }
 
     // Vérifier le rôle admin
     const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannick@bigfiveabidjan.com', 'franck@bigfiveabidjan.com', 'stephanie@bigfiveabidjan.com']
-    const isAdmin = session.user.user_metadata?.role === 'admin' || adminEmails.includes(session.user.email || '')
+    const isAdmin = user.user_metadata?.role === 'admin' || adminEmails.includes(user.email || '')
 
     if (!isAdmin) {
       return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })

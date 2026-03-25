@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo } from "react";
+import React, { createContext, useContext, useState, ReactNode, useEffect, useMemo, useRef } from "react";
 import type { ContentItem } from "@/components/dashboard/content-card";
 import { createClient } from "@/lib/supabase";
 import { toast } from "sonner";
@@ -32,6 +32,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [campaignsLoading, setCampaignsLoading] = useState(true);
+  const initialCheckDone = useRef(false);
 
   // Utiliser useMemo pour éviter de recréer le client à chaque rendu
   const supabase = useMemo(() => createClient(), []);
@@ -41,12 +42,15 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const checkUser = async () => {
       try {
+        // getUser() valide le token côté serveur (fiable après refresh)
+        const { data: { user } } = await supabase.auth.getUser();
+        // Récupérer la session pour les composants qui en ont besoin
         const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
 
-        if (session?.user?.email) {
+        if (user?.email) {
           // D'abord vérifier les métadonnées de l'utilisateur auth
-          const userMetadata = session.user.user_metadata;
+          const userMetadata = user.user_metadata;
           if (userMetadata?.role === 'admin') {
             setUserRole('admin');
             setAuthLoading(false);
@@ -55,9 +59,9 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
           // Liste des emails admin autorisés (fallback principal)
           const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannick@bigfiveabidjan.com', 'franck@bigfiveabidjan.com', 'stephanie@bigfiveabidjan.com'];
-          
+
           // Vérifier d'abord si l'email est dans la liste admin connue
-          if (adminEmails.includes(session.user.email)) {
+          if (adminEmails.includes(user.email)) {
             setUserRole('admin');
             setAuthLoading(false);
             return;
@@ -68,13 +72,12 @@ export function AdminProvider({ children }: { children: ReactNode }) {
             const { data: dbUser, error } = await supabase
               .from('users')
               .select('role')
-              .eq('email', session.user.email)
-              .maybeSingle(); // Utiliser maybeSingle au lieu de single pour éviter l'erreur 406
+              .eq('email', user.email)
+              .maybeSingle();
 
             if (!error && dbUser?.role) {
               setUserRole(dbUser.role);
             } else {
-              // Par défaut, utilisateur normal
               setUserRole('user');
             }
           } catch (dbError) {
@@ -85,6 +88,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error("Auth check error", error);
       } finally {
+        initialCheckDone.current = true;
         setAuthLoading(false);
       }
     };
@@ -92,6 +96,8 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     checkUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: any, session: any) => {
+      // Ignorer les events tant que getUser() n'a pas fini
+      if (!initialCheckDone.current) return;
       setSession(session);
       if (session?.user?.email) {
         // Vérifier d'abord les métadonnées

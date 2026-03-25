@@ -38,20 +38,26 @@ export async function updateSession(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser()
 
+    const pathname = request.nextUrl.pathname
+
     // Protected routes - require authentication
-    if (request.nextUrl.pathname.startsWith('/dashboard') ||
-        request.nextUrl.pathname.startsWith('/favorites')) {
+    if (pathname.startsWith('/dashboard') ||
+        pathname.startsWith('/favorites') ||
+        pathname.startsWith('/content/') ||
+        pathname.startsWith('/profile') ||
+        pathname.startsWith('/subscribe')) {
 
         if (!user) {
             const url = request.nextUrl.clone()
             url.pathname = '/login'
+            url.searchParams.set('redirect', pathname)
             return NextResponse.redirect(url)
         }
     }
 
     // Admin routes - redirect to admin login
-    if (request.nextUrl.pathname.startsWith('/admin') &&
-        !request.nextUrl.pathname.startsWith('/admin/login')) {
+    if (pathname.startsWith('/admin') &&
+        !pathname.startsWith('/admin/login')) {
 
         if (!user) {
             const url = request.nextUrl.clone()
@@ -61,8 +67,8 @@ export async function updateSession(request: NextRequest) {
     }
 
     // Auth routes (redirect if already logged in)
-    if (request.nextUrl.pathname.startsWith('/login') ||
-        request.nextUrl.pathname.startsWith('/register')) {
+    if (pathname.startsWith('/login') ||
+        pathname.startsWith('/register')) {
 
         if (user) {
             const url = request.nextUrl.clone()

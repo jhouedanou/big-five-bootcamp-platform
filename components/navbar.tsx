@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Menu, X, ArrowRight, Heart, BookOpen, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
@@ -10,19 +10,22 @@ import { createClient } from "@/lib/supabase"
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const initialCheckDone = useRef(false)
 
   useEffect(() => {
     const supabase = createClient()
 
-    // Vérifier la session actuelle
-    supabase.auth.getSession().then(({ data: { session } }: { data: { session: any } }) => {
-      setIsAuthenticated(!!session?.user)
+    // Vérifier l'utilisateur via getUser() (valide le token côté serveur)
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsAuthenticated(!!user)
+      initialCheckDone.current = true
     })
 
-    // Écouter les changements d'authentification (login, logout, token refresh)
+    // Écouter les changements APRÈS l'init (login, logout, token refresh)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+      if (!initialCheckDone.current) return
       setIsAuthenticated(!!session?.user)
     })
 

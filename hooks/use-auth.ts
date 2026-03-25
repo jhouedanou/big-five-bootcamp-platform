@@ -1,7 +1,7 @@
 
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { createClient } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 
@@ -10,6 +10,7 @@ export function useAuth() {
   const [session, setSession] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [dbUser, setDbUser] = useState<any>(null)
+  const initialCheckDone = useRef(false)
 
   const supabase = createClient()
   const router = useRouter()
@@ -17,22 +18,35 @@ export function useAuth() {
   useEffect(() => {
     const checkUser = async () => {
       try {
+        // getUser() valide le token côté serveur (fiable après refresh)
+        const { data: { user }, error } = await supabase.auth.getUser()
+
+        if (error || !user) {
+          setSession(null)
+          setUser(null)
+          setDbUser(null)
+          initialCheckDone.current = true
+          return
+        }
+
+        // Récupérer la session pour les composants qui en ont besoin
         const { data: { session } } = await supabase.auth.getSession()
         setSession(session)
-        setUser(session?.user ?? null)
+        setUser(user)
+        initialCheckDone.current = true
 
-        if (session?.user?.email) {
-          // Fetch additional user details from DB if needed
+        if (user.email) {
           const { data } = await supabase
             .from('users')
             .select('*')
-            .eq('email', session.user.email)
+            .eq('email', user.email)
             .single()
           setDbUser(data)
         }
 
       } catch (error) {
         console.error("Error checking auth:", error)
+        initialCheckDone.current = true
       } finally {
         setIsLoading(false)
       }
@@ -41,6 +55,10 @@ export function useAuth() {
     checkUser()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: any, session: any) => {
+      // Ignorer les events tant que getUser() n'a pas fini
+      // pour éviter que INITIAL_SESSION écrase user à null
+      if (!initialCheckDone.current) return
+
       setSession(session)
       setUser(session?.user ?? null)
 
@@ -96,11 +114,6 @@ export function useAuth() {
         throw new Error(error.message)
       }
 
-      // Note: Ideally, a Trigger creates the User record in public.User.
-      // If not using triggers, we might need to insert here, but RLS might block it.
-      // For now, we assume Supabase Auth is the source of truth for auth, 
-      // and we might need an API route to sync if Trigger isn't set up.
-
       return { success: true }
     } catch (error: any) {
       return { success: false, error: error.message }
@@ -131,7 +144,7 @@ export function useAuth() {
     user,
     session,
     isLoading,
-    isAuthenticated: !!session,
+    isAuthenticated: !!session || !!user,
     isAdmin,
     isModerator,
     isPremium,
@@ -140,6 +153,5 @@ export function useAuth() {
     register,
     logout,
     loginWithGoogle,
-    // updateSession: update, // Not needed with Supabase real-time
   }
 }

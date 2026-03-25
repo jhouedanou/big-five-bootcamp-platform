@@ -179,6 +179,7 @@ interface CSVCreativeRow {
     imageUrl?: string
     videoUrl?: string
     description?: string
+    analyse?: string
     tags?: string
     status?: string
     accessLevel?: string
@@ -260,6 +261,7 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
                 thumbnail,
                 video_url: videoUrl,
                 description: row.description?.trim() || null,
+                analyse: row.analyse?.trim() || null,
                 tags,
                 status,
                 access_level: accessLevel,

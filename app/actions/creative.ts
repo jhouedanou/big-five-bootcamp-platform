@@ -328,6 +328,10 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
             }
             usedSlugs.add(slug)
 
+            // La colonne CSV "analyse" correspond à la colonne DB "description"
+            // (renommé "Analyse" uniquement dans l'UI)
+            const descriptionValue = row.analyse?.trim() || row.description?.trim() || null;
+
             const { error } = await supabase.from('campaigns').insert({
                 title: titleTrimmed,
                 slug,
@@ -340,8 +344,7 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
                 year: (year && !isNaN(year)) ? year : null,
                 thumbnail,
                 video_url: videoUrl,
-                description: row.description?.trim() || null,
-                analyse: row.analyse?.trim() || null,
+                description: descriptionValue,
                 tags,
                 status,
                 access_level: accessLevel,

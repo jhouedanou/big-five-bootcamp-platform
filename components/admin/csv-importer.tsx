@@ -40,7 +40,6 @@ interface CSVRow {
     description?: string
     summary?: string
     analyse?: string
-    whyThisAngle?: string
     tags?: string
     status?: string
     accessLevel?: string
@@ -66,7 +65,6 @@ const CSV_TEMPLATE_HEADERS = [
     "description",
     "summary",
     "analyse",
-    "whyThisAngle",
     "tags",
     "status",
     "accessLevel",
@@ -89,7 +87,6 @@ const CSV_EXAMPLE_DATA = [
         description: "Campagne de promotion pour le Black Friday avec des offres exclusives",
         summary: "Court résumé de la campagne Black Friday",
         analyse: "Utilisation efficace de l'urgence et des codes couleurs pour maximiser l'engagement pendant le Black Friday",
-        whyThisAngle: "L'axe Offre/Promotion a été choisi car le Black Friday est un moment clé pour les promotions",
         tags: "promo;blackfriday;soldes",
         status: "Publié",
         accessLevel: "premium",
@@ -253,7 +250,7 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
                             <div>
                                 <p className="font-medium">Télécharger le template</p>
                                 <p className="text-sm text-muted-foreground">
-                                    19 colonnes : title, brand, agency, platform, country, sector, format, year, imageUrl, videoUrl, description, summary, analyse, whyThisAngle, tags (séparés par ;), status (Brouillon/En attente/Publié), accessLevel (free/premium), axe (séparés par ;), featured (true/false)
+                                    18 colonnes : title, brand, agency, platform, country, sector, format, year, imageUrl, videoUrl, description, summary, analyse, tags (séparés par ;), status (Brouillon/En attente/Publié), accessLevel (free/premium), axe (séparés par ;), featured (true/false)
                                 </p>
                             </div>
                             <Button variant="secondary" size="sm" onClick={downloadTemplate} className="gap-2 shrink-0">
@@ -345,7 +342,6 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
                                                     <TableHead>Description</TableHead>
                                                     <TableHead>Résumé</TableHead>
                                                     <TableHead>Analyse</TableHead>
-                                                    <TableHead>Pourquoi cet axe</TableHead>
                                                     <TableHead>Axe</TableHead>
                                                     <TableHead>Status</TableHead>
                                                     <TableHead>Accès</TableHead>
@@ -371,7 +367,6 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
                                                         <TableCell className="max-w-[200px] truncate">{row.description || "—"}</TableCell>
                                                         <TableCell className="max-w-[150px] truncate">{row.summary || "—"}</TableCell>
                                                         <TableCell className="max-w-[200px] truncate">{row.analyse || "—"}</TableCell>
-                                                        <TableCell className="max-w-[200px] truncate">{row.whyThisAngle || "—"}</TableCell>
                                                         <TableCell>{row.axe || "—"}</TableCell>
                                                         <TableCell>{row.status || "—"}</TableCell>
                                                         <TableCell>{row.accessLevel || "—"}</TableCell>

@@ -51,7 +51,6 @@ interface Campaign {
   date?: string | null;
   year?: number | null;
   images?: string[] | null;
-  why_this_angle?: string | null;
   analyse?: string | null;
   slug?: string | null;
   axe?: string[] | null;
@@ -550,19 +549,6 @@ export default function ContentDetailClient({ id }: { id: string }) {
                   <div
                     className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
                     dangerouslySetInnerHTML={{ __html: formatDescription(content.analyse) }}
-                  />
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Pourquoi cet axe */}
-            {content.why_this_angle && (
-              <Card>
-                <CardContent className="p-6">
-                  <h2 className="font-semibold text-lg mb-3">Pourquoi cet axe</h2>
-                  <div
-                    className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: formatDescription(content.why_this_angle) }}
                   />
                 </CardContent>
               </Card>

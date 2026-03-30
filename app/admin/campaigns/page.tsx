@@ -117,7 +117,6 @@ const defaultFormData: Omit<ContentItem, "id"> = {
   isVideo: false,
   status: "Brouillon",
   accessLevel: "free",
-  whyThisAngle: "",
   analyse: "",
   slug: "",
   featured: false,
@@ -701,15 +700,6 @@ function CampaignsPageContent() {
                     <div
                       className="text-gray-600 prose prose-sm max-w-none"
                       dangerouslySetInnerHTML={{ __html: previewCampaign.analyse }}
-                    />
-                  </div>
-                )}
-                {previewCampaign.whyThisAngle && (
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-1">Pourquoi cet axe</h4>
-                    <div
-                      className="text-gray-600 prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: previewCampaign.whyThisAngle }}
                     />
                   </div>
                 )}
@@ -1440,24 +1430,13 @@ function CampaignsPageContent() {
                   />
                 </div>
 
-                {/* Analyse with WYSIWYG */}
+                {/* Analyse with WYSIWYG — saves to analyse in DB */}
                 <div className="space-y-2">
                   <Label className="text-gray-700">Analyse</Label>
                   <RichTextEditor
                     content={formData.analyse || ""}
                     onChange={(content) => setFormData({ ...formData, analyse: content })}
-                    placeholder="Analysez la campagne, ses résultats, ses performances..."
-                    className="bg-white border-gray-300"
-                  />
-                </div>
-
-                {/* Pourquoi cet axe with WYSIWYG */}
-                <div className="space-y-2">
-                  <Label className="text-gray-700">Pourquoi cet axe</Label>
-                  <RichTextEditor
-                    content={formData.whyThisAngle || ""}
-                    onChange={(content) => setFormData({ ...formData, whyThisAngle: content })}
-                    placeholder="Expliquez pourquoi cet axe a été choisi pour cette campagne..."
+                    placeholder="Analysez la campagne, sa stratégie, ses résultats et ses points clés..."
                     className="bg-white border-gray-300"
                   />
                 </div>

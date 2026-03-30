@@ -36,7 +36,6 @@ export interface ContentItem {
   axe?: string[]
   status?: 'Publié' | 'Brouillon' | 'En attente'
   accessLevel?: 'free' | 'premium' // 'free' = visible par tous, 'premium' = réservé aux abonnés
-  whyThisAngle?: string // Pourquoi cet axe
   analyse?: string // Analyse stratégique de la campagne
   slug?: string // Permalien SEO-friendly
   createdAt?: string // Date ISO de création (depuis Supabase)

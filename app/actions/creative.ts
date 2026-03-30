@@ -69,8 +69,8 @@ export async function createCreative(formData: FormData) {
     const thumbnail = formData.get("thumbnail") as string
     const videoUrl = formData.get("videoUrl") as string
     const campaignDate = formData.get("campaignDate") as string
-    const whyItWorks = formData.get("whyItWorks") as string
-    const howToUse = formData.get("howToUse") as string
+    const description = formData.get("description") as string
+    const analyse = formData.get("analyse") as string
     const brand = formData.get("brand") as string
     const country = formData.get("country") as string
     const agency = formData.get("agency") as string
@@ -101,7 +101,8 @@ export async function createCreative(formData: FormData) {
             thumbnail,
             video_url: videoUrl || null,
             campaign_date: campaignDate || null,
-            description: [whyItWorks, howToUse].filter(Boolean).join('\n\n') || null,
+            description: description || null,
+            analyse: analyse || null,
             tags: [format, objective].filter(Boolean),
             status: 'Publié',
             brand: brand || null,
@@ -130,8 +131,8 @@ export async function updateCreative(id: string, formData: FormData) {
     const thumbnail = formData.get("thumbnail") as string
     const videoUrl = formData.get("videoUrl") as string
     const campaignDate = formData.get("campaignDate") as string
-    const whyItWorks = formData.get("whyItWorks") as string
-    const howToUse = formData.get("howToUse") as string
+    const description = formData.get("description") as string
+    const analyse = formData.get("analyse") as string
     const brand = formData.get("brand") as string
     const country = formData.get("country") as string
     const agency = formData.get("agency") as string
@@ -148,7 +149,8 @@ export async function updateCreative(id: string, formData: FormData) {
                 thumbnail,
                 video_url: videoUrl || null,
                 campaign_date: campaignDate || null,
-                description: [whyItWorks, howToUse].filter(Boolean).join('\n\n') || null,
+                description: description || null,
+                analyse: analyse || null,
                 tags: [format, objective].filter(Boolean),
                 brand: brand || null,
                 country: country || null,
@@ -260,7 +262,6 @@ interface CSVCreativeRow {
     description?: string
     summary?: string
     analyse?: string
-    whyThisAngle?: string
     tags?: string
     status?: string
     accessLevel?: string
@@ -333,7 +334,6 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
             // Mapping CSV → colonnes DB :
             // CSV "description" → DB "description" (description de la campagne)
             // CSV "analyse" → DB "analyse" (analyse stratégique)
-            // CSV "whyThisAngle" → DB "why_this_angle" (Pourquoi cet axe)
             // CSV "summary" → DB "summary" (Résumé court)
             // CSV "sector" → DB "category"
             // CSV "imageUrl" → DB "thumbnail"
@@ -357,7 +357,6 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
                 description: row.description?.trim() || null,
                 summary: row.summary?.trim() || null,
                 analyse: row.analyse?.trim() || null,
-                why_this_angle: row.whyThisAngle?.trim() || null,
                 tags,
                 status,
                 access_level: accessLevel,

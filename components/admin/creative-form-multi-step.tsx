@@ -128,8 +128,8 @@ export function CreativeFormMultiStep({ creative, isEdit = false }: CreativeForm
         thumbnail: creative?.thumbnail || "",
         videoUrl: creative?.video_url || creative?.videoUrl || "",
         campaignDate: creative?.campaign_date || creative?.campaignDate || "",
-        whyItWorks: creative?.description?.split('\n\n')[0] || creative?.whyItWorks || "",
-        howToUse: creative?.description?.split('\n\n')[1] || creative?.howToUse || "",
+        description: creative?.description || "",
+        analyse: creative?.analyse || "",
     })
 
     // Track which select fields are in custom input mode
@@ -436,26 +436,26 @@ export function CreativeFormMultiStep({ creative, isEdit = false }: CreativeForm
                     </div>
                 )}
 
-                {/* Step 3: Description */}
+                {/* Step 3: Description & Analyse */}
                 {currentStep === 3 && (
                     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                        <h2 className="text-lg font-semibold">Analyse et Conseils</h2>
+                        <h2 className="text-lg font-semibold">Description et Analyse</h2>
                         
                         <div className="grid gap-2">
-                            <Label>Pourquoi ça marche</Label>
+                            <Label>Description</Label>
                             <RichTextEditor
-                                content={formData.whyItWorks}
-                                onChange={(content) => updateField("whyItWorks", content)}
-                                placeholder="Analysez les éléments clés de cette créative..."
+                                content={formData.description}
+                                onChange={(content) => updateField("description", content)}
+                                placeholder="Décrivez la campagne, son contexte, ses objectifs..."
                             />
                         </div>
 
                         <div className="grid gap-2">
-                            <Label>Comment réutiliser</Label>
+                            <Label>Analyse</Label>
                             <RichTextEditor
-                                content={formData.howToUse}
-                                onChange={(content) => updateField("howToUse", content)}
-                                placeholder="Donnez des conseils pour adapter cette créative..."
+                                content={formData.analyse}
+                                onChange={(content) => updateField("analyse", content)}
+                                placeholder="Analysez la stratégie, les résultats et les points clés de cette campagne..."
                             />
                         </div>
                     </div>

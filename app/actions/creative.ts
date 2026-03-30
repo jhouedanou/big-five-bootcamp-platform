@@ -254,16 +254,18 @@ interface CSVCreativeRow {
     country?: string
     sector?: string
     format?: string
-    date?: string
     year?: string
     imageUrl?: string
     videoUrl?: string
     description?: string
+    summary?: string
     analyse?: string
+    whyThisAngle?: string
     tags?: string
     status?: string
     accessLevel?: string
     axe?: string
+    featured?: string
 }
 
 const VALID_STATUSES = ['Brouillon', 'En attente', 'Publié']
@@ -328,9 +330,17 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
             }
             usedSlugs.add(slug)
 
-            // La colonne CSV "analyse" correspond à la colonne DB "description"
-            // (renommé "Analyse" uniquement dans l'UI)
-            const descriptionValue = row.analyse?.trim() || row.description?.trim() || null;
+            // Mapping CSV → colonnes DB :
+            // CSV "description" → DB "description" (description de la campagne)
+            // CSV "analyse" → DB "analyse" (analyse stratégique)
+            // CSV "whyThisAngle" → DB "why_this_angle" (Pourquoi cet axe)
+            // CSV "summary" → DB "summary" (Résumé court)
+            // CSV "sector" → DB "category"
+            // CSV "imageUrl" → DB "thumbnail"
+            // CSV "videoUrl" → DB "video_url"
+            // CSV "platform" → DB "platforms" (array)
+            // CSV "accessLevel" → DB "access_level"
+            // CSV "featured" → DB "featured" (boolean)
 
             const { error } = await supabase.from('campaigns').insert({
                 title: titleTrimmed,
@@ -344,13 +354,17 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
                 year: (year && !isNaN(year)) ? year : null,
                 thumbnail,
                 video_url: videoUrl,
-                description: descriptionValue,
+                description: row.description?.trim() || null,
+                summary: row.summary?.trim() || null,
+                analyse: row.analyse?.trim() || null,
+                why_this_angle: row.whyThisAngle?.trim() || null,
                 tags,
                 status,
                 access_level: accessLevel,
                 axe: row.axe
                     ? row.axe.split(';').map(a => a.trim()).filter(Boolean)
                     : [],
+                featured: row.featured?.trim().toLowerCase() === 'true' ? true : false,
             })
 
             if (error) {

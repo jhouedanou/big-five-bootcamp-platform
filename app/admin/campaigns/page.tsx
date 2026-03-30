@@ -118,6 +118,7 @@ const defaultFormData: Omit<ContentItem, "id"> = {
   status: "Brouillon",
   accessLevel: "free",
   whyThisAngle: "",
+  analyse: "",
   slug: "",
   featured: false,
 };
@@ -231,6 +232,7 @@ function CampaignsPageContent() {
       accessLevel: item.accessLevel || "free",
       slug: item.slug || "",
       axe: item.axe || [],
+      analyse: item.analyse || "",
       featured: item.featured || false,
     });
     setTagInput("");
@@ -686,10 +688,19 @@ function CampaignsPageContent() {
                 )}
                 {previewCampaign.description && (
                   <div>
-                    <h4 className="font-semibold text-gray-800 mb-1">Analyse</h4>
+                    <h4 className="font-semibold text-gray-800 mb-1">Description</h4>
                     <div
                       className="text-gray-600 prose prose-sm max-w-none"
                       dangerouslySetInnerHTML={{ __html: previewCampaign.description }}
+                    />
+                  </div>
+                )}
+                {previewCampaign.analyse && (
+                  <div>
+                    <h4 className="font-semibold text-gray-800 mb-1">Analyse</h4>
+                    <div
+                      className="text-gray-600 prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: previewCampaign.analyse }}
                     />
                   </div>
                 )}
@@ -1418,13 +1429,24 @@ function CampaignsPageContent() {
             {/* Step 3: Description & Tags */}
             {currentStep === 3 && (
               <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+                {/* Description with WYSIWYG */}
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Description</Label>
+                  <RichTextEditor
+                    content={formData.description}
+                    onChange={(content) => setFormData({ ...formData, description: content })}
+                    placeholder="Décrivez la campagne, son contexte, ses objectifs..."
+                    className="bg-white border-gray-300"
+                  />
+                </div>
+
                 {/* Analyse with WYSIWYG */}
                 <div className="space-y-2">
                   <Label className="text-gray-700">Analyse</Label>
                   <RichTextEditor
-                    content={formData.description}
-                    onChange={(content) => setFormData({ ...formData, description: content })}
-                    placeholder="Analysez la campagne, son contexte, ses résultats..."
+                    content={formData.analyse || ""}
+                    onChange={(content) => setFormData({ ...formData, analyse: content })}
+                    placeholder="Analysez la campagne, ses résultats, ses performances..."
                     className="bg-white border-gray-300"
                   />
                 </div>

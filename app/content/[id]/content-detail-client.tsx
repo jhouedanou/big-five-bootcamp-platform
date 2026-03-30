@@ -52,6 +52,7 @@ interface Campaign {
   year?: number | null;
   images?: string[] | null;
   why_this_angle?: string | null;
+  analyse?: string | null;
   slug?: string | null;
   axe?: string[] | null;
   created_at: string;
@@ -528,14 +529,27 @@ export default function ContentDetailClient({ id }: { id: string }) {
               </div>
             </div>
 
-            {/* Analyse */}
+            {/* Description */}
             {content.description && (
+              <Card>
+                <CardContent className="p-6">
+                  <h2 className="font-semibold text-lg mb-3">Description</h2>
+                  <div
+                    className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: formatDescription(content.description) }}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Analyse */}
+            {content.analyse && (
               <Card>
                 <CardContent className="p-6">
                   <h2 className="font-semibold text-lg mb-3">Analyse</h2>
                   <div
                     className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: formatDescription(content.description) }}
+                    dangerouslySetInnerHTML={{ __html: formatDescription(content.analyse) }}
                   />
                 </CardContent>
               </Card>

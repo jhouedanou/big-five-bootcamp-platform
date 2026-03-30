@@ -34,16 +34,18 @@ interface CSVRow {
     country?: string
     sector?: string
     format?: string
-    date?: string
     year?: string
     imageUrl?: string
     videoUrl?: string
     description?: string
+    summary?: string
     analyse?: string
+    whyThisAngle?: string
     tags?: string
     status?: string
     accessLevel?: string
     axe?: string
+    featured?: string
 }
 
 interface CSVImporterProps {
@@ -58,16 +60,18 @@ const CSV_TEMPLATE_HEADERS = [
     "country",
     "sector",
     "format",
-    "date",
     "year",
     "imageUrl",
     "videoUrl",
     "description",
+    "summary",
     "analyse",
+    "whyThisAngle",
     "tags",
     "status",
     "accessLevel",
-    "axe"
+    "axe",
+    "featured"
 ]
 
 const CSV_EXAMPLE_DATA = [
@@ -79,16 +83,18 @@ const CSV_EXAMPLE_DATA = [
         country: "Côte d'Ivoire",
         sector: "E-commerce",
         format: "Vidéo",
-        date: "2025-11-29",
         year: "2025",
         imageUrl: "https://example.com/image.jpg",
         videoUrl: "https://example.com/video.mp4",
         description: "Campagne de promotion pour le Black Friday avec des offres exclusives",
+        summary: "Court résumé de la campagne Black Friday",
         analyse: "Utilisation efficace de l'urgence et des codes couleurs pour maximiser l'engagement pendant le Black Friday",
+        whyThisAngle: "L'axe Offre/Promotion a été choisi car le Black Friday est un moment clé pour les promotions",
         tags: "promo;blackfriday;soldes",
         status: "Publié",
         accessLevel: "premium",
-        axe: "Offre / Promotion;Storytelling"
+        axe: "Offre / Promotion;Storytelling",
+        featured: "false"
     }
 ]
 
@@ -247,7 +253,7 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
                             <div>
                                 <p className="font-medium">Télécharger le template</p>
                                 <p className="text-sm text-muted-foreground">
-                                    17 colonnes : title, brand, agency, platform, country, sector, format, date, year, imageUrl, videoUrl, description, analyse, tags (séparés par ;), status (Brouillon/En attente/Publié), accessLevel (free/premium), axe (séparés par ;)
+                                    19 colonnes : title, brand, agency, platform, country, sector, format, year, imageUrl, videoUrl, description, summary, analyse, whyThisAngle, tags (séparés par ;), status (Brouillon/En attente/Publié), accessLevel (free/premium), axe (séparés par ;), featured (true/false)
                                 </p>
                             </div>
                             <Button variant="secondary" size="sm" onClick={downloadTemplate} className="gap-2 shrink-0">
@@ -336,10 +342,14 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
                                                     <TableHead>Secteur</TableHead>
                                                     <TableHead>Format</TableHead>
                                                     <TableHead>Année</TableHead>
+                                                    <TableHead>Description</TableHead>
+                                                    <TableHead>Résumé</TableHead>
                                                     <TableHead>Analyse</TableHead>
+                                                    <TableHead>Pourquoi cet axe</TableHead>
                                                     <TableHead>Axe</TableHead>
                                                     <TableHead>Status</TableHead>
                                                     <TableHead>Accès</TableHead>
+                                                    <TableHead>Featured</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -358,10 +368,14 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
                                                         <TableCell>{row.sector || "—"}</TableCell>
                                                         <TableCell>{row.format || "—"}</TableCell>
                                                         <TableCell>{row.year || "—"}</TableCell>
+                                                        <TableCell className="max-w-[200px] truncate">{row.description || "—"}</TableCell>
+                                                        <TableCell className="max-w-[150px] truncate">{row.summary || "—"}</TableCell>
                                                         <TableCell className="max-w-[200px] truncate">{row.analyse || "—"}</TableCell>
+                                                        <TableCell className="max-w-[200px] truncate">{row.whyThisAngle || "—"}</TableCell>
                                                         <TableCell>{row.axe || "—"}</TableCell>
                                                         <TableCell>{row.status || "—"}</TableCell>
                                                         <TableCell>{row.accessLevel || "—"}</TableCell>
+                                                        <TableCell>{row.featured || "—"}</TableCell>
                                                     </TableRow>
                                                 ))}
                                             </TableBody>

@@ -281,6 +281,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         agency: campaign.agency || '',
         axe: campaign.axe || [],
         whyThisAngle: campaign.why_this_angle || '',
+        analyse: campaign.analyse || '',
         year: campaign.year || undefined,
         status: campaign.status || 'Brouillon',
         accessLevel: campaign.access_level || 'free',
@@ -321,6 +322,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     if (data.brand !== undefined) record.brand = data.brand;
     if (data.axe !== undefined) record.axe = data.axe;
     if (data.whyThisAngle !== undefined) record.why_this_angle = data.whyThisAngle;
+    if (data.analyse !== undefined) record.analyse = data.analyse;
     if (data.status !== undefined) record.status = data.status;
     if (data.accessLevel !== undefined) record.access_level = data.accessLevel;
     if (data.slug !== undefined) record.slug = data.slug;

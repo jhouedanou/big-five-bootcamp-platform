@@ -203,11 +203,11 @@ export function HeroSection() {
                     ))}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-2 gap-5">
                     {recentCampaigns.length > 0
                       ? recentCampaigns.map((campaign) => (
-                        <Link key={campaign.id} href={`/content/${campaign.slug || campaign.id}`} className="group cursor-pointer rounded-lg border border-[#D0E4F2] bg-white p-2 transition-all hover:shadow-lg hover:-translate-y-1">
-                          <div className="aspect-video w-full rounded-md bg-[#D0E4F2] relative overflow-hidden">
+                        <Link key={campaign.id} href={`/content/${campaign.slug || campaign.id}`} className="group cursor-pointer rounded-xl border border-[#D0E4F2] bg-white p-3 transition-all hover:shadow-lg hover:-translate-y-1">
+                          <div className="aspect-[16/10] w-full rounded-lg bg-[#D0E4F2] relative overflow-hidden">
                             {campaign.thumbnail ? (
                               <Image
                                 src={getGoogleDriveImageUrl(campaign.thumbnail)}
@@ -222,8 +222,8 @@ export function HeroSection() {
                               </div>
                             )}
                             <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
-                            <div className="absolute bottom-2 right-2 h-6 w-6 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Play className="h-3 w-3 text-white fill-current" />
+                            <div className="absolute bottom-2 right-2 h-7 w-7 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Play className="h-3.5 w-3.5 text-white fill-current" />
                             </div>
                           </div>
                           <div className="mt-3 px-1">
@@ -234,8 +234,8 @@ export function HeroSection() {
                       ))
                       : /* Skeleton placeholders while loading */
                       Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="rounded-lg border border-[#D0E4F2] bg-white p-2">
-                          <div className="aspect-video w-full rounded-md skeleton-shimmer" />
+                        <div key={i} className="rounded-xl border border-[#D0E4F2] bg-white p-3">
+                          <div className="aspect-[16/10] w-full rounded-lg skeleton-shimmer" />
                           <div className="mt-3 px-1 space-y-1.5">
                             <div className="skeleton-line h-4 w-3/4 rounded" />
                             <div className="skeleton-line h-3 w-1/2 rounded" />

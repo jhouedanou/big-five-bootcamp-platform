@@ -30,6 +30,7 @@ import { cn, getGoogleDriveImageUrl, fixBrokenEncoding } from "@/lib/utils";
 import { detectVideoPlatform, getEmbedUrl, getVideoPlatformLabel, getOriginalVideoUrl } from "@/lib/video-utils";
 import { isPaidPlan } from "@/lib/pricing";
 import { UpgradePopup } from "@/components/upgrade-popup";
+import { ReactionButtons } from "@/components/ui/reaction-buttons";
 import { useRouter } from "next/navigation";
 
 const MONTHLY_CLICK_LIMIT = 5;
@@ -528,6 +529,9 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 </Button>
               </div>
             </div>
+
+            {/* Réactions Like / Dislike */}
+            <ReactionButtons campaignId={content.id} className="mt-2" />
 
             {/* Description */}
             {content.description && (

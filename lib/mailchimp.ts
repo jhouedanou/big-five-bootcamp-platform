@@ -23,6 +23,8 @@ export interface LibraryMetadata {
   countries: string[]
   period: { from: string; to: string }
   platformUrl: string
+  latestCampaigns: { title: string; url: string; brand: string; sector: string }[]
+  recommendedSendTime: string
 }
 
 /**
@@ -171,8 +173,9 @@ export class MailchimpService {
 
     const { data: campaigns, error } = await supabase
       .from('campaigns')
-      .select('brand, category, axe, country, created_at')
+      .select('id, title, slug, brand, category, axe, country, created_at')
       .eq('status', 'Publié')
+      .order('created_at', { ascending: false })
 
     if (error) {
       throw new Error(`Erreur récupération métadonnées: ${error.message}`)
@@ -198,9 +201,17 @@ export class MailchimpService {
       }
     })
 
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
-      : 'https://bigfive.solutions'
+      : 'https://bigfive.solutions')
+
+    // Construire les liens vers les dernières campagnes ajoutées
+    const latestCampaigns = (campaigns || []).slice(0, 5).map((c: any) => ({
+      title: c.title || 'Sans titre',
+      url: `${baseUrl}/content/${c.slug || c.id}`,
+      brand: c.brand || '-',
+      sector: c.category || '-',
+    }))
 
     return {
       totalCampaigns: campaigns?.length || 0,
@@ -213,6 +224,8 @@ export class MailchimpService {
         to: maxDate ? new Date(maxDate).toLocaleDateString('fr-FR') : '-',
       },
       platformUrl: baseUrl,
+      latestCampaigns,
+      recommendedSendTime: 'Lundi à 08:00 (les contenus sont chargés le week-end)',
     }
   }
 
@@ -235,7 +248,7 @@ export class MailchimpService {
     const supabase = getSupabaseAdmin()
     const { data: users, error } = await supabase
       .from('users')
-      .select('email, name, subscription_plan, subscription_status')
+      .select('email, name, plan, subscription_status')
 
     if (error) {
       return { success: false, synced: 0, errors: [`Erreur récupération utilisateurs: ${error.message}`] }
@@ -260,7 +273,7 @@ export class MailchimpService {
           merge_fields: {
             FNAME: user.name?.split(' ')[0] || '',
             LNAME: user.name?.split(' ').slice(1).join(' ') || '',
-            PLAN: user.subscription_plan || 'Free',
+            PLAN: user.plan || 'Free',
           },
         }
 

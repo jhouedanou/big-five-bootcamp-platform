@@ -28,6 +28,8 @@ interface LibraryMetadata {
   countries: string[];
   period: { from: string; to: string };
   platformUrl: string;
+  latestCampaigns: { title: string; url: string; brand: string; sector: string }[];
+  recommendedSendTime: string;
 }
 
 export default function MailchimpSettingsPage() {
@@ -611,6 +613,48 @@ export default function MailchimpSettingsPage() {
                       {metadata.platformUrl}
                     </a>
                   </div>
+
+                  {/* Créneau d'envoi recommandé */}
+                  <div className="text-sm pt-2 border-t">
+                    <span className="text-gray-500">🕐 Créneau d'envoi recommandé :</span>
+                    <span className="ml-2 font-semibold text-gray-900">
+                      {metadata.recommendedSendTime}
+                    </span>
+                  </div>
+
+                  {/* Dernières campagnes ajoutées */}
+                  {metadata.latestCampaigns && metadata.latestCampaigns.length > 0 && (
+                    <div className="text-sm pt-2 border-t">
+                      <span className="text-gray-500 font-medium">
+                        🆕 Dernières campagnes ajoutées ({metadata.latestCampaigns.length}) :
+                      </span>
+                      <div className="mt-2 space-y-2">
+                        {metadata.latestCampaigns.map((campaign, i) => (
+                          <div
+                            key={i}
+                            className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-2.5"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-gray-900 truncate">
+                                {campaign.title}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {campaign.brand} · {campaign.sector}
+                              </p>
+                            </div>
+                            <a
+                              href={campaign.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="ml-3 text-xs text-blue-600 hover:underline whitespace-nowrap"
+                            >
+                              Voir →
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </CardContent>

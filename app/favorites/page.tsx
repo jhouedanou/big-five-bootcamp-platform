@@ -14,6 +14,7 @@ import { cn, getGoogleDriveImageUrl } from "@/lib/utils"
 import { createClient } from "@/lib/supabase"
 import { isPaidPlan } from "@/lib/pricing"
 import { hasAccess } from "@/components/plan-gate"
+import { CollectionModal } from "@/components/collections/collection-modal"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
@@ -50,6 +51,7 @@ function FavoritesPageContent() {
   const [sharingCollectionId, setSharingCollectionId] = useState<string | null>(null)
   const [copiedCollectionId, setCopiedCollectionId] = useState<string | null>(null)
   const [shareModalCollection, setShareModalCollection] = useState<Collection | null>(null)
+  const [showCollectionModal, setShowCollectionModal] = useState(false)
 
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -115,6 +117,21 @@ function FavoritesPageContent() {
         toast.error("Impossible de créer le moodboard")
       }
     } catch { toast.error("Erreur lors de la création") } finally { setCreatingCollection(false) }
+  }
+
+  const handleCollectionModalSave = async (data: { name: string; description: string }) => {
+    const res = await fetch('/api/collections', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: data.name, description: data.description }),
+    })
+    if (res.ok) {
+      const result = await res.json()
+      setCollections(prev => [...prev, result.collection])
+      toast.success(`Collection « ${result.collection.name} » créée`)
+    } else {
+      throw new Error("Impossible de créer la collection")
+    }
   }
 
   const renameCollection = async (id: string, newName: string) => {
@@ -735,6 +752,7 @@ function FavoritesPageContent() {
                         <input type="text" value={newCollectionName} onChange={(e) => setNewCollectionName(e.target.value)}
                           onKeyDown={(e) => e.key === 'Enter' && createCollection()}
                           placeholder="Nom de la collection"
+                          aria-label="Nom de la collection"
                           className="w-full text-sm border-none outline-none bg-transparent text-[#1A1F2B] placeholder:text-[#1A1F2B]/40" autoFocus />
                         <div className="mt-2 flex gap-2">
                           <Button size="sm" className="h-7 text-xs bg-[#80368D] hover:bg-[#80368D]/90"
@@ -748,7 +766,7 @@ function FavoritesPageContent() {
                         </div>
                       </div>
                     ) : (
-                      <button type="button" onClick={() => setShowNewCollectionInput(true)}
+                      <button type="button" onClick={() => setShowCollectionModal(true)}
                         className="w-full flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-[#80368D] border border-dashed border-[#80368D]/30 hover:bg-[#80368D]/5 transition-all">
                         <FolderPlus className="h-4 w-4" />+ Nouvelle collection
                       </button>
@@ -802,7 +820,7 @@ function FavoritesPageContent() {
                       <p className="mt-2 text-muted-foreground max-w-md">
                         Créez votre premier moodboard pour organiser vos campagnes favorites par thème.
                       </p>
-                      <Button className="mt-6 bg-[#80368D] hover:bg-[#6b2d78]" onClick={() => setShowNewCollectionInput(true)}>
+                      <Button className="mt-6 bg-[#80368D] hover:bg-[#6b2d78]" onClick={() => setShowCollectionModal(true)}>
                         <FolderPlus className="h-4 w-4 mr-2" />Créer un moodboard
                       </Button>
                     </div>
@@ -864,7 +882,7 @@ function FavoritesPageContent() {
                       {/* Bouton nouvelle collection */}
                       <button
                         type="button"
-                        onClick={() => setShowNewCollectionInput(true)}
+                        onClick={() => setShowCollectionModal(true)}
                         className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[#80368D]/30 bg-white/50 p-5 text-center transition-all hover:bg-[#80368D]/5 hover:border-[#80368D]/50 min-h-[160px]"
                       >
                         <FolderPlus className="h-8 w-8 text-[#80368D]/40 mb-2" />
@@ -897,6 +915,13 @@ function FavoritesPageContent() {
         </div>
       </main>
       <Footer />
+
+      {/* Modal de création de collection */}
+      <CollectionModal
+        open={showCollectionModal}
+        onOpenChange={setShowCollectionModal}
+        onSave={handleCollectionModalSave}
+      />
     </div>
   )
 }

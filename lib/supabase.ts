@@ -9,20 +9,33 @@ const globalForSupabase = globalThis as typeof globalThis & {
 }
 
 export const createClient = () => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  // During static prerendering env vars may not be available — return a no-op proxy
+  if (!url || !key) {
+    return new Proxy({} as ReturnType<typeof createBrowserClient>, {
+      get(_target, prop) {
+        if (prop === 'auth') {
+          return {
+            getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+            onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
+            signOut: () => Promise.resolve({ error: null }),
+          }
+        }
+        return () => Promise.resolve({ data: null, error: null })
+      },
+    })
+  }
+
   // Éviter la création côté serveur
   if (typeof window === 'undefined') {
-    return createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    return createBrowserClient(url, key)
   }
   
   if (globalForSupabase.__supabaseBrowserClient) return globalForSupabase.__supabaseBrowserClient
-  
-  globalForSupabase.__supabaseBrowserClient = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
+
+  globalForSupabase.__supabaseBrowserClient = createBrowserClient(url, key)
   return globalForSupabase.__supabaseBrowserClient
 }
 

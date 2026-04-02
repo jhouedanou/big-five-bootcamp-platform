@@ -1,154 +1,31 @@
 'use client'
 
-import { useEffect, useState, useMemo, useRef } from 'react'
-import { createClient } from '@/lib/supabase'
-import type { User } from '@supabase/supabase-js'
+import { useAuthContext } from '@/components/auth-provider'
 
+/**
+ * Hook d'authentification Supabase — délègue entièrement au AuthProvider centralisé.
+ * Aucun appel getUser() ou requête DB n'est effectué ici.
+ */
 export function useSupabaseAuth() {
-  const [user, setUser] = useState<User | null>(null)
-  const [userProfile, setUserProfile] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const initialCheckDone = useRef(false)
-
-  const supabase = useMemo(() => createClient(), [])
-
-  useEffect(() => {
-    // 1. Vérification initiale via getUser() (valide le token côté serveur)
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user ?? null)
-      initialCheckDone.current = true
-      if (user) {
-        fetchUserProfile(user)
-      } else {
-        setLoading(false)
-      }
-    })
-
-    // 2. Écouter les changements APRÈS l'init (login, logout, token refresh)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
-      // Ignorer les events tant que getUser() n'a pas fini
-      // pour éviter que INITIAL_SESSION écrase user à null
-      if (!initialCheckDone.current) return
-
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchUserProfile(session.user)
-      } else {
-        setUserProfile(null)
-        setLoading(false)
-      }
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
-
-  const fetchUserProfile = async (authUser: User) => {
-    try {
-      // Essayer de récupérer le profil existant
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authUser.id)
-        .single()
-
-      if (error?.code === 'PGRST116') {
-        // L'utilisateur n'existe pas dans la table users, le créer
-        console.log('Profil non trouvé, création automatique...')
-
-        const { data: newProfile, error: createError } = await supabase
-          .from('users')
-          .insert({
-            id: authUser.id,
-            email: authUser.email!,
-            name: authUser.user_metadata?.name || authUser.email!.split('@')[0],
-            role: 'user',
-            plan: 'Free',
-            status: 'active',
-            subscription_status: 'none',
-          })
-          .select('*')
-          .single()
-
-        if (createError) {
-          console.error('Error creating user profile:', createError)
-        } else {
-          setUserProfile(newProfile)
-        }
-      } else if (error) {
-        throw error
-      } else {
-        setUserProfile(data)
-      }
-    } catch (error) {
-      console.error('Error fetching user profile:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    return { data, error }
-  }
-
-  const signUp = async (email: string, password: string, name?: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          name: name || email.split('@')[0],
-        },
-      },
-    })
-
-    // Créer le profil utilisateur (plan gratuit par défaut)
-    if (data.user && !error) {
-      await supabase.from('users').insert({
-        id: data.user.id,
-        email: data.user.email!,
-        name: name || data.user.email!.split('@')[0],
-        role: 'user',
-        plan: 'Free',
-        status: 'active',
-        subscription_status: 'none',
-      })
-    }
-
-    return { data, error }
-  }
-
-  const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    return { error }
-  }
-
-  const resetPassword = async (email: string) => {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${baseUrl}/auth/callback?type=recovery&next=/update-password`,
-    })
-    return { data, error }
-  }
-
-  const updatePassword = async (newPassword: string) => {
-    const { data, error } = await supabase.auth.updateUser({
-      password: newPassword,
-    })
-    return { data, error }
-  }
+  const {
+    user,
+    userProfile,
+    loading,
+    isAuthenticated,
+    isAdmin,
+    signIn,
+    signUp,
+    signOut,
+    resetPassword,
+    updatePassword,
+  } = useAuthContext()
 
   return {
     user,
     userProfile,
     loading,
-    isAuthenticated: !!user,
-    isAdmin: userProfile?.role === 'admin',
+    isAuthenticated,
+    isAdmin,
     signIn,
     signUp,
     signOut,

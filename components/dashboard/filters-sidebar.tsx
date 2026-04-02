@@ -15,39 +15,6 @@ interface FilterGroup {
   locked?: boolean
 }
 
-// Valeurs par défaut (fallback si pas de données dynamiques)
-const defaultFilterGroups: FilterGroup[] = [
-  {
-    name: "Pays",
-    options: ["Bénin", "Côte d'Ivoire", "Sénégal", "Burkina Faso", "Togo", "Guinée"]
-  },
-  {
-    name: "Secteur",
-    options: ["Telecoms", "Banque/Finance", "FMCG", "E-commerce", "Tech", "Mode", "Sante", "Energie", "Industrie"]
-  },
-  {
-    name: "Format",
-    options: ["Story", "Carrousel", "Vidéo", "Image", "Photo", "Vidéos Ad", "Image Ad", "Carrousel Ad"]
-  },
-  {
-    name: "Plateforme",
-    options: ["Facebook", "Instagram", "TikTok", "YouTube", "LinkedIn", "Twitter/X", "Outdoor"],
-    hasIcons: true
-  },
-  {
-    name: "Tags",
-    options: ["Humour", "Emotion", "Storytelling", "Promo", "Cause sociale", "Viral", "UGC", "Influenceur", "Corporate"]
-  },
-  {
-    name: "Axe créatif",
-    options: ["Focus produit", "Bénéfice produit", "Démonstration", "Utilisation", "Offre / Promotion", "Storytelling", "Transparence", "Humanisation", "RSE", "Langage de la cible", "Preuve sociale", "Gamification intelligente", "Education"]
-  },
-  {
-    name: "Année",
-    options: ["2026", "2025", "2024", "2023", "2022"]
-  }
-]
-
 const platformIcons: Record<string, React.ReactNode> = {
   "Facebook": <Facebook className="h-4 w-4" />,
   "Instagram": <Instagram className="h-4 w-4" />,
@@ -88,55 +55,56 @@ export function FiltersSidebar({
 }: FiltersSidebarProps) {
   const [expandedGroups, setExpandedGroups] = useState<string[]>(["Pays", "Secteur", "Plateforme", "Tags"])
 
-  // Construire les groupes de filtres dynamiquement
+  // Construire les groupes de filtres 100% dynamiquement depuis les campagnes
   const filterGroups: FilterGroup[] = [
     {
       name: "Pays",
       options: dynamicOptions?.countries?.length
         ? [...dynamicOptions.countries].sort()
-        : defaultFilterGroups[0].options,
+        : [],
       locked: isFreeUser,
     },
     {
       name: "Secteur",
       options: dynamicOptions?.sectors?.length
         ? [...dynamicOptions.sectors].sort()
-        : defaultFilterGroups[1].options,
+        : [],
       locked: isFreeUser,
     },
     {
       name: "Format",
       options: dynamicOptions?.formats?.length
         ? [...dynamicOptions.formats].sort()
-        : defaultFilterGroups[2].options,
+        : [],
     },
     {
       name: "Plateforme",
       options: dynamicOptions?.platforms?.length
         ? [...dynamicOptions.platforms].sort()
-        : defaultFilterGroups[3].options,
+        : [],
       hasIcons: true,
     },
     {
       name: "Tags",
       options: dynamicOptions?.tags?.length
         ? [...dynamicOptions.tags].sort()
-        : defaultFilterGroups[4].options,
+        : [],
       locked: isFreeUser,
     },
     {
       name: "Axe créatif",
       options: dynamicOptions?.axes?.length
         ? [...dynamicOptions.axes].sort()
-        : defaultFilterGroups[5].options,
+        : [],
     },
     {
       name: "Année",
       options: dynamicOptions?.years?.length
         ? dynamicOptions.years.sort((a, b) => b - a).map(String)
-        : defaultFilterGroups[6].options,
+        : [],
     },
-  ]
+  // Filtrer les groupes sans options (ne pas afficher les catégories vides)
+  ].filter(group => group.options.length > 0)
 
   const toggleGroup = (groupName: string) => {
     setExpandedGroups(prev =>

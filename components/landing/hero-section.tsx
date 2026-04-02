@@ -345,7 +345,7 @@ export function PreviewSection() {
             <ul className="space-y-4">
               {[
                 "Sauvegardez vos favoris dans des collections",
-                "Partagez des moodboards avec vos clients",
+                "Partagez des collections avec vos clients",
                 "Téléchargez les assets en haute qualité",
                 "Recevez des alertes sur vos concurrents"
               ].map((item, i) => (

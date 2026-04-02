@@ -122,7 +122,7 @@ export function CreativeCard({ creative, showFavoriteButton = true }: CreativeCa
                     {/* Thumbnail */}
                     <div className="relative aspect-[4/5] overflow-hidden">
                         <Image
-                            src={getGoogleDriveImageUrl(creative.thumbnail) || "/placeholder.png"}
+                            src={getGoogleDriveImageUrl(creative.thumbnail) || "/placeholder.svg"}
                             alt={creative.title}
                             fill
                             className="object-cover transition-transform duration-300 group-hover:scale-105"

@@ -9,6 +9,7 @@ import { ContentCard, ContentItem } from "@/components/dashboard/content-card"
 import { ContentGridSkeleton } from "@/components/dashboard/content-card-skeleton"
 import { UpgradePopup, useUpgradePopup } from "@/components/upgrade-popup"
 import { createClient } from "@/lib/supabase"
+import { useAuthContext } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
 import { Filter, Grid3X3, LayoutList, ChevronLeft, ChevronRight, CalendarDays, TrendingUp, ChevronRight as ArrowRight, Sparkles } from "lucide-react"
 import { format, parseISO, startOfWeek, subDays } from "date-fns"
@@ -18,6 +19,7 @@ import { fixBrokenEncoding } from "@/lib/utils"
 
 const ParticlesBackground = dynamic(() => import("@/components/ui/particles-background").then(m => m.ParticlesBackground), { ssr: false })
 const FiltersSidebar = dynamic(() => import("@/components/dashboard/filters-sidebar").then(m => m.FiltersSidebar))
+const SwipeableCarousel = dynamic(() => import("@/components/ui/swipeable-carousel").then(m => m.SwipeableCarousel), { ssr: false })
 
 // Compteur mensuel de clics (côté serveur via API)
 const MONTHLY_CLICK_LIMIT = 3
@@ -58,36 +60,26 @@ export default function DashboardPage() {
   const [campaigns, setCampaigns] = useState<ContentItem[]>([])
   const [weeklyCampaigns, setWeeklyCampaigns] = useState<ContentItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [userPlan, setUserPlan] = useState<string>("Free")
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({})
   const [showMobileFilters, setShowMobileFilters] = useState(false)
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [currentPage, setCurrentPage] = useState(1)
   const [activeQuickFilter, setActiveQuickFilter] = useState("Tous")
   const [searchQuery, setSearchQuery] = useState("")
-  const [monthlyClicks, setMonthlyClicks] = useState(0)
-  const [monthlyExplored, setMonthlyExplored] = useState(0)
   const itemsPerPage = 9
 
   const { open: upgradeOpen, reason: upgradeReason, showUpgrade, closeUpgrade } = useUpgradePopup()
 
-  const isFreeUser = !isPaidPlan(userPlan)
-  const supabase = createClient()
+  // Auth centralisé — AUCUN appel getUser() ni requête DB ici
+  const {
+    userPlan,
+    isFreeUser,
+    monthlyClicks,
+    monthlyExplored,
+    refreshClickCounters,
+  } = useAuthContext()
 
-  // Charger le compteur de clics depuis le serveur
-  useEffect(() => {
-    const loadClickCounter = async () => {
-      try {
-        const res = await fetch('/api/track-click')
-        if (res.ok) {
-          const data = await res.json()
-          setMonthlyClicks(data.clicks || 0)
-          setMonthlyExplored(data.explored || 0)
-        }
-      } catch { /* fallback: compteur à 0 */ }
-    }
-    loadClickCounter()
-  }, [])
+  const supabase = createClient()
 
   // Extraire les options de filtres dynamiquement depuis les campagnes
   const dynamicFilterOptions = useMemo<DynamicFilterOptions>(() => {
@@ -128,48 +120,6 @@ export default function DashboardPage() {
     }
   }, [campaigns])
 
-  // Charger le plan utilisateur
-  useEffect(() => {
-    const loadUserPlan = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          try {
-            const { data: profile, error } = await supabase
-              .from('users')
-              .select('plan, subscription_status, subscription_end_date')
-              .eq('id', user.id)
-              .single()
-            if (!error && profile) {
-              const now = new Date()
-              if (
-                ['premium', 'pro', 'basic', 'agency', 'enterprise'].includes(profile.plan?.toLowerCase() || '')
-              ) {
-                // Vérification expiration abonnement payant
-                if (
-                  profile.subscription_end_date &&
-                  new Date(profile.subscription_end_date) < now
-                ) {
-                  setUserPlan('Free')
-                  fetch('/api/cron/check-subscriptions').catch(() => {})
-                } else {
-                  setUserPlan(profile.plan || 'Free')
-                }
-              } else {
-                setUserPlan('Free')
-              }
-            }
-          } catch {
-            console.warn('Table users non disponible, utilisation du plan par défaut')
-          }
-        }
-      } catch (error) {
-        console.error('Error loading user plan:', error)
-      }
-    }
-    loadUserPlan()
-  }, [])
-
   // Charger les campagnes publiees depuis Supabase
   useEffect(() => {
     const loadCampaigns = async () => {
@@ -209,6 +159,9 @@ export default function DashboardPage() {
           brand: fixBrokenEncoding(campaign.brand) || '',
           agency: fixBrokenEncoding(campaign.agency) || '',
           year: campaign.year || undefined,
+          axe: campaign.axe || [],
+          analyse: fixBrokenEncoding(campaign.analyse) || undefined,
+          whyThisAxis: fixBrokenEncoding(campaign.why_this_axis) || undefined,
           status: campaign.status,
           accessLevel: campaign.access_level || 'free',
           createdAt: campaign.created_at,
@@ -371,7 +324,8 @@ export default function DashboardPage() {
           content.sector?.toLowerCase().includes(query) ||
           content.platform?.toLowerCase().includes(query) ||
           content.country?.toLowerCase().includes(query) ||
-          content.tags?.some(tag => tag.toLowerCase().includes(query))
+          content.tags?.some(tag => tag.toLowerCase().includes(query)) ||
+          content.axe?.some(a => a.toLowerCase().includes(query))
         if (!matchesSearch) return false
       }
 
@@ -395,6 +349,12 @@ export default function DashboardPage() {
     })
   }, [selectedFilters, campaigns, searchQuery])
 
+  // Appliquer les mêmes filtres aux campagnes de la semaine
+  const filteredWeeklyCampaigns = useMemo(() => {
+    const filteredIds = new Set(filteredContent.map(c => c.id))
+    return weeklyCampaigns.filter(c => filteredIds.has(c.id))
+  }, [weeklyCampaigns, filteredContent])
+
   const handleContentClick = useCallback(async (content: ContentItem): Promise<boolean> => {
     // Appeler l'API pour tracker le clic
     try {
@@ -406,13 +366,13 @@ export default function DashboardPage() {
         return false
       }
 
-      if (data.clicks !== null) setMonthlyClicks(data.clicks)
-      if (data.explored !== undefined) setMonthlyExplored(data.explored)
+      // Rafraîchir les compteurs depuis le contexte centralisé
+      await refreshClickCounters()
     } catch {
       // En cas d'erreur réseau, laisser passer
     }
     return true
-  }, [showUpgrade])
+  }, [showUpgrade, refreshClickCounters])
 
   const accessibleContent = filteredContent
   const totalPages = Math.ceil(accessibleContent.length / itemsPerPage)
@@ -489,45 +449,7 @@ export default function DashboardPage() {
 
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 
-          {/* Section "Les meilleures campagnes de la semaine" */}
-          {weeklyCampaigns.length > 0 && (
-            <section className="mb-10 rounded-2xl bg-gradient-to-r from-[#F2B33D]/5 to-white border border-[#F2B33D]/20 p-6">
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#F2B33D] to-[#f59e0b] shadow-lg shadow-[#F2B33D]/25">
-                    <TrendingUp className="h-5 w-5 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#1A1F2B]">
-                      Les meilleures campagnes de la semaine
-                    </h2>
-                    <p className="text-sm text-[#1A1F2B]/60">
-                      Sélectionnées pour vous · Semaine du {weekLabel}
-                    </p>
-                  </div>
-                </div>
-                <span className="hidden sm:flex items-center gap-1 rounded-full bg-[#F2B33D]/20 px-3 py-1 text-xs font-semibold text-[#b45309]">
-                  <Sparkles className="h-3 w-3" />
-                  {weeklyCampaigns.filter(c => c.featured).length > 0
-                    ? `${weeklyCampaigns.filter(c => c.featured).length} sélection${weeklyCampaigns.filter(c => c.featured).length > 1 ? 's' : ''} éditeur`
-                    : `${weeklyCampaigns.length} nouvelles`
-                  }
-                </span>
-              </div>
-
-              {/* Carousel horizontal */}
-              <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
-                {weeklyCampaigns.slice(0, 8).map((campaign) => (
-                  <div key={campaign.id} className="flex-shrink-0 w-56">
-                    <ContentCard
-                      content={campaign}
-                      onBeforeNavigate={(c) => handleContentClick(c)}
-                    />
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+       
 
           <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div className="animate-fade-in-up">
@@ -624,7 +546,50 @@ export default function DashboardPage() {
             )}
 
             {/* Content Grid */}
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
+
+               {/* Section "Les meilleures campagnes de la semaine" — Swiper */}
+          {filteredWeeklyCampaigns.length > 0 && (
+            <section className="mb-10 rounded-2xl bg-gradient-to-r from-[#F2B33D]/5 to-white border border-[#F2B33D]/20 p-6 overflow-hidden">
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#F2B33D] to-[#f59e0b] shadow-lg shadow-[#F2B33D]/25">
+                    <TrendingUp className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#1A1F2B]">
+                      Les meilleures campagnes de la semaine
+                    </h2>
+                    <p className="text-sm text-[#1A1F2B]/60">
+                      Sélectionnées pour vous · Semaine du {weekLabel}
+                    </p>
+                  </div>
+                </div>
+                <span className="hidden sm:flex items-center gap-1 rounded-full bg-[#F2B33D]/20 px-3 py-1 text-xs font-semibold text-[#b45309]">
+                  <Sparkles className="h-3 w-3" />
+                  {filteredWeeklyCampaigns.filter(c => c.featured).length > 0
+                    ? `${filteredWeeklyCampaigns.filter(c => c.featured).length} sélection${filteredWeeklyCampaigns.filter(c => c.featured).length > 1 ? 's' : ''} éditeur`
+                    : `${filteredWeeklyCampaigns.length} nouvelles`
+                  }
+                </span>
+              </div>
+
+              <SwipeableCarousel
+                showArrows={true}
+                showIndicators={true}
+                slidesPerView={{ mobile: 1, tablet: 2, desktop: 3 }}
+              >
+                {filteredWeeklyCampaigns.slice(0, 9).map((campaign) => (
+                  <div key={campaign.id} className="px-1">
+                    <ContentCard
+                      content={campaign}
+                      onBeforeNavigate={(c) => handleContentClick(c)}
+                    />
+                  </div>
+                ))}
+              </SwipeableCarousel>
+            </section>
+          )}
               {isLoading ? (
                 <ContentGridSkeleton count={6} />
               ) : paginatedContent.length > 0 ? (

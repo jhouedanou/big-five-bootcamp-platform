@@ -31,7 +31,10 @@ import { detectVideoPlatform, getEmbedUrl, getVideoPlatformLabel, getOriginalVid
 import { isPaidPlan } from "@/lib/pricing";
 import { UpgradePopup } from "@/components/upgrade-popup";
 import { ReactionButtons } from "@/components/ui/reaction-buttons";
+import { AddToCollectionModal } from "@/components/collections/add-to-collection-modal";
+import { FolderPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 const MONTHLY_CLICK_LIMIT = 3;
 
@@ -96,6 +99,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
   const { isFavorite, toggleFavorite, isAuthenticated } = useFavorites();
   const { isAdmin } = useAuth();
   const [isToggling, setIsToggling] = useState(false);
+  const [collectionModalOpen, setCollectionModalOpen] = useState(false);
   const [readProgress, setReadProgress] = useState(0);
   const articleRef = useRef<HTMLDivElement>(null);
   const [userPlan, setUserPlan] = useState("Free");
@@ -379,7 +383,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
           Retour à la bibliothèque
         </Link>
 
-        <div className="grid lg:grid-cols-3 gap-8 items-start">
+        <div className="flex flex-col-reverse lg:grid lg:grid-cols-3 gap-8 items-start">
           {/* Main content area */}
           <div className="lg:col-span-2 space-y-6">
             {/* Video player — embed multi-plateforme */}
@@ -488,51 +492,8 @@ export default function ContentDetailClient({ id }: { id: string }) {
                     </Button>
                   </Link>
                 )}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={async () => {
-                    if (!isAuthenticated) {
-                      window.location.href = `/login?redirect=/content/${id}`;
-                      return;
-                    }
-                    setIsToggling(true);
-                    await toggleFavorite(content.id);
-                    setIsToggling(false);
-                  }}
-                  disabled={isToggling}
-                  className={cn(
-                    isFavorite(content.id) ? "text-red-500 border-red-500" : "",
-                    isToggling && "opacity-50 cursor-wait"
-                  )}
-                  title={isFavorite(content.id) ? "Retirer des favoris" : "Ajouter aux favoris"}
-                >
-                  <Heart
-                    className={cn("h-5 w-5", isFavorite(content.id) && "fill-current")}
-                  />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => {
-                    if (navigator.share) {
-                      navigator.share({
-                        title: content.title,
-                        url: window.location.href,
-                      });
-                    } else {
-                      navigator.clipboard.writeText(window.location.href);
-                    }
-                  }}
-                  title="Partager"
-                >
-                  <Share2 className="h-5 w-5" />
-                </Button>
               </div>
             </div>
-
-            {/* Réactions Like / Dislike */}
-            <ReactionButtons campaignId={content.id} className="mt-2" />
 
             {/* Description */}
             {content.description && (
@@ -573,18 +534,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
               </Card>
             )}
 
-            {/* Résumé */}
-            {content.summary && (
-              <Card>
-                <CardContent className="p-6">
-                  <h2 className="font-semibold text-lg mb-3">Résumé</h2>
-                  <div
-                    className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: formatDescription(content.summary) }}
-                  />
-                </CardContent>
-              </Card>
-            )}
+
 
             {/* Metadata card */}
             <Card>
@@ -670,10 +620,81 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 mainImage={content.thumbnail}
                 images={content.images || []}
                 title={content.title}
+                campaignId={content.id}
+                onAddToCollection={() => {
+                  if (!isAuthenticated) {
+                    window.location.href = `/login?redirect=/content/${id}`;
+                    return;
+                  }
+                  setCollectionModalOpen(true);
+                }}
+                onShare={() => {
+                  if (navigator.share) {
+                    navigator.share({
+                      title: content.title,
+                      url: window.location.href,
+                    });
+                  } else {
+                    navigator.clipboard.writeText(window.location.href);
+                    toast.success("Lien copié !");
+                  }
+                }}
+                isFavorited={isFavorite(content.id)}
               />
             )}
 
+            {/* Réactions + Favoris + Partage — une seule ligne */}
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <ReactionButtons campaignId={content.id} />
+              <div className="h-5 w-px bg-gray-200 hidden sm:block" />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (!isAuthenticated) {
+                    window.location.href = `/login?redirect=/content/${id}`;
+                    return;
+                  }
+                  setCollectionModalOpen(true);
+                }}
+                className={cn(
+                  "gap-2 text-sm",
+                  isFavorite(content.id)
+                    ? "text-[#80368D] border-[#80368D]/40 bg-[#80368D]/5 hover:bg-[#80368D]/10"
+                    : "hover:border-[#80368D]/30 hover:text-[#80368D]"
+                )}
+              >
+                <FolderPlus className="h-4 w-4" />
+                <span className="hidden sm:inline">{isFavorite(content.id) ? "Dans une collection" : "Mettre en favori"}</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({
+                      title: content.title,
+                      url: window.location.href,
+                    });
+                  } else {
+                    navigator.clipboard.writeText(window.location.href);
+                    toast.success("Lien copié !");
+                  }
+                }}
+                title="Partager"
+              >
+                <Share2 className="h-4 w-4" />
+              </Button>
+            </div>
 
+            {/* Modale d'ajout à une collection */}
+            <AddToCollectionModal
+              open={collectionModalOpen}
+              onOpenChange={setCollectionModalOpen}
+              campaignId={content.id}
+              campaignTitle={content.title}
+            />
 
             {/* Related content */}
             {relatedContent.length > 0 && (

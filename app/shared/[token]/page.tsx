@@ -63,7 +63,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: `${collection.name} — Big Five Creative Library`,
     description,
     openGraph: {
-      title: `${collection.name} — Moodboard`,
+      title: `${collection.name} — Collection`,
       description,
       type: 'website',
       siteName: 'Big Five Creative Library',
@@ -73,13 +73,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${collection.name} — Moodboard`,
+      title: `${collection.name} — Collection`,
       description,
     },
   }
 }
 
-export default async function SharedMoodboardPage({ params }: PageProps) {
+export default async function SharedCollectionPage({ params }: PageProps) {
   const { token } = await params
   const data = await getSharedCollection(token)
 

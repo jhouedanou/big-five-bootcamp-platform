@@ -6,15 +6,20 @@ import Image from "next/image";
 import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getGoogleDriveImageUrl } from "@/lib/utils";
+import { ReactionButtons } from "@/components/ui/reaction-buttons";
 
 interface LightboxProps {
   images: string[];
   initialIndex?: number;
   isOpen: boolean;
   onClose: () => void;
+  campaignId?: string;
+  onAddToCollection?: () => void;
+  onShare?: () => void;
+  isFavorited?: boolean;
 }
 
-export function Lightbox({ images: rawImages, initialIndex = 0, isOpen, onClose }: LightboxProps) {
+export function Lightbox({ images: rawImages, initialIndex = 0, isOpen, onClose, campaignId, onAddToCollection, onShare, isFavorited }: LightboxProps) {
   const images = rawImages.map(getGoogleDriveImageUrl);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isZoomed, setIsZoomed] = useState(false);
@@ -158,6 +163,19 @@ export function Lightbox({ images: rawImages, initialIndex = 0, isOpen, onClose 
         </div>
       </div>
 
+      {/* Réactions Like / Dislike + Favoris + Partage dans la lightbox */}
+      {campaignId && (
+        <div
+          className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ReactionButtons
+            campaignId={campaignId}
+            className="bg-black/60 backdrop-blur-sm rounded-full px-4 py-2"
+          />
+        </div>
+      )}
+
       {/* Navigation arrows */}
       {images.length > 1 && (
         <>
@@ -227,9 +245,13 @@ interface ImageGalleryProps {
   mainImage: string | null;
   images: string[];
   title: string;
+  campaignId?: string;
+  onAddToCollection?: () => void;
+  onShare?: () => void;
+  isFavorited?: boolean;
 }
 
-export function ImageGallery({ mainImage, images: rawImages, title }: ImageGalleryProps) {
+export function ImageGallery({ mainImage, images: rawImages, title, campaignId, onAddToCollection, onShare, isFavorited }: ImageGalleryProps) {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
 
@@ -319,6 +341,10 @@ export function ImageGallery({ mainImage, images: rawImages, title }: ImageGalle
         initialIndex={lightboxIndex}
         isOpen={lightboxOpen}
         onClose={() => setLightboxOpen(false)}
+        campaignId={campaignId}
+        onAddToCollection={onAddToCollection}
+        onShare={onShare}
+        isFavorited={isFavorited}
       />
     </>
   );

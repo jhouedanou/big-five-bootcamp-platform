@@ -130,7 +130,7 @@ export default function PricingPage() {
                         <h1 className="font-[family-name:var(--font-heading)] text-3xl sm:text-4xl lg:text-6xl font-extrabold tracking-tight mb-4 sm:mb-6 text-[#1A1F2B]">
                             Des tarifs adaptés à <br className="hidden sm:block" /> <span className="text-[#80368D]">votre ambition</span>
                         </h1>
-                        <p className="text-base sm:text-lg text-[#1A1F2B]/70 max-w-2xl mx-auto mb-8">
+                        <p className="text-base sm:text-lg text-[#1A1F2B]/70 max-w-2xl mx-auto mb-8 text-center">
                             Investissez dans votre veille créative et prenez une longueur d{"'"}avance sur la concurrence.
                         </p>
 

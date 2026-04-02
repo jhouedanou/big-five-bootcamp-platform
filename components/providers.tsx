@@ -1,5 +1,6 @@
 
 import { ThemeProvider } from "@/components/theme-provider"
+import { AuthProvider } from "@/components/auth-provider"
 import { Toaster } from "sonner"
 
 interface ProvidersProps {
@@ -15,7 +16,9 @@ export function Providers({ children }: ProvidersProps) {
       enableSystem={false}
       disableTransitionOnChange
     >
-      {children}
+      <AuthProvider>
+        {children}
+      </AuthProvider>
       <Toaster richColors position="top-right" />
     </ThemeProvider>
   )

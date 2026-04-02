@@ -63,8 +63,9 @@ export default function BrandingPage() {
     if (!file) return
 
     // Validate file type
-    if (!file.type.startsWith("image/")) {
-      toast.error("Seuls les fichiers image sont acceptés")
+    const allowedTypes = ['image/png', 'image/svg+xml', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Formats acceptés : SVG, PNG, WEBP")
       return
     }
 
@@ -76,27 +77,21 @@ export default function BrandingPage() {
 
     setUploading(field)
     try {
-      const ext = file.name.split(".").pop()
-      const fileName = `branding/${field}_${Date.now()}.${ext}`
+      const formData = new FormData()
+      formData.append("file", file)
 
-      const { data, error } = await supabase.storage
-        .from("public-assets")
-        .upload(fileName, file, { upsert: true })
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
 
-      if (error) {
-        // Try creating bucket if it doesn't exist
-        if (error.message?.includes("not found")) {
-          toast.error("Le bucket de stockage n'existe pas. Créez-le dans Supabase.")
-          return
-        }
-        throw error
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || "Erreur lors de l'upload")
       }
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("public-assets")
-        .getPublicUrl(data.path)
-
-      setSettings((prev) => ({ ...prev, [field]: publicUrl }))
+      const { url } = await res.json()
+      setSettings((prev) => ({ ...prev, [field]: url }))
       toast.success("Image uploadée avec succès")
     } catch (error) {
       console.error("Upload error:", error)
@@ -109,16 +104,15 @@ export default function BrandingPage() {
   const handleSave = async () => {
     setIsSaving(true)
     try {
-      const entries = Object.entries(settings)
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings }),
+      })
 
-      for (const [key, value] of entries) {
-        const { error } = await supabase
-          .from("site_settings")
-          .upsert(
-            { key, value: value || "" },
-            { onConflict: "key" }
-          )
-        if (error) throw error
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || "Erreur lors de l'enregistrement")
       }
 
       toast.success("Branding enregistré avec succès")
@@ -155,7 +149,8 @@ export default function BrandingPage() {
           <CardHeader>
             <CardTitle className="text-gray-900 text-lg">Logo principal</CardTitle>
             <CardDescription>
-              Affiché dans la navbar et sur les pages publiques (fond clair)
+              Affiché dans la navbar et sur les pages publiques (fond clair).
+              <span className="block text-xs mt-1 text-gray-400">Formats : SVG, PNG, WEBP · Max 2 Mo</span>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -192,7 +187,8 @@ export default function BrandingPage() {
               <input
                 id="logo-upload"
                 type="file"
-                accept="image/*"
+                accept=".svg,.png,.webp,image/svg+xml,image/png,image/webp"
+                title="Formats acceptés : SVG, PNG, WEBP"
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0]
@@ -230,7 +226,8 @@ export default function BrandingPage() {
           <CardHeader>
             <CardTitle className="text-gray-900 text-lg">Logo mode sombre</CardTitle>
             <CardDescription>
-              Affiché sur les fonds sombres (optionnel)
+              Affiché sur les fonds sombres (optionnel).
+              <span className="block text-xs mt-1 text-gray-400">Formats : SVG, PNG, WEBP · Max 2 Mo</span>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -267,7 +264,8 @@ export default function BrandingPage() {
               <input
                 id="logo-dark-upload"
                 type="file"
-                accept="image/*"
+                accept=".svg,.png,.webp,image/svg+xml,image/png,image/webp"
+                title="Formats acceptés : SVG, PNG, WEBP"
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0]
@@ -305,7 +303,8 @@ export default function BrandingPage() {
           <CardHeader>
             <CardTitle className="text-gray-900 text-lg">Favicon</CardTitle>
             <CardDescription>
-              Petite icône affichée dans l{"'"}onglet du navigateur (32x32 ou 64x64)
+              Petite icône affichée dans l{"'"}onglet du navigateur (32x32 ou 64x64).
+              <span className="block text-xs mt-1 text-gray-400">Formats : SVG, PNG, WEBP · Max 2 Mo</span>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -342,7 +341,8 @@ export default function BrandingPage() {
               <input
                 id="favicon-upload"
                 type="file"
-                accept="image/*"
+                accept=".svg,.png,.webp,image/svg+xml,image/png,image/webp"
+                title="Formats acceptés : SVG, PNG, WEBP"
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0]

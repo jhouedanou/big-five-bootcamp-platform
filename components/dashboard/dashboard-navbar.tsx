@@ -1,11 +1,11 @@
 "use client"
 
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Menu, X, Search, User, LogOut, Settings, CreditCard, Crown, Sparkles, Clock, Users, Heart, MousePointer, Building2, FolderOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
-import { createClient } from "@/lib/supabase"
+import { useAuthContext } from "@/components/auth-provider"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,10 +18,10 @@ export function DashboardNavbar({
   searchQuery: externalSearchQuery,
   onSearchChange,
   userPlan: externalUserPlan,
-  monthlyClicks,
+  monthlyClicks: externalMonthlyClicks,
   monthlyClickLimit,
-  isFreeUser,
-  monthlyExplored,
+  isFreeUser: externalIsFreeUser,
+  monthlyExplored: externalMonthlyExplored,
 }: {
   searchQuery?: string;
   onSearchChange?: (query: string) => void
@@ -33,11 +33,23 @@ export function DashboardNavbar({
 } = {}) {
   const [isOpen, setIsOpen] = useState(false)
   const [internalSearchQuery, setInternalSearchQuery] = useState("")
-  const [userName, setUserName] = useState("")
-  const [userEmail, setUserEmail] = useState("")
-  const [userPlan, setUserPlan] = useState("Free")
-  const [subscriptionEndDate, setSubscriptionEndDate] = useState<string | null>(null)
-  const [subscriptionStatus, setSubscriptionStatus] = useState<string | null>(null)
+
+  // Lire tout depuis le contexte centralisé — AUCUN appel getUser() ni requête DB
+  const {
+    user,
+    userProfile,
+    userPlan: contextUserPlan,
+    isFreeUser: contextIsFreeUser,
+    isPremium: contextIsPremium,
+    monthlyClicks: contextMonthlyClicks,
+    monthlyExplored: contextMonthlyExplored,
+    signOut,
+  } = useAuthContext()
+
+  const userName = userProfile?.name || ""
+  const userEmail = user?.email || ""
+  const subscriptionEndDate = userProfile?.subscription_end_date || null
+  const subscriptionStatus = userProfile?.subscription_status || null
   
   // Utiliser la recherche externe si fournie, sinon interne
   const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : internalSearchQuery
@@ -48,68 +60,15 @@ export function DashboardNavbar({
       setInternalSearchQuery(value)
     }
   }
-  
-  const [internalMonthlyClicks, setInternalMonthlyClicks] = useState(0)
-  const [internalMonthlyExplored, setInternalMonthlyExplored] = useState(0)
-  const [internalIsFreeUser, setInternalIsFreeUser] = useState(true)
 
-  const supabase = createClient()
-
-  useEffect(() => {
-    const loadUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUserEmail(user.email || "")
-        const { data: profile, error: profileError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', user.id)
-          .single()
-        if (profileError) {
-          console.warn('Erreur chargement profil navbar:', profileError.message)
-        }
-        if (profile) {
-          setUserName(profile.name || "")
-          // Vérification côté client : si Premium mais expiré, traiter comme Free
-          if (
-            ['premium', 'pro', 'basic', 'agency', 'enterprise'].includes(profile.plan?.toLowerCase() || '') &&
-            profile.subscription_end_date &&
-            new Date(profile.subscription_end_date) < new Date()
-          ) {
-            setUserPlan('Free')
-            setSubscriptionStatus('expired')
-            setInternalIsFreeUser(true)
-            // Fire & forget : appeler le cron pour synchroniser la base
-            fetch('/api/cron/check-subscriptions').catch(() => {})
-          } else {
-            setUserPlan(profile.plan || "Free")
-            setSubscriptionStatus(profile.subscription_status || null)
-            const p = (profile.plan || "Free").toLowerCase()
-            setInternalIsFreeUser(!["basic", "pro", "premium", "agency", "enterprise"].includes(p) || profile.subscription_status !== "active")
-          }
-          setSubscriptionEndDate(profile.subscription_end_date || null)
-        }
-      }
-
-      // Charger les compteurs de clics (toujours, indépendamment des props)
-      try {
-        const res = await fetch('/api/track-click')
-        if (res.ok) {
-          const data = await res.json()
-          setInternalMonthlyClicks(data.clicks || 0)
-          setInternalMonthlyExplored(data.explored || 0)
-        }
-      } catch { /* ignore */ }
-    }
-    loadUser()
-  }, [])
-
-  // Use external props if provided, otherwise use internally loaded data
-  const effectivePlan = externalUserPlan || userPlan
-  const isPremium = ["premium", "pro", "basic", "agency", "enterprise"].includes(effectivePlan.toLowerCase())
-  const effectiveIsFreeUser = isFreeUser !== undefined ? isFreeUser : internalIsFreeUser
-  const effectiveMonthlyClicks = monthlyClicks !== undefined ? monthlyClicks : internalMonthlyClicks
-  const effectiveMonthlyExplored = monthlyExplored !== undefined ? monthlyExplored : internalMonthlyExplored
+  // Use external props if provided, otherwise use context data
+  const effectivePlan = externalUserPlan || contextUserPlan
+  const isPremium = externalUserPlan
+    ? ["premium", "pro", "basic", "agency", "enterprise"].includes(externalUserPlan.toLowerCase())
+    : contextIsPremium
+  const effectiveIsFreeUser = externalIsFreeUser !== undefined ? externalIsFreeUser : contextIsFreeUser
+  const effectiveMonthlyClicks = externalMonthlyClicks !== undefined ? externalMonthlyClicks : contextMonthlyClicks
+  const effectiveMonthlyExplored = externalMonthlyExplored !== undefined ? externalMonthlyExplored : contextMonthlyExplored
   const initials = userName ? userName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "?"
 
   // Calcul de la durée restante de l'abonnement
@@ -172,11 +131,11 @@ export function DashboardNavbar({
             </Link>
             {isPremium && (
               <Link
-                href="/favorites?tab=moodboards"
+                href="/favorites?tab=collections"
                 className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] flex items-center gap-1"
               >
                 <FolderOpen className="h-3.5 w-3.5" />
-                Moodboards
+                Collections
               </Link>
             )}
             {isPremium && (
@@ -314,9 +273,9 @@ export function DashboardNavbar({
               </DropdownMenuItem>
               {isPremium && (
                 <DropdownMenuItem asChild>
-                  <Link href="/favorites?tab=moodboards" className="flex items-center gap-2 text-[#1A1F2B]">
+                  <Link href="/favorites?tab=collections" className="flex items-center gap-2 text-[#1A1F2B]">
                     <FolderOpen className="h-4 w-4" />
-                    Moodboards
+                    Collections
                   </Link>
                 </DropdownMenuItem>
               )}
@@ -337,7 +296,7 @@ export function DashboardNavbar({
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={async () => {
-                  await supabase.auth.signOut({ scope: 'local' })
+                  await signOut()
                   window.location.href = "/login"
                 }}
                 className="flex items-center gap-2 text-red-600 cursor-pointer"
@@ -396,12 +355,12 @@ export function DashboardNavbar({
             </Link>
             {isPremium && (
               <Link
-                href="/favorites?tab=moodboards"
+                href="/favorites?tab=collections"
                 className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] flex items-center gap-1.5"
                 onClick={() => setIsOpen(false)}
               >
                 <FolderOpen className="h-4 w-4 text-[#80368D]" />
-                Moodboards
+                Collections
               </Link>
             )}
             {/* Bouton abonnement mobile */}
@@ -447,6 +406,20 @@ export function DashboardNavbar({
             >
               Paramètres
             </Link>
+            <div className="border-t border-[#D0E4F2] mt-2 pt-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsOpen(false)
+                  await signOut()
+                  window.location.href = "/login"
+                }}
+                className="w-full rounded-md px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Déconnexion
+              </button>
+            </div>
           </nav>
         </div>
       )}

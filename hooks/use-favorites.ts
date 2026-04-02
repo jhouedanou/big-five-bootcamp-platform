@@ -209,10 +209,14 @@ export function useFavorites() {
 
   // Charger les favoris au montage et quand l'utilisateur change
   useEffect(() => {
-    if (!authLoading) {
+    if (!authLoading && user) {
       fetchFavorites()
+    } else if (!authLoading && !user) {
+      setFavorites([])
+      setFavoritesWithCampaigns([])
+      setLoading(false)
     }
-  }, [user, authLoading, fetchFavorites])
+  }, [user, authLoading]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     favorites,

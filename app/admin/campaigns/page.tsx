@@ -139,6 +139,9 @@ function CampaignsPageContent() {
   const [currentStep, setCurrentStep] = useState(1);
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isBatchDeleting, setIsBatchDeleting] = useState(false);
   const ITEMS_PER_PAGE = 20;
 
   // Extraire tous les tags existants des campagnes pour les suggestions
@@ -300,6 +303,40 @@ function CampaignsPageContent() {
     await updateCampaign(item.id, { status: newStatus });
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === paginatedCampaigns.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(paginatedCampaigns.map((c) => c.id)));
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    setIsBatchDeleting(true);
+    try {
+      const ids = Array.from(selectedIds);
+      for (const id of ids) {
+        await deleteCampaign(id);
+      }
+      toast.success(`${ids.length} campagne${ids.length > 1 ? "s" : ""} supprimée${ids.length > 1 ? "s" : ""}`);
+      setSelectedIds(new Set());
+    } catch (error) {
+      toast.error("Erreur lors de la suppression");
+    } finally {
+      setIsBatchDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   const sectorColor = (sector: string) => {
     const colors: Record<string, string> = {
       Telecoms: "bg-blue-100 text-blue-700",
@@ -408,8 +445,52 @@ function CampaignsPageContent() {
         </CardContent>
       </Card>
 
+      {/* Batch Actions Bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 p-3 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center gap-3">
+            <Checkbox
+              checked={selectedIds.size === paginatedCampaigns.length}
+              onCheckedChange={toggleSelectAll}
+            />
+            <span className="text-sm font-medium text-red-800">
+              {selectedIds.size} campagne{selectedIds.size > 1 ? "s" : ""} sélectionnée{selectedIds.size > 1 ? "s" : ""}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedIds(new Set())}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Tout désélectionner
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setShowDeleteConfirm(true)}
+              className="bg-red-600 hover:bg-red-700 text-white gap-1"
+            >
+              <Trash2 className="h-4 w-4" />
+              Supprimer la sélection
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Campaign List */}
       <div className="grid gap-4">
+        {/* Select All row */}
+        {filteredCampaigns.length > 0 && selectedIds.size === 0 && (
+          <div className="flex items-center gap-3 px-4 py-2">
+            <Checkbox
+              checked={false}
+              onCheckedChange={toggleSelectAll}
+            />
+            <span className="text-xs text-gray-400">Tout sélectionner</span>
+          </div>
+        )}
         {filteredCampaigns.length === 0 ? (
           <Card className="bg-white border-gray-200 shadow-sm">
             <CardContent className="p-8 text-center">
@@ -423,6 +504,13 @@ function CampaignsPageContent() {
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4 flex-1 min-w-0">
+                    {/* Checkbox de sélection */}
+                    <div className="flex-shrink-0 pt-1">
+                      <Checkbox
+                        checked={selectedIds.has(item.id)}
+                        onCheckedChange={() => toggleSelect(item.id)}
+                      />
+                    </div>
                     {/* Thumbnail */}
                     <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-200">
                       {item.imageUrl ? (
@@ -632,6 +720,7 @@ function CampaignsPageContent() {
         <DialogContent className="bg-white border-gray-200 text-gray-900 sm:max-w-[600px] max-h-[90vh] overflow-y-auto shadow-xl">
           <DialogHeader>
             <DialogTitle className="text-gray-900">{previewCampaign?.title}</DialogTitle>
+            <DialogDescription className="sr-only">Aperçu de la campagne</DialogDescription>
           </DialogHeader>
           {previewCampaign && (() => {
             const allImages = [previewCampaign.imageUrl, ...(previewCampaign.images || [])].filter(Boolean).map(getGoogleDriveImageUrl);
@@ -1629,6 +1718,51 @@ function CampaignsPageContent() {
                 </Button>
               )}
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Batch Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent className="bg-white border-gray-200 text-gray-900 sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle className="text-red-600 flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              Confirmer la suppression
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
+              Vous êtes sur le point de supprimer{" "}
+              <span className="font-bold text-red-600">{selectedIds.size} campagne{selectedIds.size > 1 ? "s" : ""}</span>.
+              Cette action est irréversible.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-row justify-end gap-2 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteConfirm(false)}
+              disabled={isBatchDeleting}
+              className="border-gray-300 text-gray-700"
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleBatchDelete}
+              disabled={isBatchDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white gap-2"
+            >
+              {isBatchDeleting ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Suppression...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4" />
+                  Supprimer {selectedIds.size} campagne{selectedIds.size > 1 ? "s" : ""}
+                </>
+              )}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

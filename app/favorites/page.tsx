@@ -13,6 +13,7 @@ import Image from "next/image"
 import { cn, getGoogleDriveImageUrl } from "@/lib/utils"
 import { createClient } from "@/lib/supabase"
 import { isPaidPlan } from "@/lib/pricing"
+import { hasAccess } from "@/components/plan-gate"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 

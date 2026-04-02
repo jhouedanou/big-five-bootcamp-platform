@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-server'
+import { encrypt, decrypt, isEncrypted } from '@/lib/encryption'
+
+// Clés dont la valeur doit être masquée en lecture
+const SENSITIVE_KEYS = ['mailchimp_api_key']
 
 // GET - Récupérer tous les paramètres du site
 export async function GET() {
@@ -18,7 +22,18 @@ export async function GET() {
     // Transformer en objet clé-valeur
     const settings: Record<string, string> = {}
     data?.forEach((row: { key: string; value: string }) => {
-      settings[row.key] = row.value
+      if (SENSITIVE_KEYS.includes(row.key) && row.value) {
+        // Déchiffrer puis masquer la clé API pour l'affichage
+        const decrypted = isEncrypted(row.value) ? decrypt(row.value) : row.value
+        if (decrypted) {
+          // Masquer : afficher seulement les 4 derniers caractères
+          settings[row.key] = '••••••••••••' + decrypted.slice(-4)
+        } else {
+          settings[row.key] = ''
+        }
+      } else {
+        settings[row.key] = row.value
+      }
     })
 
     return NextResponse.json({ settings })
@@ -56,12 +71,23 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Données invalides' }, { status: 400 })
     }
 
-    // Mettre à jour chaque paramètre
+    // Mettre à jour chaque paramètre (chiffrer les clés sensibles)
     const updates = Object.entries(settings).map(async ([key, value]) => {
+      let finalValue = value
+      
+      // Chiffrer la clé API Mailchimp avant stockage
+      if (key === 'mailchimp_api_key' && value) {
+        // Si la valeur commence par •, c'est la valeur masquée — ne pas écraser
+        if (value.startsWith('•')) {
+          return // Ne pas mettre à jour, garder la valeur existante
+        }
+        finalValue = encrypt(value)
+      }
+      
       const { error } = await supabase
         .from('site_settings')
         .upsert(
-          { key, value, updated_at: new Date().toISOString() },
+          { key, value: finalValue, updated_at: new Date().toISOString() },
           { onConflict: 'key' }
         )
       if (error) {

@@ -51,6 +51,9 @@ export default function SubscribePage() {
   const [selectedPlan, setSelectedPlan] = useState<PlanChoice>(
     (searchParams.get("plan") as PlanChoice) || "pro"
   )
+  const [isAnnual, setIsAnnual] = useState(
+    searchParams.get("billing") === "annual"
+  )
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
 
@@ -91,6 +94,7 @@ export default function SubscribePage() {
           userEmail: user.email,
           userName: userProfile?.name || user.user_metadata?.name,
           plan: selectedPlan,
+          billing: isAnnual ? 'annual' : 'monthly',
         }),
       })
 
@@ -149,7 +153,7 @@ export default function SubscribePage() {
         </h1>
         <p className="mt-2 text-center text-[#1A1F2B]/60">
           {isActive
-            ? "30 jours supplémentaires seront ajoutés à votre abonnement"
+            ? `${isAnnual ? '365' : '30'} jours supplémentaires seront ajoutés à votre abonnement`
             : "Débloquez l'accès complet à Big Five"}
         </p>
 
@@ -178,7 +182,7 @@ export default function SubscribePage() {
                 <p className="mt-1 text-sm text-[#1A1F2B]/70">
                   En renouvelant maintenant,{" "}
                   <span className="font-semibold">
-                    30 jours seront ajoutés
+                    {isAnnual ? '365 jours' : '30 jours'} seront ajoutés
                   </span>{" "}
                   à la fin de ton abonnement actuel.
                 </p>
@@ -187,8 +191,34 @@ export default function SubscribePage() {
           </div>
         )}
 
+        {/* Toggle mensuel / annuel */}
+        <div className="mt-8 flex items-center justify-center gap-3">
+          <span className={`text-sm font-medium transition-colors ${!isAnnual ? 'text-[#1A1F2B]' : 'text-[#1A1F2B]/50'}`}>Mensuel</span>
+          {/* eslint-disable-next-line jsx-a11y/role-supports-aria-props */}
+          <button
+            type="button"
+            onClick={() => setIsAnnual(!isAnnual)}
+            className={`relative inline-flex h-7 w-[52px] shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#80368D] focus-visible:ring-offset-2 ${
+              isAnnual ? 'bg-[#80368D]' : 'bg-[#D0E4F2]'
+            }`}
+            role="switch"
+            aria-checked={isAnnual ? "true" : "false"}
+            aria-label="Basculer entre facturation mensuelle et annuelle"
+          >
+            <span
+              className={`pointer-events-none inline-block h-[22px] w-[22px] transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                isAnnual ? 'translate-x-[26px]' : 'translate-x-[2px]'
+              } mt-[1px]`}
+            />
+          </button>
+          <span className={`text-sm font-medium transition-colors ${isAnnual ? 'text-[#1A1F2B]' : 'text-[#1A1F2B]/50'}`}>
+            Annuel
+            <span className="ml-1 inline-block rounded-full bg-[#10B981]/10 px-2 py-0.5 text-[10px] font-bold text-[#10B981]">2 mois offerts</span>
+          </span>
+        </div>
+
         {/* Plan Selection Cards */}
-        <div className="mt-8 grid grid-cols-2 gap-4">
+        <div className="mt-6 grid grid-cols-2 gap-4">
           {/* Basic Card */}
           <button
             type="button"
@@ -209,13 +239,15 @@ export default function SubscribePage() {
             </div>
             <div className="flex items-baseline gap-1">
               <span className="text-2xl font-bold text-[#1A1F2B]">
-                4 900
+                {isAnnual ? '49 000' : '4 900'}
               </span>
-              <span className="text-sm text-[#1A1F2B]/60">XOF/mois</span>
+              <span className="text-sm text-[#1A1F2B]/60">{isAnnual ? 'XOF/an' : 'XOF/mois'}</span>
             </div>
-            <p className="mt-1 text-xs text-[#1A1F2B]/50">
-              soit 49 000 XOF/an
-            </p>
+            {isAnnual ? (
+              <p className="mt-1 text-xs text-[#10B981] font-medium">soit ~4 083 XOF/mois</p>
+            ) : (
+              <p className="mt-1 text-xs text-[#1A1F2B]/50">soit 49 000 XOF/an</p>
+            )}
             <ul className="mt-4 space-y-2">
               <li className="flex items-center gap-2 text-xs text-[#1A1F2B]/70">
                 <Check className="h-3.5 w-3.5 text-[#10B981] shrink-0" />
@@ -255,13 +287,15 @@ export default function SubscribePage() {
             </div>
             <div className="flex items-baseline gap-1">
               <span className="text-2xl font-bold text-[#1A1F2B]">
-                9 900
+                {isAnnual ? '99 000' : '9 900'}
               </span>
-              <span className="text-sm text-[#1A1F2B]/60">XOF/mois</span>
+              <span className="text-sm text-[#1A1F2B]/60">{isAnnual ? 'XOF/an' : 'XOF/mois'}</span>
             </div>
-            <p className="mt-1 text-xs text-[#1A1F2B]/50">
-              soit 99 000 XOF/an
-            </p>
+            {isAnnual ? (
+              <p className="mt-1 text-xs text-[#10B981] font-medium">soit ~8 250 XOF/mois</p>
+            ) : (
+              <p className="mt-1 text-xs text-[#1A1F2B]/50">soit 99 000 XOF/an</p>
+            )}
             <ul className="mt-4 space-y-2">
               <li className="flex items-center gap-2 text-xs text-[#1A1F2B]/70">
                 <Check className="h-3.5 w-3.5 text-[#10B981] shrink-0" />
@@ -344,7 +378,7 @@ export default function SubscribePage() {
           ) : (
             <>
               <Lock className="mr-2 h-4 w-4" />
-              {isActive ? "Renouveler" : "Payer"} — {plan.priceFormatted} XOF
+              {isActive ? "Renouveler" : "Payer"} — {isAnnual ? (selectedPlan === 'basic' ? '49 000' : '99 000') : plan.priceFormatted} XOF
             </>
           )}
         </Button>
@@ -355,15 +389,15 @@ export default function SubscribePage() {
             <div className="flex items-center justify-between">
               <span className="text-[#1A1F2B]/60">
                 {isActive ? "Renouvellement" : "Abonnement"} Big Five —{" "}
-                {plan.name}
+                {plan.name} ({isAnnual ? 'Annuel' : 'Mensuel'})
               </span>
               <span className="font-medium text-[#1A1F2B]">
-                {plan.priceFormatted} XOF
+                {isAnnual ? (selectedPlan === 'basic' ? '49 000' : '99 000') : plan.priceFormatted} XOF
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-[#1A1F2B]/60">Durée ajoutée</span>
-              <span className="text-[#1A1F2B]">+30 jours</span>
+              <span className="text-[#1A1F2B]">+{isAnnual ? '365' : '30'} jours ({isAnnual ? '1 an' : '1 mois'})</span>
             </div>
             {isActive && (
               <div className="flex items-center justify-between">
@@ -373,7 +407,7 @@ export default function SubscribePage() {
                 <span className="text-[#1A1F2B] font-medium">
                   {new Date(
                     subscriptionEndDate!.getTime() +
-                      30 * 24 * 60 * 60 * 1000
+                      (isAnnual ? 365 : 30) * 24 * 60 * 60 * 1000
                   ).toLocaleDateString("fr-FR", {
                     day: "numeric",
                     month: "short",
@@ -382,10 +416,18 @@ export default function SubscribePage() {
                 </span>
               </div>
             )}
+            {isAnnual && (
+              <div className="flex items-center justify-between text-[#10B981]">
+                <span>Économie par rapport au mensuel</span>
+                <span className="font-medium">
+                  {selectedPlan === 'basic' ? '9 800' : '19 800'} XOF
+                </span>
+              </div>
+            )}
             <div className="border-t border-[#D0E4F2] pt-2 flex items-center justify-between">
               <span className="font-semibold text-[#1A1F2B]">Total</span>
               <span className="font-bold text-[#80368D]">
-                {plan.priceFormatted} XOF
+                {isAnnual ? (selectedPlan === 'basic' ? '49 000' : '99 000') : plan.priceFormatted} XOF
               </span>
             </div>
           </div>

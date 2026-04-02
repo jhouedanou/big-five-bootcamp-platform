@@ -19,17 +19,18 @@ import {
   getReturnUrl,
 } from '@/lib/moneroo';
 
-const PLAN_PRICES: Record<string, { price: number; label: string }> = {
-  basic: { price: 4900, label: 'Basic' },
-  pro: { price: 9900, label: 'Pro' },
+const PLAN_PRICES: Record<string, { price: number; annualPrice: number; label: string }> = {
+  basic: { price: 4900, annualPrice: 49000, label: 'Basic' },
+  pro: { price: 9900, annualPrice: 99000, label: 'Pro' },
 };
 
 const SUBSCRIPTION_DURATION_DAYS = 30;
+const ANNUAL_SUBSCRIPTION_DURATION_DAYS = 365;
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userEmail, userName, plan } = body;
+    const { userEmail, userName, plan, billing } = body;
 
     if (!userEmail) {
       return NextResponse.json(
@@ -40,6 +41,7 @@ export async function POST(request: NextRequest) {
 
     const planKey = (plan || 'pro').toLowerCase();
     const planConfig = PLAN_PRICES[planKey];
+    const isAnnual = billing === 'annual';
 
     if (!planConfig) {
       return NextResponse.json(
@@ -48,7 +50,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const SUBSCRIPTION_PRICE = planConfig.price;
+    const SUBSCRIPTION_PRICE = isAnnual ? planConfig.annualPrice : planConfig.price;
+    const durationDays = isAnnual ? ANNUAL_SUBSCRIPTION_DURATION_DAYS : SUBSCRIPTION_DURATION_DAYS;
+    const billingLabel = isAnnual ? '1 an' : '1 mois';
 
     // Verifier si l'utilisateur existe
     let { data: existingUser, error: userError } = await supabaseAdmin
@@ -104,15 +108,15 @@ export async function POST(request: NextRequest) {
 
     const baseDate = isCurrentlyActive ? currentEndDate : now;
     const subscriptionEndDate = new Date(baseDate!);
-    subscriptionEndDate.setDate(subscriptionEndDate.getDate() + SUBSCRIPTION_DURATION_DAYS);
+    subscriptionEndDate.setDate(subscriptionEndDate.getDate() + durationDays);
 
     const ref_command = generateRefCommand('SUB');
     const customerName = userName || (existingUser as any).name || userEmail.split('@')[0];
     const nameParts = customerName.split(' ');
 
     const description = isCurrentlyActive
-      ? `Renouvellement Big Five ${planConfig.label} - 1 mois (${ref_command})`
-      : `Abonnement Big Five ${planConfig.label} - 1 mois (${ref_command})`;
+      ? `Renouvellement Big Five ${planConfig.label} - ${billingLabel} (${ref_command})`
+      : `Abonnement Big Five ${planConfig.label} - ${billingLabel} (${ref_command})`;
 
     // Creer le paiement dans la base
     const paymentInsert = {
@@ -125,13 +129,14 @@ export async function POST(request: NextRequest) {
         type: 'subscription',
         plan: planKey,
         plan_label: planConfig.label,
+        billing: isAnnual ? 'annual' : 'monthly',
         renewal: isCurrentlyActive,
-        duration_days: SUBSCRIPTION_DURATION_DAYS,
+        duration_days: durationDays,
         subscription_end_date: subscriptionEndDate.toISOString(),
         previous_end_date: isCurrentlyActive ? currentEndDate!.toISOString() : null,
         item_name: isCurrentlyActive
-          ? `Renouvellement Big Five ${planConfig.label} - 1 mois`
-          : `Abonnement Big Five ${planConfig.label} - 1 mois`,
+          ? `Renouvellement Big Five ${planConfig.label} - ${billingLabel}`
+          : `Abonnement Big Five ${planConfig.label} - ${billingLabel}`,
         userId: (existingUser as any).id,
       },
     };
@@ -168,6 +173,7 @@ export async function POST(request: NextRequest) {
           ref_command,
           type: 'subscription',
           plan: planKey,
+          billing: isAnnual ? 'annual' : 'monthly',
           user_id: (existingUser as any).id,
           renewal: isCurrentlyActive ? 'true' : 'false',
         },
@@ -203,7 +209,8 @@ export async function POST(request: NextRequest) {
       amount: SUBSCRIPTION_PRICE,
       plan: planKey,
       plan_label: planConfig.label,
-      duration_days: SUBSCRIPTION_DURATION_DAYS,
+      billing: isAnnual ? 'annual' : 'monthly',
+      duration_days: durationDays,
       subscription_end_date: subscriptionEndDate.toISOString(),
       renewal: isCurrentlyActive,
     });

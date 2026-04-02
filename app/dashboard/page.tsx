@@ -97,6 +97,7 @@ export default function DashboardPage() {
     const platforms = new Set<string>()
     const tags = new Set<string>()
     const years = new Set<number>()
+    const axes = new Set<string>()
 
     campaigns.forEach((campaign) => {
       if (campaign.country) countries.add(normalizeCountry(campaign.country))
@@ -109,6 +110,11 @@ export default function DashboardPage() {
           if (tag) tags.add(tag)
         })
       }
+      if (campaign.axe && Array.isArray(campaign.axe)) {
+        campaign.axe.forEach((a) => {
+          if (a) axes.add(a)
+        })
+      }
     })
 
     return {
@@ -118,6 +124,7 @@ export default function DashboardPage() {
       platforms: Array.from(platforms),
       tags: Array.from(tags),
       years: Array.from(years),
+      axes: Array.from(axes),
     }
   }, [campaigns])
 
@@ -373,6 +380,7 @@ export default function DashboardPage() {
       const formatFilter = selectedFilters["Format"] || []
       const platformFilter = selectedFilters["Plateforme"] || []
       const tagsFilter = selectedFilters["Tags"] || []
+      const axeFilter = selectedFilters["Axe créatif"] || []
       const yearFilter = selectedFilters["Année"] || []
 
       if (countryFilter.length > 0 && !countryFilter.includes(normalizeCountry(content.country))) return false
@@ -380,6 +388,7 @@ export default function DashboardPage() {
       if (formatFilter.length > 0 && !formatFilter.includes(content.format)) return false
       if (platformFilter.length > 0 && !platformFilter.includes(content.platform)) return false
       if (tagsFilter.length > 0 && !content.tags.some(tag => tagsFilter.includes(tag))) return false
+      if (axeFilter.length > 0 && (!content.axe || !content.axe.some(a => axeFilter.includes(a)))) return false
       if (yearFilter.length > 0 && content.year && !yearFilter.includes(String(content.year))) return false
 
       return true

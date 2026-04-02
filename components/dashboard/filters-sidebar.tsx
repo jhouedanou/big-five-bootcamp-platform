@@ -39,6 +39,10 @@ const defaultFilterGroups: FilterGroup[] = [
     options: ["Humour", "Emotion", "Storytelling", "Promo", "Cause sociale", "Viral", "UGC", "Influenceur", "Corporate"]
   },
   {
+    name: "Axe créatif",
+    options: ["Focus produit", "Bénéfice produit", "Démonstration", "Utilisation", "Offre / Promotion", "Storytelling", "Transparence", "Humanisation", "RSE", "Langage de la cible", "Preuve sociale", "Gamification intelligente", "Education"]
+  },
+  {
     name: "Année",
     options: ["2026", "2025", "2024", "2023", "2022"]
   }
@@ -59,6 +63,7 @@ export interface DynamicFilterOptions {
   platforms?: string[]
   tags?: string[]
   years?: number[]
+  axes?: string[]
 }
 
 interface FiltersSidebarProps {
@@ -120,10 +125,16 @@ export function FiltersSidebar({
       locked: isFreeUser,
     },
     {
+      name: "Axe créatif",
+      options: dynamicOptions?.axes?.length
+        ? [...dynamicOptions.axes].sort()
+        : defaultFilterGroups[5].options,
+    },
+    {
       name: "Année",
       options: dynamicOptions?.years?.length
         ? dynamicOptions.years.sort((a, b) => b - a).map(String)
-        : defaultFilterGroups[5].options,
+        : defaultFilterGroups[6].options,
     },
   ]
 

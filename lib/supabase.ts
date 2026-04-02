@@ -1,8 +1,12 @@
 import { createBrowserClient } from '@supabase/ssr'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
-// Singleton pour le client browser (évite les instances multiples de GoTrueClient)
-let browserClient: ReturnType<typeof createBrowserClient> | null = null
+// Stocker le singleton sur globalThis pour survivre au HMR (Hot Module Replacement)
+// En dev, le module est réévalué lors du HMR, ce qui recrée un GoTrueClient
+// et provoque un conflit de navigator.locks → AbortError
+const globalForSupabase = globalThis as typeof globalThis & {
+  __supabaseBrowserClient?: ReturnType<typeof createBrowserClient>
+}
 
 export const createClient = () => {
   // Éviter la création côté serveur
@@ -13,13 +17,13 @@ export const createClient = () => {
     )
   }
   
-  if (browserClient) return browserClient
+  if (globalForSupabase.__supabaseBrowserClient) return globalForSupabase.__supabaseBrowserClient
   
-  browserClient = createBrowserClient(
+  globalForSupabase.__supabaseBrowserClient = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
-  return browserClient
+  return globalForSupabase.__supabaseBrowserClient
 }
 
 // Client Supabase admin (avec la service role key pour les opérations côté serveur)

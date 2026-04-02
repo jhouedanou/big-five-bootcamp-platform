@@ -49,6 +49,7 @@ import {
   Crown,
   Users,
   Star,
+  ExternalLink,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -522,6 +523,13 @@ function CampaignsPageContent() {
                       >
                         <Eye className="h-4 w-4 mr-2" />
                         Apercu
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => window.open(`/content/${item.slug || item.id}`, '_blank')}
+                        className="hover:bg-gray-100 cursor-pointer"
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Voir le détail
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handlePublish(item)}

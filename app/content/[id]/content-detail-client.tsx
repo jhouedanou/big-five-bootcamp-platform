@@ -620,21 +620,6 @@ export default function ContentDetailClient({ id }: { id: string }) {
                     </div>
                   )}
 
-                  {content.axe && content.axe.length > 0 && (
-                    <div className="pt-2 border-t">
-                      <div className="flex items-center gap-3 text-sm mb-2">
-                        <Tag className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-muted-foreground">Axe(s):</span>
-                      </div>
-                      <div className="flex flex-wrap gap-1.5 ml-7">
-                        {content.axe.map((a) => (
-                          <Badge key={a} variant="outline" className="text-xs">
-                            {a}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>

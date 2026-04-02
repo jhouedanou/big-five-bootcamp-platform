@@ -142,6 +142,7 @@ export default function PricingPage() {
                             )}>
                                 Mensuel
                             </span>
+                            {/* eslint-disable-next-line jsx-a11y/aria-proptypes */}
                             <button
                                 type="button"
                                 onClick={() => setIsAnnual(!isAnnual)}
@@ -150,7 +151,7 @@ export default function PricingPage() {
                                     isAnnual ? "bg-[#80368D]" : "bg-[#D0E4F2]"
                                 )}
                                 role="switch"
-                                aria-checked={isAnnual}
+                                aria-checked={isAnnual ? "true" : "false"}
                                 aria-label="Basculer entre tarif mensuel et annuel"
                             >
                                 <span
@@ -349,11 +350,6 @@ export default function PricingPage() {
                     </div>
                 </section>
             </main>
-            <Footer />
-        </div>
-    )
-}
-                            </main>
             <Footer />
         </div>
     )

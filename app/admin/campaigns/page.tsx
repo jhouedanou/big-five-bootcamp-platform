@@ -118,6 +118,7 @@ const defaultFormData: Omit<ContentItem, "id"> = {
   status: "Brouillon",
   accessLevel: "free",
   analyse: "",
+  whyThisAxis: "",
   slug: "",
   featured: false,
 };
@@ -232,6 +233,7 @@ function CampaignsPageContent() {
       slug: item.slug || "",
       axe: item.axe || [],
       analyse: item.analyse || "",
+      whyThisAxis: item.whyThisAxis || "",
       featured: item.featured || false,
     });
     setTagInput("");
@@ -700,6 +702,15 @@ function CampaignsPageContent() {
                     <div
                       className="text-gray-600 prose prose-sm max-w-none"
                       dangerouslySetInnerHTML={{ __html: previewCampaign.analyse }}
+                    />
+                  </div>
+                )}
+                {previewCampaign.whyThisAxis && (
+                  <div>
+                    <h4 className="font-semibold text-gray-800 mb-1">Pourquoi cet axe</h4>
+                    <div
+                      className="text-gray-600 prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: previewCampaign.whyThisAxis }}
                     />
                   </div>
                 )}
@@ -1437,6 +1448,17 @@ function CampaignsPageContent() {
                     content={formData.analyse || ""}
                     onChange={(content) => setFormData({ ...formData, analyse: content })}
                     placeholder="Analysez la campagne, sa stratégie, ses résultats et ses points clés..."
+                    className="bg-white border-gray-300"
+                  />
+                </div>
+
+                {/* Pourquoi cet axe — saves to why_this_axis in DB */}
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Pourquoi cet axe</Label>
+                  <RichTextEditor
+                    content={formData.whyThisAxis || ""}
+                    onChange={(content) => setFormData({ ...formData, whyThisAxis: content })}
+                    placeholder="Expliquez pourquoi cet axe créatif a été choisi pour cette campagne..."
                     className="bg-white border-gray-300"
                   />
                 </div>

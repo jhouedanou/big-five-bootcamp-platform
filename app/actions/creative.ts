@@ -259,9 +259,10 @@ interface CSVCreativeRow {
     year?: string
     imageUrl?: string
     videoUrl?: string
-    description?: string
-    summary?: string
     analyse?: string
+    why_this_axis?: string
+    summary?: string
+    description?: string
     tags?: string
     status?: string
     accessLevel?: string
@@ -334,6 +335,7 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
             // Mapping CSV → colonnes DB :
             // CSV "description" → DB "description" (description de la campagne)
             // CSV "analyse" → DB "analyse" (analyse stratégique)
+            // CSV "why_this_axis" → DB "why_this_axis" (justification de l'axe créatif)
             // CSV "summary" → DB "summary" (Résumé court)
             // CSV "sector" → DB "category"
             // CSV "imageUrl" → DB "thumbnail"
@@ -357,6 +359,7 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
                 description: row.description?.trim() || null,
                 summary: row.summary?.trim() || null,
                 analyse: row.analyse?.trim() || null,
+                why_this_axis: row.why_this_axis?.trim() || null,
                 tags,
                 status,
                 access_level: accessLevel,

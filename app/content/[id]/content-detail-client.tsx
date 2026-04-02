@@ -52,6 +52,7 @@ interface Campaign {
   year?: number | null;
   images?: string[] | null;
   analyse?: string | null;
+  why_this_axis?: string | null;
   slug?: string | null;
   axe?: string[] | null;
   created_at: string;
@@ -553,6 +554,20 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 </CardContent>
               </Card>
             )}
+
+            {/* Pourquoi cet axe */}
+            {content.why_this_axis && (
+              <Card>
+                <CardContent className="p-6">
+                  <h2 className="font-semibold text-lg mb-3">Pourquoi cet axe</h2>
+                  <div
+                    className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: formatDescription(content.why_this_axis) }}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
             {/* Metadata card */}
             <Card>
               <CardContent className="p-6 space-y-4">

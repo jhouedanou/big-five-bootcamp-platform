@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { createClient } from "@/utils/supabase/client";
+import { createClient } from "@/lib/supabase";
 import {
   CreditCard,
   Smartphone,

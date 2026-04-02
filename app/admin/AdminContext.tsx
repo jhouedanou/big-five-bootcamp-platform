@@ -40,12 +40,16 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   // Auth Logic
   useEffect(() => {
+    let cancelled = false;
+
     const checkUser = async () => {
       try {
         // getUser() valide le token côté serveur (fiable après refresh)
         const { data: { user } } = await supabase.auth.getUser();
+        if (cancelled) return;
         // Récupérer la session pour les composants qui en ont besoin
         const { data: { session } } = await supabase.auth.getSession();
+        if (cancelled) return;
         setSession(session);
 
         if (user?.email) {
@@ -75,21 +79,31 @@ export function AdminProvider({ children }: { children: ReactNode }) {
               .eq('email', user.email)
               .maybeSingle();
 
+            if (cancelled) return;
             if (!error && dbUser?.role) {
               setUserRole(dbUser.role);
             } else {
               setUserRole('user');
             }
           } catch (dbError) {
+            if (cancelled) return;
             console.warn("Erreur DB, utilisation du fallback:", dbError);
             setUserRole('user');
           }
         }
-      } catch (error) {
-        console.error("Auth check error", error);
+      } catch (error: any) {
+        // Ignorer les AbortError causés par le démontage du composant (React Strict Mode)
+        if (error?.name === 'AbortError' || (error instanceof DOMException && error.name === 'AbortError')) {
+          return;
+        }
+        if (!cancelled) {
+          console.error("Auth check error", error);
+        }
       } finally {
-        initialCheckDone.current = true;
-        setAuthLoading(false);
+        if (!cancelled) {
+          initialCheckDone.current = true;
+          setAuthLoading(false);
+        }
       }
     };
 
@@ -140,7 +154,10 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       setAuthLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, [supabase]);
 
 

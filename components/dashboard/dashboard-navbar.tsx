@@ -164,12 +164,6 @@ export function DashboardNavbar({
               Profil
             </Link>
             <Link
-              href="/community"
-              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B]"
-            >
-              Communauté
-            </Link>
-            <Link
               href="/favorites"
               className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] flex items-center gap-1"
             >
@@ -391,13 +385,6 @@ export function DashboardNavbar({
               onClick={() => setIsOpen(false)}
             >
               Profil
-            </Link>
-            <Link
-              href="/community"
-              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B]"
-              onClick={() => setIsOpen(false)}
-            >
-              Communauté
             </Link>
             <Link
               href="/favorites"

@@ -33,7 +33,7 @@ import { UpgradePopup } from "@/components/upgrade-popup";
 import { ReactionButtons } from "@/components/ui/reaction-buttons";
 import { useRouter } from "next/navigation";
 
-const MONTHLY_CLICK_LIMIT = 5;
+const MONTHLY_CLICK_LIMIT = 3;
 
 interface Campaign {
   id: string;

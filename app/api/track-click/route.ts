@@ -13,7 +13,7 @@ import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase-server'
 
 export const dynamic = 'force-dynamic'
 
-const MONTHLY_CLICK_LIMIT = 5
+const MONTHLY_CLICK_LIMIT = 3
 
 export async function POST(request: NextRequest) {
   try {

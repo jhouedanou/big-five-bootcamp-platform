@@ -20,7 +20,7 @@ const ParticlesBackground = dynamic(() => import("@/components/ui/particles-back
 const FiltersSidebar = dynamic(() => import("@/components/dashboard/filters-sidebar").then(m => m.FiltersSidebar))
 
 // Compteur mensuel de clics (côté serveur via API)
-const MONTHLY_CLICK_LIMIT = 5
+const MONTHLY_CLICK_LIMIT = 3
 
 // Normalisation des noms de pays pour corriger les imports CSV mal encodés
 // Ex: "Cote d'Ivoire" (ASCII) → "Côte d'Ivoire" (UTF-8 canonique)

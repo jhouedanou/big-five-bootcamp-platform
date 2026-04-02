@@ -10,10 +10,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { retrievePayment } from '@/lib/moneroo';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+let _supabase: ReturnType<typeof createClient> | null = null;
+function getSupabase() {
+  if (!_supabase) {
+    _supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+  }
+  return _supabase;
+}
 
 export async function POST(
   request: NextRequest,
@@ -21,6 +27,7 @@ export async function POST(
 ) {
   try {
     const { ref_command } = await params;
+    const supabase = getSupabase();
 
     if (!ref_command) {
       return NextResponse.json(

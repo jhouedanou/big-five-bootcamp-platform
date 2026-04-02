@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createClient as createBrowserClient } from "@/lib/supabase";
 
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+let _supabaseAdmin: ReturnType<typeof createClient> | null = null;
+function getSupabaseAdmin() {
+  if (!_supabaseAdmin) {
+    _supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+  }
+  return _supabaseAdmin;
+}
 
 /**
  * GET /api/reactions/[campaignId]
@@ -17,6 +23,7 @@ export async function GET(
 ) {
   try {
     const { campaignId } = await params;
+    const supabaseAdmin = getSupabaseAdmin();
 
     // Compter les likes
     const { count: likes } = await supabaseAdmin
@@ -77,6 +84,7 @@ export async function POST(
 ) {
   try {
     const { campaignId } = await params;
+    const supabaseAdmin = getSupabaseAdmin();
 
     // Vérifier l'authentification
     const authHeader = request.headers.get("authorization");

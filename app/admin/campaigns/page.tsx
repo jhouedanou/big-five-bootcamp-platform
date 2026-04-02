@@ -811,6 +811,15 @@ function CampaignsPageContent() {
                     />
                   </div>
                 )}
+                {previewCampaign.summary && (
+                  <div>
+                    <h4 className="font-semibold text-gray-800 mb-1">Résumé</h4>
+                    <div
+                      className="text-gray-600 prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: previewCampaign.summary }}
+                    />
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3 text-sm bg-gray-50 rounded-lg p-4">
                   <div>
                     <span className="text-gray-500">Marque:</span>{" "}

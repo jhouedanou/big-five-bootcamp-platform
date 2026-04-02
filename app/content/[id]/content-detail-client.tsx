@@ -54,6 +54,7 @@ interface Campaign {
   images?: string[] | null;
   analyse?: string | null;
   why_this_axis?: string | null;
+  summary?: string | null;
   slug?: string | null;
   axe?: string[] | null;
   created_at: string;
@@ -264,7 +265,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
         <DashboardNavbar
           userPlan={userPlan}
           monthlyClicks={monthlyClicks}
-          monthlyClickLimit={5}
+          monthlyClickLimit={MONTHLY_CLICK_LIMIT}
           isFreeUser={isFreeUser}
           monthlyExplored={monthlyExplored}
         />
@@ -323,7 +324,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
         <DashboardNavbar
           userPlan={userPlan}
           monthlyClicks={monthlyClicks}
-          monthlyClickLimit={5}
+          monthlyClickLimit={MONTHLY_CLICK_LIMIT}
           isFreeUser={isFreeUser}
           monthlyExplored={monthlyExplored}
         />
@@ -567,6 +568,19 @@ export default function ContentDetailClient({ id }: { id: string }) {
                   <div
                     className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
                     dangerouslySetInnerHTML={{ __html: formatDescription(content.why_this_axis) }}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Résumé */}
+            {content.summary && (
+              <Card>
+                <CardContent className="p-6">
+                  <h2 className="font-semibold text-lg mb-3">Résumé</h2>
+                  <div
+                    className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
+                    dangerouslySetInnerHTML={{ __html: formatDescription(content.summary) }}
                   />
                 </CardContent>
               </Card>

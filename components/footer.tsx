@@ -4,9 +4,24 @@ import Link from "next/link"
 import { Facebook, Instagram, Twitter, Linkedin, Heart, ArrowUpRight } from "lucide-react"
 import Image from "next/image"
 import { LegalModal } from "./legal-modal"
+import { useState, useEffect } from "react"
+import { createClient } from "@/lib/supabase"
 
 export function Footer() {
   const currentYear = new Date().getFullYear()
+  const [logoUrl, setLogoUrl] = useState("/logo.png")
+
+  useEffect(() => {
+    const supabase = createClient()
+    supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "logo_url")
+      .single()
+      .then(({ data }) => {
+        if (data?.value) setLogoUrl(data.value)
+      })
+  }, [])
 
   return (
     <footer className="relative border-t border-[#D0E4F2] bg-gradient-to-b from-white to-[#D0E4F2]/30 overflow-hidden">
@@ -23,7 +38,7 @@ export function Footer() {
               <div className="relative">
                 <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-[#80368D]/20 to-[#F2B33D]/20 opacity-0 blur transition-opacity duration-300 group-hover:opacity-100" />
                 <Image
-                  src="/logo.png"
+                  src={logoUrl}
                   alt="Big Five Creative Library"
                   width={44}
                   height={44}

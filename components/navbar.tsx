@@ -10,10 +10,21 @@ import { createClient } from "@/lib/supabase"
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [logoUrl, setLogoUrl] = useState("/logo.png")
   const initialCheckDone = useRef(false)
 
   useEffect(() => {
     const supabase = createClient()
+
+    // Charger le logo depuis site_settings
+    supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "logo_url")
+      .single()
+      .then(({ data }) => {
+        if (data?.value) setLogoUrl(data.value)
+      })
 
     // Vérifier l'utilisateur via getUser() (valide le token côté serveur)
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -39,7 +50,7 @@ export function Navbar() {
           <div className="relative">
             <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-[#80368D]/10 to-[#F2B33D]/10 opacity-0 blur transition-opacity duration-300 group-hover:opacity-100" />
             <Image
-              src="/logo.png"
+              src={logoUrl}
               alt="Big Five Creative Library"
               width={40}
               height={40}

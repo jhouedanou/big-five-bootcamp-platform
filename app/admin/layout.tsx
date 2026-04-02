@@ -22,6 +22,7 @@ import {
   Bell,
   Mail,
   Palette,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -33,6 +34,7 @@ const sidebarLinks = [
   { href: "/admin/users", label: "Utilisateurs", icon: Users, description: "Gérer les accès" },
   { href: "/admin/mailchimp", label: "Mailchimp", icon: Mail, description: "Email marketing" },
   { href: "/admin/branding", label: "Branding", icon: Palette, description: "Logo et identité" },
+  { href: "/admin/payment-methods", label: "Paiements", icon: CreditCard, description: "Moyens de paiement" },
   { href: "/admin/settings", label: "Paramètres", icon: Settings, description: "Configuration" },
 ];
 

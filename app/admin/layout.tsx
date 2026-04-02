@@ -21,6 +21,7 @@ import {
   TrendingUp,
   Bell,
   Mail,
+  Palette,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -31,6 +32,7 @@ const sidebarLinks = [
   { href: "/admin/campaigns", label: "Campagnes", icon: Megaphone, description: "Gérer le contenu" },
   { href: "/admin/users", label: "Utilisateurs", icon: Users, description: "Gérer les accès" },
   { href: "/admin/mailchimp", label: "Mailchimp", icon: Mail, description: "Email marketing" },
+  { href: "/admin/branding", label: "Branding", icon: Palette, description: "Logo et identité" },
   { href: "/admin/settings", label: "Paramètres", icon: Settings, description: "Configuration" },
 ];
 

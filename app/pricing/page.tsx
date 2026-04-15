@@ -155,12 +155,12 @@ export default function PricingPage() {
                 {/* Grille tarifaire responsive */}
                 <section className="py-12 sm:py-20 -mt-12 sm:-mt-20 relative z-10">
                     <div className="container mx-auto px-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-5xl mx-auto">
+                        <div className="flex flex-col sm:flex-row sm:flex-wrap justify-center items-stretch gap-4 sm:gap-6 max-w-5xl mx-auto">
                             {plans.map((plan) => (
                                 <div
                                     key={plan.key}
                                     className={cn(
-                                        "rounded-2xl bg-white p-6 sm:p-8 shadow-lg flex flex-col",
+                                        "rounded-2xl bg-white p-6 sm:p-8 shadow-lg flex flex-col w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]",
                                         plan.highlighted
                                             ? "border-2 border-[#80368D] shadow-2xl shadow-[#80368D]/20 relative lg:-translate-y-4"
                                             : "border border-[#D0E4F2]"
@@ -256,7 +256,7 @@ export default function PricingPage() {
                             <h2 className="font-[family-name:var(--font-heading)] text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1A1F2B] mb-3">
                                 Comparez les fonctionnalités
                             </h2>
-                            <p className="text-[#1A1F2B]/60 text-sm sm:text-base max-w-xl mx-auto">
+                            <p className="text-[#1A1F2B]/60 text-sm sm:text-base max-w-xl mx-auto text-center">
                                 Trouvez le plan qui correspond à vos besoins.
                             </p>
                         </div>

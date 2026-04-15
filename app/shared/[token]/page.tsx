@@ -103,7 +103,7 @@ export default async function SharedCollectionPage({ params }: PageProps) {
               {collection.name}
             </h1>
             {collection.description && (
-              <p className="mt-2 text-muted-foreground max-w-xl mx-auto">
+              <p className="mt-2 text-muted-foreground max-w-xl mx-auto text-center">
                 {collection.description}
               </p>
             )}

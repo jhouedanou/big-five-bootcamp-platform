@@ -399,7 +399,7 @@ export function PricingTeaser() {
         <h2 id="samer" className="font-[family-name:var(--font-heading)] text-3xl sm:text-4xl font-bold mb-4 text-[#1A1F2B] mb">
           {t.title}
         </h2>
-        <p id="lagross" className="text-[#1A1F2B]/70 text-lg sm:text-xl mb-8 max-w-2xl mx-auto">
+        <p id="lagross" className="text-[#1A1F2B]/70 text-lg sm:text-xl mb-8 max-w-2xl mx-auto text-center">
           {t.subtitle}
         </p>
 

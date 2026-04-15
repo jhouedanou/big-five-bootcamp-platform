@@ -9,10 +9,14 @@ export async function GET(request: Request) {
     const code = searchParams.get('code')
     const next = searchParams.get('next') ?? '/dashboard'
     const type = searchParams.get('type') // recovery, signup, invite, etc.
+    const cookieStore = await cookies()
+
+    // Détecter le flux de récupération de mot de passe via le cookie
+    // (fallback car les query params peuvent être perdus lors du redirect Supabase)
+    const hasRecoveryCookie = cookieStore.get('sb-password-recovery')?.value === 'true'
+    const isRecoveryFlow = type === 'recovery' || next.includes('update-password') || hasRecoveryCookie
 
     if (code) {
-        const cookieStore = await cookies()
-
         // Collecter les cookies à écrire sur la réponse de redirection
         const cookiesToSet: { name: string; value: string; options: any }[] = []
 
@@ -64,7 +68,7 @@ export async function GET(request: Request) {
 
             // Déterminer l'URL de redirection
             let redirectUrl = `${origin}${next}`
-            if (type === 'recovery' || next.includes('update-password')) {
+            if (isRecoveryFlow) {
                 redirectUrl = `${origin}/update-password`
             }
 
@@ -73,10 +77,22 @@ export async function GET(request: Request) {
             cookiesToSet.forEach(({ name, value, options }) => {
                 response.cookies.set(name, value, options)
             })
+            // Supprimer le cookie de récupération
+            if (hasRecoveryCookie) {
+                response.cookies.set('sb-password-recovery', '', { maxAge: 0, path: '/' })
+            }
             return response
         } else {
             console.error('Auth callback error:', error)
         }
+    }
+
+    // Pas de code mais cookie de récupération = flux implicite (hash fragment)
+    // Rediriger vers /update-password qui gère l'auth côté client
+    if (!code && isRecoveryFlow) {
+        const response = NextResponse.redirect(`${origin}/update-password`)
+        response.cookies.set('sb-password-recovery', '', { maxAge: 0, path: '/' })
+        return response
     }
 
     // Rediriger vers la page d'erreur avec des détails

@@ -40,35 +40,70 @@ function UpdatePasswordContent() {
 
   // Vérifier la session et traiter les tokens de l'URL
   useEffect(() => {
+    let mounted = true;
+    let subscription: { unsubscribe: () => void } | null = null;
+
     const handleAuthCallback = async () => {
       try {
-        // Vérifier s'il y a un hash dans l'URL (token de récupération)
+        // Nettoyer le cookie de récupération s'il existe
+        if (typeof window !== 'undefined') {
+          document.cookie = 'sb-password-recovery=; path=/; max-age=0';
+        }
+
+        // Vérifier s'il y a un hash dans l'URL (token de récupération - flux implicite)
         if (typeof window !== 'undefined') {
           const hash = window.location.hash;
           
-          // Si on a un hash avec access_token (lien de réinitialisation)
+          // Si on a un hash avec access_token (lien de réinitialisation via flux implicite)
           if (hash && hash.includes('access_token')) {
             // Supabase gère automatiquement le hash et crée une session
-            // Attendre un peu pour que Supabase traite le token
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // Attendre que Supabase traite le token
+            await new Promise(resolve => setTimeout(resolve, 1000));
           }
           
           // Vérifier s'il y a une erreur dans l'URL
           const errorParam = searchParams.get('error');
           const errorDescription = searchParams.get('error_description');
           if (errorParam) {
-            setErrorMessage(errorDescription || 'Lien invalide ou expiré');
-            setIsValidSession(false);
+            if (mounted) {
+              setErrorMessage(errorDescription || 'Lien invalide ou expiré');
+              setIsValidSession(false);
+            }
             return;
           }
         }
 
+        // Écouter les changements d'auth AVANT de vérifier l'utilisateur
+        // (pour capturer les événements PASSWORD_RECOVERY du flux implicite)
+        const { data: { subscription: sub } } = supabase.auth.onAuthStateChange(async (event) => {
+          console.log('Update password - Auth state change:', event);
+          if (mounted && (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN')) {
+            setIsValidSession(true);
+          }
+        });
+        subscription = sub;
+
         // Vérifier si on a un utilisateur valide (getUser valide le token côté serveur)
         const { data: { user }, error } = await supabase.auth.getUser();
 
+        if (!mounted) return;
+
         if (error) {
           console.error('Auth error:', error);
-          setErrorMessage(error.message);
+          // Ne pas immédiatement échouer - attendre un peu au cas où l'auth state change
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          if (!mounted) return;
+          
+          // Re-vérifier après le délai
+          const { data: { user: retryUser }, error: retryError } = await supabase.auth.getUser();
+          if (!mounted) return;
+          
+          if (retryUser) {
+            setIsValidSession(true);
+            return;
+          }
+          
+          setErrorMessage(retryError?.message || error.message);
           setIsValidSession(false);
           return;
         }
@@ -78,24 +113,35 @@ function UpdatePasswordContent() {
           return;
         }
 
-        // Si pas d'utilisateur, écouter les changements d'auth (pour le hash processing)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
-          console.log('Auth state change:', event);
-          if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
-            setIsValidSession(true);
-          }
-        });
-
-        // Cleanup
-        return () => subscription.unsubscribe();
+        // Si pas d'utilisateur, attendre un peu (la session peut être en cours de création)
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        if (!mounted) return;
+        
+        // Dernier essai
+        const { data: { user: finalUser } } = await supabase.auth.getUser();
+        if (!mounted) return;
+        
+        if (finalUser) {
+          setIsValidSession(true);
+        } else {
+          setErrorMessage('Session non trouvée. Le lien a peut-être expiré.');
+          setIsValidSession(false);
+        }
       } catch (err) {
         console.error('Auth callback error:', err);
-        setErrorMessage('Une erreur est survenue');
-        setIsValidSession(false);
+        if (mounted) {
+          setErrorMessage('Une erreur est survenue');
+          setIsValidSession(false);
+        }
       }
     };
 
     handleAuthCallback();
+
+    return () => {
+      mounted = false;
+      subscription?.unsubscribe();
+    };
   }, [supabase.auth, searchParams]);
 
   const passwordStrength = (pwd: string) => {

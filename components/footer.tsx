@@ -138,7 +138,7 @@ export function Footer() {
           {/* Social links */}
           <div className="flex items-center gap-2">
             <Link
-              href="https://facebook.com"
+              href="https://www.facebook.com/agencebigfive/"
               target="_blank"
               rel="noopener noreferrer"
               className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D0E4F2]/50 text-[#29358B] transition-all duration-300 hover:bg-[#80368D]/20 hover:text-[#80368D] hover:scale-110"
@@ -147,7 +147,7 @@ export function Footer() {
               <Facebook className="h-5 w-5" />
             </Link>
             <Link
-              href="https://linkedin.com"
+              href="https://www.linkedin.com/company/big-five-solutions/"
               target="_blank"
               rel="noopener noreferrer"
               className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D0E4F2]/50 text-[#29358B] transition-all duration-300 hover:bg-[#0A66C2]/20 hover:text-[#0A66C2] hover:scale-110"
@@ -156,7 +156,7 @@ export function Footer() {
               <Linkedin className="h-5 w-5" />
             </Link>
             <Link
-              href="https://youtube.com"
+              href="https://www.youtube.com/channel/UCKe6vzOcThB8uzmwZhjK4QQ"
               target="_blank"
               rel="noopener noreferrer"
               className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D0E4F2]/50 text-[#29358B] transition-all duration-300 hover:bg-[#FF0000]/20 hover:text-[#FF0000] hover:scale-110"

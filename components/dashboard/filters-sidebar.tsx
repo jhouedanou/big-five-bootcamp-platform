@@ -172,7 +172,7 @@ export function FiltersSidebar({
                 key={group.name}
                 className={`rounded-xl border-2 overflow-hidden transition-all ${
                   isLocked
-                    ? "border-[#D0E4F2] bg-white/30 opacity-60"
+                    ? "border-[#D0E4F2] bg-white/30"
                     : "border-[#D0E4F2] bg-white/50 hover:border-[#80368D]/30"
                 }`}
               >
@@ -204,7 +204,7 @@ export function FiltersSidebar({
                     </span>
                   </span>
                   {isLocked ? (
-                    <span className="text-xs font-medium text-[#1A1F2B]/40 bg-[#D0E4F2] px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-medium text-[#FFFFFF] bg-[#80368D] px-2 py-0.5 rounded-full">
                       Pro
                     </span>
                   ) : expandedGroups.includes(group.name) ? (

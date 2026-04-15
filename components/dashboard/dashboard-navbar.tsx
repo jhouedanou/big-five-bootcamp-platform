@@ -151,15 +151,28 @@ export function DashboardNavbar({
         </div>
 
         <div className="hidden flex-1 items-center justify-center px-8 md:flex">
-          <div className="relative w-full max-w-lg">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#1A1F2B]/50" />
-            <input
-              type="text"
-              placeholder="Rechercher par mots-clés, marque, secteur..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-10 w-full rounded-lg border border-[#D0E4F2] bg-white pl-10 pr-4 text-sm text-[#1A1F2B] outline-none transition-colors placeholder:text-[#1A1F2B]/50 focus:border-[#80368D] focus:ring-2 focus:ring-[#80368D]/20"
-            />
+          <div className="relative w-full max-w-xl group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-[#80368D]/20 to-[#D0E4F2]/40 rounded-xl blur opacity-60 group-focus-within:opacity-100 transition-opacity duration-300" />
+            <div className="relative flex items-center">
+              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#80368D]/70 group-focus-within:text-[#80368D] transition-colors" />
+              <input
+                type="text"
+                placeholder="🔍 Rechercher par mots-clés, marque, secteur, pays..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-12 w-full rounded-xl border-2 border-[#80368D]/20 bg-white pl-12 pr-4 text-sm font-medium text-[#1A1F2B] shadow-sm outline-none transition-all placeholder:text-[#1A1F2B]/40 focus:border-[#80368D] focus:ring-4 focus:ring-[#80368D]/10 focus:shadow-lg focus:shadow-[#80368D]/5 hover:border-[#80368D]/40"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-[#1A1F2B]/40 hover:text-[#1A1F2B] hover:bg-[#D0E4F2]/50 transition-colors"
+                  aria-label="Effacer la recherche"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

@@ -304,6 +304,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         accessLevel: campaign.access_level || 'free',
         slug: campaign.slug || '',
         featured: campaign.featured || false,
+        publicationUrl: campaign.publication_url || '',
       }));
 
       setCampaigns(formattedCampaigns);
@@ -344,6 +345,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     if (data.accessLevel !== undefined) record.access_level = data.accessLevel;
     if (data.slug !== undefined) record.slug = data.slug;
     if (data.featured !== undefined) record.featured = data.featured;
+    if (data.publicationUrl !== undefined) record.publication_url = data.publicationUrl || null;
     return record;
   };
 

@@ -305,6 +305,7 @@ export default function DashboardPage() {
           accessLevel: campaign.access_level || 'free',
           createdAt: campaign.created_at,
           featured: campaign.featured || false,
+          publicationUrl: campaign.publication_url || '',
         }))
 
         // Mélanger aléatoirement les campagnes pour varier l'affichage

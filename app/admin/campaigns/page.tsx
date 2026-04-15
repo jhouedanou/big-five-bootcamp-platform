@@ -122,6 +122,7 @@ const defaultFormData: Omit<ContentItem, "id"> = {
   whyThisAxis: "",
   slug: "",
   featured: false,
+  publicationUrl: "",
 };
 
 function CampaignsPageContent() {
@@ -239,6 +240,7 @@ function CampaignsPageContent() {
       analyse: item.analyse || "",
       whyThisAxis: item.whyThisAxis || "",
       featured: item.featured || false,
+      publicationUrl: item.publicationUrl || "",
     });
     setTagInput("");
     setImageInput("");
@@ -1262,6 +1264,25 @@ function CampaignsPageContent() {
                       </p>
                     </div>
                   </label>
+                </div>
+
+                {/* Lien vers la publication d'origine */}
+                <div className="space-y-2">
+                  <Label htmlFor="camp-publication-url" className="text-gray-700 flex items-center gap-2">
+                    <ExternalLink className="h-4 w-4 text-[#80368D]" />
+                    Lien vers la publication d'origine
+                  </Label>
+                  <Input
+                    id="camp-publication-url"
+                    type="url"
+                    value={formData.publicationUrl || ""}
+                    onChange={(e) => setFormData({ ...formData, publicationUrl: e.target.value })}
+                    className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
+                    placeholder="https://www.facebook.com/... ou https://www.instagram.com/p/..."
+                  />
+                  <p className="text-xs text-gray-500">
+                    URL de la publication originale sur les réseaux sociaux (Facebook, Instagram, LinkedIn, etc.)
+                  </p>
                 </div>
               </div>
             )}

@@ -98,6 +98,7 @@ export function Navbar() {
             Tarifs
             <span className="absolute bottom-0 left-1/2 h-0.5 w-0 bg-[#80368D] transition-all duration-300 group-hover:left-4 group-hover:w-[calc(100%-32px)]" />
           </Link>
+          {/* Lien Démo masqué en attendant la vidéo de présentation dynamique
           {!isAuthenticated && (
             <Link
               href="/dashboard"
@@ -107,6 +108,7 @@ export function Navbar() {
               <span className="absolute bottom-0 left-1/2 h-0.5 w-0 bg-[#80368D] transition-all duration-300 group-hover:left-4 group-hover:w-[calc(100%-32px)]" />
             </Link>
           )}
+          */}
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
@@ -180,6 +182,7 @@ export function Navbar() {
             >
               Tarifs
             </Link>
+            {/* Lien Démo masqué en attendant la vidéo de présentation dynamique
             {!isAuthenticated && (
               <Link
                 href="/dashboard"
@@ -189,6 +192,7 @@ export function Navbar() {
                 Démo
               </Link>
             )}
+            */}
             <hr className="my-3 border-[#D0E4F2]" />
             {isAuthenticated ? (
               <Button asChild className="h-12 font-semibold shadow-lg shadow-[#80368D]/25 bg-[#80368D] hover:bg-[#80368D]/90">

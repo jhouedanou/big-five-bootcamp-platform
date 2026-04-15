@@ -46,6 +46,7 @@ interface CSVRow {
     accessLevel?: string
     axe?: string
     featured?: string
+    publication_url?: string
 }
 
 interface CSVImporterProps {
@@ -71,7 +72,8 @@ const CSV_TEMPLATE_HEADERS = [
     "status",
     "accessLevel",
     "axe",
-    "featured"
+    "featured",
+    "publication_url"
 ]
 
 const CSV_EXAMPLE_DATA = [
@@ -94,7 +96,8 @@ const CSV_EXAMPLE_DATA = [
         status: "Publié",
         accessLevel: "premium",
         axe: "Offre / Promotion;Storytelling",
-        featured: "false"
+        featured: "false",
+        publication_url: "https://www.facebook.com/Nike/posts/123456789"
     }
 ]
 
@@ -253,7 +256,7 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
                             <div>
                                 <p className="font-medium">Télécharger le template</p>
                                 <p className="text-sm text-muted-foreground">
-                                    19 colonnes : title, brand, agency, platform, country, sector, format, year, imageUrl, videoUrl, analyse, why_this_axis, summary, description, tags (séparés par ;), status (Brouillon/En attente/Publié), accessLevel (free/premium), axe (séparés par ;), featured (true/false)
+                                    20 colonnes : title, brand, agency, platform, country, sector, format, year, imageUrl, videoUrl, analyse, why_this_axis, summary, description, tags (séparés par ;), status (Brouillon/En attente/Publié), accessLevel (free/premium), axe (séparés par ;), featured (true/false), publication_url
                                 </p>
                             </div>
                             <Button variant="secondary" size="sm" onClick={downloadTemplate} className="gap-2 shrink-0">
@@ -350,6 +353,7 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
                                                     <TableHead>Status</TableHead>
                                                     <TableHead>Accès</TableHead>
                                                     <TableHead>Featured</TableHead>
+                                                    <TableHead>Publication URL</TableHead>
                                                 </TableRow>
                                             </TableHeader>
                                             <TableBody>
@@ -376,6 +380,13 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
                                                         <TableCell>{row.status || "—"}</TableCell>
                                                         <TableCell>{row.accessLevel || "—"}</TableCell>
                                                         <TableCell>{row.featured || "—"}</TableCell>
+                                                        <TableCell className="max-w-[200px] truncate">
+                                                            {row.publication_url ? (
+                                                                <a href={row.publication_url} target="_blank" rel="noopener noreferrer" className="text-[#80368D] underline">
+                                                                    {row.publication_url}
+                                                                </a>
+                                                            ) : "—"}
+                                                        </TableCell>
                                                     </TableRow>
                                                 ))}
                                             </TableBody>

@@ -268,6 +268,7 @@ interface CSVCreativeRow {
     accessLevel?: string
     axe?: string
     featured?: string
+    publication_url?: string
 }
 
 const VALID_STATUSES = ['Brouillon', 'En attente', 'Publié']
@@ -367,6 +368,7 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
                     ? row.axe.split(';').map(a => a.trim()).filter(Boolean)
                     : [],
                 featured: row.featured?.trim().toLowerCase() === 'true' ? true : false,
+                publication_url: row.publication_url?.trim() || null,
             })
 
             if (error) {

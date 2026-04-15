@@ -75,42 +75,18 @@ const plans = [
         ],
         excluded: [],
     },
-    {
-        key: "agency",
-        name: "Agence",
-        description: "Pour les équipes marketing.",
-        monthlyPrice: -1,
-        annualPrice: -1,
-        cta: "Contacter l'équipe",
-        ctaLink: "mailto:contact@bigfiveabidjan.com",
-        ctaVariant: "outline" as const,
-        highlighted: false,
-        badge: null,
-        color: "#1A1F2B",
-        features: [
-            "Tout du plan Pro",
-            "Accès multi-comptes",
-            "Facturation centralisée",
-            "Onboarding dédié",
-            "Demande de suivi de marques",
-        ],
-        excluded: [],
-    },
 ]
 
 const comparisonFeatures = [
-    { name: "Accès à la bibliothèque", free: "5/mois", basic: "Illimité", pro: "Illimité", agency: "Illimité" },
-    { name: "Filtres de base", free: true, basic: true, pro: true, agency: true },
-    { name: "Filtres avancés (Secteur, Pays, Format)", free: false, basic: true, pro: true, agency: true },
-    { name: "Collections personnalisées", free: false, basic: true, pro: true, agency: true },
-    { name: "Téléchargement des vidéos", free: false, basic: true, pro: true, agency: true },
-    { name: "Recherches illimitées", free: false, basic: false, pro: true, agency: true },
-    { name: "Suivi de marques", free: false, basic: false, pro: true, agency: true },
-    { name: "Support prioritaire", free: false, basic: false, pro: true, agency: true },
-    { name: "Accès multi-comptes", free: false, basic: false, pro: false, agency: true },
-    { name: "Facturation centralisée", free: false, basic: false, pro: false, agency: true },
-    { name: "Onboarding dédié", free: false, basic: false, pro: false, agency: true },
-    { name: "Email hebdomadaire", free: true, basic: true, pro: true, agency: true },
+    { name: "Accès à la bibliothèque", free: "5/mois", basic: "Illimité", pro: "Illimité" },
+    { name: "Filtres de base", free: true, basic: true, pro: true },
+    { name: "Filtres avancés (Secteur, Pays, Format)", free: false, basic: true, pro: true },
+    { name: "Collections personnalisées", free: false, basic: true, pro: true },
+    { name: "Téléchargement des vidéos", free: false, basic: true, pro: true },
+    { name: "Recherches illimitées", free: false, basic: false, pro: true },
+    { name: "Suivi de marques", free: false, basic: false, pro: true },
+    { name: "Support prioritaire", free: false, basic: false, pro: true },
+    { name: "Email hebdomadaire", free: true, basic: true, pro: true },
 ]
 
 function formatPrice(price: number): string {
@@ -179,7 +155,7 @@ export default function PricingPage() {
                 {/* Grille tarifaire responsive */}
                 <section className="py-12 sm:py-20 -mt-12 sm:-mt-20 relative z-10">
                     <div className="container mx-auto px-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-7xl mx-auto">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-5xl mx-auto">
                             {plans.map((plan) => (
                                 <div
                                     key={plan.key}
@@ -295,14 +271,13 @@ export default function PricingPage() {
                                             <th className="p-4 sm:p-6 text-center text-sm font-bold text-[#1A1F2B]">Découverte</th>
                                             <th className="p-4 sm:p-6 text-center text-sm font-bold text-[#1A1F2B]">Basic</th>
                                             <th className="p-4 sm:p-6 text-center text-sm font-bold text-[#80368D] bg-[#80368D]/5">Pro</th>
-                                            <th className="p-4 sm:p-6 text-center text-sm font-bold text-[#1A1F2B]">Agence</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {comparisonFeatures.map((feature, idx) => (
                                             <tr key={feature.name} className={cn("border-b border-[#D0E4F2]/50", idx % 2 === 0 ? "bg-white" : "bg-[#D0E4F2]/10")}>
                                                 <td className="p-4 sm:p-5 text-sm text-[#1A1F2B]/80 font-medium">{feature.name}</td>
-                                                {(["free", "basic", "pro", "agency"] as const).map((planKey) => {
+                                                {(["free", "basic", "pro"] as const).map((planKey) => {
                                                     const value = feature[planKey]
                                                     return (
                                                         <td key={planKey} className={cn("p-4 sm:p-5 text-center", planKey === "pro" && "bg-[#80368D]/5")}>
@@ -323,7 +298,7 @@ export default function PricingPage() {
 
                         {/* Mobile */}
                         <div className="md:hidden space-y-4 max-w-lg mx-auto">
-                            {(["free", "basic", "pro", "agency"] as const).map((planKey) => {
+                            {(["free", "basic", "pro"] as const).map((planKey) => {
                                 const planInfo = plans.find(p => p.key === planKey)!
                                 return (
                                     <div key={planKey} className={cn("rounded-xl border bg-white p-5 shadow-sm", planKey === "pro" ? "border-[#80368D] shadow-md" : "border-[#D0E4F2]")}>

@@ -146,12 +146,14 @@ export function HeroSection() {
                   <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </Link>
               </Button>
+              {/* Bouton masqué en attendant la vidéo de présentation dynamique
               <Button size="lg" variant="outline" asChild className="group h-14 px-8 text-base font-semibold border-[#D0E4F2] bg-white text-[#1A1F2B] hover:bg-[#D0E4F2]/50 hover:border-[#D0E4F2] transition-all duration-300">
                 <Link href="/dashboard">
                   <Play className="mr-2 h-5 w-5 fill-current text-[#80368D] opacity-80" />
                   Voir la démo
                 </Link>
               </Button>
+              */}
             </div>
 
             {/* Price info below buttons */}

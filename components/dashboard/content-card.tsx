@@ -41,6 +41,7 @@ export interface ContentItem {
   slug?: string // Permalien SEO-friendly
   createdAt?: string // Date ISO de création (depuis Supabase)
   featured?: boolean // Mise en avant par l'admin (campagne de la semaine)
+  publicationUrl?: string // Lien vers la publication d'origine
 }
 
 interface ContentCardProps {

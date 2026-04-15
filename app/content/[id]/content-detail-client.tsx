@@ -66,6 +66,7 @@ interface Campaign {
   slug?: string | null;
   axe?: string[] | null;
   created_at: string;
+  publication_url?: string | null;
 }
 
 /**
@@ -793,6 +794,24 @@ export default function ContentDetailClient({ id }: { id: string }) {
               <div className="h-6 w-px bg-border mx-1" />
               <ReactionButtons campaignId={content.id} />
             </div>
+
+            {/* Bouton Voir la publication originale */}
+            {content.publication_url && (
+              <a
+                href={content.publication_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 w-full"
+              >
+                <Button
+                  variant="outline"
+                  className="w-full gap-2 border-[#80368D]/30 text-[#80368D] hover:bg-[#80368D]/5 hover:border-[#80368D] font-semibold"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Voir la publication
+                </Button>
+              </a>
+            )}
 
             {/* Carte Informations */}
             <Card className="shadow-sm">

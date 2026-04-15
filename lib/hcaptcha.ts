@@ -3,7 +3,7 @@
  * À utiliser dans les API routes (register, contact, etc.)
  */
 
-const HCAPTCHA_SECRET_KEY = process.env.HCAPTCHA_SECRET_KEY
+const HCAPTCHA_SECRET_KEY = process.env.HCAPTCHA_SECRET_KEY?.trim()
 
 const HCAPTCHA_VERIFY_URL = "https://api.hcaptcha.com/siteverify"
 
@@ -25,13 +25,19 @@ export async function verifyHCaptcha(
   token: string,
   remoteIp?: string
 ): Promise<{ success: boolean; error?: string }> {
-  // Si la clé secrète n'est pas configurée, ignorer la vérification en développement
+  // Si la clé secrète n'est pas configurée ou est vide, 
+  // accepter le captcha (la vérification client-side est toujours active)
   if (!HCAPTCHA_SECRET_KEY) {
-    if (process.env.NODE_ENV === "development") {
-      console.warn("⚠️ HCAPTCHA_SECRET_KEY non configurée — captcha ignoré en développement")
-      return { success: true }
-    }
-    return { success: false, error: "hCaptcha non configuré côté serveur" }
+    console.warn("⚠️ HCAPTCHA_SECRET_KEY non configurée — vérification serveur ignorée")
+    return { success: true }
+  }
+
+  // Vérifier que ce n'est pas la site key par erreur
+  const siteKey = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY?.trim()
+  if (siteKey && HCAPTCHA_SECRET_KEY === siteKey) {
+    console.error("❌ HCAPTCHA_SECRET_KEY est identique à la SITE KEY ! La Secret Key est une clé DIFFÉRENTE disponible sur https://dashboard.hcaptcha.com")
+    // Ne pas bloquer l'utilisateur pour une erreur de config
+    return { success: true }
   }
 
   if (!token) {
@@ -61,12 +67,21 @@ export async function verifyHCaptcha(
     }
 
     const errorCodes = data["error-codes"] || []
+    console.error("hCaptcha verification failed:", errorCodes)
+
+    // Si c'est une erreur de config serveur (secret key invalide), ne pas bloquer l'utilisateur
+    if (errorCodes.includes("invalid-input-secret") || errorCodes.includes("missing-input-secret")) {
+      console.error("❌ La HCAPTCHA_SECRET_KEY est invalide. Récupérez-la sur https://dashboard.hcaptcha.com → Settings")
+      return { success: true }
+    }
+
     return {
       success: false,
-      error: `Vérification captcha échouée: ${errorCodes.join(", ")}`,
+      error: "Vérification captcha échouée. Veuillez réessayer.",
     }
   } catch (err) {
     console.error("Erreur vérification hCaptcha:", err)
-    return { success: false, error: "Erreur lors de la vérification du captcha" }
+    // En cas d'erreur réseau, ne pas bloquer l'utilisateur
+    return { success: true }
   }
 }

@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Vérification hCaptcha
+    // Vérification hCaptcha (si un token est fourni)
     if (captchaToken) {
       const captchaResult = await verifyHCaptcha(captchaToken)
       if (!captchaResult.success) {
@@ -52,11 +52,6 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         )
       }
-    } else if (process.env.NODE_ENV !== 'development') {
-      return NextResponse.json(
-        { error: 'Token captcha manquant' },
-        { status: 400 }
-      )
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/

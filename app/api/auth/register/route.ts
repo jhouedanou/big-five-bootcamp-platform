@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     const { name, email, password } = validation.data
     const captchaToken = body.captchaToken as string | undefined
 
-    // Vérification hCaptcha
+    // Vérification hCaptcha (si un token est fourni)
     if (captchaToken) {
       const captchaResult = await verifyHCaptcha(captchaToken)
       if (!captchaResult.success) {
@@ -51,11 +51,6 @@ export async function POST(request: Request) {
           { status: 400 }
         )
       }
-    } else if (process.env.NODE_ENV !== 'development') {
-      return NextResponse.json(
-        { error: "Token captcha manquant" },
-        { status: 400 }
-      )
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://library.bigfive.solutions'

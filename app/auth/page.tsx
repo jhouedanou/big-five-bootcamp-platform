@@ -80,8 +80,8 @@ export default function AuthPage() {
           </CardTitle>
           <CardDescription className="text-center">
             {isSignUp
-              ? 'Créez votre compte Big Five'
-              : 'Connectez-vous à votre compte Big Five'}
+              ? 'Créez votre compte Laveiye'
+              : 'Connectez-vous à votre compte Laveiye'}
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>

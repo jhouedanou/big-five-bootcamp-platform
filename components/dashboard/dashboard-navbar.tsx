@@ -100,13 +100,13 @@ export function DashboardNavbar({
           <Link href="/dashboard" className="flex items-center gap-2">
             <Image
               src="/logo.png"
-              alt="Big Five Creative Library"
+              alt="Laveiye"
               width={32}
               height={32}
               className="h-8 w-8"
               priority
             />
-            <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#1A1F2B]">Big Five Creative Library</span>
+            <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#1A1F2B]">Laveiye</span>
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex">
@@ -152,15 +152,15 @@ export function DashboardNavbar({
 
         <div className="hidden flex-1 items-center justify-center px-8 md:flex">
           <div className="relative w-full max-w-xl group">
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-[#80368D]/20 to-[#D0E4F2]/40 rounded-xl blur opacity-60 group-focus-within:opacity-100 transition-opacity duration-300" />
+            <div className="absolute -inset-1 bg-gradient-to-r from-[#80368D]/30 via-[#F2B33D]/25 to-[#29358B]/30 rounded-2xl blur-md opacity-70 group-focus-within:opacity-100 group-hover:opacity-90 transition-opacity duration-300 animate-pulse-slow" />
             <div className="relative flex items-center">
-              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#80368D]/70 group-focus-within:text-[#80368D] transition-colors" />
+              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#80368D] group-focus-within:text-[#80368D] transition-colors" />
               <input
                 type="text"
                 placeholder="🔍 Rechercher par mots-clés, marque, secteur, pays..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-12 w-full rounded-xl border-2 border-[#80368D]/20 bg-white pl-12 pr-4 text-sm font-medium text-[#1A1F2B] shadow-sm outline-none transition-all placeholder:text-[#1A1F2B]/40 focus:border-[#80368D] focus:ring-4 focus:ring-[#80368D]/10 focus:shadow-lg focus:shadow-[#80368D]/5 hover:border-[#80368D]/40"
+                className="h-12 w-full rounded-2xl border-2 border-[#80368D]/30 bg-white pl-12 pr-4 text-sm font-medium text-[#1A1F2B] shadow-md shadow-[#80368D]/10 outline-none transition-all placeholder:text-[#1A1F2B]/50 focus:border-[#80368D] focus:ring-4 focus:ring-[#80368D]/15 focus:shadow-lg focus:shadow-[#80368D]/15 hover:border-[#80368D]/50 hover:shadow-lg hover:shadow-[#80368D]/10"
               />
               {searchQuery && (
                 <button

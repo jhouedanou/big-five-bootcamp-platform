@@ -295,7 +295,7 @@ export default function MailchimpSettingsPage() {
                   id="mc-from-name"
                   value={fromName}
                   onChange={(e) => setFromName(e.target.value)}
-                  placeholder="Big Five Creative Library"
+                  placeholder="Laveiye"
                 />
               </div>
 
@@ -309,7 +309,7 @@ export default function MailchimpSettingsPage() {
                   type="email"
                   value={fromEmail}
                   onChange={(e) => setFromEmail(e.target.value)}
-                  placeholder="contact@bigfive.solutions"
+                  placeholder="contact@laveiye.com"
                 />
               </div>
 
@@ -325,7 +325,7 @@ export default function MailchimpSettingsPage() {
                   id="mc-default-tag"
                   value={defaultTag}
                   onChange={(e) => setDefaultTag(e.target.value)}
-                  placeholder="big-five-platform"
+                  placeholder="laveiye-platform"
                 />
               </div>
 

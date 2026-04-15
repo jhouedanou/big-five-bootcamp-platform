@@ -6,7 +6,7 @@ import { getSupabaseAdmin } from '@/lib/supabase-server'
 // IMPORTANT : Avec onboarding@resend.dev, Resend n'envoie qu'au propriétaire du compte.
 // Pour envoyer à d'autres destinataires, vérifiez un domaine sur resend.com/domains
 const DEFAULT_TO_EMAIL = process.env.CONTACT_TO_EMAIL || 'analyticsbigfive@gmail.com'
-const DEFAULT_FROM_EMAIL = process.env.CONTACT_FROM_EMAIL || 'Big Five <onboarding@resend.dev>'
+const DEFAULT_FROM_EMAIL = process.env.CONTACT_FROM_EMAIL || 'Laveiye <onboarding@resend.dev>'
 
 // Récupérer les adresses email depuis Supabase (configurable depuis l'admin)
 async function getContactEmails() {
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background: #80368D; padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">Big Five</h1>
+            <h1 style="color: white; margin: 0; font-size: 24px;">Laveiye</h1>
             <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0;">Nouveau message de contact</p>
           </div>
           <div style="background: #f9fafb; padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
         html: `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="background: #80368D; padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
-              <h1 style="color: white; margin: 0; font-size: 24px;">Big Five</h1>
+              <h1 style="color: white; margin: 0; font-size: 24px;">Laveiye</h1>
               <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0;">Accusé de réception</p>
             </div>
             <div style="background: #f9fafb; padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
               </div>
               <p style="color: #4b5563; line-height: 1.6; margin: 16px 0 0;">
                 À très bientôt,<br />
-                <strong>L'équipe Big Five</strong>
+                <strong>L'équipe Laveiye</strong>
               </p>
               <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
               <p style="color: #9ca3af; font-size: 12px; margin: 0;">

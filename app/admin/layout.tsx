@@ -120,14 +120,14 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-2 rounded-xl shadow-lg shadow-orange-500/30">
             <Image
               src="/logo.png"
-              alt="Big Five"
+              alt="Laveiye"
               width={24}
               height={24}
               className="h-6 w-6"
             />
           </div>
           <div>
-            <span className="font-heading text-lg font-bold">Big Five</span>
+            <span className="font-heading text-lg font-bold">Laveiye</span>
             <span className="text-xs text-white/60 block">Admin Panel</span>
           </div>
         </Link>
@@ -160,7 +160,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-2.5 rounded-xl shadow-lg shadow-orange-500/30 group-hover:shadow-orange-500/50 transition-all group-hover:scale-105">
                   <Image
                     src="/logo.png"
-                    alt="Big Five Creative Library"
+                    alt="Laveiye"
                     width={28}
                     height={28}
                     className="h-7 w-7 object-contain"
@@ -168,7 +168,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                   />
                 </div>
                 <div className="flex flex-col">
-                  <span className="font-heading text-xl font-bold text-white">Big Five</span>
+                  <span className="font-heading text-xl font-bold text-white">Laveiye</span>
                   <span className="text-orange-400/80 text-xs font-medium">Admin Panel</span>
                 </div>
               </Link>
@@ -241,7 +241,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-white truncate">Administrateur</p>
-                  <p className="text-xs text-white/40 truncate">Big Five Team</p>
+                  <p className="text-xs text-white/40 truncate">Laveiye Team</p>
                 </div>
               </div>
               <button

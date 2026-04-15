@@ -138,7 +138,7 @@ export default function SubscribePage() {
               <Sparkles className="h-4 w-4 text-white" />
             </div>
             <span className="font-[family-name:var(--font-heading)] font-bold text-[#1A1F2B]">
-              Big Five
+              Laveiye
             </span>
           </Link>
           <div className="w-16" />
@@ -154,7 +154,7 @@ export default function SubscribePage() {
         <p className="mt-2 text-center text-[#1A1F2B]/60">
           {isActive
             ? `${isAnnual ? '365' : '30'} jours supplémentaires seront ajoutés à votre abonnement`
-            : "Débloquez l'accès complet à Big Five"}
+            : "Débloquez l'accès complet à Laveiye"}
         </p>
 
         {/* Abonnement actif - info renouvellement */}
@@ -388,7 +388,7 @@ export default function SubscribePage() {
           <div className="space-y-2 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-[#1A1F2B]/60">
-                {isActive ? "Renouvellement" : "Abonnement"} Big Five —{" "}
+                {isActive ? "Renouvellement" : "Abonnement"} Laveiye —{" "}
                 {plan.name} ({isAnnual ? 'Annuel' : 'Mensuel'})
               </span>
               <span className="font-medium text-[#1A1F2B]">

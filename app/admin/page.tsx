@@ -113,7 +113,7 @@ export default function AdminDashboardPage() {
             </h1>
           </div>
           <p className="text-slate-500 dark:text-slate-400">
-            Vue d'ensemble de la plateforme Big Five Creative Library
+            Vue d'ensemble de la plateforme Laveiye
           </p>
         </div>
         <div className="flex items-center gap-2">

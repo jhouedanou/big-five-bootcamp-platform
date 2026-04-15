@@ -269,12 +269,12 @@ function UpdatePasswordContent() {
                 <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-primary/20 to-accent/20 opacity-0 blur transition-opacity duration-300 group-hover:opacity-100" />
                 <img
                   src="/logo.png"
-                  alt="Big Five Creative Library"
+                  alt="Laveiye"
                   className="relative h-10 w-10 rounded-lg"
                 />
               </div>
               <span className="font-[family-name:var(--font-questrial)] text-xl font-bold text-foreground">
-                Big Five <span className="text-primary">Creative Library</span>
+                Laveiye
               </span>
             </Link>
           </div>
@@ -429,7 +429,7 @@ function UpdatePasswordContent() {
               </h2>
               <p className="text-lg text-white/80">
                 Choisissez un mot de passe fort et unique pour protéger votre accès 
-                à la bibliothèque créative Big Five.
+                à la bibliothèque créative Laveiye.
               </p>
             </div>
           </div>

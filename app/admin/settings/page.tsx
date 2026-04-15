@@ -30,8 +30,8 @@ export default function SettingsPage() {
         const res = await fetch("/api/admin/settings");
         const data = await res.json();
         if (data.settings) {
-          setContactToEmail(data.settings.contact_to_email || "contact@bigfive.solutions.com");
-          setContactFromEmail(data.settings.contact_from_email || "Big Five <onboarding@resend.dev>");
+          setContactToEmail(data.settings.contact_to_email || "contact@laveiye.com");
+          setContactFromEmail(data.settings.contact_from_email || "Laveiye <onboarding@resend.dev>");
         }
       } catch {
         console.error("Erreur chargement paramètres email");
@@ -264,7 +264,7 @@ export default function SettingsPage() {
                     type="email"
                     value={contactToEmail}
                     onChange={(e) => setContactToEmail(e.target.value)}
-                    placeholder="contact@bigfive.solutions.com"
+                    placeholder="contact@laveiye.com"
                   />
                 </div>
                 <div>
@@ -275,7 +275,7 @@ export default function SettingsPage() {
                     type="text"
                     value={contactFromEmail}
                     onChange={(e) => setContactFromEmail(e.target.value)}
-                    placeholder="Big Five <onboarding@resend.dev>"
+                    placeholder="Laveiye <onboarding@resend.dev>"
                   />
                 </div>
                 <Button

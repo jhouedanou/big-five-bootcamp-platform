@@ -105,7 +105,7 @@ export async function GET(
 <body>
   <div class="receipt">
     <div class="header">
-      <h1>Big Five Creative Library</h1>
+      <h1>Laveiye</h1>
       <p>Reçu de paiement</p>
       <div class="badge">N° ${payment.ref_command}</div>
     </div>
@@ -151,7 +151,7 @@ export async function GET(
       </div>
     </div>
     <div class="footer">
-      <p>Big Five Creative Library — Bibliothèque de campagnes publicitaires africaines</p>
+      <p>Laveiye — Bibliothèque de campagnes publicitaires africaines</p>
       <p style="margin-top: 8px;">Ce document fait office de reçu de paiement.</p>
       <p style="margin-top: 4px;">Généré le ${new Date().toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</p>
     </div>

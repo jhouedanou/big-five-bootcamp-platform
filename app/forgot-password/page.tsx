@@ -69,10 +69,10 @@ export default function ForgotPasswordPage() {
                         <Link href="/" className="group inline-flex items-center gap-3">
                             <div className="relative">
                                 <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-primary/20 to-accent/20 opacity-0 blur transition-opacity duration-300 group-hover:opacity-100" />
-                                <img src="/logo.png" alt="Big Five Creative Library" className="relative h-10 w-10 rounded-lg" />
+                                <img src="/logo.png" alt="Laveiye" className="relative h-10 w-10 rounded-lg" />
                             </div>
                             <span className="font-[family-name:var(--font-questrial)] text-xl font-bold text-foreground">
-                                Big Five <span className="text-primary">Creative Library</span>
+                                Laveiye
                             </span>
                         </Link>
                     </div>

@@ -293,7 +293,7 @@ export function CreativeFormMultiStep({ creative, isEdit = false }: CreativeForm
                                     id="agency"
                                     value={formData.agency}
                                     onChange={(e) => updateField("agency", e.target.value)}
-                                    placeholder="Ex: Big Five, Ogilvy..."
+                                    placeholder="Ex: Laveiye, Ogilvy..."
                                 />
                             </div>
                         </div>

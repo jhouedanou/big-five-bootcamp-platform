@@ -60,13 +60,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     || `${campaigns.length} campagne${campaigns.length > 1 ? 's' : ''} créatives sélectionnées`
 
   return {
-    title: `${collection.name} — Big Five Creative Library`,
+    title: `${collection.name} — Laveiye`,
     description,
     openGraph: {
       title: `${collection.name} — Collection`,
       description,
       type: 'website',
-      siteName: 'Big Five Creative Library',
+      siteName: 'Laveiye',
       ...(campaigns[0]?.thumbnail ? {
         images: [{ url: getGoogleDriveImageUrl(campaigns[0].thumbnail), width: 1200, height: 630 }],
       } : {}),
@@ -184,7 +184,7 @@ export default async function SharedCollectionPage({ params }: PageProps) {
           {/* Footer CTA */}
           <div className="mt-12 text-center">
             <p className="text-sm text-muted-foreground mb-3">
-              Créé avec Big Five Creative Library
+              Créé avec Laveiye
             </p>
             <Link
               href="/"

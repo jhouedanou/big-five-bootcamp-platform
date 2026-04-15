@@ -16,7 +16,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: 'Big Five Creative Library - La référence créative',
+  title: 'Laveiye - La référence créative',
   description: 'Benchmarkez, analysez et créez des concepts gagnants en quelques minutes.',
   icons: {
     icon: [

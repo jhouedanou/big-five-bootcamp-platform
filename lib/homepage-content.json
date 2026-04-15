@@ -1,0 +1,84 @@
+{
+  "hero": {
+    "badge": "La plus grande bibliothèque créative africaine",
+    "title": {
+      "line1": "La première",
+      "highlight": "bibliothèque créative",
+      "line3": "africaine."
+    },
+    "subtitle": "Accédez à la plus grande bibliothèque de campagnes marketing réelles en Afrique. Analysez, benchmarkez et créez des concepts gagnants en quelques minutes.",
+    "cta": {
+      "primary": "S'inscrire gratuitement",
+      "secondary": "Voir la démo"
+    },
+    "price": {
+      "label": "À partir de",
+      "amount": "4 900 XOF/mois",
+      "suffix": "— Accès illimité"
+    },
+    "socialProof": {
+      "rating": "★★★★★",
+      "label": "Approuvé par",
+      "suffix": "marketeurs"
+    },
+    "browserBar": "laveiye.com",
+    "filters": ["Tous", "Télécoms", "FMCG", "Fintech", "Banque"],
+    "cardOverlay": "Voir détail",
+    "floatingBadge": {
+      "label": "Taux de clic",
+      "value": "+127%"
+    }
+  },
+  "features": {
+    "title": "Pourquoi les meilleures agences utilisent",
+    "titleHighlight": "Laveiye",
+    "titleSuffix": "?",
+    "subtitle": "Une suite d'outils conçue pour accélérer votre processus créatif et valider vos intuitions.",
+    "items": [
+      {
+        "icon": "Target",
+        "title": "Ciblage Ultra-Précis",
+        "description": "Filtrez par pays, industrie, format ou objectif. Trouvez exactement ce que vous cherchez.",
+        "color": "text-[#80368D]",
+        "bg": "bg-[#80368D]/10"
+      },
+      {
+        "icon": "Layers",
+        "title": "Bibliothèque Massive",
+        "descriptionTemplate": "Plus de {count} campagnes archivées et mises à jour quotidiennement par nos équipes.",
+        "descriptionFallback": "Des campagnes archivées et mises à jour quotidiennement par nos équipes.",
+        "color": "text-[#29358B]",
+        "bg": "bg-[#29358B]/10"
+      },
+      {
+        "icon": "Zap",
+        "title": "Analyse Instantanée",
+        "description": "Décortiquez les stratégies gagnantes. Comprenez pourquoi une campagne fonctionne.",
+        "color": "text-[#F2B33D]",
+        "bg": "bg-[#F2B33D]/20"
+      }
+    ]
+  },
+  "preview": {
+    "title": "Une interface pensée pour la",
+    "titleHighlight": "vitesse",
+    "subtitle": "Ne perdez plus de temps sur des captures d'écran désorganisées. Notre dashboard unifié vous donne une vue d'ensemble sur le marché en temps réel.",
+    "features": [
+      "Sauvegardez vos favoris dans des collections",
+      "Partagez des collections avec vos clients",
+      "Téléchargez les assets en haute qualité",
+      "Recevez des alertes sur vos concurrents"
+    ],
+    "cta": "Explorer toutes les fonctionnalités",
+    "overlayButton": "Voir en action"
+  },
+  "pricingTeaser": {
+    "badge": "À partir de 4 900 XOF/mois",
+    "title": "Commencez à créer des campagnes impactantes.",
+    "subtitle": "Rejoignez des centaines de créatifs qui utilisent Laveiye pour élever leur niveau de jeu. Sans carte bancaire requise à l'inscription.",
+    "cta": {
+      "primary": "S'inscrire gratuitement",
+      "secondary": "Voir les tarifs"
+    }
+  }
+}

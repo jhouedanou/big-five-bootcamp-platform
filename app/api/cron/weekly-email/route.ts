@@ -136,12 +136,12 @@ export async function GET(request: NextRequest) {
     const emailHtml = `
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Big Five — Votre veille créative de la semaine</title></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Laveiye — Votre veille créative de la semaine</title></head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 20px;">
   <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
     <!-- Header -->
     <div style="background: linear-gradient(135deg, #80368D, #a855f7); padding: 36px 24px; text-align: center;">
-      <h1 style="color: white; margin: 0; font-size: 26px; letter-spacing: -0.5px;">Big Five Creative Library</h1>
+      <h1 style="color: white; margin: 0; font-size: 26px; letter-spacing: -0.5px;">Laveiye</h1>
       <p style="color: rgba(255,255,255,0.85); margin: 10px 0 0; font-size: 15px;">Votre veille créative — Semaine du ${weekLabel}</p>
     </div>
 
@@ -231,7 +231,7 @@ export async function GET(request: NextRequest) {
     <!-- Footer -->
     <div style="background: #f8f9fa; padding: 20px 24px; text-align: center; border-top: 1px solid #e5e7eb;">
       <p style="color: #999; font-size: 12px; margin: 0; line-height: 1.6;">
-        Vous recevez cet email car vous êtes inscrit sur Big Five Creative Library.<br/>
+        Vous recevez cet email car vous êtes inscrit sur Laveiye.<br/>
         <a href="${appUrl}/profile" style="color: #80368D;">Gérer mes préférences</a> · <a href="${appUrl}/profile" style="color: #999;">Se désabonner</a>
       </p>
     </div>
@@ -255,7 +255,7 @@ export async function GET(request: NextRequest) {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-              from: 'Big Five Creative Library <noreply@bigfiveabidjan.com>',
+              from: 'Laveiye <noreply@bigfiveabidjan.com>',
               to: user.email,
               subject: `${newCampaigns.length} nouvelles campagnes cette semaine — ${industriesList.slice(0, 3).join(', ')}`,
               html: emailHtml,

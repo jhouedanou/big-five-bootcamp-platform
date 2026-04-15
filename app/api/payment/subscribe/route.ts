@@ -115,8 +115,8 @@ export async function POST(request: NextRequest) {
     const nameParts = customerName.split(' ');
 
     const description = isCurrentlyActive
-      ? `Renouvellement Big Five ${planConfig.label} - ${billingLabel} (${ref_command})`
-      : `Abonnement Big Five ${planConfig.label} - ${billingLabel} (${ref_command})`;
+      ? `Renouvellement Laveiye ${planConfig.label} - ${billingLabel} (${ref_command})`
+      : `Abonnement Laveiye ${planConfig.label} - ${billingLabel} (${ref_command})`;
 
     // Creer le paiement dans la base
     const paymentInsert = {
@@ -135,8 +135,8 @@ export async function POST(request: NextRequest) {
         subscription_end_date: subscriptionEndDate.toISOString(),
         previous_end_date: isCurrentlyActive ? currentEndDate!.toISOString() : null,
         item_name: isCurrentlyActive
-          ? `Renouvellement Big Five ${planConfig.label} - ${billingLabel}`
-          : `Abonnement Big Five ${planConfig.label} - ${billingLabel}`,
+          ? `Renouvellement Laveiye ${planConfig.label} - ${billingLabel}`
+          : `Abonnement Laveiye ${planConfig.label} - ${billingLabel}`,
         userId: (existingUser as any).id,
       },
     };
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
         customer: {
           email: userEmail,
           first_name: nameParts[0] || 'Client',
-          last_name: nameParts.slice(1).join(' ') || 'Big Five',
+          last_name: nameParts.slice(1).join(' ') || 'Laveiye',
           phone: undefined,
         },
         metadata: {

@@ -743,7 +743,7 @@ function FavoritesPageContent() {
             const shareUrl = typeof window !== 'undefined'
               ? `${window.location.origin}/shared/${shareModalCollection.share_token}`
               : `/shared/${shareModalCollection.share_token}`
-            const shareText = `Découvrez ma collection « ${shareModalCollection.name} » sur Big Five Creative Library !`
+            const shareText = `Découvrez ma collection « ${shareModalCollection.name} » sur Laveiye !`
             const encodedUrl = encodeURIComponent(shareUrl)
             const encodedText = encodeURIComponent(shareText)
 

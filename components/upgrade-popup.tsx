@@ -52,7 +52,7 @@ export function UpgradePopup({ open, onClose, reason }: UpgradePopupProps) {
 
         {/* Title */}
         <h2 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-center text-[#1A1F2B] mb-3">
-          Débloquez tout le potentiel de Big Five
+          Débloquez tout le potentiel de Laveiye
         </h2>
 
         <p className="text-center text-[#1A1F2B]/70 text-sm mb-8">

@@ -199,12 +199,12 @@ export async function getRelatedCampaigns(campaignId: string, tags: string[] | n
                 .neq('id', campaignId)
                 .eq('status', 'Publié')
                 .overlaps('tags', tags)
-                .limit(4)
+                .limit(8)
             if (data) related = data
         }
 
         // 2. Compléter par catégorie
-        if (related.length < 4 && category) {
+        if (related.length < 8 && category) {
             const existingIds = [campaignId, ...related.map(r => r.id)]
             const { data } = await supabase
                 .from('campaigns')
@@ -212,12 +212,12 @@ export async function getRelatedCampaigns(campaignId: string, tags: string[] | n
                 .not('id', 'in', `(${existingIds.join(',')})`)
                 .eq('status', 'Publié')
                 .eq('category', category)
-                .limit(4 - related.length)
+                .limit(8 - related.length)
             if (data) related = [...related, ...data]
         }
 
         // 3. Compléter par marque
-        if (related.length < 4 && brand) {
+        if (related.length < 8 && brand) {
             const existingIds = [campaignId, ...related.map(r => r.id)]
             const { data } = await supabase
                 .from('campaigns')
@@ -225,12 +225,12 @@ export async function getRelatedCampaigns(campaignId: string, tags: string[] | n
                 .not('id', 'in', `(${existingIds.join(',')})`)
                 .eq('status', 'Publié')
                 .eq('brand', brand)
-                .limit(4 - related.length)
+                .limit(8 - related.length)
             if (data) related = [...related, ...data]
         }
 
         // 4. Compléter avec des récentes
-        if (related.length < 4) {
+        if (related.length < 8) {
             const existingIds = [campaignId, ...related.map(r => r.id)]
             const { data } = await supabase
                 .from('campaigns')
@@ -238,7 +238,7 @@ export async function getRelatedCampaigns(campaignId: string, tags: string[] | n
                 .not('id', 'in', `(${existingIds.join(',')})`)
                 .eq('status', 'Publié')
                 .order('created_at', { ascending: false })
-                .limit(4 - related.length)
+                .limit(8 - related.length)
             if (data) related = [...related, ...data]
         }
 

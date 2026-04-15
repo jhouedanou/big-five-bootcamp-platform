@@ -116,7 +116,7 @@ export default function AdminLoginPage() {
             </div>
             <CardTitle className="text-2xl font-bold text-white">Administration</CardTitle>
             <CardDescription className="text-slate-400 text-center">
-              Connectez-vous pour accéder au back-office Big Five
+              Connectez-vous pour accéder au back-office Laveiye
             </CardDescription>
           </CardHeader>
           <CardContent className="pb-8">
@@ -130,7 +130,7 @@ export default function AdminLoginPage() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="admin@bigfive.com"
+                    placeholder="admin@laveiye.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-11 h-12 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-orange-500/50 focus:ring-orange-500/20 rounded-xl"
@@ -184,7 +184,7 @@ export default function AdminLoginPage() {
             {/* Footer */}
             <div className="mt-8 pt-6 border-t border-white/5">
               <p className="text-center text-xs text-slate-500">
-                Accès réservé aux administrateurs Big Five
+                Accès réservé aux administrateurs Laveiye
               </p>
             </div>
           </CardContent>

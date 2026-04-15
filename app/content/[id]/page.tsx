@@ -46,7 +46,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     if (!campaign) {
       return {
-        title: "Campagne introuvable | Big Five Creative Library",
+        title: "Campagne introuvable | Laveiye",
       };
     }
 
@@ -54,7 +54,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       ? stripHtml(fixBrokenEncoding(campaign.description)).slice(0, 160)
       : `${fixBrokenEncoding(campaign.brand) || ""} ${campaign.category ? `- ${fixBrokenEncoding(campaign.category)}` : ""} | Découvrez cette campagne créative`.trim();
 
-    const title = `${fixBrokenEncoding(campaign.title)} | Big Five Creative Library`;
+    const title = `${fixBrokenEncoding(campaign.title)} | Laveiye`;
 
     // URL canonique avec le slug pour le SEO
     const canonicalSlug = campaign.slug || campaign.id;
@@ -90,7 +90,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   } catch {
     return {
-      title: "Big Five Creative Library",
+      title: "Laveiye",
     };
   }
 }

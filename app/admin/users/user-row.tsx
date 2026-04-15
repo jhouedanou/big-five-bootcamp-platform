@@ -99,7 +99,7 @@ export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
     const [isSendingEmail, setIsSendingEmail] = useState(false)
     const [emailSent, setEmailSent] = useState(false)
     const [emailDialogOpen, setEmailDialogOpen] = useState(false)
-    const [emailSubject, setEmailSubject] = useState("Nouveautés - Big Five Creative Library")
+    const [emailSubject, setEmailSubject] = useState("Nouveautés - Laveiye")
     const [emailMessage, setEmailMessage] = useState("")
     const [resetDays, setResetDays] = useState(30)
 
@@ -125,8 +125,8 @@ export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
     }
 
     const openEmailDialog = () => {
-        setEmailSubject("Nouveautés - Big Five Creative Library")
-        setEmailMessage(`Salut ${(user.name as string)?.split(' ')[0] || ''} !\n\nOn a ajouté de nouvelles campagnes sur Big Five.\nViens les découvrir.\n\nL'équipe Big Five`)
+        setEmailSubject("Nouveautés - Laveiye")
+        setEmailMessage(`Salut ${(user.name as string)?.split(' ')[0] || ''} !\n\nOn a ajouté de nouvelles campagnes sur Laveiye.\nViens les découvrir.\n\nL'équipe Laveiye`)
         setEmailSent(false)
         setEmailDialogOpen(true)
     }

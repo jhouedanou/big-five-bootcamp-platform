@@ -21,7 +21,7 @@ export default function PaywallPage() {
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#80368D]">
               <Sparkles className="h-6 w-6 text-white" />
             </div>
-            <span className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[#1A1F2B]">Big Five</span>
+            <span className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[#1A1F2B]">Laveiye</span>
           </Link>
         </div>
 

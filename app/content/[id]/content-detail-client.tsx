@@ -920,16 +920,16 @@ export default function ContentDetailClient({ id }: { id: string }) {
               </div>
             )}
 
-            {/* ---- Contenus similaires — Grille 2 colonnes ---- */}
+            {/* ---- Contenus similaires — Grille 2 colonnes, 8 items ---- */}
             {relatedContent.length > 0 && (
               <div className="mt-2">
-                <h3 className="font-bold text-lg mb-4">Contenus similaires</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <h3 className="font-bold text-xl mb-5">Contenus similaires</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {relatedContent.map((item) => (
                     <Link
                       key={item.id}
                       href={`/content/${item.slug || item.id}`}
-                      className="flex gap-3 group p-3 rounded-xl border border-border hover:border-[#80368D]/30 hover:shadow-md transition-all bg-card"
+                      className="flex gap-4 group p-4 rounded-xl border border-border hover:border-[#80368D]/30 hover:shadow-md transition-all bg-card"
                       onClick={async (e) => {
                         if (!isFreeUser) return;
                         e.preventDefault();
@@ -948,29 +948,35 @@ export default function ContentDetailClient({ id }: { id: string }) {
                         }
                       }}
                     >
-                      <div className="relative w-14 h-14 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+                      <div className="relative w-16 h-16 bg-muted rounded-lg overflow-hidden flex-shrink-0">
                         {item.thumbnail ? (
                           <Image
                             src={getGoogleDriveImageUrl(item.thumbnail)}
                             alt={item.title}
                             fill
-                            sizes="56px"
+                            sizes="64px"
                             className="object-cover group-hover:scale-105 transition-transform"
                             loading="lazy"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm font-bold">
                             {item.title.substring(0, 2).toUpperCase()}
                           </div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-foreground group-hover:text-[#80368D] transition-colors line-clamp-1">
+                        <h4 className="text-base font-semibold text-foreground group-hover:text-[#80368D] transition-colors line-clamp-1">
                           {item.title}
                         </h4>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {item.brand || item.category}
-                        </p>
+                        {item.summary ? (
+                          <p className="text-sm text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+                            {item.summary.replace(/<[^>]*>/g, '').substring(0, 120)}{item.summary.length > 120 ? '...' : ''}
+                          </p>
+                        ) : (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {item.brand || item.category}
+                          </p>
+                        )}
                       </div>
                     </Link>
                   ))}

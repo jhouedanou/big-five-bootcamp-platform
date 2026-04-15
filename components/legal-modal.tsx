@@ -66,7 +66,7 @@ export function LegalModal({ trigger, defaultTab = "cgu" }: LegalModalProps) {
 
                 <h3 className="text-lg font-semibold mt-6 mb-3">1. Introduction</h3>
                 <p className="text-sm leading-relaxed">
-                  Bienvenue sur Big Five Creative Library. En accédant à notre site web et en 
+                  Bienvenue sur Laveiye. En accédant à notre site web et en 
                   utilisant nos services, vous acceptez d&apos;être lié par ces Conditions Générales 
                   d&apos;Utilisation (CGU), toutes les lois et réglementations applicables, et vous 
                   acceptez d&apos;être responsable du respect des lois locales applicables.
@@ -75,7 +75,7 @@ export function LegalModal({ trigger, defaultTab = "cgu" }: LegalModalProps) {
                 <h3 className="text-lg font-semibold mt-6 mb-3">2. Licence d&apos;utilisation</h3>
                 <p className="text-sm leading-relaxed">
                   Il est permis de télécharger temporairement une copie des documents (informations 
-                  ou logiciels) sur le site web de Big Five Creative Library à des fins de visionnage 
+                  ou logiciels) sur le site web de Laveiye à des fins de visionnage 
                   transitoire personnel et non commercial uniquement. Il s&apos;agit de l&apos;octroi d&apos;une 
                   licence, et non d&apos;un transfert de titre.
                 </p>
@@ -101,16 +101,16 @@ export function LegalModal({ trigger, defaultTab = "cgu" }: LegalModalProps) {
 
                 <h3 className="text-lg font-semibold mt-6 mb-3">5. Propriété intellectuelle</h3>
                 <p className="text-sm leading-relaxed">
-                  Tout le contenu disponible sur Big Five Creative Library, y compris mais sans s&apos;y 
+                  Tout le contenu disponible sur Laveiye, y compris mais sans s&apos;y 
                   limiter les textes, graphiques, logos, images, vidéos et logiciels, est la propriété 
-                  de Big Five Creative Library ou de ses fournisseurs de contenu et est protégé par 
+                  de Laveiye ou de ses fournisseurs de contenu et est protégé par 
                   les lois sur la propriété intellectuelle.
                 </p>
 
                 <h3 className="text-lg font-semibold mt-6 mb-3">6. Clause de non-responsabilité</h3>
                 <p className="text-sm leading-relaxed">
-                  Les documents figurant sur le site web de Big Five Creative Library sont fournis 
-                  &quot;tels quels&quot;. Big Five Creative Library ne donne aucune garantie, expresse ou implicite, 
+                  Les documents figurant sur le site web de Laveiye sont fournis 
+                  &quot;tels quels&quot;. Laveiye ne donne aucune garantie, expresse ou implicite, 
                   et rejette et nie par la présente toutes les autres garanties, y compris, sans 
                   limitation, les garanties ou conditions implicites de qualité marchande, d&apos;adéquation 
                   à un usage particulier, ou de non-violation de la propriété intellectuelle.
@@ -118,7 +118,7 @@ export function LegalModal({ trigger, defaultTab = "cgu" }: LegalModalProps) {
 
                 <h3 className="text-lg font-semibold mt-6 mb-3">7. Limitations</h3>
                 <p className="text-sm leading-relaxed">
-                  En aucun cas, Big Five Creative Library ou ses fournisseurs ne pourront être tenus 
+                  En aucun cas, Laveiye ou ses fournisseurs ne pourront être tenus 
                   responsables de tout dommage (y compris, sans limitation, les dommages pour perte 
                   de données ou de profit, ou en raison d&apos;une interruption d&apos;activité) découlant de 
                   l&apos;utilisation ou de l&apos;incapacité d&apos;utiliser les documents sur le site web.
@@ -126,7 +126,7 @@ export function LegalModal({ trigger, defaultTab = "cgu" }: LegalModalProps) {
 
                 <h3 className="text-lg font-semibold mt-6 mb-3">8. Modifications des conditions</h3>
                 <p className="text-sm leading-relaxed">
-                  Big Five Creative Library se réserve le droit de modifier ces conditions à tout 
+                  Laveiye se réserve le droit de modifier ces conditions à tout 
                   moment. Nous vous informerons de tout changement en publiant les nouvelles conditions 
                   sur cette page. Il est de votre responsabilité de consulter régulièrement ces conditions.
                 </p>
@@ -156,7 +156,7 @@ export function LegalModal({ trigger, defaultTab = "cgu" }: LegalModalProps) {
                 <h3 className="text-lg font-semibold mt-6 mb-3">1. Objet</h3>
                 <p className="text-sm leading-relaxed">
                   Les présentes Conditions Générales de Vente (CGV) régissent les relations 
-                  contractuelles entre Big Five Creative Library et ses clients concernant la vente 
+                  contractuelles entre Laveiye et ses clients concernant la vente 
                   d&apos;abonnements et de services sur la plateforme.
                 </p>
 
@@ -247,7 +247,7 @@ export function LegalModal({ trigger, defaultTab = "cgu" }: LegalModalProps) {
                 <h3 className="text-lg font-semibold mt-6 mb-3">1. Introduction</h3>
                 <p className="text-sm leading-relaxed">
                   Votre vie privée est importante pour nous. Cette Politique de Confidentialité 
-                  explique comment Big Five Creative Library collecte, utilise, divulgue et protège 
+                  explique comment Laveiye collecte, utilise, divulgue et protège 
                   vos informations personnelles lorsque vous utilisez notre plateforme.
                 </p>
 
@@ -347,7 +347,7 @@ export function LegalModal({ trigger, defaultTab = "cgu" }: LegalModalProps) {
                 <ul className="list-none pl-0 space-y-1 text-sm mt-2">
                   <li>Email : privacy@bigfive.com</li>
                   <li>Téléphone : +225 XX XX XX XX XX</li>
-                  <li>Adresse : Big Five Creative Library, Abidjan, Côte d&apos;Ivoire</li>
+                  <li>Adresse : Laveiye, Abidjan, Côte d&apos;Ivoire</li>
                 </ul>
               </div>
             </TabsContent>

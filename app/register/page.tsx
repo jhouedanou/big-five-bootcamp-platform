@@ -145,7 +145,7 @@ export default function RegisterPage() {
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#80368D]">
                 <Sparkles className="h-5 w-5 text-white" />
               </div>
-              <span className="font-[family-name:var(--font-heading)] text-xl font-bold text-foreground">Big Five</span>
+              <span className="font-[family-name:var(--font-heading)] text-xl font-bold text-foreground">Laveiye</span>
             </Link>
           </div>
 

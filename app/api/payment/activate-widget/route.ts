@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
         payment_method: 'Chariow Widget',
         chariow_sale_id: purchaseId || null,
         completed_at: now.toISOString(),
-        item_name: `Abonnement Big Five ${planLabel} - Widget`,
+        item_name: `Abonnement Laveiye ${planLabel} - Widget`,
         metadata: {
           type: 'subscription',
           userId: user.id,

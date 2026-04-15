@@ -22,7 +22,7 @@ const defaultSettings: BrandingSettings = {
   logo_url: "",
   logo_dark_url: "",
   favicon_url: "",
-  site_name: "Big Five",
+  site_name: "Laveiye",
 }
 
 export default function BrandingPage() {
@@ -392,7 +392,7 @@ export default function BrandingPage() {
                 id="site-name"
                 value={settings.site_name}
                 onChange={(e) => setSettings((prev) => ({ ...prev, site_name: e.target.value }))}
-                placeholder="Big Five"
+                placeholder="Laveiye"
                 className="bg-white border-gray-300 text-gray-900"
               />
             </div>
@@ -415,7 +415,7 @@ export default function BrandingPage() {
                   </div>
                 )}
                 <span className="font-[family-name:var(--font-heading)] font-bold text-gray-900">
-                  {settings.site_name || "Big Five"}
+                  {settings.site_name || "Laveiye"}
                 </span>
               </div>
             </div>

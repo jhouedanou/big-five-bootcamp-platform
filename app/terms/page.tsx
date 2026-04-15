@@ -15,22 +15,22 @@ export default function TermsPage() {
 
                         <h3>1. Introduction</h3>
                         <p>
-                            Bienvenue sur Big Five Creative Library. En accédant à notre site web et en utilisant nos services, vous acceptez d'être lié par ces Conditions Générales d'Utilisation (CGU), toutes les lois et réglementations applicables, et vous acceptez d'être responsable du respect des lois locales applicables.
+                            Bienvenue sur Laveiye. En accédant à notre site web et en utilisant nos services, vous acceptez d'être lié par ces Conditions Générales d'Utilisation (CGU), toutes les lois et réglementations applicables, et vous acceptez d'être responsable du respect des lois locales applicables.
                         </p>
 
                         <h3>2. Licence d'utilisation</h3>
                         <p>
-                            Il est permis de télécharger temporairement une copie des documents (informations ou logiciels) sur le site web de Big Five Creative Library à des fins de visionnage transitoire personnel et non commercial uniquement. Il s'agit de l'octroi d'une licence, et non d'un transfert de titre.
+                            Il est permis de télécharger temporairement une copie des documents (informations ou logiciels) sur le site web de Laveiye à des fins de visionnage transitoire personnel et non commercial uniquement. Il s'agit de l'octroi d'une licence, et non d'un transfert de titre.
                         </p>
 
                         <h3>3. Clause de non-responsabilité</h3>
                         <p>
-                            Les documents figurant sur le site web de Big Five Creative Library sont fournis "tels quels". Big Five Creative Library ne donne aucune garantie, expresse ou implicite, et rejette et nie par la présente toutes les autres garanties, y compris, sans limitation, les garanties ou conditions implicites de qualité marchande, d'adéquation à un usage particulier, ou de non-violation de la propriété intellectuelle ou autre violation des droits.
+                            Les documents figurant sur le site web de Laveiye sont fournis "tels quels". Laveiye ne donne aucune garantie, expresse ou implicite, et rejette et nie par la présente toutes les autres garanties, y compris, sans limitation, les garanties ou conditions implicites de qualité marchande, d'adéquation à un usage particulier, ou de non-violation de la propriété intellectuelle ou autre violation des droits.
                         </p>
 
                         <h3>4. Limitations</h3>
                         <p>
-                            En aucun cas, Big Five Creative Library ou ses fournisseurs ne pourront être tenus responsables de tout dommage (y compris, sans limitation, les dommages pour perte de données ou de profit, ou en raison d'une interruption d'activité) découlant de l'utilisation ou de l'incapacité d'utiliser les documents sur le site web de Big Five Creative Library.
+                            En aucun cas, Laveiye ou ses fournisseurs ne pourront être tenus responsables de tout dommage (y compris, sans limitation, les dommages pour perte de données ou de profit, ou en raison d'une interruption d'activité) découlant de l'utilisation ou de l'incapacité d'utiliser les documents sur le site web de Laveiye.
                         </p>
 
                         {/* Add more fake legal text sections as needed */}

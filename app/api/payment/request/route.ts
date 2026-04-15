@@ -113,12 +113,12 @@ export async function POST(request: NextRequest) {
     const monerooResponse = await initializePayment({
       amount: bootcamp.price,
       currency: 'XOF',
-      description: `${bootcamp.title} - Big Five Bootcamp (${ref_command})`,
+      description: `${bootcamp.title} - Laveiye Bootcamp (${ref_command})`,
       return_url: getReturnUrl(ref_command),
       customer: {
         email: userEmail,
         first_name: userEmail.split('@')[0],
-        last_name: 'Big Five',
+        last_name: 'Laveiye',
       },
       metadata: {
         ref_command,

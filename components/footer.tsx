@@ -39,7 +39,7 @@ export function Footer() {
                 <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-[#80368D]/20 to-[#F2B33D]/20 opacity-0 blur transition-opacity duration-300 group-hover:opacity-100" />
                 <Image
                   src={logoUrl}
-                  alt="Big Five Creative Library"
+                  alt="Laveiye"
                   width={44}
                   height={44}
                   className="relative h-11 w-11 rounded-lg"
@@ -47,7 +47,7 @@ export function Footer() {
               </div>
               <div className="flex flex-col">
                 <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#1A1F2B]">
-                  Big Five <span className="text-[#80368D]">Creative Library</span>
+                  Laveiye
                 </span>
                 <span className="text-xs text-[#1A1F2B]/50">L&apos;inspiration créative</span>
               </div>
@@ -131,7 +131,7 @@ export function Footer() {
           <p className="flex items-center gap-1 text-sm text-[#1A1F2B]/50">
             &copy; {currentYear} Creative Library powered by{" "}
             <a href="https://bigfive.solutions.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#80368D] transition-colors">
-              Big Five
+              Laveiye
             </a>.
           </p>
 

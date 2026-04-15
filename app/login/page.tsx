@@ -202,7 +202,7 @@ export default function LoginPage() {
                 </span>
               </h2>
               <p className="mt-6 text-lg text-[#1A1F2B]/70">
-                Accede a des milliers de campagnes marketing reelles pour booster ta creativite.
+                Des milliers de campagnes social media pour inspirer vos prochaines créations.
               </p>
               <div className="mt-10 grid grid-cols-3 gap-4">
                 {[

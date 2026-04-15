@@ -21,9 +21,15 @@ import {
   Pencil,
   Mail,
   Monitor,
+  Lock,
+  ArrowRight,
+  Eye,
+  Sparkles,
+  UserPlus,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar";
+import { Navbar } from "@/components/navbar";
 import { createClient } from "@/lib/supabase";
 import { ImageGallery } from "@/components/ui/lightbox";
 import { getCreativeByIdOrSlug, getRelatedCampaigns } from "@/app/actions/creative";
@@ -115,12 +121,34 @@ export default function ContentDetailClient({ id }: { id: string }) {
   const [isBlocked, setIsBlocked] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [clickTracked, setClickTracked] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [isUserAuthenticated, setIsUserAuthenticated] = useState(false);
   const isFreeUser = !isPaidPlan(userPlan);
   const router = useRouter();
 
+  // Vérifier l'état d'authentification directement
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        setIsUserAuthenticated(!!user);
+      } catch {
+        setIsUserAuthenticated(false);
+      } finally {
+        setAuthChecked(true);
+      }
+    };
+    checkAuth();
+  }, []);
+
   // Charger le plan utilisateur, vérifier la limite, et tracker le clic
+  // Uniquement pour les utilisateurs authentifiés
   // Utilise l'API serveur (cookies fiables) plutôt que getSession() client (cache stale)
   useEffect(() => {
+    // Ne pas tracker pour les visiteurs non authentifiés
+    if (!authChecked || !isUserAuthenticated) return;
+
     const loadUserDataAndTrack = async () => {
       try {
         // L'API track-click utilise getSupabaseServer() côté serveur
@@ -167,7 +195,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
       } catch { /* ignore */ }
     };
     loadUserDataAndTrack();
-  }, []);
+  }, [authChecked, isUserAuthenticated]);
 
   // Barre de progression de lecture
   useEffect(() => {
@@ -273,13 +301,17 @@ export default function ContentDetailClient({ id }: { id: string }) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
-        <DashboardNavbar
-          userPlan={userPlan}
-          monthlyClicks={monthlyClicks}
-          monthlyClickLimit={MONTHLY_CLICK_LIMIT}
-          isFreeUser={isFreeUser}
-          monthlyExplored={monthlyExplored}
-        />
+        {isUserAuthenticated ? (
+          <DashboardNavbar
+            userPlan={userPlan}
+            monthlyClicks={monthlyClicks}
+            monthlyClickLimit={MONTHLY_CLICK_LIMIT}
+            isFreeUser={isFreeUser}
+            monthlyExplored={monthlyExplored}
+          />
+        ) : (
+          <Navbar />
+        )}
         <div className="flex items-center justify-center h-[60vh]">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -332,20 +364,24 @@ export default function ContentDetailClient({ id }: { id: string }) {
   if (error || !content) {
     return (
       <div className="min-h-screen bg-background">
-        <DashboardNavbar
-          userPlan={userPlan}
-          monthlyClicks={monthlyClicks}
-          monthlyClickLimit={MONTHLY_CLICK_LIMIT}
-          isFreeUser={isFreeUser}
-          monthlyExplored={monthlyExplored}
-        />
+        {isUserAuthenticated ? (
+          <DashboardNavbar
+            userPlan={userPlan}
+            monthlyClicks={monthlyClicks}
+            monthlyClickLimit={MONTHLY_CLICK_LIMIT}
+            isFreeUser={isFreeUser}
+            monthlyExplored={monthlyExplored}
+          />
+        ) : (
+          <Navbar />
+        )}
         <main className="container mx-auto px-4 py-8">
           <Link
-            href="/dashboard"
+            href={isUserAuthenticated ? "/dashboard" : "/"}
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            Retour à la bibliothèque
+            {isUserAuthenticated ? "Retour à la bibliothèque" : "Retour à l'accueil"}
           </Link>
           <Card>
             <CardContent className="p-8 text-center">
@@ -418,6 +454,240 @@ export default function ContentDetailClient({ id }: { id: string }) {
       </div>
     </Link>
   );
+
+  // ===== MODE APERÇU PUBLIC (visiteurs non connectés) =====
+  if (authChecked && !isUserAuthenticated) {
+    const previewImageUrl = content.thumbnail
+      ? getGoogleDriveImageUrl(content.thumbnail)
+      : content.images?.[0]
+        ? getGoogleDriveImageUrl(content.images[0])
+        : null;
+
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+
+        <main className="container mx-auto px-4 py-8 max-w-5xl">
+          {/* Breadcrumb / Retour */}
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6 transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Retour à l&apos;accueil
+          </Link>
+
+          {/* Grille aperçu : image + infos */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start">
+
+            {/* Colonne gauche : Image avec overlay */}
+            <div className="space-y-6">
+              {/* Image créative avec gradient de flou */}
+              <div className="relative rounded-2xl overflow-hidden shadow-xl border border-border">
+                {previewImageUrl ? (
+                  <div className="relative">
+                    <img
+                      src={previewImageUrl}
+                      alt={content.title}
+                      className="w-full h-auto max-h-[600px] object-contain bg-gray-50"
+                    />
+                    {/* Gradient overlay en bas */}
+                    <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-white via-white/80 to-transparent dark:from-background dark:via-background/80" />
+                    <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                      <div className="flex items-center gap-2 bg-white/95 dark:bg-background/95 backdrop-blur-sm rounded-full px-5 py-2.5 shadow-lg border border-border">
+                        <Lock className="h-4 w-4 text-[#80368D]" />
+                        <span className="text-sm font-medium text-muted-foreground">Contenu complet réservé aux membres</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="aspect-video bg-gradient-to-br from-[#80368D]/10 to-[#D0E4F2]/30 flex items-center justify-center">
+                    <Eye className="h-16 w-16 text-[#80368D]/30" />
+                  </div>
+                )}
+              </div>
+
+              {/* Section floutée — simuler du contenu verrouillé */}
+              <div className="relative">
+                <div className="space-y-4 select-none pointer-events-none" aria-hidden="true">
+                  <Card className="border-l-4 border-l-[#80368D]/30 shadow-sm opacity-50 blur-[6px]">
+                    <CardContent className="p-6">
+                      <div className="h-5 w-24 bg-muted rounded mb-3" />
+                      <div className="space-y-2">
+                        <div className="h-3 w-full bg-muted rounded" />
+                        <div className="h-3 w-5/6 bg-muted rounded" />
+                        <div className="h-3 w-4/6 bg-muted rounded" />
+                        <div className="h-3 w-full bg-muted rounded" />
+                        <div className="h-3 w-3/4 bg-muted rounded" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="border-l-4 border-l-[#80368D]/30 shadow-sm opacity-50 blur-[6px]">
+                    <CardContent className="p-6">
+                      <div className="h-5 w-32 bg-muted rounded mb-3" />
+                      <div className="space-y-2">
+                        <div className="h-3 w-full bg-muted rounded" />
+                        <div className="h-3 w-2/3 bg-muted rounded" />
+                        <div className="h-3 w-5/6 bg-muted rounded" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+                {/* Overlay central avec CTA */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center bg-white/95 dark:bg-background/95 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-[#80368D]/20 max-w-sm mx-4">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#80368D]/10 mb-3">
+                      <Lock className="h-6 w-6 text-[#80368D]" />
+                    </div>
+                    <h3 className="font-bold text-lg text-foreground mb-1">Analyse complète</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Inscrivez-vous pour accéder à l&apos;analyse détaillée, les axes stratégiques et bien plus.
+                    </p>
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        asChild
+                        className="w-full bg-[#80368D] hover:bg-[#6b2d76] text-white font-semibold shadow-lg shadow-[#80368D]/25"
+                      >
+                        <Link href={`/register?redirect=/content/${content.slug || content.id}`}>
+                          <UserPlus className="h-4 w-4 mr-2" />
+                          S&apos;inscrire gratuitement
+                        </Link>
+                      </Button>
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="w-full border-[#80368D]/30 text-[#80368D] hover:bg-[#80368D]/5"
+                      >
+                        <Link href={`/login?redirect=/content/${content.slug || content.id}`}>
+                          Déjà membre ? Se connecter
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Colonne droite : Sidebar infos + CTA */}
+            <div className="lg:sticky lg:top-6 space-y-6">
+              {/* Titre */}
+              <div>
+                <h1 className="text-xl md:text-2xl font-bold text-foreground font-[family-name:var(--font-heading)]">
+                  {content.title}
+                </h1>
+                <p className="text-muted-foreground mt-1 text-sm">
+                  {brand}{brand && sector !== 'N/A' ? " - " : ""}{sector !== 'N/A' ? sector : ''}
+                </p>
+              </div>
+
+              {/* Badges axes */}
+              {content.axe && content.axe.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {content.axe.map((a) => (
+                    <Badge
+                      key={a}
+                      className="bg-[#80368D]/10 text-[#80368D] border-[#80368D]/20 hover:bg-[#80368D]/20"
+                    >
+                      {a}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              {/* Carte Informations (aperçu limité) */}
+              <Card className="shadow-sm">
+                <CardContent className="p-6 space-y-4">
+                  <h2 className="font-bold text-lg flex items-center gap-2">
+                    <Eye className="h-5 w-5 text-[#80368D]" />
+                    Aperçu
+                  </h2>
+
+                  <div className="space-y-3">
+                    {brand && (
+                      <div className="flex items-center gap-3 text-sm">
+                        <Building2 className="h-4 w-4 text-[#80368D]" />
+                        <span className="text-muted-foreground">Marque:</span>
+                        <span className="font-medium">{brand}</span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-3 text-sm">
+                      <Globe className="h-4 w-4 text-[#80368D]" />
+                      <span className="text-muted-foreground">Pays:</span>
+                      <span className="font-medium">{country}</span>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-sm">
+                      <Monitor className="h-4 w-4 text-[#80368D]" />
+                      <span className="text-muted-foreground">Plateforme:</span>
+                      <span className="font-medium">{platform}</span>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-sm">
+                      <Mail className="h-4 w-4 text-[#80368D]" />
+                      <span className="text-muted-foreground">Format:</span>
+                      <span className="font-medium">{format}</span>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-sm">
+                      <Calendar className="h-4 w-4 text-[#80368D]" />
+                      <span className="text-muted-foreground">Date:</span>
+                      <span className="font-medium">{date}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* CTA Card — inscription */}
+              <Card className="shadow-lg border-[#80368D]/20 bg-gradient-to-br from-[#80368D]/5 via-transparent to-[#D0E4F2]/20">
+                <CardContent className="p-6 text-center">
+                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#80368D]/10 mb-4">
+                    <Sparkles className="h-7 w-7 text-[#80368D]" />
+                  </div>
+                  <h3 className="font-bold text-lg mb-2">Accédez à tout le contenu</h3>
+                  <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                    Analyses stratégiques, axes de communication, descriptions complètes et plus de <strong>contenus exclusifs</strong>.
+                  </p>
+                  <Button
+                    asChild
+                    className="w-full bg-[#80368D] hover:bg-[#6b2d76] text-white font-semibold shadow-lg shadow-[#80368D]/25 h-12 text-base"
+                  >
+                    <Link href={`/register?redirect=/content/${content.slug || content.id}`}>
+                      S&apos;inscrire gratuitement
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Link>
+                  </Button>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Déjà membre ?{" "}
+                    <Link href={`/login?redirect=/content/${content.slug || content.id}`} className="text-[#80368D] font-semibold hover:underline">
+                      Se connecter
+                    </Link>
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Bouton partage (même non connecté) */}
+              <Button
+                variant="outline"
+                className="w-full gap-2 border-border hover:border-[#80368D]/30 hover:text-[#80368D]"
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({ title: content.title, url: window.location.href });
+                  } else {
+                    navigator.clipboard.writeText(window.location.href);
+                    toast.success("Lien copié !");
+                  }
+                }}
+              >
+                <Share2 className="h-4 w-4" />
+                Partager cette campagne
+              </Button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

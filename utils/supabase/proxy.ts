@@ -43,7 +43,6 @@ export async function updateSession(request: NextRequest) {
     // Protected routes - require authentication
     if (pathname.startsWith('/dashboard') ||
         pathname.startsWith('/favorites') ||
-        pathname.startsWith('/content/') ||
         pathname.startsWith('/profile') ||
         pathname.startsWith('/subscribe')) {
 

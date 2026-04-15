@@ -115,6 +115,7 @@ export function HeroSection() {
               </div>
             </div>
 
+            {/*
             <div className="mb-8 flex flex-wrap items-center gap-3 animate-fade-in-up">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-[#80368D]/10 px-4 py-1.5 text-xs font-semibold text-[#80368D] ring-1 ring-[#80368D]/20 hover-lift cursor-default">
                 <Sparkles className="h-3.5 w-3.5" />
@@ -125,14 +126,15 @@ export function HeroSection() {
                 {stats.countries > 0 ? `${stats.countries}+` : '...'} Pays Africains
               </span>
             </div>
+            */}
 
             <h1 className="font-[family-name:var(--font-heading)] text-5xl font-extrabold tracking-tight text-[#1A1F2B] sm:text-6xl lg:text-7xl leading-[1.1] animate-fade-in-up delay-100">
-              L'inspiration <br />
+              La première<br />
               <span className="gradient-text relative inline-block">
-                créative
+                 bibliothèque créative
                 <span className="absolute -bottom-2 left-0 w-full h-2 bg-[#80368D]/20 -rotate-1 rounded-full blur-sm"></span>
               </span> <br />
-              sans limites.
+              africaine.
             </h1>
 
             <p className="mt-8 max-w-xl text-lg text-[#1A1F2B]/70 leading-relaxed animate-fade-in-up delay-200">
@@ -157,6 +159,7 @@ export function HeroSection() {
             </div>
 
             {/* Price info below buttons */}
+            <br/>
             <p className="mt-4 text-sm text-[#1A1F2B]/60 animate-fade-in-up delay-300">
               À partir de <span className="font-semibold text-foreground">4 900 XOF/mois</span> — Accès illimité
             </p>
@@ -198,7 +201,7 @@ export function HeroSection() {
                   <div className="flex-1 text-center">
                     <div className="inline-flex items-center gap-2 rounded-md bg-white px-3 py-1 text-xs font-medium text-[#1A1F2B]/70 border border-[#D0E4F2] shadow-sm">
                       <Search className="h-3 w-3" />
-                      bigfive-Creative Library.com
+                      laveiye.com
                     </div>
                   </div>
                   <div className="w-12"></div>

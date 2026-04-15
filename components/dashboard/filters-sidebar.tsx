@@ -138,9 +138,20 @@ export function FiltersSidebar({
       <div className="sticky top-20">
         {/* En-tête des filtres */}
         <div className="flex items-center justify-between pb-5 mb-2 border-b-2 border-[#80368D]/20">
-          <h2 className="font-[family-name:var(--font-heading)] text-base font-bold uppercase tracking-wide text-[#1A1F2B]">
-            Filtres
-          </h2>
+          <div className="flex items-center gap-3">
+            <h2 className="font-[family-name:var(--font-heading)] text-base font-bold uppercase tracking-wide text-[#1A1F2B]">
+              Filtres
+            </h2>
+            {isFreeUser && (
+              <button
+                type="button"
+                onClick={onLockedFilterClick}
+                className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[#80368D]/10 to-[#a855f7]/10 border border-[#80368D]/20 px-3 py-1 text-xs font-semibold text-[#80368D] hover:from-[#80368D]/20 hover:to-[#a855f7]/20 transition-all"
+              >
+                🔓 Tout débloquer
+              </button>
+            )}
+          </div>
           {totalFilters > 0 && (
             <Button
               variant="ghost"
@@ -261,17 +272,6 @@ export function FiltersSidebar({
           </div>
         )}
 
-        {isFreeUser && (
-          <div className="mt-4">
-            <button
-              type="button"
-              onClick={onLockedFilterClick}
-              className="w-full rounded-xl bg-gradient-to-r from-[#80368D]/10 to-[#a855f7]/10 border border-[#80368D]/20 px-4 py-3 text-sm font-semibold text-[#80368D] hover:from-[#80368D]/20 hover:to-[#a855f7]/20 transition-all"
-            >
-              🔓 Débloquer tous les filtres
-            </button>
-          </div>
-        )}
       </div>
     </aside>
   )

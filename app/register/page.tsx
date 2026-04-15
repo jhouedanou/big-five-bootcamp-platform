@@ -4,7 +4,7 @@ import React from "react"
 
 import Link from "next/link"
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, Sparkles, Check, Shield, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,6 +22,8 @@ function formatNumber(n: number): string {
 
 export default function RegisterPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirect') || ''
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [acceptTerms, setAcceptTerms] = useState(false)
@@ -67,7 +69,7 @@ export default function RegisterPage() {
           description: "Tu peux maintenant te connecter.",
         })
       }
-      router.push("/login")
+      router.push(redirectTo ? `/login?redirect=${encodeURIComponent(redirectTo)}` : "/login")
     } catch (err) {
       toast.error("Une erreur inattendue est survenue", {
         description: "Veuillez réessayer plus tard.",
@@ -257,7 +259,7 @@ export default function RegisterPage() {
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
             Deja inscrit ?{" "}
-            <Link href="/login" className="font-medium text-primary hover:text-primary/80">
+            <Link href={redirectTo ? `/login?redirect=${encodeURIComponent(redirectTo)}` : "/login"} className="font-medium text-primary hover:text-primary/80">
               Connexion
             </Link>
           </p>

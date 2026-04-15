@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { LegalModal } from "@/components/legal-modal"
+import { HCaptchaWidget, type HCaptchaWidgetRef } from "@/components/hcaptcha-widget"
 
 function formatNumber(n: number): string {
   if (n >= 1000) {
@@ -30,6 +31,8 @@ export default function RegisterPage() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const captchaRef = React.useRef<HCaptchaWidgetRef>(null)
   const [stats, setStats] = useState({ users: 0, campaigns: 0, brands: 0, countries: 0 })
 
   useEffect(() => {
@@ -41,13 +44,19 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!captchaToken) {
+      toast.error("Veuillez compléter le captcha")
+      return
+    }
+
     setIsLoading(true)
 
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, captchaToken }),
       })
 
       const data = await res.json()
@@ -76,6 +85,8 @@ export default function RegisterPage() {
       })
     } finally {
       setIsLoading(false)
+      captchaRef.current?.resetCaptcha()
+      setCaptchaToken(null)
     }
   }
 
@@ -243,10 +254,17 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            <HCaptchaWidget
+              ref={captchaRef}
+              onVerify={(token) => setCaptchaToken(token)}
+              onExpire={() => setCaptchaToken(null)}
+              className="flex justify-center"
+            />
+
             <Button 
               type="submit" 
               className="h-11 w-full shadow-lg shadow-primary/25" 
-              disabled={isLoading || !acceptTerms}
+              disabled={isLoading || !acceptTerms || !captchaToken}
             >
               {isLoading ? "Creation du compte..." : "Creer mon compte"}
             </Button>

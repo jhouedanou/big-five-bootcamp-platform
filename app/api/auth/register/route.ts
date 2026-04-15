@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { createClient } from '@supabase/supabase-js'
+import { verifyHCaptcha } from '@/lib/hcaptcha'
 
 const registerSchema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
@@ -39,6 +40,24 @@ export async function POST(request: Request) {
     }
 
     const { name, email, password } = validation.data
+    const captchaToken = body.captchaToken as string | undefined
+
+    // Vérification hCaptcha
+    if (captchaToken) {
+      const captchaResult = await verifyHCaptcha(captchaToken)
+      if (!captchaResult.success) {
+        return NextResponse.json(
+          { error: captchaResult.error || "Vérification captcha échouée" },
+          { status: 400 }
+        )
+      }
+    } else if (process.env.NODE_ENV !== 'development') {
+      return NextResponse.json(
+        { error: "Token captcha manquant" },
+        { status: 400 }
+      )
+    }
+
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://library.bigfive.solutions'
 
     // Méthode principale : signUp() pour que Supabase envoie l'email de confirmation

@@ -12,9 +12,13 @@ function AuthCodeErrorContent() {
   const reason = searchParams.get("reason");
   const errorDescription = searchParams.get("error_description");
 
+  const errorCode = searchParams.get("error_code");
+
   const getMessage = () => {
-    if (errorDescription) return decodeURIComponent(errorDescription);
+    if (errorCode === "otp_expired") return "Le lien a expiré. Veuillez en demander un nouveau.";
+    if (errorDescription) return decodeURIComponent(errorDescription.replace(/\+/g, " "));
     if (reason === "missing_code") return "Le code d'authentification est manquant dans l'URL.";
+    if (reason === "exchange_failed") return "L'échange du code d'authentification a échoué.";
     return "Le lien d'authentification n'est pas valide ou a expiré.";
   };
 

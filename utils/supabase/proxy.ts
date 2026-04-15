@@ -3,6 +3,23 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
+    // Supabase redirige les erreurs d'auth (OTP expiré, lien invalide)
+    // vers le SITE_URL avec ?error=...&error_code=...&error_description=...
+    // On intercepte ici pour rediriger vers la page d'erreur dédiée
+    const error = request.nextUrl.searchParams.get('error')
+    const errorCode = request.nextUrl.searchParams.get('error_code')
+    const errorDescription = request.nextUrl.searchParams.get('error_description')
+
+    if (request.nextUrl.pathname === '/' && error && (errorCode || errorDescription)) {
+        const errorUrl = request.nextUrl.clone()
+        errorUrl.pathname = '/auth/auth-code-error'
+        errorUrl.search = ''
+        if (error) errorUrl.searchParams.set('error', error)
+        if (errorCode) errorUrl.searchParams.set('error_code', errorCode)
+        if (errorDescription) errorUrl.searchParams.set('error_description', errorDescription)
+        return NextResponse.redirect(errorUrl)
+    }
+
     let response = NextResponse.next({
         request: {
             headers: request.headers,

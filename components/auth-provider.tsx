@@ -1,6 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useEffect, useState, useRef, useMemo, useCallback } from "react"
+import { useRouter, usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase"
 import type { User, Session, AuthChangeEvent } from "@supabase/supabase-js"
 
@@ -53,6 +54,8 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter()
+  const pathname = usePathname()
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
@@ -183,7 +186,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!initialCheckDone.current) return
         if (!mounted) return
 
-        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
+        if (event === "PASSWORD_RECOVERY") {
+          // L'utilisateur a cliqué sur le lien de réinitialisation de mot de passe
+          // Rediriger vers la page de changement de mot de passe
+          if (newSession?.user) {
+            setUser(newSession.user)
+            setSession(newSession)
+          }
+          router.push("/update-password")
+          return
+        } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") {
           if (newSession?.user) {
             setUser(newSession.user)
             setSession(newSession)

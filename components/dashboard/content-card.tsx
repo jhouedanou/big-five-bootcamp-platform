@@ -45,6 +45,7 @@ export interface ContentItem {
 
 interface ContentCardProps {
   content: ContentItem
+  viewMode?: "grid" | "list"
   onBeforeNavigate?: (content: ContentItem) => boolean | Promise<boolean>
   isBlocked?: boolean
 }
@@ -81,7 +82,7 @@ function formatDateFr(dateString: string): string {
   }
 }
 
-export function ContentCard({ content, onBeforeNavigate, isBlocked }: ContentCardProps) {
+export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBlocked }: ContentCardProps) {
   const platform = platformConfig[content.platform] || { bg: "bg-gray-500", icon: <span className="text-xs font-bold text-white">?</span> }
   const sectorColor = sectorColors[content.sector] || "bg-muted text-muted-foreground font-semibold"
   const isPremium = content.accessLevel === 'premium'
@@ -113,6 +114,121 @@ export function ContentCard({ content, onBeforeNavigate, isBlocked }: ContentCar
     if (isBlocked) {
       e.preventDefault()
     }
+  }
+
+  // Mode liste : carte horizontale compacte
+  if (viewMode === "list") {
+    return (
+      <Link href={`/content/${content.slug || content.id}`} className="group block" onClick={handleClick}>
+        <article className={`modern-card overflow-hidden hover-lift transition-all duration-300 hover:shadow-xl flex flex-row ${
+          isPremium
+            ? "ring-2 ring-amber-400/80 shadow-lg shadow-amber-400/20 hover:shadow-amber-400/30 hover:ring-amber-300"
+            : "hover:shadow-[#80368D]/10"
+        }`}>
+          {/* Image compacte à gauche */}
+          <div className="relative w-32 h-32 sm:w-40 sm:h-40 flex-shrink-0 overflow-hidden bg-gradient-to-br from-[#0A1F44] to-[#1a3a6e]">
+            {content.imageUrl ? (
+              <Image
+                src={getGoogleDriveImageUrl(content.imageUrl) || "/placeholder.svg"}
+                alt={content.title}
+                fill
+                sizes="160px"
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
+                loading="lazy"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <div className="text-2xl font-bold text-white/20">
+                  {content.title.substring(0, 2).toUpperCase()}
+                </div>
+              </div>
+            )}
+            {/* Platform badge */}
+            <div className="absolute right-2 top-2">
+              <div className={`flex h-6 w-6 items-center justify-center rounded-full ${platform.bg} shadow-lg ring-2 ring-white/20`}>
+                {platform.icon}
+              </div>
+            </div>
+            {/* Premium badge */}
+            {isPremium && (
+              <div className="absolute left-2 top-2">
+                <div className="flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-yellow-400 px-2 py-0.5 shadow-lg shadow-amber-500/30">
+                  <Crown className="h-2.5 w-2.5 text-white" />
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-white">Premium</span>
+                </div>
+              </div>
+            )}
+            {/* Video overlay */}
+            {content.isVideo && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/90 opacity-0 shadow-lg transition-all group-hover:opacity-100">
+                  <Play className="h-4 w-4 text-[#0A1F44]" fill="currentColor" />
+                </div>
+              </div>
+            )}
+            {/* Favorite button */}
+            <button
+              onClick={handleToggleFavorite}
+              disabled={isToggling || favLoading}
+              className={cn(
+                "absolute left-2 bottom-2 z-10 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-200",
+                "bg-white/90 hover:bg-white shadow-lg backdrop-blur-sm",
+                "focus:outline-none focus:ring-2 focus:ring-primary/50",
+                isToggling && "opacity-50 cursor-wait"
+              )}
+              title={isCurrentFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+            >
+              <Heart
+                className={cn(
+                  "h-3.5 w-3.5 transition-colors",
+                  isCurrentFavorite
+                    ? "fill-red-500 text-red-500"
+                    : "text-gray-600 hover:text-red-500"
+                )}
+              />
+            </button>
+          </div>
+          {/* Contenu à droite */}
+          <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
+            <div>
+              <h3 className="line-clamp-2 font-[family-name:var(--font-heading)] text-base font-bold text-[#1A1F2B] transition-colors group-hover:text-[#80368D]">
+                {content.title}
+              </h3>
+              {content.summary && (
+                <p className="mt-1.5 line-clamp-2 text-sm font-medium leading-relaxed text-[#1A1F2B]/70">
+                  {content.summary}
+                </p>
+              )}
+            </div>
+            <div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                <span className={`rounded-full px-2 py-0.5 text-xs ${sectorColor}`}>
+                  {content.sector}
+                </span>
+                {content.tags.slice(0, 2).map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full bg-[#D0E4F2]/60 px-2 py-0.5 text-xs font-medium text-[#1A1F2B]/80"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              <div className="mt-2 flex items-center justify-between text-xs font-medium text-[#1A1F2B]/70">
+                <div className="flex items-center gap-1.5">
+                  <CountryFlag country={content.country} className="h-3.5 w-4" />
+                  <span>{content.country}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span>{formatDateFr(content.date)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </Link>
+    )
   }
 
   return (

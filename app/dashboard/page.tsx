@@ -8,6 +8,7 @@ import type { DynamicFilterOptions } from "@/components/dashboard/filters-sideba
 import { ContentCard, ContentItem } from "@/components/dashboard/content-card"
 import { ContentGridSkeleton } from "@/components/dashboard/content-card-skeleton"
 import { UpgradePopup, useUpgradePopup } from "@/components/upgrade-popup"
+import { ConsultationBottomSheet } from "@/components/consultation-bottom-sheet"
 import { createClient } from "@/lib/supabase"
 import { useAuthContext } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
@@ -55,6 +56,16 @@ function normalizeCountry(raw: string | null | undefined): string {
 }
 
 // Les compteurs de clics sont maintenant gérés côté serveur via /api/track-click
+
+// Mélange aléatoire (Fisher-Yates) pour l'affichage des campagnes
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
+}
 
 function PaginationPageButton({ page, isActive, onClick }: { page: number; isActive: boolean; onClick: () => void }) {
   return (
@@ -195,6 +206,8 @@ export default function DashboardPage() {
   const itemsPerPage = 9
 
   const { open: upgradeOpen, reason: upgradeReason, showUpgrade, closeUpgrade } = useUpgradePopup()
+  const [bottomSheetOpen, setBottomSheetOpen] = useState(false)
+  const [bottomSheetRemaining, setBottomSheetRemaining] = useState(0)
 
   // Auth centralisé — AUCUN appel getUser() ni requête DB ici
   const {
@@ -294,7 +307,8 @@ export default function DashboardPage() {
           featured: campaign.featured || false,
         }))
 
-        setCampaigns(formattedCampaigns)
+        // Mélanger aléatoirement les campagnes pour varier l'affichage
+        setCampaigns(shuffleArray(formattedCampaigns))
 
         // Filtrer les campagnes de la semaine
         // Priorité 1 : campagnes marquées "featured" par l'admin
@@ -492,6 +506,15 @@ export default function DashboardPage() {
         return false
       }
 
+      // Pour les free users, afficher la bottom sheet avec les consultations restantes
+      if (data.isFree && data.clicks != null && data.limit != null) {
+        const remaining = data.limit - data.clicks
+        setBottomSheetRemaining(remaining)
+        setBottomSheetOpen(true)
+        // Auto-fermer après 4 secondes
+        setTimeout(() => setBottomSheetOpen(false), 4000)
+      }
+
       // Rafraîchir les compteurs depuis le contexte centralisé
       await refreshClickCounters()
     } catch {
@@ -687,7 +710,7 @@ export default function DashboardPage() {
                       Les meilleures campagnes de la semaine
                     </h2>
                     <p className="text-sm text-[#1A1F2B]/60">
-                      Sélectionnées pour vous · Semaine du {weekLabel}
+                      Sélectionnées pour vous · Semaine du {weekLabel}n
                     </p>
                   </div>
                 </div>
@@ -746,6 +769,7 @@ export default function DashboardPage() {
                             <ContentCard
                               key={content.id}
                               content={content}
+                              viewMode={viewMode}
                               onBeforeNavigate={(c) => handleContentClick(c)}
                               isBlocked={isFreeUser && monthlyClicks >= MONTHLY_CLICK_LIMIT}
                             />
@@ -792,6 +816,14 @@ export default function DashboardPage() {
         open={upgradeOpen}
         onClose={closeUpgrade}
         reason={upgradeReason}
+      />
+
+      {/* Bottom sheet consultations restantes (free users) */}
+      <ConsultationBottomSheet
+        open={bottomSheetOpen}
+        onClose={() => setBottomSheetOpen(false)}
+        remainingConsultations={bottomSheetRemaining}
+        totalLimit={MONTHLY_CLICK_LIMIT}
       />
     </div>
   )

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link"
-import { Facebook, Instagram, Twitter, Linkedin, Heart, ArrowUpRight } from "lucide-react"
+import { Facebook, Linkedin, Youtube, ArrowUpRight } from "lucide-react"
 import Image from "next/image"
 import { LegalModal } from "./legal-modal"
 import { useState, useEffect } from "react"
@@ -129,38 +129,40 @@ export function Footer() {
         {/* Bottom section */}
         <div className="mt-12 flex flex-col items-center justify-between gap-6 border-t border-[#D0E4F2] pt-8 md:flex-row">
           <p className="flex items-center gap-1 text-sm text-[#1A1F2B]/50">
-            &copy; {currentYear} Creative Library powered by Big Five.
+            &copy; {currentYear} Creative Library powered by{" "}
+            <a href="https://bigfive.solutions.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#80368D] transition-colors">
+              Big Five
+            </a>.
           </p>
 
           {/* Social links */}
           <div className="flex items-center gap-2">
             <Link
               href="https://facebook.com"
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D0E4F2]/50 text-[#29358B] transition-all duration-300 hover:bg-[#80368D]/20 hover:text-[#80368D] hover:scale-110"
               aria-label="Facebook"
             >
               <Facebook className="h-5 w-5" />
             </Link>
             <Link
-              href="https://instagram.com"
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D0E4F2]/50 text-[#29358B] transition-all duration-300 hover:bg-gradient-to-br hover:from-[#833AB4]/20 hover:via-[#FD1D1D]/20 hover:to-[#FCAF45]/20 hover:text-[#80368D] hover:scale-110"
-              aria-label="Instagram"
-            >
-              <Instagram className="h-5 w-5" />
-            </Link>
-            <Link
-              href="https://twitter.com"
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D0E4F2]/50 text-[#29358B] transition-all duration-300 hover:bg-[#1DA1F2]/20 hover:text-[#1DA1F2] hover:scale-110"
-              aria-label="Twitter"
-            >
-              <Twitter className="h-5 w-5" />
-            </Link>
-            <Link
               href="https://linkedin.com"
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D0E4F2]/50 text-[#29358B] transition-all duration-300 hover:bg-[#0A66C2]/20 hover:text-[#0A66C2] hover:scale-110"
               aria-label="LinkedIn"
             >
               <Linkedin className="h-5 w-5" />
+            </Link>
+            <Link
+              href="https://youtube.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#D0E4F2]/50 text-[#29358B] transition-all duration-300 hover:bg-[#FF0000]/20 hover:text-[#FF0000] hover:scale-110"
+              aria-label="YouTube"
+            >
+              <Youtube className="h-5 w-5" />
             </Link>
           </div>
         </div>

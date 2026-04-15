@@ -42,6 +42,15 @@ interface RecentCampaign {
   slug: string | null
 }
 
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  return shuffled
+}
+
 function useRecentCampaigns() {
   const [campaigns, setCampaigns] = useState<RecentCampaign[]>([])
 
@@ -51,15 +60,15 @@ function useRecentCampaigns() {
       .from("campaigns")
       .select("id, title, category, thumbnail, slug")
       .eq("status", "Publié")
-      .order("created_at", { ascending: false })
-      .limit(4)
-      .then(({ data }) => setCampaigns(
-        (data || []).map((c: any) => ({
+      .then(({ data }) => {
+        const all: RecentCampaign[] = (data || []).map((c: any) => ({
           ...c,
           title: fixBrokenEncoding(c.title),
           category: fixBrokenEncoding(c.category),
         }))
-      ))
+        // Affichage aléatoire : on mélange puis on prend 4
+        setCampaigns(shuffleArray(all).slice(0, 4))
+      })
   }, [])
 
   return campaigns
@@ -132,8 +141,8 @@ export function HeroSection() {
 
             <div className="mt-10 flex flex-col gap-4 sm:flex-row animate-fade-in-up delay-300 w-full sm:w-auto">
               <Button size="lg" asChild className="group h-14 px-8 text-base font-bold bg-[#80368D] hover:bg-[#80368D]/90 text-white shadow-xl shadow-[#80368D]/20 transition-all duration-300 hover:scale-[1.02]">
-                <Link href="/pricing">
-                  Commencer gratuitement
+                <Link href="/register">
+                  S&apos;inscrire gratuitement
                   <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
                 </Link>
               </Button>
@@ -221,9 +230,10 @@ export function HeroSection() {
                                 {campaign.title.substring(0, 2).toUpperCase()}
                               </div>
                             )}
-                            <div className="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors" />
-                            <div className="absolute bottom-2 right-2 h-7 w-7 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Play className="h-3.5 w-3.5 text-white fill-current" />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                              <span className="text-white text-xs font-bold px-3 py-1.5 rounded-full bg-white/20 backdrop-blur-md opacity-0 group-hover:opacity-100 transition-opacity">
+                                Voir détail
+                              </span>
                             </div>
                           </div>
                           <div className="mt-3 px-1">
@@ -413,8 +423,8 @@ export function PricingTeaser() {
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Button size="lg" className="h-14 px-8 text-lg bg-[#80368D] hover:bg-[#80368D]/90 text-white font-bold rounded-full shadow-lg shadow-[#80368D]/25 hover:shadow-[#80368D]/40 transition-all hover:-translate-y-1" asChild>
-            <Link href="/pricing">
-              Commencer gratuitement
+            <Link href="/register">
+              S&apos;inscrire gratuitement
             </Link>
           </Button>
           <Button size="lg" variant="outline" className="h-14 px-8 text-lg border-[#29358B]/30 text-[#29358B] hover:bg-[#29358B]/10 rounded-full" asChild>

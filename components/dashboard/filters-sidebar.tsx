@@ -56,7 +56,21 @@ export function FiltersSidebar({
   const [expandedGroups, setExpandedGroups] = useState<string[]>(["Pays", "Secteur", "Plateforme", "Tags"])
 
   // Construire les groupes de filtres 100% dynamiquement depuis les campagnes
+  // Ordre: Secteur, Axe, Pays, Tags, Format, Plateforme, Année
   const filterGroups: FilterGroup[] = [
+    {
+      name: "Secteur",
+      options: dynamicOptions?.sectors?.length
+        ? [...dynamicOptions.sectors].sort()
+        : [],
+      locked: isFreeUser,
+    },
+    {
+      name: "Axe créatif",
+      options: dynamicOptions?.axes?.length
+        ? [...dynamicOptions.axes].sort()
+        : [],
+    },
     {
       name: "Pays",
       options: dynamicOptions?.countries?.length
@@ -65,9 +79,9 @@ export function FiltersSidebar({
       locked: isFreeUser,
     },
     {
-      name: "Secteur",
-      options: dynamicOptions?.sectors?.length
-        ? [...dynamicOptions.sectors].sort()
+      name: "Tags",
+      options: dynamicOptions?.tags?.length
+        ? [...dynamicOptions.tags].sort()
         : [],
       locked: isFreeUser,
     },
@@ -83,19 +97,6 @@ export function FiltersSidebar({
         ? [...dynamicOptions.platforms].sort()
         : [],
       hasIcons: true,
-    },
-    {
-      name: "Tags",
-      options: dynamicOptions?.tags?.length
-        ? [...dynamicOptions.tags].sort()
-        : [],
-      locked: isFreeUser,
-    },
-    {
-      name: "Axe créatif",
-      options: dynamicOptions?.axes?.length
-        ? [...dynamicOptions.axes].sort()
-        : [],
     },
     {
       name: "Année",

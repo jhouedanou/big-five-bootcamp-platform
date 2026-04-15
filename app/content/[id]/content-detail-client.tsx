@@ -19,6 +19,8 @@ import {
   Loader2,
   Play,
   Pencil,
+  Mail,
+  Monitor,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar";
@@ -35,6 +37,9 @@ import { AddToCollectionModal } from "@/components/collections/add-to-collection
 import { FolderPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import dynamic from "next/dynamic";
+
+const SwipeableCarousel = dynamic(() => import("@/components/ui/swipeable-carousel").then(m => m.SwipeableCarousel), { ssr: false });
 
 const MONTHLY_CLICK_LIMIT = 3;
 
@@ -101,6 +106,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
   const [isToggling, setIsToggling] = useState(false);
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
   const [readProgress, setReadProgress] = useState(0);
+  const [activeTab, setActiveTab] = useState<"axe" | "utilisation">("axe");
   const articleRef = useRef<HTMLDivElement>(null);
   const [userPlan, setUserPlan] = useState("Free");
   const [monthlyClicks, setMonthlyClicks] = useState(0);
@@ -361,6 +367,57 @@ export default function ContentDetailClient({ id }: { id: string }) {
 
   const hasGallery = !!(content.thumbnail || (content.images && content.images.length > 0));
 
+  // Helper pour rendre un lien de contenu similaire
+  const renderRelatedItem = (item: Campaign) => (
+    <Link
+      key={item.id}
+      href={`/content/${item.slug || item.id}`}
+      className="flex gap-3 group"
+      onClick={async (e) => {
+        if (!isFreeUser) return;
+        e.preventDefault();
+        try {
+          const res = await fetch('/api/track-click', { method: 'POST' });
+          const data = await res.json();
+          if (!res.ok || !data.allowed) {
+            setIsBlocked(true);
+            setShowUpgrade(true);
+            return;
+          }
+          setMonthlyClicks(data.clicks || 0);
+          router.push(`/content/${item.slug || item.id}`);
+        } catch {
+          router.push(`/content/${item.slug || item.id}`);
+        }
+      }}
+    >
+      <div className="relative w-14 h-14 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+        {item.thumbnail ? (
+          <Image
+            src={getGoogleDriveImageUrl(item.thumbnail)}
+            alt={item.title}
+            fill
+            sizes="56px"
+            className="object-cover group-hover:scale-105 transition-transform"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+            {item.title.substring(0, 2).toUpperCase()}
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <h4 className="text-sm font-medium text-foreground group-hover:text-[#80368D] transition-colors line-clamp-1">
+          {item.title}
+        </h4>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {item.brand || item.category}
+        </p>
+      </div>
+    </Link>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <DashboardNavbar />
@@ -373,7 +430,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
         />
       </div>
 
-      <main ref={articleRef} className="container mx-auto px-4 py-8">
+      <main ref={articleRef} className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Back button */}
         <Link
           href="/dashboard"
@@ -383,17 +440,59 @@ export default function ContentDetailClient({ id }: { id: string }) {
           Retour à la bibliothèque
         </Link>
 
-        <div className="flex flex-col-reverse lg:grid lg:grid-cols-3 gap-8 items-start">
-          {/* Main content area */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Video player — embed multi-plateforme */}
+        {/* ===== EN-TÊTE : Titre + sous-titre (pleine largeur) ===== */}
+        <div className="mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground font-[family-name:var(--font-heading)]">
+            {content.title}
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            {brand}{brand && sector !== 'N/A' ? " - " : ""}{sector !== 'N/A' ? sector : ''}
+          </p>
+        </div>
+
+        {/* ===== ONGLETS Axe / Utilisation ===== */}
+        <div className="mb-8">
+          <div className="inline-flex rounded-full border border-border bg-muted/30 p-1">
+            <button
+              type="button"
+              onClick={() => setActiveTab("axe")}
+              className={cn(
+                "rounded-full px-6 py-2 text-sm font-semibold transition-all duration-200",
+                activeTab === "axe"
+                  ? "bg-[#80368D] text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Axe
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("utilisation")}
+              className={cn(
+                "rounded-full px-6 py-2 text-sm font-semibold transition-all duration-200",
+                activeTab === "utilisation"
+                  ? "bg-[#80368D] text-white shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              Utilisation
+            </button>
+          </div>
+        </div>
+
+        {/* ===== GRILLE 2 COLONNES : contenu gauche + sidebar droite ===== */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start">
+
+          {/* ---- Colonne gauche : contenu principal ---- */}
+          <div className="space-y-6 min-w-0">
+
+            {/* Video player — embed multi-plateforme (affiché dans les 2 tabs si présent) */}
             {content.video_url && (() => {
               const originalVideoUrl = getOriginalVideoUrl(content.video_url);
               const videoPlatform = detectVideoPlatform(originalVideoUrl);
               const embedUrl = getEmbedUrl(content.video_url);
               const platformLabel = getVideoPlatformLabel(videoPlatform);
 
-              // Pour LinkedIn, Facebook ou Instagram: afficher le visuel avec bouton
               if (videoPlatform === "linkedin" || videoPlatform === "facebook" || videoPlatform === "instagram") {
                 const iconBg = videoPlatform === "linkedin"
                   ? "bg-[#0A66C2]"
@@ -404,29 +503,24 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 return (
                   <Card className="overflow-hidden">
                     <CardContent className="p-0">
-                      {/* Visuel/Thumbnail cliquable */}
                       <a
                         href={originalVideoUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="block relative group"
                       >
-                        {/* Image de la créative */}
-                        <div className="relative aspect-[9/16] max-h-[600px] w-full overflow-hidden bg-gray-100">
+                        <div className="relative aspect-[9/16] max-h-[500px] w-full overflow-hidden bg-gray-100">
                           <img
-                            src={getGoogleDriveImageUrl(content.thumbnail) || "/placeholder.jpg"}
+                            src={getGoogleDriveImageUrl(content.thumbnail || '') || "/placeholder.jpg"}
                             alt={content.title}
                             className="w-full h-full object-contain"
                           />
-                          {/* Overlay avec bouton play */}
                           <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
                             <div className="bg-white/95 rounded-full p-5 shadow-xl group-hover:scale-110 transition-transform">
                               <Play className="h-10 w-10 text-violet-600 ml-1" />
                             </div>
                           </div>
                         </div>
-
-                        {/* Barre d'action en bas */}
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-6 pt-20">
                           <div className="flex items-center gap-3">
                             <div className={`flex h-12 w-12 items-center justify-center rounded-full text-white ${iconBg}`}>
@@ -445,7 +539,6 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 );
               }
 
-              // YouTube, Twitter/X, TikTok: embed iframe standard
               return (
                 <Card>
                   <CardContent className="p-4">
@@ -467,189 +560,209 @@ export default function ContentDetailClient({ id }: { id: string }) {
               );
             })()}
 
-            {/* Title and actions */}
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-foreground font-[family-name:var(--font-heading)]">
-                  {content.title}
-                </h1>
-                <p className="text-muted-foreground mt-2">
-                  {brand}{brand && sector !== 'N/A' ? " - " : ""}{sector !== 'N/A' ? sector : ''}
-                </p>
-              </div>
+            {/* ---- Onglet AXE : Analyse + Pourquoi cet axe ---- */}
+            {activeTab === "axe" && (
+              <div className="space-y-6">
+                {content.analyse && (
+                  <Card className="border-l-4 border-l-[#80368D] shadow-sm">
+                    <CardContent className="p-6">
+                      <h2 className="font-bold text-lg mb-3">Analyse</h2>
+                      <div
+                        className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
+                        dangerouslySetInnerHTML={{ __html: formatDescription(content.analyse) }}
+                      />
+                    </CardContent>
+                  </Card>
+                )}
 
-              <div className="flex gap-2">
-                {isAdmin && content.id && (
-                  <Link href={`/admin/campaigns?edit=${content.id}`}>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-2 text-violet-600 border-violet-300 hover:bg-violet-50 dark:text-violet-400 dark:border-violet-700 dark:hover:bg-violet-950"
-                      title="Modifier cette campagne (Admin)"
-                    >
-                      <Pencil className="h-4 w-4" />
-                      Modifier
-                    </Button>
-                  </Link>
+                {content.why_this_axis && (
+                  <Card className="border-l-4 border-l-[#80368D] shadow-sm">
+                    <CardContent className="p-6">
+                      <h2 className="font-bold text-lg mb-3">Pourquoi cet axe</h2>
+                      <div
+                        className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
+                        dangerouslySetInnerHTML={{ __html: formatDescription(content.why_this_axis) }}
+                      />
+                    </CardContent>
+                  </Card>
+                )}
+
+                {!content.analyse && !content.why_this_axis && content.description && (
+                  <Card className="border-l-4 border-l-[#80368D] shadow-sm">
+                    <CardContent className="p-6">
+                      <h2 className="font-bold text-lg mb-3">Analyse</h2>
+                      <div
+                        className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
+                        dangerouslySetInnerHTML={{ __html: formatDescription(content.description) }}
+                      />
+                    </CardContent>
+                  </Card>
                 )}
               </div>
-            </div>
-
-            {/* Description */}
-            {content.description && (
-              <Card>
-                <CardContent className="p-6">
-                  <h2 className="font-semibold text-lg mb-3">Description</h2>
-                  <div
-                    className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: formatDescription(content.description) }}
-                  />
-                </CardContent>
-              </Card>
             )}
 
-            {/* Analyse */}
-            {content.analyse && (
-              <Card>
-                <CardContent className="p-6">
-                  <h2 className="font-semibold text-lg mb-3">Analyse</h2>
-                  <div
-                    className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: formatDescription(content.analyse) }}
-                  />
-                </CardContent>
-              </Card>
+            {/* ---- Onglet UTILISATION : Description + Tags ---- */}
+            {activeTab === "utilisation" && (
+              <div className="space-y-6">
+                {content.description && (
+                  <Card className="border-l-4 border-l-[#80368D] shadow-sm">
+                    <CardContent className="p-6">
+                      <h2 className="font-bold text-lg mb-3">Description</h2>
+                      <div
+                        className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
+                        dangerouslySetInnerHTML={{ __html: formatDescription(content.description) }}
+                      />
+                    </CardContent>
+                  </Card>
+                )}
+
+                {content.summary && (
+                  <Card className="border-l-4 border-l-[#80368D] shadow-sm">
+                    <CardContent className="p-6">
+                      <h2 className="font-bold text-lg mb-3">Résumé</h2>
+                      <div
+                        className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
+                        dangerouslySetInnerHTML={{ __html: formatDescription(content.summary) }}
+                      />
+                    </CardContent>
+                  </Card>
+                )}
+
+                {content.tags && content.tags.length > 0 && (
+                  <Card className="border-l-4 border-l-[#80368D] shadow-sm">
+                    <CardContent className="p-6">
+                      <h2 className="font-bold text-lg mb-3">Tags</h2>
+                      <div className="flex flex-wrap gap-2">
+                        {[...new Set(content.tags)].map((tag) => (
+                          <Badge
+                            key={tag}
+                            variant="secondary"
+                            className="cursor-pointer hover:bg-[#80368D] hover:text-white transition-colors"
+                          >
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             )}
 
-            {/* Pourquoi cet axe */}
-            {content.why_this_axis && (
-              <Card>
-                <CardContent className="p-6">
-                  <h2 className="font-semibold text-lg mb-3">Pourquoi cet axe</h2>
-                  <div
-                    className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: formatDescription(content.why_this_axis) }}
-                  />
-                </CardContent>
-              </Card>
-            )}
-
-
-
-            {/* Metadata card */}
-            <Card>
-              <CardContent className="p-6 space-y-4">
-                <h2 className="font-semibold text-lg">Informations</h2>
-
-                <div className="space-y-3">
-                  {brand && (
-                    <div className="flex items-center gap-3 text-sm">
-                      <Building2 className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Marque:</span>
-                      <span className="font-medium">{brand}</span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-3 text-sm">
-                    <Tag className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Secteur:</span>
-                    <span className="font-medium">{sector}</span>
-                  </div>
-
-                  <div className="flex items-center gap-3 text-sm">
-                    <Globe className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Pays:</span>
-                    <span className="font-medium">{country}</span>
-                  </div>
-
-                  <div className="flex items-center gap-3 text-sm">
-                    <Tag className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Format:</span>
-                    <span className="font-medium">{format}</span>
-                  </div>
-
-                  <div className="flex items-center gap-3 text-sm">
-                    <Globe className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Plateforme:</span>
-                    <span className="font-medium">{platform}</span>
-                  </div>
-
-                  <div className="flex items-center gap-3 text-sm">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Date:</span>
-                    <span className="font-medium">{date}</span>
-                  </div>
-
-                  {agency && (
-                    <div className="flex items-center gap-3 text-sm">
-                      <Building2 className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-muted-foreground">Agence:</span>
-                      <span className="font-medium">{agency}</span>
-                    </div>
-                  )}
-
+            {/* ---- Contenus similaires — Grille 2 colonnes ---- */}
+            {relatedContent.length > 0 && (
+              <div className="mt-2">
+                <h3 className="font-bold text-lg mb-4">Contenus similaires</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {relatedContent.map((item) => (
+                    <Link
+                      key={item.id}
+                      href={`/content/${item.slug || item.id}`}
+                      className="flex gap-3 group p-3 rounded-xl border border-border hover:border-[#80368D]/30 hover:shadow-md transition-all bg-card"
+                      onClick={async (e) => {
+                        if (!isFreeUser) return;
+                        e.preventDefault();
+                        try {
+                          const res = await fetch('/api/track-click', { method: 'POST' });
+                          const data = await res.json();
+                          if (!res.ok || !data.allowed) {
+                            setIsBlocked(true);
+                            setShowUpgrade(true);
+                            return;
+                          }
+                          setMonthlyClicks(data.clicks || 0);
+                          router.push(`/content/${item.slug || item.id}`);
+                        } catch {
+                          router.push(`/content/${item.slug || item.id}`);
+                        }
+                      }}
+                    >
+                      <div className="relative w-14 h-14 bg-muted rounded-lg overflow-hidden flex-shrink-0">
+                        {item.thumbnail ? (
+                          <Image
+                            src={getGoogleDriveImageUrl(item.thumbnail)}
+                            alt={item.title}
+                            fill
+                            sizes="56px"
+                            className="object-cover group-hover:scale-105 transition-transform"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                            {item.title.substring(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-sm font-medium text-foreground group-hover:text-[#80368D] transition-colors line-clamp-1">
+                          {item.title}
+                        </h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {item.brand || item.category}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
-            {/* Tags */}
-            {content.tags && content.tags.length > 0 && (
-              <Card>
-                <CardContent className="p-6">
-                  <h2 className="font-semibold text-lg mb-3">Tags</h2>
-                  <div className="flex flex-wrap gap-2">
-                    {[...new Set(content.tags)].map((tag) => (
-                      <Badge
-                        key={tag}
-                        variant="secondary"
-                        className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                      >
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+              </div>
             )}
           </div>
 
-          {/* Sidebar - sticky avec galerie */}
+          {/* ---- Colonne droite : Sidebar sticky ---- */}
           <div className="lg:sticky lg:top-6 space-y-6">
-            {/* Galerie d'images */}
+            {/* Image créative */}
             {hasGallery && (
-              <ImageGallery
-                mainImage={content.thumbnail}
-                images={content.images || []}
-                title={content.title}
-                campaignId={content.id}
-                onAddToCollection={() => {
-                  if (!isAuthenticated) {
-                    window.location.href = `/login?redirect=/content/${id}`;
-                    return;
-                  }
-                  setCollectionModalOpen(true);
-                }}
-                onShare={() => {
-                  if (navigator.share) {
-                    navigator.share({
-                      title: content.title,
-                      url: window.location.href,
-                    });
-                  } else {
-                    navigator.clipboard.writeText(window.location.href);
-                    toast.success("Lien copié !");
-                  }
-                }}
-                isFavorited={isFavorite(content.id)}
-              />
+              <div className="space-y-4">
+                <ImageGallery
+                  mainImage={content.thumbnail}
+                  images={content.images || []}
+                  title={content.title}
+                  campaignId={content.id}
+                  onAddToCollection={() => {
+                    if (!isAuthenticated) {
+                      window.location.href = `/login?redirect=/content/${id}`;
+                      return;
+                    }
+                    setCollectionModalOpen(true);
+                  }}
+                  onShare={() => {
+                    if (navigator.share) {
+                      navigator.share({ title: content.title, url: window.location.href });
+                    } else {
+                      navigator.clipboard.writeText(window.location.href);
+                      toast.success("Lien copié !");
+                    }
+                  }}
+                  isFavorited={isFavorite(content.id)}
+                />
+
+                {/* Légende / description sous l'image */}
+                {content.description && (
+                  <p className="text-sm font-medium text-[#80368D] leading-relaxed line-clamp-4 px-1">
+                    {content.description.replace(/<[^>]*>/g, '').substring(0, 200)}{content.description.length > 200 ? '...' : ''}
+                  </p>
+                )}
+              </div>
             )}
 
-            {/* Réactions + Favoris + Partage — une seule ligne */}
-            <div className="flex items-center gap-2 mt-2 flex-wrap">
-              <ReactionButtons campaignId={content.id} />
-              <div className="h-5 w-px bg-gray-200 hidden sm:block" />
+            {/* Boutons d'action + Réactions sur 1 ligne */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {isAdmin && content.id && (
+                <Link href={`/admin/campaigns?edit=${content.id}`}>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-10 w-10 text-violet-600 border-violet-300 hover:bg-violet-50 dark:text-violet-400 dark:border-violet-700 dark:hover:bg-violet-950"
+                    title="Modifier cette campagne (Admin)"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                </Link>
+              )}
               <Button
                 variant="outline"
-                size="sm"
+                size="icon"
+                className="h-10 w-10 border-border hover:border-[#80368D]/30 hover:text-[#80368D]"
                 onClick={() => {
                   if (!isAuthenticated) {
                     window.location.href = `/login?redirect=/content/${id}`;
@@ -657,26 +770,17 @@ export default function ContentDetailClient({ id }: { id: string }) {
                   }
                   setCollectionModalOpen(true);
                 }}
-                className={cn(
-                  "gap-2 text-sm",
-                  isFavorite(content.id)
-                    ? "text-[#80368D] border-[#80368D]/40 bg-[#80368D]/5 hover:bg-[#80368D]/10"
-                    : "hover:border-[#80368D]/30 hover:text-[#80368D]"
-                )}
+                title="Ajouter à une collection"
               >
                 <FolderPlus className="h-4 w-4" />
-                <span className="hidden sm:inline">{isFavorite(content.id) ? "Dans une collection" : "Mettre en favori"}</span>
               </Button>
               <Button
                 variant="outline"
                 size="icon"
-                className="h-8 w-8 shrink-0"
+                className="h-10 w-10 border-border hover:border-[#80368D]/30 hover:text-[#80368D]"
                 onClick={() => {
                   if (navigator.share) {
-                    navigator.share({
-                      title: content.title,
-                      url: window.location.href,
-                    });
+                    navigator.share({ title: content.title, url: window.location.href });
                   } else {
                     navigator.clipboard.writeText(window.location.href);
                     toast.success("Lien copié !");
@@ -686,78 +790,83 @@ export default function ContentDetailClient({ id }: { id: string }) {
               >
                 <Share2 className="h-4 w-4" />
               </Button>
+              <div className="h-6 w-px bg-border mx-1" />
+              <ReactionButtons campaignId={content.id} />
             </div>
 
-            {/* Modale d'ajout à une collection */}
-            <AddToCollectionModal
-              open={collectionModalOpen}
-              onOpenChange={setCollectionModalOpen}
-              campaignId={content.id}
-              campaignTitle={content.title}
-            />
+            {/* Carte Informations */}
+            <Card className="shadow-sm">
+              <CardContent className="p-6 space-y-4">
+                <h2 className="font-bold text-lg">Informations</h2>
 
-            {/* Related content */}
-            {relatedContent.length > 0 && (
-              <Card>
-                <CardContent className="p-6">
-                  <h2 className="font-semibold text-lg mb-4">Contenus similaires</h2>
-                  <div className="space-y-4">
-                    {relatedContent.map((item) => (
-                      <Link
-                        key={item.id}
-                        href={`/content/${item.slug || item.id}`}
-                        className="flex gap-3 group"
-                        onClick={async (e) => {
-                          if (!isFreeUser) return; // Paid users: navigation libre
-                          e.preventDefault();
-                          try {
-                            const res = await fetch('/api/track-click', { method: 'POST' });
-                            const data = await res.json();
-                            if (!res.ok || !data.allowed) {
-                              setIsBlocked(true);
-                              setShowUpgrade(true);
-                              return;
-                            }
-                            setMonthlyClicks(data.clicks || 0);
-                            router.push(`/content/${item.slug || item.id}`);
-                          } catch {
-                            router.push(`/content/${item.slug || item.id}`);
-                          }
-                        }}
-                      >
-                        <div className="relative w-16 h-16 bg-muted rounded-lg overflow-hidden flex-shrink-0">
-                          {item.thumbnail ? (
-                            <Image
-                              src={getGoogleDriveImageUrl(item.thumbnail)}
-                              alt={item.title}
-                              fill
-                              sizes="(max-width: 768px) 100vw, 33vw"
-                              className="object-cover group-hover:scale-105 transition-transform"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-                              {item.title.substring(0, 2).toUpperCase()}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-medium text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                            {item.title}
-                          </h3>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {item.brand || item.category}
-                          </p>
-                        </div>
-                      </Link>
-                    ))}
+                <div className="space-y-3">
+                  {brand && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <Building2 className="h-4 w-4 text-[#80368D]" />
+                      <span className="text-muted-foreground">Marque:</span>
+                      <span className="font-medium">{brand}</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-3 text-sm">
+                    <Tag className="h-4 w-4 text-[#80368D]" />
+                    <span className="text-muted-foreground">Secteur:</span>
+                    <span className="font-medium">{sector}</span>
                   </div>
-                </CardContent>
-              </Card>
-            )}
+
+                  <div className="flex items-center gap-3 text-sm">
+                    <Globe className="h-4 w-4 text-[#80368D]" />
+                    <span className="text-muted-foreground">Pays:</span>
+                    <span className="font-medium">{country}</span>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-sm">
+                    <Mail className="h-4 w-4 text-[#80368D]" />
+                    <span className="text-muted-foreground">Format:</span>
+                    <span className="font-medium">{format}</span>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-sm">
+                    <Monitor className="h-4 w-4 text-[#80368D]" />
+                    <span className="text-muted-foreground">Plateforme:</span>
+                    <span className="font-medium">{platform}</span>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-sm">
+                    <Calendar className="h-4 w-4 text-[#80368D]" />
+                    <span className="text-muted-foreground">Date:</span>
+                    <span className="font-medium">{date}</span>
+                  </div>
+
+                  {agency && (
+                    <div className="flex items-center gap-3 text-sm">
+                      <Building2 className="h-4 w-4 text-[#80368D]" />
+                      <span className="text-muted-foreground">Agence:</span>
+                      <span className="font-medium">{agency}</span>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
           </div>
         </div>
       </main>
+
+      {/* Modale d'ajout à une collection */}
+      <AddToCollectionModal
+        open={collectionModalOpen}
+        onOpenChange={setCollectionModalOpen}
+        campaignId={content.id}
+        campaignTitle={content.title}
+      />
+
+      {/* Upgrade popup pour les free users */}
+      <UpgradePopup
+        open={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        reason="clicks"
+      />
     </div>
   );
 }

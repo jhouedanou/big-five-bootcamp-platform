@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { getSupabaseAdmin } from '@/lib/supabase-server'
-import { verifyHCaptcha } from '@/lib/hcaptcha'
 
 // Valeurs par défaut
 // IMPORTANT : Avec onboarding@resend.dev, Resend n'envoie qu'au propriétaire du compte.
@@ -34,24 +33,13 @@ async function getContactEmails() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { firstName, lastName, email, message, captchaToken } = await request.json()
+    const { firstName, lastName, email, message } = await request.json()
 
     if (!firstName || !lastName || !email || !message) {
       return NextResponse.json(
         { error: 'Tous les champs sont requis' },
         { status: 400 }
       )
-    }
-
-    // Vérification hCaptcha (si un token est fourni)
-    if (captchaToken) {
-      const captchaResult = await verifyHCaptcha(captchaToken)
-      if (!captchaResult.success) {
-        return NextResponse.json(
-          { error: captchaResult.error || 'Vérification captcha échouée' },
-          { status: 400 }
-        )
-      }
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/

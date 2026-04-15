@@ -1,12 +1,10 @@
 "use client"
 
-import React from "react"
 import { useState } from "react"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Mail, MapPin, Phone, Send, Loader2, CheckCircle2, AlertCircle } from "lucide-react"
-import { HCaptchaWidget, type HCaptchaWidgetRef } from "@/components/hcaptcha-widget"
 
 export default function ContactPage() {
     const [formData, setFormData] = useState({
@@ -17,8 +15,6 @@ export default function ContactPage() {
     })
     const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
     const [errorMessage, setErrorMessage] = useState("")
-    const [captchaToken, setCaptchaToken] = useState<string | null>(null)
-    const captchaRef = React.useRef<HCaptchaWidgetRef>(null)
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -26,13 +22,6 @@ export default function ContactPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-
-        if (!captchaToken) {
-            setStatus("error")
-            setErrorMessage("Veuillez compléter le captcha")
-            return
-        }
-
         setStatus("loading")
         setErrorMessage("")
 
@@ -40,7 +29,7 @@ export default function ContactPage() {
             const res = await fetch("/api/contact", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...formData, captchaToken }),
+                body: JSON.stringify(formData),
             })
 
             const data = await res.json()
@@ -51,13 +40,9 @@ export default function ContactPage() {
 
             setStatus("success")
             setFormData({ firstName: "", lastName: "", email: "", message: "" })
-            captchaRef.current?.resetCaptcha()
-            setCaptchaToken(null)
         } catch (err) {
             setStatus("error")
             setErrorMessage(err instanceof Error ? err.message : "Une erreur est survenue")
-            captchaRef.current?.resetCaptcha()
-            setCaptchaToken(null)
         }
     }
 
@@ -189,16 +174,9 @@ export default function ContactPage() {
                                                 placeholder="Comment pouvons-nous vous aider ?"
                                             />
                                         </div>
-                                        <HCaptchaWidget
-                                            ref={captchaRef}
-                                            onVerify={(token) => setCaptchaToken(token)}
-                                            onExpire={() => setCaptchaToken(null)}
-                                            className="flex justify-center"
-                                        />
-
                                         <Button
                                             type="submit"
-                                            disabled={status === "loading" || !captchaToken}
+                                            disabled={status === "loading"}
                                             className="w-full h-12 text-base font-semibold shadow-lg shadow-primary/25"
                                         >
                                             {status === "loading" ? (

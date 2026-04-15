@@ -11,7 +11,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { createClient } from "@/lib/supabase"
-import { HCaptchaWidget, type HCaptchaWidgetRef } from "@/components/hcaptcha-widget"
 
 function formatNumber(n: number): string {
   if (n >= 1000) {
@@ -28,8 +27,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
-  const captchaRef = React.useRef<HCaptchaWidgetRef>(null)
   const [stats, setStats] = useState({ users: 0, campaigns: 0, brands: 0, countries: 0 })
 
   useEffect(() => {
@@ -41,12 +38,6 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (!captchaToken) {
-      toast.error("Veuillez compléter le captcha")
-      return
-    }
-
     setIsLoading(true)
 
     try {
@@ -86,8 +77,6 @@ export default function LoginPage() {
       })
     } finally {
       setIsLoading(false)
-      captchaRef.current?.resetCaptcha()
-      setCaptchaToken(null)
     }
   }
 
@@ -169,14 +158,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <HCaptchaWidget
-              ref={captchaRef}
-              onVerify={(token) => setCaptchaToken(token)}
-              onExpire={() => setCaptchaToken(null)}
-              className="flex justify-center"
-            />
-
-            <Button type="submit" className="h-11 w-full shadow-lg shadow-primary/25" disabled={isLoading || !captchaToken}>
+            <Button type="submit" className="h-11 w-full shadow-lg shadow-primary/25" disabled={isLoading}>
               {isLoading ? "Connexion..." : "Se connecter"}
             </Button>
 

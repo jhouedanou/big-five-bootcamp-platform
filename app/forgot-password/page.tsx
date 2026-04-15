@@ -11,23 +11,14 @@ import { createClient } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { HCaptchaWidget, type HCaptchaWidgetRef } from "@/components/hcaptcha-widget"
 
 export default function ForgotPasswordPage() {
     const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
-    const [captchaToken, setCaptchaToken] = useState<string | null>(null)
-    const captchaRef = React.useRef<HCaptchaWidgetRef>(null)
     const supabase = createClient()
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-
-        if (!captchaToken) {
-            toast.error("Veuillez compléter le captcha")
-            return
-        }
-
         setIsLoading(true)
 
         const formData = new FormData(e.target as HTMLFormElement)
@@ -64,8 +55,6 @@ export default function ForgotPasswordPage() {
             })
         } finally {
             setIsLoading(false)
-            captchaRef.current?.resetCaptcha()
-            setCaptchaToken(null)
         }
     }
 
@@ -119,14 +108,7 @@ export default function ForgotPasswordPage() {
                             </div>
                         </div>
 
-                        <HCaptchaWidget
-                            ref={captchaRef}
-                            onVerify={(token) => setCaptchaToken(token)}
-                            onExpire={() => setCaptchaToken(null)}
-                            className="flex justify-center"
-                        />
-
-                        <Button type="submit" className="h-11 w-full shadow-lg shadow-primary/25" disabled={isLoading || !captchaToken}>
+                        <Button type="submit" className="h-11 w-full shadow-lg shadow-primary/25" disabled={isLoading}>
                             {isLoading ? "Envoi en cours..." : "Envoyer le lien"}
                         </Button>
                     </form>

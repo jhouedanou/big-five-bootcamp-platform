@@ -152,21 +152,24 @@ export function DashboardNavbar({
 
         <div className="hidden flex-1 items-center justify-center px-8 md:flex">
           <div className="relative w-full max-w-xl group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-[#80368D]/30 via-[#F2B33D]/25 to-[#29358B]/30 rounded-2xl blur-md opacity-70 group-focus-within:opacity-100 group-hover:opacity-90 transition-opacity duration-300 animate-pulse-slow" />
+            {/* Glow gradient de fond */}
+            <div className="absolute -inset-1.5 bg-gradient-to-r from-[#80368D]/40 via-[#F2B33D]/30 to-[#29358B]/40 rounded-2xl blur-lg opacity-60 group-focus-within:opacity-100 group-hover:opacity-80 transition-opacity duration-300" />
             <div className="relative flex items-center">
-              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#80368D] group-focus-within:text-[#80368D] transition-colors" />
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center h-7 w-7 rounded-full bg-[#80368D] group-focus-within:bg-[#80368D] transition-colors">
+                <Search className="h-4 w-4 text-white" />
+              </div>
               <input
                 type="text"
-                placeholder="🔍 Rechercher par mots-clés, marque, secteur, pays..."
+                placeholder="Rechercher par mots-clés, marque, secteur, pays..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-12 w-full rounded-2xl border-2 border-[#80368D]/30 bg-white pl-12 pr-4 text-sm font-medium text-[#1A1F2B] shadow-md shadow-[#80368D]/10 outline-none transition-all placeholder:text-[#1A1F2B]/50 focus:border-[#80368D] focus:ring-4 focus:ring-[#80368D]/15 focus:shadow-lg focus:shadow-[#80368D]/15 hover:border-[#80368D]/50 hover:shadow-lg hover:shadow-[#80368D]/10"
+                className="h-13 w-full rounded-2xl border-2 border-[#80368D]/40 bg-gradient-to-r from-[#D0E4F2]/40 to-white pl-14 pr-4 text-sm font-semibold text-[#1A1F2B] shadow-lg shadow-[#80368D]/15 outline-none transition-all placeholder:text-[#1A1F2B]/45 placeholder:font-medium focus:border-[#80368D] focus:ring-4 focus:ring-[#80368D]/20 focus:shadow-xl focus:shadow-[#80368D]/20 focus:bg-white hover:border-[#80368D]/60 hover:shadow-xl hover:shadow-[#80368D]/15"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-[#1A1F2B]/40 hover:text-[#1A1F2B] hover:bg-[#D0E4F2]/50 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-[#1A1F2B]/50 hover:text-white hover:bg-[#80368D] transition-colors"
                   aria-label="Effacer la recherche"
                 >
                   <X className="h-4 w-4" />

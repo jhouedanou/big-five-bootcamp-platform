@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
 
     // 4. Construire le HTML éditorialisé
     const weekLabel = lastMonday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://big-five-bootcamp-platform.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://laveiye.com'
 
     // Top campagnes à mettre en avant (featured d'abord, puis les plus récentes)
     const topCampaigns = featuredCampaigns.length > 0

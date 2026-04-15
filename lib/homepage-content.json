@@ -30,21 +30,21 @@
     }
   },
   "features": {
-    "title": "Pourquoi les meilleures agences utilisent",
+    "title": "Pourquoi utiliser",
     "titleHighlight": "Laveiye",
     "titleSuffix": "?",
     "subtitle": "Une suite d'outils conçue pour accélérer votre processus créatif et valider vos intuitions.",
     "items": [
       {
         "icon": "Target",
-        "title": "Ciblage Ultra-Précis",
+        "title": "S'enrichir, s’inspirer pour affiner votre stratégie",
         "description": "Filtrez par pays, industrie, format ou objectif. Trouvez exactement ce que vous cherchez.",
         "color": "text-[#80368D]",
         "bg": "bg-[#80368D]/10"
       },
       {
         "icon": "Layers",
-        "title": "Bibliothèque Massive",
+        "title": "Bibliothèque actualisée",
         "descriptionTemplate": "Plus de {count} campagnes archivées et mises à jour quotidiennement par nos équipes.",
         "descriptionFallback": "Des campagnes archivées et mises à jour quotidiennement par nos équipes.",
         "color": "text-[#29358B]",
@@ -52,8 +52,8 @@
       },
       {
         "icon": "Zap",
-        "title": "Analyse Instantanée",
-        "description": "Décortiquez les stratégies gagnantes. Comprenez pourquoi une campagne fonctionne.",
+        "title": "Lecture stratégique",
+        "description": "Consultez notre analyse des meilleures campagnes et comprenez pourquoi elles fonctionnent.",
         "color": "text-[#F2B33D]",
         "bg": "bg-[#F2B33D]/20"
       }
@@ -66,8 +66,7 @@
     "features": [
       "Sauvegardez vos favoris dans des collections",
       "Partagez des collections avec vos clients",
-      "Téléchargez les assets en haute qualité",
-      "Recevez des alertes sur vos concurrents"
+      "Téléchargez les assets en haute qualité"
     ],
     "cta": "Explorer toutes les fonctionnalités",
     "overlayButton": "Voir en action"

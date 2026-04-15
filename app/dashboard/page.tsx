@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect, useCallback } from "react"
+import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
@@ -55,6 +55,132 @@ function normalizeCountry(raw: string | null | undefined): string {
 }
 
 // Les compteurs de clics sont maintenant gérés côté serveur via /api/track-click
+
+function PaginationPageButton({ page, isActive, onClick }: { page: number; isActive: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`h-10 w-10 rounded-lg text-sm font-bold transition-all duration-200 ${isActive
+        ? "bg-[#80368D] text-white shadow-lg shadow-[#80368D]/30 scale-110"
+        : "bg-white border-2 border-[#D0E4F2] text-[#1A1F2B]/70 hover:bg-[#D0E4F2] hover:text-[#1A1F2B] hover:border-[#80368D]/30"
+        }`}
+    >
+      {page}
+    </button>
+  )
+}
+
+function PaginationBar({ currentPage, totalPages, onPageChange }: { currentPage: number; totalPages: number; onPageChange: (page: number) => void }) {
+  const [isEditingPage, setIsEditingPage] = useState(false)
+  const [pageInput, setPageInput] = useState("")
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const handleGoToPage = () => {
+    const page = parseInt(pageInput, 10)
+    if (page >= 1 && page <= totalPages) {
+      onPageChange(page)
+    }
+    setIsEditingPage(false)
+    setPageInput("")
+  }
+
+  useEffect(() => {
+    if (isEditingPage && inputRef.current) {
+      inputRef.current.focus()
+    }
+  }, [isEditingPage])
+
+  // Determine which pages to show: first 2, last 2, and current page neighborhood
+  const showEllipsis = totalPages > 5
+  const firstPages = [1, 2].filter(p => p <= totalPages)
+  const lastPages = [totalPages - 1, totalPages].filter(p => p > 2)
+
+  return (
+    <div className="mt-10 flex items-center justify-center gap-2">
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-10 w-10 border-2 border-[#D0E4F2] bg-white p-0 hover:bg-[#D0E4F2] hover:border-[#80368D]/30"
+        onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+        disabled={currentPage === 1}
+      >
+        <ChevronLeft className="h-5 w-5" />
+      </Button>
+
+      <div className="flex items-center gap-2">
+        {showEllipsis ? (
+          <>
+            {firstPages.map((page) => (
+              <PaginationPageButton
+                key={page}
+                page={page}
+                isActive={currentPage === page}
+                onClick={() => onPageChange(page)}
+              />
+            ))}
+
+            {isEditingPage ? (
+              <form
+                onSubmit={(e) => { e.preventDefault(); handleGoToPage() }}
+                className="flex items-center"
+              >
+                <input
+                  ref={inputRef}
+                  type="number"
+                  min={1}
+                  max={totalPages}
+                  value={pageInput}
+                  onChange={(e) => setPageInput(e.target.value)}
+                  onBlur={handleGoToPage}
+                  placeholder={String(currentPage)}
+                  className="h-10 w-14 rounded-lg border-2 border-[#80368D]/40 bg-white text-center text-sm font-bold text-[#1A1F2B] outline-none focus:border-[#80368D] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+              </form>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsEditingPage(true)}
+                className="h-10 min-w-10 rounded-lg border-2 border-dashed border-[#D0E4F2] bg-white px-2 text-sm font-bold text-[#1A1F2B]/50 transition-all hover:border-[#80368D]/40 hover:text-[#80368D]"
+                title="Aller à une page"
+              >
+                ···
+              </button>
+            )}
+
+            {lastPages.map((page) => (
+              <PaginationPageButton
+                key={page}
+                page={page}
+                isActive={currentPage === page}
+                onClick={() => onPageChange(page)}
+              />
+            ))}
+          </>
+        ) : (
+          Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            <PaginationPageButton
+              key={page}
+              page={page}
+              isActive={currentPage === page}
+              onClick={() => onPageChange(page)}
+            />
+          ))
+        )}
+      </div>
+
+      <Button
+        variant="outline"
+        size="sm"
+        className="h-10 w-10 border-2 border-[#D0E4F2] bg-white p-0 hover:bg-[#D0E4F2] hover:border-[#80368D]/30"
+        onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+        disabled={currentPage === totalPages}
+      >
+        <ArrowRight className="h-5 w-5" />
+      </Button>
+    </div>
+  )
+}
 
 export default function DashboardPage() {
   const [campaigns, setCampaigns] = useState<ContentItem[]>([])
@@ -631,43 +757,11 @@ export default function DashboardPage() {
 
                   {/* Pagination */}
                   {totalPages > 1 && (
-                    <div className="mt-10 flex items-center justify-center gap-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-10 w-10 border-2 border-[#D0E4F2] bg-white p-0 hover:bg-[#D0E4F2] hover:border-[#80368D]/30"
-                        onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
-                        disabled={currentPage === 1}
-                      >
-                        <ChevronLeft className="h-5 w-5" />
-                      </Button>
-
-                      <div className="flex items-center gap-2">
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                          <button
-                            key={page}
-                            type="button"
-                            onClick={() => { setCurrentPage(page); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
-                            className={`h-10 w-10 rounded-lg text-sm font-bold transition-all duration-200 ${currentPage === page
-                              ? "bg-[#80368D] text-white shadow-lg shadow-[#80368D]/30 scale-110"
-                              : "bg-white border-2 border-[#D0E4F2] text-[#1A1F2B]/70 hover:bg-[#D0E4F2] hover:text-[#1A1F2B] hover:border-[#80368D]/30"
-                              }`}
-                          >
-                            {page}
-                          </button>
-                        ))}
-                      </div>
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-10 w-10 border-2 border-[#D0E4F2] bg-white p-0 hover:bg-[#D0E4F2] hover:border-[#80368D]/30"
-                        onClick={() => { setCurrentPage(p => Math.min(totalPages, p + 1)); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
-                        disabled={currentPage === totalPages}
-                      >
-                        <ArrowRight className="h-5 w-5" />
-                      </Button>
-                    </div>
+                    <PaginationBar
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={(page) => { setCurrentPage(page); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
+                    />
                   )}
                 </>
               ) : (

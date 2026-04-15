@@ -1,12 +1,23 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { AlertCircle, ArrowLeft, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function AuthCodeErrorPage() {
+function AuthCodeErrorContent() {
+  const searchParams = useSearchParams();
+  const reason = searchParams.get("reason");
+  const errorDescription = searchParams.get("error_description");
+
+  const getMessage = () => {
+    if (errorDescription) return decodeURIComponent(errorDescription);
+    if (reason === "missing_code") return "Le code d'authentification est manquant dans l'URL.";
+    return "Le lien d'authentification n'est pas valide ou a expiré.";
+  };
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-violet-50 via-blue-50 to-white p-4">
       <Card className="max-w-md w-full shadow-xl border-2">
@@ -18,7 +29,7 @@ export default function AuthCodeErrorPage() {
             Erreur d&apos;authentification
           </CardTitle>
           <CardDescription className="text-base">
-            Le lien d&apos;authentification n&apos;est pas valide ou a expiré.
+            {getMessage()}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -58,13 +69,21 @@ export default function AuthCodeErrorPage() {
           <div className="pt-4 border-t">
             <p className="text-xs text-center text-muted-foreground">
               Si le problème persiste, contactez le support à{" "}
-              <a href="mailto:support@bigfive.com" className="text-primary hover:underline">
-                support@bigfive.com
+              <a href="mailto:contacts@bigfiveabidjan.com" className="text-primary hover:underline">
+                contacts@bigfiveabidjan.com
               </a>
             </p>
           </div>
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function AuthCodeErrorPage() {
+  return (
+    <Suspense fallback={null}>
+      <AuthCodeErrorContent />
+    </Suspense>
   );
 }

@@ -73,20 +73,21 @@ function UpdatePasswordContent() {
           return;
         }
 
-        setIsValidSession(!!user);
-        
-        // Si pas de session, écouter les changements d'auth (pour le hash processing)
-        if (!session) {
-          const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            console.log('Auth state change:', event);
-            if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
-              setIsValidSession(true);
-            }
-          });
-          
-          // Cleanup
-          return () => subscription.unsubscribe();
+        if (user) {
+          setIsValidSession(true);
+          return;
         }
+
+        // Si pas d'utilisateur, écouter les changements d'auth (pour le hash processing)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+          console.log('Auth state change:', event);
+          if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+            setIsValidSession(true);
+          }
+        });
+
+        // Cleanup
+        return () => subscription.unsubscribe();
       } catch (err) {
         console.error('Auth callback error:', err);
         setErrorMessage('Une erreur est survenue');

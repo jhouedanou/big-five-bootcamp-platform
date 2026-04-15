@@ -95,7 +95,7 @@ export default async function SharedCollectionPage({ params }: PageProps) {
       <main className="flex-1">
         <div className="container mx-auto px-4 pb-12 pt-8">
           {/* Header */}
-          <div className="mb-8 text-center">
+          <div className="mb-8 flex flex-col items-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#80368D] to-[#29358B] shadow-lg">
               <FolderOpen className="h-7 w-7 text-white" />
             </div>

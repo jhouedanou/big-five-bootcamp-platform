@@ -83,6 +83,13 @@ export async function GET(request: Request) {
     const errorUrl = new URL(`${origin}/auth/auth-code-error`)
     if (!code) {
         errorUrl.searchParams.set('reason', 'missing_code')
+    } else {
+        errorUrl.searchParams.set('reason', 'exchange_failed')
+    }
+    // Transmettre les paramètres d'erreur de Supabase s'ils existent
+    const error_description = searchParams.get('error_description')
+    if (error_description) {
+        errorUrl.searchParams.set('error_description', error_description)
     }
     return NextResponse.redirect(errorUrl)
 }

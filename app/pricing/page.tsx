@@ -7,87 +7,21 @@ import { Button } from "@/components/ui/button"
 import { Check, X, Minus } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import content from "@/lib/homepage-content.json"
 
-const plans = [
-    {
-        key: "free",
-        name: "Découverte",
-        description: "Pour explorer la plateforme.",
-        monthlyPrice: 0,
-        annualPrice: 0,
-        cta: "Commencer",
-        ctaLink: "/register",
-        ctaVariant: "outline" as const,
-        highlighted: false,
-        badge: null,
-        color: "#1A1F2B",
-        features: [
-            "5 campagnes consultables / mois",
-            "Filtres de base",
-            "Email hebdomadaire",
-        ],
-        excluded: [
-            "Collections personnalisées",
-            "Téléchargement",
-            "Suivi de marques",
-        ],
-    },
-    {
-        key: "basic",
-        name: "Basic",
-        description: "Pour les indépendants.",
-        monthlyPrice: 4900,
-        annualPrice: 49000,
-        cta: "Choisir Basic",
-        ctaLink: "/subscribe?plan=basic",
-        ctaVariant: "default" as const,
-        highlighted: false,
-        badge: null,
-        color: "#1A1F2B",
-        features: [
-            "Accès illimité à la bibliothèque",
-            "Filtres avancés (Secteur, Pays...)",
-            "Collections personnalisées",
-            "Téléchargement des vidéos",
-            "Compteur d'usage mensuel",
-        ],
-        excluded: [
-            "Suivi de marques",
-        ],
-    },
-    {
-        key: "pro",
-        name: "Pro",
-        description: "Pour les créatifs exigeants.",
-        monthlyPrice: 9900,
-        annualPrice: 99000,
-        cta: "Choisir Pro",
-        ctaLink: "/subscribe?plan=pro",
-        ctaVariant: "default" as const,
-        highlighted: true,
-        badge: "Populaire",
-        color: "#80368D",
-        features: [
-            "Tout du plan Basic",
-            "Recherches illimitées",
-            "Suivi de marques",
-            "Support prioritaire",
-        ],
-        excluded: [],
-    },
-]
+const pricingContent = content.pricing
 
-const comparisonFeatures = [
-    { name: "Accès à la bibliothèque", free: "5/mois", basic: "Illimité", pro: "Illimité" },
-    { name: "Filtres de base", free: true, basic: true, pro: true },
-    { name: "Filtres avancés (Secteur, Pays, Format)", free: false, basic: true, pro: true },
-    { name: "Collections personnalisées", free: false, basic: true, pro: true },
-    { name: "Téléchargement des vidéos", free: false, basic: true, pro: true },
-    { name: "Recherches illimitées", free: false, basic: false, pro: true },
-    { name: "Suivi de marques", free: false, basic: false, pro: true },
-    { name: "Support prioritaire", free: false, basic: false, pro: true },
-    { name: "Email hebdomadaire", free: true, basic: true, pro: true },
-]
+const plans = pricingContent.plans.map((plan) => ({
+    ...plan,
+    ctaVariant: plan.ctaVariant as "outline" | "default",
+}))
+
+const comparisonFeatures = pricingContent.comparison.features as Array<{
+    name: string
+    free: string | boolean
+    basic: string | boolean
+    pro: string | boolean
+}>
 
 function formatPrice(price: number): string {
     return new Intl.NumberFormat("fr-FR").format(price)
@@ -102,12 +36,12 @@ export default function PricingPage() {
             <main className="flex-1">
                 {/* Hero */}
                 <section className="relative py-16 lg:py-28 overflow-hidden bg-gradient-to-b from-[#D0E4F2] to-white">
-                    <div className="container relative mx-auto px-4 text-center">
+                    <div className="container relative mx-auto px-4 flex flex-col items-center">
                         <h1 className="font-[family-name:var(--font-heading)] text-3xl sm:text-4xl lg:text-6xl font-extrabold tracking-tight mb-4 sm:mb-6 text-[#1A1F2B]">
-                            Des tarifs adaptés à <br className="hidden sm:block" /> <span className="text-[#80368D]">votre ambition</span>
+                            {pricingContent.hero.title} <br className="hidden sm:block" /> <span className="text-[#80368D]">{pricingContent.hero.titleHighlight}</span>
                         </h1>
                         <p className="text-base sm:text-lg text-[#1A1F2B]/70 max-w-2xl mx-auto mb-8 text-center">
-                            Investissez dans votre veille créative et prenez une longueur d{"'"}avance sur la concurrence.
+                            {pricingContent.hero.subtitle}
                         </p>
 
                         {/* Toggle Mensuel / Annuel */}
@@ -116,7 +50,7 @@ export default function PricingPage() {
                                 "text-sm font-semibold transition-colors",
                                 !isAnnual ? "text-[#1A1F2B]" : "text-[#1A1F2B]/50"
                             )}>
-                                Mensuel
+                                {pricingContent.toggle.monthly}
                             </span>
                             {/* eslint-disable-next-line jsx-a11y/aria-proptypes */}
                             <button
@@ -128,7 +62,7 @@ export default function PricingPage() {
                                 )}
                                 role="switch"
                                 aria-checked={isAnnual ? "true" : "false"}
-                                aria-label="Basculer entre tarif mensuel et annuel"
+                                aria-label={pricingContent.toggle.ariaLabel}
                             >
                                 <span
                                     className={cn(
@@ -141,11 +75,11 @@ export default function PricingPage() {
                                 "text-sm font-semibold transition-colors",
                                 isAnnual ? "text-[#1A1F2B]" : "text-[#1A1F2B]/50"
                             )}>
-                                Annuel
+                                {pricingContent.toggle.annual}
                             </span>
                             {isAnnual && (
                                 <span className="ml-2 inline-flex items-center rounded-full bg-[#10B981]/10 px-3 py-1 text-xs font-bold text-[#10B981] ring-1 ring-[#10B981]/20">
-                                    2 mois offerts
+                                    {pricingContent.toggle.annualBadge}
                                 </span>
                             )}
                         </div>
@@ -182,9 +116,9 @@ export default function PricingPage() {
                                     </div>
                                     <div className="mb-2">
                                         {plan.monthlyPrice === 0 ? (
-                                            <span className="text-3xl sm:text-4xl font-bold text-[#1A1F2B]">Gratuit</span>
+                                            <span className="text-3xl sm:text-4xl font-bold text-[#1A1F2B]">{pricingContent.priceLabels.free}</span>
                                         ) : plan.monthlyPrice === -1 ? (
-                                            <span className="text-2xl sm:text-3xl font-bold text-[#1A1F2B]">Sur devis</span>
+                                            <span className="text-2xl sm:text-3xl font-bold text-[#1A1F2B]">{pricingContent.priceLabels.custom}</span>
                                         ) : (
                                             <>
                                                 <span className={cn(
@@ -196,19 +130,20 @@ export default function PricingPage() {
                                                         : formatPrice(plan.monthlyPrice)
                                                     }
                                                 </span>
-                                                <span className="text-[#1A1F2B]/60 ml-1 text-sm">XOF / mois</span>
+                                                <span className="text-[#1A1F2B]/60 ml-1 text-sm">{pricingContent.priceLabels.perMonth}</span>
                                             </>
                                         )}
                                     </div>
                                     {plan.monthlyPrice > 0 && (
                                         <p className="text-xs text-[#1A1F2B]/50 mb-4 sm:mb-6">
                                             {isAnnual
-                                                ? `soit ${formatPrice(plan.annualPrice)} XOF facturés annuellement`
-                                                : `soit ${formatPrice(plan.annualPrice)} XOF / an`
+                                                ? pricingContent.priceLabels.annualBillingTemplate.replace("{amount}", formatPrice(plan.annualPrice))
+                                                : pricingContent.priceLabels.annualPerYearTemplate.replace("{amount}", formatPrice(plan.annualPrice))
                                             }
                                         </p>
                                     )}
                                     {plan.monthlyPrice <= 0 && <div className="mb-4 sm:mb-6" />}
+                                    <br/>
                                     <Button
                                         asChild
                                         variant={plan.ctaVariant}
@@ -231,7 +166,7 @@ export default function PricingPage() {
                                     </Button>
                                     <ul className="space-y-3 text-sm flex-1">
                                         {plan.features.map((feature) => (
-                                            <li key={feature} className="flex items-center gap-2 text-[#1A1F2B]/70">
+                                            <li key={feature} className={cn("flex items-center gap-2 text-[#1A1F2B]/70", plan.boldFeatures?.includes(feature) && "font-bold text-[#1A1F2B]")}>
                                                 <Check className="h-4 w-4 text-[#80368D] shrink-0" />
                                                 {feature}
                                             </li>
@@ -251,13 +186,13 @@ export default function PricingPage() {
 
                 {/* Tableau comparatif */}
                 <section className="py-12 sm:py-20 bg-[#D0E4F2]/20">
-                    <div className="container mx-auto px-4">
-                        <div className="text-center mb-8 sm:mb-12">
-                            <h2 className="font-[family-name:var(--font-heading)] text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1A1F2B] mb-3">
-                                Comparez les fonctionnalités
+                    <div className="container mx-auto px-4 flex flex-col items-center">
+                        <div className="flex flex-col items-center mb-8 sm:mb-12">
+                            <h2 className="font-[family-name:var(--font-heading)] text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1A1F2B] mb-3 text-center">
+                                {pricingContent.comparison.title}
                             </h2>
-                            <p className="text-[#1A1F2B]/60 text-sm sm:text-base max-w-xl mx-auto text-center">
-                                Trouvez le plan qui correspond à vos besoins.
+                            <p className="text-[#1A1F2B]/60 text-sm sm:text-base max-w-xl text-center">
+                                {pricingContent.comparison.subtitle}
                             </p>
                         </div>
 
@@ -267,7 +202,7 @@ export default function PricingPage() {
                                 <table className="w-full">
                                     <thead>
                                         <tr className="border-b border-[#D0E4F2]">
-                                            <th className="text-left p-4 sm:p-6 text-sm font-semibold text-[#1A1F2B]/60 w-2/5">Fonctionnalité</th>
+                                            <th className="text-left p-4 sm:p-6 text-sm font-semibold text-[#1A1F2B]/60 w-2/5">{pricingContent.comparison.tableHeader}</th>
                                             <th className="p-4 sm:p-6 text-center text-sm font-bold text-[#1A1F2B]">Découverte</th>
                                             <th className="p-4 sm:p-6 text-center text-sm font-bold text-[#1A1F2B]">Basic</th>
                                             <th className="p-4 sm:p-6 text-center text-sm font-bold text-[#80368D] bg-[#80368D]/5">Pro</th>

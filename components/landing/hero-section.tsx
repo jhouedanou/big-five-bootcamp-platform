@@ -324,6 +324,7 @@ export function FeaturesSection() {
 
 export function PreviewSection() {
   const t = homepageContent.preview
+  const recentCampaigns = useRecentCampaigns()
 
   return (
     <section className="py-24 overflow-hidden bg-white">
@@ -356,23 +357,15 @@ export function PreviewSection() {
 
           <div className="lg:col-span-6 relative">
             <div className="absolute inset-0 bg-[#D0E4F2]/30 blur-3xl rounded-full opacity-50" />
-            <div className="relative bg-white rounded-xl border border-[#D0E4F2] shadow-2xl overflow-hidden group">
-              <div className="aspect-[4/3] bg-[#D0E4F2]/20 relative">
-                {/* Abstract UI representation */}
-                <div className="absolute inset-0 bg-white p-6">
-                  <div className="h-8 w-1/3 bg-[#D0E4F2] rounded mb-6" />
-                  <div className="grid grid-cols-2 gap-4">
-                    {[1, 2, 3, 4].map(n => (
-                      <div key={n} className="aspect-video bg-[#D0E4F2]/50 rounded-lg border border-[#D0E4F2]" />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Overlay CTA */}
-                <div className="absolute inset-0 flex items-center justify-center bg-white/50 opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
-                  <Button className="rounded-full shadow-lg bg-[#80368D] hover:bg-[#80368D]/90">{t.overlayButton}</Button>
-                </div>
-              </div>
+            <div className="relative rounded-xl border border-[#D0E4F2] shadow-2xl overflow-hidden">
+              <Image
+                src="/anu.png"
+                alt="Aperçu de la plateforme Laveiye"
+                width={800}
+                height={600}
+                className="w-full h-auto"
+                priority
+              />
             </div>
           </div>
         </div>
@@ -388,7 +381,7 @@ export function PricingTeaser() {
     <section className="py-16 sm:py-20 bg-[#D0E4F2]/30 relative overflow-hidden">
       <div className="absolute inset-0 bg-[linear-gradient(rgba(208,228,242,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(208,228,242,0.3)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center relative z-10">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 flex flex-col items-center relative z-10">
         {/* Pricing teaser */}
         <div className="mb-5 inline-flex items-center gap-3 rounded-full bg-gradient-to-r from-[#80368D]/15 to-[#80368D]/5 px-5 py-2.5 ring-2 ring-[#80368D]/20 shadow-lg">
           <span className="text-base font-bold text-[#1A1F2B]">
@@ -396,13 +389,14 @@ export function PricingTeaser() {
           </span>
         </div>
 
-        <h2 id="samer" className="font-[family-name:var(--font-heading)] text-3xl sm:text-4xl font-bold mb-4 text-[#1A1F2B] mb">
+        <h2 id="samer" className="font-[family-name:var(--font-heading)] text-3xl sm:text-4xl font-bold mb-4 text-[#1A1F2B] mb text-center animate-fade-in-up">
           {t.title}
         </h2>
+       
         <p id="lagross" className="text-[#1A1F2B]/70 text-lg sm:text-xl mb-8 max-w-2xl mx-auto text-center">
           {t.subtitle}
         </p>
-
+ <br/>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <Button size="lg" className="h-14 px-8 text-lg bg-[#80368D] hover:bg-[#80368D]/90 text-white font-bold rounded-full shadow-lg shadow-[#80368D]/25 hover:shadow-[#80368D]/40 transition-all hover:-translate-y-1" asChild>
             <Link href="/register">

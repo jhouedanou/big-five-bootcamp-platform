@@ -708,20 +708,22 @@ export default function DashboardPage() {
                   </div>
                   <div>
                     <h2 className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#1A1F2B]">
-                      Les meilleures campagnes de la semaine
+                      Notre sélection hebdomadaire de campagnes
                     </h2>
                     <p className="text-sm text-[#1A1F2B]/60">
-                      Sélectionnées pour vous · Semaine du {weekLabel}n
+                      Semaine du {weekLabel}
                     </p>
                   </div>
                 </div>
-                <span className="hidden sm:flex items-center gap-1 rounded-full bg-[#F2B33D]/20 px-3 py-1 text-xs font-semibold text-[#b45309]">
+               {/*
+               <span className="hidden sm:flex items-center gap-1 rounded-full bg-[#F2B33D]/20 px-3 py-1 text-xs font-semibold text-[#b45309]">
                   <Sparkles className="h-3 w-3" />
                   {filteredWeeklyCampaigns.filter(c => c.featured).length > 0
                     ? `${filteredWeeklyCampaigns.filter(c => c.featured).length} sélection${filteredWeeklyCampaigns.filter(c => c.featured).length > 1 ? 's' : ''} éditeur`
                     : `${filteredWeeklyCampaigns.length} nouvelles`
                   }
                 </span>
+               */} 
               </div>
 
               <SwipeableCarousel

@@ -74,10 +74,125 @@
   "pricingTeaser": {
     "badge": "À partir de 4 900 XOF/mois",
     "title": "Commencez à créer des campagnes impactantes.",
-    "subtitle": "Rejoignez des centaines de créatifs qui utilisent Laveiye pour élever leur niveau de jeu. Sans carte bancaire requise à l'inscription.",
+    "subtitle": "Rejoignez des centaines de professionnels qui utilisent Creative Library Big Five pour élever leur niveau de performance.",
     "cta": {
       "primary": "S'inscrire gratuitement",
       "secondary": "Voir les tarifs"
+    }
+  },
+  "pricing": {
+    "hero": {
+      "title": "Des tarifs adaptés à",
+      "titleHighlight": "votre ambition",
+      "subtitle": "Investissez dans votre veille créative et prenez une longueur d'avance sur la concurrence."
+    },
+    "toggle": {
+      "monthly": "Mensuel",
+      "annual": "Annuel",
+      "annualBadge": "2 mois offerts",
+      "ariaLabel": "Basculer entre tarif mensuel et annuel"
+    },
+    "priceLabels": {
+      "free": "Gratuit",
+      "custom": "Sur devis",
+      "perMonth": "XOF / mois",
+      "annualBillingTemplate": "soit {amount} XOF facturés annuellement",
+      "annualPerYearTemplate": "ou {amount} XOF / an (2 mois offerts)"
+    },
+    "plans": [
+      {
+        "key": "free",
+        "name": "Découverte",
+        "description": "Pour explorer la plateforme.",
+        "monthlyPrice": 0,
+        "annualPrice": 0,
+        "cta": "Commencer",
+        "ctaLink": "/register",
+        "ctaVariant": "outline",
+        "highlighted": false,
+        "badge": null,
+        "color": "#1A1F2B",
+        "features": [
+          "3 / mois",
+          "Filtres de base",
+          "Email hebdomadaire"
+        ],
+        "excluded": [
+          "Collections personnalisées",
+          "Téléchargement",
+          "Suivi de marques"
+        ]
+      },
+      {
+        "key": "basic",
+        "name": "Basic",
+        "description": "Pour les indépendants.",
+        "monthlyPrice": 4900,
+        "annualPrice": 49000,
+        "cta": "Choisir Basic",
+        "ctaLink": "/subscribe?plan=basic",
+        "ctaVariant": "default",
+        "highlighted": false,
+        "badge": null,
+        "color": "#1A1F2B",
+        "features": [
+          "Accès illimité à la bibliothèque",
+          "Filtres avancés (Secteur, Pays...)",
+          "Collections personnalisées",
+          "Téléchargement des vidéos",
+          "Compteur d'usage mensuel"
+        ],
+        "excluded": [
+          "Suivi de marques"
+        ]
+      },
+      {
+        "key": "pro",
+        "name": "Pro",
+        "description": "Pour les créatifs exigeants.",
+        "monthlyPrice": 9900,
+        "annualPrice": 99000,
+        "cta": "Choisir Pro",
+        "ctaLink": "/subscribe?plan=pro",
+        "ctaVariant": "default",
+        "highlighted": true,
+        "badge": "Populaire",
+        "color": "#80368D",
+        "features": [
+            "Accès illimité à la bibliothèque",
+          "Filtres avancés (Secteur, Pays...)",
+          "Collections personnalisées",
+          "Téléchargement des vidéos",
+          "Compteur d'usage mensuel",
+          "Recherches illimitées",
+          "Suivi de marques",
+          "Support prioritaire",
+          "Créer et partager des moodboard"
+        ],
+        "boldFeatures": [
+          "Recherches illimitées",
+          "Suivi de marques",
+          "Support prioritaire",
+          "Créer et partager des moodboard"
+        ],
+        "excluded": []
+      }
+    ],
+    "comparison": {
+      "title": "Comparez les fonctionnalités",
+      "subtitle": "Trouvez le plan qui correspond à vos besoins.",
+      "tableHeader": "Fonctionnalité",
+      "features": [
+        { "name": "Accès à la bibliothèque", "free": "5/mois", "basic": "Illimité", "pro": "Illimité" },
+        { "name": "Filtres de base", "free": true, "basic": true, "pro": true },
+        { "name": "Filtres avancés (Secteur, Pays, Format)", "free": false, "basic": true, "pro": true },
+        { "name": "Collections personnalisées", "free": false, "basic": true, "pro": true },
+        { "name": "Téléchargement des vidéos", "free": false, "basic": true, "pro": true },
+        { "name": "Recherches illimitées", "free": false, "basic": false, "pro": true },
+        { "name": "Suivi de marques", "free": false, "basic": false, "pro": true },
+        { "name": "Support prioritaire", "free": false, "basic": false, "pro": true },
+        { "name": "Email hebdomadaire", "free": true, "basic": true, "pro": true }
+      ]
     }
   }
 }

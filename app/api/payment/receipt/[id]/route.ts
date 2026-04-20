@@ -80,9 +80,9 @@ export async function GET(
   <title>Reçu de paiement - ${payment.ref_command}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #1A1F2B; background: #f8f9fa; padding: 40px; }
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #0F0F0F; background: #f8f9fa; padding: 40px; }
     .receipt { max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
-    .header { background: linear-gradient(135deg, #80368D, #29358B); padding: 32px; text-align: center; color: white; }
+    .header { background: linear-gradient(135deg, #F2B33D, #0F0F0F); padding: 32px; text-align: center; color: white; }
     .header h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
     .header p { font-size: 14px; opacity: 0.85; }
     .badge { display: inline-block; margin-top: 16px; background: rgba(255,255,255,0.2); border-radius: 20px; padding: 6px 16px; font-size: 13px; font-weight: 600; }
@@ -96,9 +96,9 @@ export async function GET(
     .row .value { font-weight: 600; text-align: right; }
     .total { background: #F3F4F6; border-radius: 12px; padding: 16px; margin-top: 16px; }
     .total .row { font-size: 16px; }
-    .total .row .value { color: #80368D; font-size: 20px; font-weight: 800; }
+    .total .row .value { color: #F2B33D; font-size: 20px; font-weight: 800; }
     .footer { padding: 24px 32px; background: #F9FAFB; text-align: center; font-size: 12px; color: #9CA3AF; border-top: 1px solid #E5E7EB; }
-    .footer a { color: #80368D; text-decoration: none; }
+    .footer a { color: #F2B33D; text-decoration: none; }
     @media print { body { padding: 0; background: white; } .receipt { box-shadow: none; } }
   </style>
 </head>

@@ -117,13 +117,13 @@ export default function ForgotPasswordPage() {
 
             {/* Right side - Visual (Simplified) */}
             <div className="relative hidden w-0 flex-1 lg:block">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#D0E4F2] via-white to-[#D0E4F2]">
+                <div className="absolute inset-0 bg-gradient-to-br from-[#F5F5F5] via-white to-[#F5F5F5]">
                     <div className="flex h-full flex-col items-center justify-center p-12">
                         <div className="max-w-md text-center">
-                            <h2 className="font-[family-name:var(--font-montserrat)] text-3xl font-bold text-[#1A1F2B]">
+                            <h2 className="font-[family-name:var(--font-montserrat)] text-3xl font-bold text-[#0F0F0F]">
                                 Récupère ton accès
                             </h2>
-                            <p className="mt-4 text-lg text-[#1A1F2B]/70">
+                            <p className="mt-4 text-lg text-[#0F0F0F]/70">
                                 Ne t'inquiète pas, ça arrive même aux meilleurs créatifs.
                             </p>
                         </div>

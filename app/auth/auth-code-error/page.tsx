@@ -29,7 +29,7 @@ function AuthCodeErrorContent() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
             <AlertCircle className="h-8 w-8 text-red-600" />
           </div>
-          <CardTitle className="text-xl font-bold text-[#1A1F2B]">
+          <CardTitle className="text-xl font-bold text-[#0F0F0F]">
             Erreur d&apos;authentification
           </CardTitle>
           <CardDescription className="text-base">

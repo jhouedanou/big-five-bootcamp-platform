@@ -38,7 +38,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#80368D',
+  themeColor: '#F2B33D',
 }
 
 import { Providers } from "@/components/providers"

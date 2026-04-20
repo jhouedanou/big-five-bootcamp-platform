@@ -42,8 +42,8 @@ function CollectionCover({ thumbnails, name }: { thumbnails: string[]; name: str
 
   if (t.length === 0) {
     return (
-      <div className="aspect-square w-full rounded-sm bg-gradient-to-br from-[#D0E4F2]/60 to-[#80368D]/10 flex items-center justify-center">
-        <FolderOpen className="h-10 w-10 text-[#80368D]/25" />
+      <div className="aspect-square w-full rounded-sm bg-gradient-to-br from-[#F5F5F5]/60 to-[#F2B33D]/10 flex items-center justify-center">
+        <FolderOpen className="h-10 w-10 text-[#F2B33D]/25" />
       </div>
     )
   }
@@ -81,7 +81,7 @@ function CollectionCover({ thumbnails, name }: { thumbnails: string[]; name: str
         {t[2] ? (
           <Image src={t[2]} alt="" fill className="object-cover" />
         ) : (
-          <div className="w-full h-full bg-[#D0E4F2]/40" />
+          <div className="w-full h-full bg-[#F5F5F5]/40" />
         )}
       </div>
     </div>
@@ -348,7 +348,7 @@ function FavoritesPageContent() {
       return (
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-[#80368D] mx-auto" />
+            <Loader2 className="h-8 w-8 animate-spin text-[#F2B33D] mx-auto" />
             <p className="mt-3 text-sm text-muted-foreground">Chargement...</p>
           </div>
         </div>
@@ -357,17 +357,17 @@ function FavoritesPageContent() {
 
     if (!isAuthenticated) {
       return (
-        <div className="flex min-h-[400px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#D0E4F2] bg-gradient-to-br from-[#f8fafc] to-[#f0f4ff] p-8 text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#80368D]/10">
-            <LogIn className="h-10 w-10 text-[#80368D]" />
+        <div className="flex min-h-[400px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#F5F5F5] bg-gradient-to-br from-[#f8fafc] to-[#f0f4ff] p-8 text-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#F2B33D]/10">
+            <LogIn className="h-10 w-10 text-[#F2B33D]" />
           </div>
-          <h3 className="mt-6 text-xl font-bold text-[#1A1F2B]">Connexion requise</h3>
+          <h3 className="mt-6 text-xl font-bold text-[#0F0F0F]">Connexion requise</h3>
           <p className="mt-2 text-muted-foreground max-w-md">
             Connectez-vous pour accéder à vos favoris et retrouver vos campagnes sauvegardées.
           </p>
           <div className="mt-6 flex gap-4">
             <Link href="/login?redirect=/favorites">
-              <Button className="bg-[#80368D] hover:bg-[#6b2d78]">
+              <Button className="bg-[#F2B33D] hover:bg-[#6b2d78]">
                 <LogIn className="h-4 w-4 mr-2" />Se connecter
               </Button>
             </Link>
@@ -391,11 +391,11 @@ function FavoritesPageContent() {
 
     if (filteredCampaigns.length === 0) {
       return (
-        <div className="flex min-h-[400px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#D0E4F2] bg-gradient-to-br from-[#f8fafc] to-[#f0f4ff] p-8 text-center animate-in fade-in-50">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#D0E4F2]">
-            {activeCollection ? <FolderOpen className="h-10 w-10 text-[#80368D]/60" /> : <Heart className="h-10 w-10 text-[#80368D]/60" />}
+        <div className="flex min-h-[400px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#F5F5F5] bg-gradient-to-br from-[#f8fafc] to-[#f0f4ff] p-8 text-center animate-in fade-in-50">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#F5F5F5]">
+            {activeCollection ? <FolderOpen className="h-10 w-10 text-[#F2B33D]/60" /> : <Heart className="h-10 w-10 text-[#F2B33D]/60" />}
           </div>
-          <h3 className="mt-6 text-xl font-bold text-[#1A1F2B]">
+          <h3 className="mt-6 text-xl font-bold text-[#0F0F0F]">
             {activeCollection ? "Collection vide" : "Aucun favori"}
           </h3>
           <p className="mt-2 text-muted-foreground max-w-md">
@@ -404,7 +404,7 @@ function FavoritesPageContent() {
               : "Vous n'avez pas encore de favoris. Explorez la bibliothèque et cliquez sur le \u2764\uFE0F pour sauvegarder vos campagnes préférées."}
           </p>
           <Link href="/dashboard" className="mt-6">
-            <Button className="bg-[#80368D] hover:bg-[#6b2d78]">
+            <Button className="bg-[#F2B33D] hover:bg-[#6b2d78]">
               <ArrowLeft className="h-4 w-4 mr-2" />Explorer la bibliothèque
             </Button>
           </Link>
@@ -475,7 +475,7 @@ function FavoritesPageContent() {
                                 ? removeFromCollection(col.id, fav.campaign_id)
                                 : addToCollection(col.id, fav.campaign_id)
                               }
-                              className={cn(isIn && "text-[#80368D] font-semibold")}
+                              className={cn(isIn && "text-[#F2B33D] font-semibold")}
                             >
                               <FolderOpen className="h-3.5 w-3.5 mr-2" />
                               <span className="truncate">{col.name}</span>
@@ -519,16 +519,16 @@ function FavoritesPageContent() {
   const renderCollectionsGrid = () => {
     if (!isPaid) {
       return (
-        <div className="flex min-h-[400px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#D0E4F2] bg-gradient-to-br from-[#f8fafc] to-[#f0f4ff] p-8 text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#80368D]/10">
-            <Lock className="h-10 w-10 text-[#80368D]/60" />
+        <div className="flex min-h-[400px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#F5F5F5] bg-gradient-to-br from-[#f8fafc] to-[#f0f4ff] p-8 text-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#F2B33D]/10">
+            <Lock className="h-10 w-10 text-[#F2B33D]/60" />
           </div>
-          <h3 className="mt-6 text-xl font-bold text-[#1A1F2B]">Fonctionnalité Premium</h3>
+          <h3 className="mt-6 text-xl font-bold text-[#0F0F0F]">Fonctionnalité Premium</h3>
           <p className="mt-2 text-muted-foreground max-w-md">
             Les collections vous permettent d&apos;organiser vos campagnes favorites dans des collections thématiques et de les partager.
           </p>
           <Link href="/pricing" className="mt-6">
-            <Button className="bg-[#80368D] hover:bg-[#6b2d78]">
+            <Button className="bg-[#F2B33D] hover:bg-[#6b2d78]">
               <Sparkles className="h-4 w-4 mr-2" />Voir les plans
             </Button>
           </Link>
@@ -538,15 +538,15 @@ function FavoritesPageContent() {
 
     if (collections.length === 0) {
       return (
-        <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#D0E4F2] bg-gradient-to-br from-[#f8fafc] to-[#f0f4ff] p-8 text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#80368D]/10">
-            <FolderOpen className="h-10 w-10 text-[#80368D]/60" />
+        <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#F5F5F5] bg-gradient-to-br from-[#f8fafc] to-[#f0f4ff] p-8 text-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[#F2B33D]/10">
+            <FolderOpen className="h-10 w-10 text-[#F2B33D]/60" />
           </div>
-          <h3 className="mt-6 text-xl font-bold text-[#1A1F2B]">Aucune collection</h3>
+          <h3 className="mt-6 text-xl font-bold text-[#0F0F0F]">Aucune collection</h3>
           <p className="mt-2 text-muted-foreground max-w-md">
             Créez votre première collection pour organiser vos campagnes favorites par thème.
           </p>
-          <Button className="mt-6 bg-[#80368D] hover:bg-[#6b2d78]" onClick={() => { setEditingCollection(null); setShowCollectionModal(true) }}>
+          <Button className="mt-6 bg-[#F2B33D] hover:bg-[#6b2d78]" onClick={() => { setEditingCollection(null); setShowCollectionModal(true) }}>
             <FolderPlus className="h-4 w-4 mr-2" />Créer une collection
           </Button>
         </div>
@@ -577,7 +577,7 @@ function FavoritesPageContent() {
                 onClick={() => setActiveCollection(col.id)}
                 className="min-w-0 text-left"
               >
-                <h3 className="text-sm font-semibold text-[#1A1F2B] truncate leading-tight">
+                <h3 className="text-sm font-semibold text-[#0F0F0F] truncate leading-tight">
                   {col.name}
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
@@ -592,7 +592,7 @@ function FavoritesPageContent() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#1A1F2B]/40 hover:text-[#1A1F2B] hover:bg-[#D0E4F2]/50 transition-colors"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[#0F0F0F]/40 hover:text-[#0F0F0F] hover:bg-[#F5F5F5]/50 transition-colors"
                   >
                     <MoreHorizontal className="h-4 w-4" />
                   </button>
@@ -633,10 +633,10 @@ function FavoritesPageContent() {
         <button
           type="button"
           onClick={() => { setEditingCollection(null); setShowCollectionModal(true) }}
-          className="flex aspect-square w-full flex-col items-center justify-center rounded-sm border-2 border-dashed border-[#D0E4F2] bg-white/50 text-center transition-all hover:bg-[#80368D]/5 hover:border-[#80368D]/40"
+          className="flex aspect-square w-full flex-col items-center justify-center rounded-sm border-2 border-dashed border-[#F5F5F5] bg-white/50 text-center transition-all hover:bg-[#F2B33D]/5 hover:border-[#F2B33D]/40"
         >
-          <Plus className="h-8 w-8 text-[#80368D]/30 mb-1" />
-          <span className="text-xs font-medium text-[#80368D]/60">Nouvelle</span>
+          <Plus className="h-8 w-8 text-[#F2B33D]/30 mb-1" />
+          <span className="text-xs font-medium text-[#F2B33D]/60">Nouvelle</span>
         </button>
       </div>
     )
@@ -656,7 +656,7 @@ function FavoritesPageContent() {
           <button
             type="button"
             onClick={() => setActiveCollection(null)}
-            className="flex items-center gap-1.5 text-sm font-medium text-[#1A1F2B]/60 hover:text-[#1A1F2B] transition-colors mb-4"
+            className="flex items-center gap-1.5 text-sm font-medium text-[#0F0F0F]/60 hover:text-[#0F0F0F] transition-colors mb-4"
           >
             <ChevronLeft className="h-4 w-4" />
             Collections
@@ -664,7 +664,7 @@ function FavoritesPageContent() {
 
           <div className="flex items-center gap-4">
             {/* Mini cover */}
-            <div className="h-16 w-16 shrink-0 rounded-lg overflow-hidden border border-[#D0E4F2]">
+            <div className="h-16 w-16 shrink-0 rounded-lg overflow-hidden border border-[#F5F5F5]">
               <CollectionCover
                 thumbnails={(collectionThumbnails[col.id] || []).slice(0, 3)}
                 name={col.name}
@@ -673,7 +673,7 @@ function FavoritesPageContent() {
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-bold text-[#1A1F2B] truncate">
+                <h2 className="text-xl font-bold text-[#0F0F0F] truncate">
                   {col.name}
                 </h2>
                 {col.is_shared && (
@@ -735,7 +735,7 @@ function FavoritesPageContent() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Share2 className="h-5 w-5 text-[#80368D]" />
+              <Share2 className="h-5 w-5 text-[#F2B33D]" />
               Partager « {shareModalCollection?.name} »
             </DialogTitle>
           </DialogHeader>
@@ -803,7 +803,7 @@ function FavoritesPageContent() {
                 </div>
 
                 <div className="relative">
-                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#D0E4F2]" /></div>
+                  <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#F5F5F5]" /></div>
                   <div className="relative flex justify-center text-xs text-muted-foreground">
                     <span className="bg-white px-2">ou copier le lien</span>
                   </div>
@@ -813,13 +813,13 @@ function FavoritesPageContent() {
                   <input
                     readOnly
                     value={shareUrl}
-                    className="flex-1 rounded-lg border border-[#D0E4F2] bg-[#F4F8FB] px-3 py-2 text-xs text-[#1A1F2B] outline-none select-all"
+                    className="flex-1 rounded-lg border border-[#F5F5F5] bg-[#F4F8FB] px-3 py-2 text-xs text-[#0F0F0F] outline-none select-all"
                     onFocus={e => e.target.select()}
                   />
                   <button
                     type="button"
                     onClick={() => { navigator.clipboard.writeText(shareUrl); toast.success("Lien copié !"); setShareModalCollection(null) }}
-                    className="flex items-center gap-1.5 rounded-lg bg-[#80368D] px-3 py-2 text-xs font-semibold text-white hover:bg-[#6b2d78] transition-colors"
+                    className="flex items-center gap-1.5 rounded-lg bg-[#F2B33D] px-3 py-2 text-xs font-semibold text-white hover:bg-[#6b2d78] transition-colors"
                   >
                     <Link2 className="h-3.5 w-3.5" />
                     Copier
@@ -849,7 +849,7 @@ function FavoritesPageContent() {
             <div className="flex items-center gap-3 mb-2">
               <div className={`flex h-10 w-10 items-center justify-center rounded-xl shadow-lg ${
                 activeTab === 'collections'
-                  ? 'bg-gradient-to-br from-[#80368D] to-[#29358B] shadow-[#80368D]/20'
+                  ? 'bg-gradient-to-br from-[#F2B33D] to-[#0F0F0F] shadow-[#F2B33D]/20'
                   : 'bg-gradient-to-br from-red-500 to-pink-500 shadow-red-500/20'
               }`}>
                 {activeTab === 'collections'
@@ -857,21 +857,21 @@ function FavoritesPageContent() {
                   : <Heart className="h-5 w-5 text-white fill-white" />
                 }
               </div>
-              <h1 className="text-3xl font-bold tracking-tight text-[#1A1F2B]">
+              <h1 className="text-3xl font-bold tracking-tight text-[#0F0F0F]">
                 {activeTab === 'collections' ? 'Collections' : 'Favoris'}
               </h1>
             </div>
 
             {/* Onglets style Instagram (souligné) */}
-            <div className="mt-6 flex border-b border-[#D0E4F2]">
+            <div className="mt-6 flex border-b border-[#F5F5F5]">
               <button
                 type="button"
                 onClick={() => { router.push('/favorites'); setActiveCollection(null) }}
                 className={cn(
                   "flex items-center gap-2 px-6 py-3 text-sm font-semibold transition-all border-b-2 -mb-px",
                   activeTab === 'favorites'
-                    ? "border-[#1A1F2B] text-[#1A1F2B]"
-                    : "border-transparent text-[#1A1F2B]/40 hover:text-[#1A1F2B]/70"
+                    ? "border-[#0F0F0F] text-[#0F0F0F]"
+                    : "border-transparent text-[#0F0F0F]/40 hover:text-[#0F0F0F]/70"
                 )}
               >
                 <Heart className="h-4 w-4" />
@@ -883,8 +883,8 @@ function FavoritesPageContent() {
                 className={cn(
                   "flex items-center gap-2 px-6 py-3 text-sm font-semibold transition-all border-b-2 -mb-px",
                   activeTab === 'collections'
-                    ? "border-[#1A1F2B] text-[#1A1F2B]"
-                    : "border-transparent text-[#1A1F2B]/40 hover:text-[#1A1F2B]/70"
+                    ? "border-[#0F0F0F] text-[#0F0F0F]"
+                    : "border-transparent text-[#0F0F0F]/40 hover:text-[#0F0F0F]/70"
                 )}
               >
                 <Grid3X3 className="h-4 w-4" />

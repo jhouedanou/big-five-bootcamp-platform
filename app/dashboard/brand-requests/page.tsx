@@ -275,14 +275,14 @@ export default function BrandRequestsPage() {
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#80368D] to-[#a855f7] shadow-lg shadow-[#80368D]/20">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#F2B33D] to-[#a855f7] shadow-lg shadow-[#F2B33D]/20">
                 <Building2 className="h-5 w-5 text-white" />
               </div>
-              <h1 className="text-3xl font-bold tracking-tight text-[#1A1F2B]">
+              <h1 className="text-3xl font-bold tracking-tight text-[#0F0F0F]">
                 Demandes de curation de marques
               </h1>
             </div>
-            <p className="text-[#1A1F2B]/60">
+            <p className="text-[#0F0F0F]/60">
               Renseignez les marques pour lesquelles vous souhaitez que la plateforme priorise la
               curation de contenus.
             </p>
@@ -291,19 +291,19 @@ export default function BrandRequestsPage() {
           {/* Loader */}
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2 className="h-8 w-8 animate-spin text-[#80368D]" />
+              <Loader2 className="h-8 w-8 animate-spin text-[#F2B33D]" />
             </div>
           ) : !isAllowed ? (
             // Upsell plan
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#D0E4F2] bg-white p-12 text-center">
-              <Lock className="h-12 w-12 text-[#1A1F2B]/20 mb-4" />
-              <h3 className="text-xl font-bold text-[#1A1F2B] mb-2">Fonctionnalité réservée Pro</h3>
-              <p className="text-[#1A1F2B]/60 max-w-md mb-6">
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#F5F5F5] bg-white p-12 text-center">
+              <Lock className="h-12 w-12 text-[#0F0F0F]/20 mb-4" />
+              <h3 className="text-xl font-bold text-[#0F0F0F] mb-2">Fonctionnalité réservée Pro</h3>
+              <p className="text-[#0F0F0F]/60 max-w-md mb-6">
                 La curation de marques priorisées est réservée aux abonnés Pro. Passez au plan Pro
                 pour soumettre vos marques à suivre.
               </p>
               <Link href="/pricing">
-                <Button className="bg-[#80368D] hover:bg-[#80368D]/90">Passer au plan Pro</Button>
+                <Button className="bg-[#F2B33D] hover:bg-[#F2B33D]/90">Passer au plan Pro</Button>
               </Link>
             </div>
           ) : (
@@ -320,62 +320,62 @@ export default function BrandRequestsPage() {
               {/* Cartes statistiques globales */}
               {requests.length > 0 && (
                 <div className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="rounded-xl border border-[#D0E4F2] bg-white p-4 shadow-sm">
+                  <div className="rounded-xl border border-[#F5F5F5] bg-white p-4 shadow-sm">
                     <div className="flex items-center gap-2 mb-1">
-                      <Building2 className="h-4 w-4 text-[#80368D]" />
-                      <span className="text-[11px] font-medium text-[#1A1F2B]/60 uppercase tracking-wide">
+                      <Building2 className="h-4 w-4 text-[#F2B33D]" />
+                      <span className="text-[11px] font-medium text-[#0F0F0F]/60 uppercase tracking-wide">
                         Marques
                       </span>
                     </div>
-                    <p className="text-2xl font-bold text-[#1A1F2B]">{globalStats.uniqueBrands}</p>
-                    <p className="text-[11px] text-[#1A1F2B]/50">
+                    <p className="text-2xl font-bold text-[#0F0F0F]">{globalStats.uniqueBrands}</p>
+                    <p className="text-[11px] text-[#0F0F0F]/50">
                       {globalStats.total} demande{globalStats.total > 1 ? 's' : ''}
                     </p>
                   </div>
-                  <div className="rounded-xl border border-[#D0E4F2] bg-white p-4 shadow-sm">
+                  <div className="rounded-xl border border-[#F5F5F5] bg-white p-4 shadow-sm">
                     <div className="flex items-center gap-2 mb-1">
                       <Clock className="h-4 w-4 text-yellow-600" />
-                      <span className="text-[11px] font-medium text-[#1A1F2B]/60 uppercase tracking-wide">
+                      <span className="text-[11px] font-medium text-[#0F0F0F]/60 uppercase tracking-wide">
                         En attente
                       </span>
                     </div>
-                    <p className="text-2xl font-bold text-[#1A1F2B]">{globalStats.pending}</p>
+                    <p className="text-2xl font-bold text-[#0F0F0F]">{globalStats.pending}</p>
                   </div>
-                  <div className="rounded-xl border border-[#D0E4F2] bg-white p-4 shadow-sm">
+                  <div className="rounded-xl border border-[#F5F5F5] bg-white p-4 shadow-sm">
                     <div className="flex items-center gap-2 mb-1">
                       <Loader2 className="h-4 w-4 text-purple-600" />
-                      <span className="text-[11px] font-medium text-[#1A1F2B]/60 uppercase tracking-wide">
+                      <span className="text-[11px] font-medium text-[#0F0F0F]/60 uppercase tracking-wide">
                         En cours
                       </span>
                     </div>
-                    <p className="text-2xl font-bold text-[#1A1F2B]">{globalStats.inProgress}</p>
+                    <p className="text-2xl font-bold text-[#0F0F0F]">{globalStats.inProgress}</p>
                   </div>
-                  <div className="rounded-xl border border-[#D0E4F2] bg-white p-4 shadow-sm">
+                  <div className="rounded-xl border border-[#F5F5F5] bg-white p-4 shadow-sm">
                     <div className="flex items-center gap-2 mb-1">
                       <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      <span className="text-[11px] font-medium text-[#1A1F2B]/60 uppercase tracking-wide">
+                      <span className="text-[11px] font-medium text-[#0F0F0F]/60 uppercase tracking-wide">
                         Terminées
                       </span>
                     </div>
-                    <p className="text-2xl font-bold text-[#1A1F2B]">{globalStats.completed}</p>
+                    <p className="text-2xl font-bold text-[#0F0F0F]">{globalStats.completed}</p>
                   </div>
                 </div>
               )}
 
               {/* Récap par marque */}
               {brandSummaries.length > 0 && (
-                <section className="mb-8 rounded-xl border border-[#D0E4F2] bg-white shadow-sm overflow-hidden">
-                  <header className="flex items-center gap-2 border-b border-[#D0E4F2] px-5 py-3 bg-[#F4F8FB]">
-                    <BarChart3 className="h-4 w-4 text-[#80368D]" />
-                    <h2 className="text-sm font-bold text-[#1A1F2B] uppercase tracking-wide">
+                <section className="mb-8 rounded-xl border border-[#F5F5F5] bg-white shadow-sm overflow-hidden">
+                  <header className="flex items-center gap-2 border-b border-[#F5F5F5] px-5 py-3 bg-[#F4F8FB]">
+                    <BarChart3 className="h-4 w-4 text-[#F2B33D]" />
+                    <h2 className="text-sm font-bold text-[#0F0F0F] uppercase tracking-wide">
                       Récap par marque
                     </h2>
-                    <span className="ml-auto text-xs text-[#1A1F2B]/50">
+                    <span className="ml-auto text-xs text-[#0F0F0F]/50">
                       {brandSummaries.length} marque{brandSummaries.length > 1 ? 's' : ''} suivie{brandSummaries.length > 1 ? 's' : ''}
                     </span>
                   </header>
 
-                  <div className="divide-y divide-[#D0E4F2]">
+                  <div className="divide-y divide-[#F5F5F5]">
                     {brandSummaries.map((b) => {
                       const socials = Array.from(b.socials)
                       const urls = Array.from(b.urls)
@@ -384,12 +384,12 @@ export default function BrandRequestsPage() {
                           <div className="flex items-start justify-between gap-4 flex-wrap">
                             {/* Nom + compteur */}
                             <div className="flex items-center gap-3 min-w-0">
-                              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#80368D]/10 text-[#80368D] font-bold text-sm shrink-0">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F2B33D]/10 text-[#F2B33D] font-bold text-sm shrink-0">
                                 {b.name.slice(0, 2).toUpperCase()}
                               </div>
                               <div className="min-w-0">
-                                <h3 className="font-bold text-[#1A1F2B] truncate">{b.name}</h3>
-                                <p className="text-xs text-[#1A1F2B]/50">
+                                <h3 className="font-bold text-[#0F0F0F] truncate">{b.name}</h3>
+                                <p className="text-xs text-[#0F0F0F]/50">
                                   {b.total} demande{b.total > 1 ? 's' : ''} · Dernière le{' '}
                                   {new Date(b.lastRequestedAt).toLocaleDateString('fr-FR', {
                                     day: 'numeric',
@@ -418,10 +418,10 @@ export default function BrandRequestsPage() {
                           </div>
 
                           {/* Métadonnées cumulées */}
-                          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#1A1F2B]/60">
+                          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#0F0F0F]/60">
                             {socials.length > 0 && (
                               <div className="flex items-center gap-1.5">
-                                <span className="font-medium text-[#1A1F2B]/70">Réseaux :</span>
+                                <span className="font-medium text-[#0F0F0F]/70">Réseaux :</span>
                                 <div className="flex gap-1">
                                   {socials.map((code) => {
                                     const spec = SOCIAL_NETWORKS.find((s) => s.code === code)
@@ -456,12 +456,12 @@ export default function BrandRequestsPage() {
 
               {/* Barre d'action */}
               <div className="mb-6 flex items-center justify-between">
-                <p className="text-sm text-[#1A1F2B]/60">
+                <p className="text-sm text-[#0F0F0F]/60">
                   {requests.length} demande{requests.length > 1 ? 's' : ''} enregistrée{requests.length > 1 ? 's' : ''}
                 </p>
                 <Button
                   onClick={() => { setShowForm(!showForm); setSubmitError(null) }}
-                  className="bg-[#80368D] hover:bg-[#80368D]/90"
+                  className="bg-[#F2B33D] hover:bg-[#F2B33D]/90"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Nouvelle demande
@@ -472,15 +472,15 @@ export default function BrandRequestsPage() {
               {showForm && (
                 <form
                   onSubmit={handleSubmit}
-                  className="mb-8 rounded-xl border border-[#D0E4F2] bg-white p-6 shadow-sm"
+                  className="mb-8 rounded-xl border border-[#F5F5F5] bg-white p-6 shadow-sm"
                 >
-                  <h2 className="text-lg font-bold text-[#1A1F2B] mb-4">
+                  <h2 className="text-lg font-bold text-[#0F0F0F] mb-4">
                     Nouvelle demande de curation
                   </h2>
 
                   {/* 1) Nom de la marque */}
                   <div className="mb-5">
-                    <label htmlFor="brandName" className="block text-sm font-medium text-[#1A1F2B]/80 mb-1.5">
+                    <label htmlFor="brandName" className="block text-sm font-medium text-[#0F0F0F]/80 mb-1.5">
                       Nom de la marque <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -489,14 +489,14 @@ export default function BrandRequestsPage() {
                       value={brandName}
                       onChange={(e) => setBrandName(e.target.value)}
                       placeholder="Ex: MTN, Orange, Coca-Cola..."
-                      className="w-full rounded-lg border border-[#D0E4F2] px-3 py-2 text-sm text-[#1A1F2B] outline-none focus:border-[#80368D] focus:ring-2 focus:ring-[#80368D]/20"
+                      className="w-full rounded-lg border border-[#F5F5F5] px-3 py-2 text-sm text-[#0F0F0F] outline-none focus:border-[#F2B33D] focus:ring-2 focus:ring-[#F2B33D]/20"
                       required
                     />
                   </div>
 
                   {/* 2) Réseaux sociaux (checkboxes) */}
                   <fieldset className="mb-5">
-                    <legend className="block text-sm font-medium text-[#1A1F2B]/80 mb-2">
+                    <legend className="block text-sm font-medium text-[#0F0F0F]/80 mb-2">
                       Réseaux sociaux à suivre <span className="text-red-500">*</span>
                     </legend>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -507,8 +507,8 @@ export default function BrandRequestsPage() {
                             key={code}
                             className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 cursor-pointer transition-colors select-none ${
                               checked
-                                ? 'border-[#80368D] bg-[#80368D]/5 ring-1 ring-[#80368D]/20'
-                                : 'border-[#D0E4F2] bg-white hover:bg-[#F4F8FB]'
+                                ? 'border-[#F2B33D] bg-[#F2B33D]/5 ring-1 ring-[#F2B33D]/20'
+                                : 'border-[#F5F5F5] bg-white hover:bg-[#F4F8FB]'
                             }`}
                           >
                             <input
@@ -520,12 +520,12 @@ export default function BrandRequestsPage() {
                             <span className={`flex h-8 w-8 items-center justify-center rounded-md text-white ${color}`}>
                               <Icon className="h-4 w-4" />
                             </span>
-                            <span className="text-sm font-medium text-[#1A1F2B] flex-1">{label}</span>
+                            <span className="text-sm font-medium text-[#0F0F0F] flex-1">{label}</span>
                             <span
                               className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${
                                 checked
-                                  ? 'border-[#80368D] bg-[#80368D]'
-                                  : 'border-[#D0E4F2] bg-white'
+                                  ? 'border-[#F2B33D] bg-[#F2B33D]'
+                                  : 'border-[#F5F5F5] bg-white'
                               }`}
                               aria-hidden
                             >
@@ -543,7 +543,7 @@ export default function BrandRequestsPage() {
 
                   {/* 3) Liens (multi-lignes, requis) */}
                   <div className="mb-5">
-                    <label htmlFor="brandUrls" className="block text-sm font-medium text-[#1A1F2B]/80 mb-1.5">
+                    <label htmlFor="brandUrls" className="block text-sm font-medium text-[#0F0F0F]/80 mb-1.5">
                       Lien(s) <span className="text-red-500">*</span>
                     </label>
                     <textarea
@@ -553,9 +553,9 @@ export default function BrandRequestsPage() {
                       rows={4}
                       required
                       placeholder={"https://facebook.com/marque\nhttps://instagram.com/marque\nhttps://tiktok.com/@marque"}
-                      className="w-full rounded-lg border border-[#D0E4F2] px-3 py-2 text-sm text-[#1A1F2B] outline-none focus:border-[#80368D] focus:ring-2 focus:ring-[#80368D]/20 font-mono resize-none"
+                      className="w-full rounded-lg border border-[#F5F5F5] px-3 py-2 text-sm text-[#0F0F0F] outline-none focus:border-[#F2B33D] focus:ring-2 focus:ring-[#F2B33D]/20 font-mono resize-none"
                     />
-                    <p className="mt-1 text-xs text-[#1A1F2B]/50">
+                    <p className="mt-1 text-xs text-[#0F0F0F]/50">
                       Un lien par ligne. Les URLs doivent commencer par <code>http://</code> ou{' '}
                       <code>https://</code>.
                     </p>
@@ -563,8 +563,8 @@ export default function BrandRequestsPage() {
 
                   {/* Notes optionnelles */}
                   <div className="mb-5">
-                    <label htmlFor="notes" className="block text-sm font-medium text-[#1A1F2B]/80 mb-1.5">
-                      Notes complémentaires <span className="text-[#1A1F2B]/40 font-normal">(optionnel)</span>
+                    <label htmlFor="notes" className="block text-sm font-medium text-[#0F0F0F]/80 mb-1.5">
+                      Notes complémentaires <span className="text-[#0F0F0F]/40 font-normal">(optionnel)</span>
                     </label>
                     <textarea
                       id="notes"
@@ -572,7 +572,7 @@ export default function BrandRequestsPage() {
                       onChange={(e) => setNotes(e.target.value)}
                       rows={2}
                       placeholder="Précisions sur vos attentes, périodes ciblées, etc."
-                      className="w-full rounded-lg border border-[#D0E4F2] px-3 py-2 text-sm text-[#1A1F2B] outline-none focus:border-[#80368D] focus:ring-2 focus:ring-[#80368D]/20 resize-none"
+                      className="w-full rounded-lg border border-[#F5F5F5] px-3 py-2 text-sm text-[#0F0F0F] outline-none focus:border-[#F2B33D] focus:ring-2 focus:ring-[#F2B33D]/20 resize-none"
                     />
                   </div>
 
@@ -588,7 +588,7 @@ export default function BrandRequestsPage() {
                     <Button
                       type="submit"
                       disabled={submitting}
-                      className="bg-[#80368D] hover:bg-[#80368D]/90"
+                      className="bg-[#F2B33D] hover:bg-[#F2B33D]/90"
                     >
                       {submitting ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -610,15 +610,15 @@ export default function BrandRequestsPage() {
 
               {/* Liste des demandes */}
               {requests.length === 0 && !showForm ? (
-                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#D0E4F2] bg-white p-12 text-center">
-                  <Building2 className="h-12 w-12 text-[#1A1F2B]/20 mb-4" />
-                  <h3 className="text-lg font-bold text-[#1A1F2B] mb-2">Aucune demande</h3>
-                  <p className="text-sm text-[#1A1F2B]/60 max-w-md mb-4">
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#F5F5F5] bg-white p-12 text-center">
+                  <Building2 className="h-12 w-12 text-[#0F0F0F]/20 mb-4" />
+                  <h3 className="text-lg font-bold text-[#0F0F0F] mb-2">Aucune demande</h3>
+                  <p className="text-sm text-[#0F0F0F]/60 max-w-md mb-4">
                     Vous n'avez pas encore soumis de marque à suivre.
                   </p>
                   <Button
                     onClick={() => setShowForm(true)}
-                    className="bg-[#80368D] hover:bg-[#80368D]/90"
+                    className="bg-[#F2B33D] hover:bg-[#F2B33D]/90"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Nouvelle demande
@@ -636,11 +636,11 @@ export default function BrandRequestsPage() {
                     const socials = req.social_networks || []
 
                     return (
-                      <div key={req.id} className="rounded-xl border border-[#D0E4F2] bg-white p-5 shadow-sm">
+                      <div key={req.id} className="rounded-xl border border-[#F5F5F5] bg-white p-5 shadow-sm">
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-3 mb-1.5 flex-wrap">
-                              <h3 className="font-bold text-[#1A1F2B]">{req.brand_name}</h3>
+                              <h3 className="font-bold text-[#0F0F0F]">{req.brand_name}</h3>
                               <span
                                 className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusInfo.color}`}
                               >
@@ -676,7 +676,7 @@ export default function BrandRequestsPage() {
                                       href={u}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1 text-sm text-[#80368D] hover:underline break-all"
+                                      className="inline-flex items-center gap-1 text-sm text-[#F2B33D] hover:underline break-all"
                                     >
                                       <ExternalLink className="h-3 w-3 shrink-0" />
                                       {u}
@@ -687,18 +687,18 @@ export default function BrandRequestsPage() {
                             )}
 
                             {req.notes && (
-                              <p className="mt-2 text-sm text-[#1A1F2B]/70">{req.notes}</p>
+                              <p className="mt-2 text-sm text-[#0F0F0F]/70">{req.notes}</p>
                             )}
                             {req.admin_notes && (
-                              <div className="mt-2 rounded-lg bg-[#D0E4F2]/30 p-3">
-                                <p className="text-xs font-semibold text-[#1A1F2B]/60 mb-1">
+                              <div className="mt-2 rounded-lg bg-[#F5F5F5]/30 p-3">
+                                <p className="text-xs font-semibold text-[#0F0F0F]/60 mb-1">
                                   Réponse de l'équipe :
                                 </p>
-                                <p className="text-sm text-[#1A1F2B]">{req.admin_notes}</p>
+                                <p className="text-sm text-[#0F0F0F]">{req.admin_notes}</p>
                               </div>
                             )}
                           </div>
-                          <p className="text-xs text-[#1A1F2B]/40 shrink-0">
+                          <p className="text-xs text-[#0F0F0F]/40 shrink-0">
                             {new Date(req.created_at).toLocaleDateString('fr-FR', {
                               day: 'numeric',
                               month: 'short',

@@ -73,8 +73,8 @@ function PaginationPageButton({ page, isActive, onClick }: { page: number; isAct
       type="button"
       onClick={onClick}
       className={`h-10 w-10 rounded-lg text-sm font-bold transition-all duration-200 ${isActive
-        ? "bg-[#80368D] text-white shadow-lg shadow-[#80368D]/30 scale-110"
-        : "bg-white border-2 border-[#D0E4F2] text-[#1A1F2B]/70 hover:bg-[#D0E4F2] hover:text-[#1A1F2B] hover:border-[#80368D]/30"
+        ? "bg-[#F2B33D] text-white shadow-lg shadow-[#F2B33D]/30 scale-110"
+        : "bg-white border-2 border-[#F5F5F5] text-[#0F0F0F]/70 hover:bg-[#F5F5F5] hover:text-[#0F0F0F] hover:border-[#F2B33D]/30"
         }`}
     >
       {page}
@@ -112,7 +112,7 @@ function PaginationBar({ currentPage, totalPages, onPageChange }: { currentPage:
       <Button
         variant="outline"
         size="sm"
-        className="h-10 w-10 border-2 border-[#D0E4F2] bg-white p-0 hover:bg-[#D0E4F2] hover:border-[#80368D]/30"
+        className="h-10 w-10 border-2 border-[#F5F5F5] bg-white p-0 hover:bg-[#F5F5F5] hover:border-[#F2B33D]/30"
         onClick={() => onPageChange(Math.max(1, currentPage - 1))}
         disabled={currentPage === 1}
       >
@@ -145,14 +145,14 @@ function PaginationBar({ currentPage, totalPages, onPageChange }: { currentPage:
                   onChange={(e) => setPageInput(e.target.value)}
                   onBlur={handleGoToPage}
                   placeholder={String(currentPage)}
-                  className="h-10 w-14 rounded-lg border-2 border-[#80368D]/40 bg-white text-center text-sm font-bold text-[#1A1F2B] outline-none focus:border-[#80368D] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  className="h-10 w-14 rounded-lg border-2 border-[#F2B33D]/40 bg-white text-center text-sm font-bold text-[#0F0F0F] outline-none focus:border-[#F2B33D] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </form>
             ) : (
               <button
                 type="button"
                 onClick={() => setIsEditingPage(true)}
-                className="h-10 min-w-10 rounded-lg border-2 border-dashed border-[#D0E4F2] bg-white px-2 text-sm font-bold text-[#1A1F2B]/50 transition-all hover:border-[#80368D]/40 hover:text-[#80368D]"
+                className="h-10 min-w-10 rounded-lg border-2 border-dashed border-[#F5F5F5] bg-white px-2 text-sm font-bold text-[#0F0F0F]/50 transition-all hover:border-[#F2B33D]/40 hover:text-[#F2B33D]"
                 title="Aller à une page"
               >
                 ···
@@ -183,7 +183,7 @@ function PaginationBar({ currentPage, totalPages, onPageChange }: { currentPage:
       <Button
         variant="outline"
         size="sm"
-        className="h-10 w-10 border-2 border-[#D0E4F2] bg-white p-0 hover:bg-[#D0E4F2] hover:border-[#80368D]/30"
+        className="h-10 w-10 border-2 border-[#F5F5F5] bg-white p-0 hover:bg-[#F5F5F5] hover:border-[#F2B33D]/30"
         onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
         disabled={currentPage === totalPages}
       >
@@ -507,13 +507,15 @@ export default function DashboardPage() {
         return false
       }
 
-      // Pour les free users, afficher la bottom sheet avec les consultations restantes
+      // Spec : alerte popup uniquement quand il reste exactement 2 consultations
+      // (ou 0, fallback informatif avant blocage au prochain clic).
       if (data.isFree && data.clicks != null && data.limit != null) {
         const remaining = data.limit - data.clicks
-        setBottomSheetRemaining(remaining)
-        setBottomSheetOpen(true)
-        // Auto-fermer après 4 secondes
-        setTimeout(() => setBottomSheetOpen(false), 4000)
+        if (remaining === 2 || remaining === 0) {
+          setBottomSheetRemaining(remaining)
+          setBottomSheetOpen(true)
+          setTimeout(() => setBottomSheetOpen(false), 4000)
+        }
       }
 
       // Rafraîchir les compteurs depuis le contexte centralisé
@@ -575,7 +577,33 @@ export default function DashboardPage() {
     }))
   }, [paginatedContent])
 
-  const handleFilterChange = (filters: Record<string, string[]>) => {
+  const handleFilterChange = async (filters: Record<string, string[]>) => {
+    // Detecter les filtres nouvellement ajoutes pour tracker les quotas de recherche.
+    // Un "filtre" au sens quota = une categorie (Pays, Secteur, ...).
+    // On incremente une fois par categorie ayant recu une nouvelle valeur.
+    const newlyAddedCategories: string[] = []
+    for (const [category, values] of Object.entries(filters)) {
+      const prev = selectedFilters[category] || []
+      const added = values.some((v) => !prev.includes(v))
+      if (added) newlyAddedCategories.push(category)
+    }
+
+    for (const category of newlyAddedCategories) {
+      try {
+        const res = await fetch('/api/track-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filterId: category }),
+        })
+        if (res.status === 403) {
+          showUpgrade('searches')
+          return
+        }
+      } catch {
+        // Erreur reseau : on laisse passer pour ne pas bloquer l'UX.
+      }
+    }
+
     setSelectedFilters(filters)
     setActiveQuickFilter("")
     setCurrentPage(1)
@@ -584,8 +612,8 @@ export default function DashboardPage() {
   const weekLabel = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "d MMMM yyyy", { locale: fr })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-white to-[#D0E4F2]/20 relative">
-      <ParticlesBackground color="#80368D" particleCount={40} />
+    <div className="min-h-screen bg-gradient-to-br from-white via-white to-[#F5F5F5]/20 relative">
+      <ParticlesBackground color="#F2B33D" particleCount={40} />
       <div className="relative z-10">
         <DashboardNavbar
           searchQuery={searchQuery}
@@ -603,11 +631,11 @@ export default function DashboardPage() {
 
           <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div className="animate-fade-in-up">
-              <h1 className="font-[family-name:var(--font-heading)] text-4xl font-bold tracking-tight text-[#1A1F2B]">
+              <h1 className="font-[family-name:var(--font-heading)] text-4xl font-bold tracking-tight text-[#0F0F0F]">
                 Bibliothèque
               </h1>
-              <p className="mt-2 text-base font-medium text-[#1A1F2B]/70">
-                <span className="text-lg font-bold text-[#80368D]">{filteredContent.length}</span> campagne{filteredContent.length > 1 ? "s" : ""} trouvée{filteredContent.length > 1 ? "s" : ""}
+              <p className="mt-2 text-base font-medium text-[#0F0F0F]/70">
+                <span className="text-lg font-bold text-[#F2B33D]">{filteredContent.length}</span> campagne{filteredContent.length > 1 ? "s" : ""} trouvée{filteredContent.length > 1 ? "s" : ""}
               </p>
             </div>
 
@@ -621,7 +649,7 @@ export default function DashboardPage() {
                     onClick={() => handleQuickFilter(filter)}
                     className={`whitespace-nowrap rounded-full px-5 py-2 text-sm font-semibold transition-all duration-300 ${activeQuickFilter === filter.label
                       ? `${filter.color} shadow-lg scale-105`
-                      : "bg-white border border-[#D0E4F2] text-[#1A1F2B]/70 hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] hover:border-[#80368D]/50"
+                      : "bg-white border border-[#F5F5F5] text-[#0F0F0F]/70 hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] hover:border-[#F2B33D]/50"
                       }`}
                   >
                     {filter.label}
@@ -633,18 +661,18 @@ export default function DashboardPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="lg:hidden bg-white border-[#D0E4F2] text-[#1A1F2B]"
+                  className="lg:hidden bg-white border-[#F5F5F5] text-[#0F0F0F]"
                   onClick={() => setShowMobileFilters(!showMobileFilters)}
                 >
                   <Filter className="mr-2 h-4 w-4" />
                   Filtres
                 </Button>
 
-                <div className="hidden items-center gap-1 rounded-lg border border-[#D0E4F2] bg-white p-1 sm:flex">
+                <div className="hidden items-center gap-1 rounded-lg border border-[#F5F5F5] bg-white p-1 sm:flex">
                   <button
                     type="button"
                     onClick={() => setViewMode("grid")}
-                    className={`rounded p-1.5 ${viewMode === "grid" ? "bg-[#D0E4F2] text-[#1A1F2B]" : "text-[#1A1F2B]/60 hover:text-[#1A1F2B]"}`}
+                    className={`rounded p-1.5 ${viewMode === "grid" ? "bg-[#F5F5F5] text-[#0F0F0F]" : "text-[#0F0F0F]/60 hover:text-[#0F0F0F]"}`}
                     aria-label="Grid view"
                   >
                     <Grid3X3 className="h-4 w-4" />
@@ -652,7 +680,7 @@ export default function DashboardPage() {
                   <button
                     type="button"
                     onClick={() => setViewMode("list")}
-                    className={`rounded p-1.5 ${viewMode === "list" ? "bg-[#D0E4F2] text-[#1A1F2B]" : "text-[#1A1F2B]/60 hover:text-[#1A1F2B]"}`}
+                    className={`rounded p-1.5 ${viewMode === "list" ? "bg-[#F5F5F5] text-[#0F0F0F]" : "text-[#0F0F0F]/60 hover:text-[#0F0F0F]"}`}
                     aria-label="List view"
                   >
                     <LayoutList className="h-4 w-4" />
@@ -707,10 +735,10 @@ export default function DashboardPage() {
                     <TrendingUp className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <h2 className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#1A1F2B]">
+                    <h2 className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#0F0F0F]">
                       Notre sélection hebdomadaire de campagnes
                     </h2>
-                    <p className="text-sm text-[#1A1F2B]/60">
+                    <p className="text-sm text-[#0F0F0F]/60">
                       Semaine du {weekLabel}
                     </p>
                   </div>
@@ -750,18 +778,18 @@ export default function DashboardPage() {
                     {groupedContent.map((group) => (
                       <section key={group.monthYear} className="animate-fade-in-up">
                         <div className="mb-6 flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#80368D] to-[#a855f7] shadow-lg shadow-[#80368D]/25">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#F2B33D] to-[#a855f7] shadow-lg shadow-[#F2B33D]/25">
                             <CalendarDays className="h-5 w-5 text-white" />
                           </div>
                           <div>
-                            <h2 className="font-[family-name:var(--font-heading)] text-xl font-bold capitalize text-[#1A1F2B]">
+                            <h2 className="font-[family-name:var(--font-heading)] text-xl font-bold capitalize text-[#0F0F0F]">
                               {group.monthYear}
                             </h2>
-                            <p className="text-sm font-medium text-[#1A1F2B]/60">
+                            <p className="text-sm font-medium text-[#0F0F0F]/60">
                               {group.campaigns.length} campagne{group.campaigns.length > 1 ? "s" : ""}
                             </p>
                           </div>
-                          <div className="ml-4 flex-1 border-b-2 border-dashed border-[#D0E4F2]" />
+                          <div className="ml-4 flex-1 border-b-2 border-dashed border-[#F5F5F5]" />
                         </div>
 
                         <div className={`grid gap-6 ${viewMode === "grid"
@@ -793,16 +821,16 @@ export default function DashboardPage() {
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="mb-6 rounded-2xl bg-gradient-to-br from-[#D0E4F2] to-[#D0E4F2]/50 p-6 shadow-inner">
-                    <Filter className="h-12 w-12 text-[#80368D]" />
+                  <div className="mb-6 rounded-2xl bg-gradient-to-br from-[#F5F5F5] to-[#F5F5F5]/50 p-6 shadow-inner">
+                    <Filter className="h-12 w-12 text-[#F2B33D]" />
                   </div>
-                  <h3 className="text-xl font-bold text-[#1A1F2B]">Aucune campagne trouvée</h3>
-                  <p className="mt-2 max-w-md text-base font-medium text-[#1A1F2B]/60">
+                  <h3 className="text-xl font-bold text-[#0F0F0F]">Aucune campagne trouvée</h3>
+                  <p className="mt-2 max-w-md text-base font-medium text-[#0F0F0F]/60">
                     Essayez de modifier vos filtres pour voir plus de résultats.
                   </p>
                   <Button
                     variant="outline"
-                    className="mt-6 bg-white border-2 border-[#80368D]/30 text-[#80368D] font-semibold hover:bg-[#80368D]/5 hover:border-[#80368D]"
+                    className="mt-6 bg-white border-2 border-[#F2B33D]/30 text-[#F2B33D] font-semibold hover:bg-[#F2B33D]/5 hover:border-[#F2B33D]"
                     onClick={() => setSelectedFilters({})}
                   >
                     Effacer les filtres

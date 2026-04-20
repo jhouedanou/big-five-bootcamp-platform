@@ -344,7 +344,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 Vous avez atteint votre limite de {MONTHLY_CLICK_LIMIT} campagnes consultées ce mois-ci.
               </p>
               <Button
-                className="mt-4 bg-gradient-to-r from-[#80368D] to-[#a855f7] hover:from-[#6b2d76] hover:to-[#9333ea] text-white"
+                className="mt-4 bg-gradient-to-r from-[#F2B33D] to-[#a855f7] hover:from-[#6b2d76] hover:to-[#9333ea] text-white"
                 onClick={() => router.push('/subscribe')}
               >
                 Passer à un plan payant
@@ -445,7 +445,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <h4 className="text-sm font-medium text-foreground group-hover:text-[#80368D] transition-colors line-clamp-1">
+        <h4 className="text-sm font-medium text-foreground group-hover:text-[#F2B33D] transition-colors line-clamp-1">
           {item.title}
         </h4>
         <p className="text-xs text-muted-foreground mt-0.5">
@@ -495,14 +495,14 @@ export default function ContentDetailClient({ id }: { id: string }) {
                     <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-white via-white/80 to-transparent dark:from-background dark:via-background/80" />
                     <div className="absolute bottom-4 left-0 right-0 flex justify-center">
                       <div className="flex items-center gap-2 bg-white/95 dark:bg-background/95 backdrop-blur-sm rounded-full px-5 py-2.5 shadow-lg border border-border">
-                        <Lock className="h-4 w-4 text-[#80368D]" />
+                        <Lock className="h-4 w-4 text-[#F2B33D]" />
                         <span className="text-sm font-medium text-muted-foreground">Contenu complet réservé aux membres</span>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <div className="aspect-video bg-gradient-to-br from-[#80368D]/10 to-[#D0E4F2]/30 flex items-center justify-center">
-                    <Eye className="h-16 w-16 text-[#80368D]/30" />
+                  <div className="aspect-video bg-gradient-to-br from-[#F2B33D]/10 to-[#F5F5F5]/30 flex items-center justify-center">
+                    <Eye className="h-16 w-16 text-[#F2B33D]/30" />
                   </div>
                 )}
               </div>
@@ -510,7 +510,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
               {/* Section floutée — simuler du contenu verrouillé */}
               <div className="relative">
                 <div className="space-y-4 select-none pointer-events-none" aria-hidden="true">
-                  <Card className="border-l-4 border-l-[#80368D]/30 shadow-sm opacity-50 blur-[6px]">
+                  <Card className="border-l-4 border-l-[#F2B33D]/30 shadow-sm opacity-50 blur-[6px]">
                     <CardContent className="p-6">
                       <div className="h-5 w-24 bg-muted rounded mb-3" />
                       <div className="space-y-2">
@@ -522,7 +522,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                       </div>
                     </CardContent>
                   </Card>
-                  <Card className="border-l-4 border-l-[#80368D]/30 shadow-sm opacity-50 blur-[6px]">
+                  <Card className="border-l-4 border-l-[#F2B33D]/30 shadow-sm opacity-50 blur-[6px]">
                     <CardContent className="p-6">
                       <div className="h-5 w-32 bg-muted rounded mb-3" />
                       <div className="space-y-2">
@@ -535,9 +535,9 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 </div>
                 {/* Overlay central avec CTA */}
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center bg-white/95 dark:bg-background/95 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-[#80368D]/20 max-w-sm mx-4">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#80368D]/10 mb-3">
-                      <Lock className="h-6 w-6 text-[#80368D]" />
+                  <div className="text-center bg-white/95 dark:bg-background/95 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-[#F2B33D]/20 max-w-sm mx-4">
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-[#F2B33D]/10 mb-3">
+                      <Lock className="h-6 w-6 text-[#F2B33D]" />
                     </div>
                     <h3 className="font-bold text-lg text-foreground mb-1">Analyse complète</h3>
                     <p className="text-sm text-muted-foreground mb-4">
@@ -546,7 +546,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                     <div className="flex flex-col gap-2">
                       <Button
                         asChild
-                        className="w-full bg-[#80368D] hover:bg-[#6b2d76] text-white font-semibold shadow-lg shadow-[#80368D]/25"
+                        className="w-full bg-[#F2B33D] hover:bg-[#6b2d76] text-white font-semibold shadow-lg shadow-[#F2B33D]/25"
                       >
                         <Link href={`/register?redirect=/content/${content.slug || content.id}`}>
                           <UserPlus className="h-4 w-4 mr-2" />
@@ -556,7 +556,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                       <Button
                         asChild
                         variant="outline"
-                        className="w-full border-[#80368D]/30 text-[#80368D] hover:bg-[#80368D]/5"
+                        className="w-full border-[#F2B33D]/30 text-[#F2B33D] hover:bg-[#F2B33D]/5"
                       >
                         <Link href={`/login?redirect=/content/${content.slug || content.id}`}>
                           Déjà membre ? Se connecter
@@ -586,7 +586,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                   {content.axe.map((a) => (
                     <Badge
                       key={a}
-                      className="bg-[#80368D]/10 text-[#80368D] border-[#80368D]/20 hover:bg-[#80368D]/20"
+                      className="bg-[#F2B33D]/10 text-[#F2B33D] border-[#F2B33D]/20 hover:bg-[#F2B33D]/20"
                     >
                       {a}
                     </Badge>
@@ -598,39 +598,39 @@ export default function ContentDetailClient({ id }: { id: string }) {
               <Card className="shadow-sm">
                 <CardContent className="p-6 space-y-4">
                   <h2 className="font-bold text-lg flex items-center gap-2">
-                    <Eye className="h-5 w-5 text-[#80368D]" />
+                    <Eye className="h-5 w-5 text-[#F2B33D]" />
                     Aperçu
                   </h2>
 
                   <div className="space-y-3">
                     {brand && (
                       <div className="flex items-center gap-3 text-sm">
-                        <Building2 className="h-4 w-4 text-[#80368D]" />
+                        <Building2 className="h-4 w-4 text-[#F2B33D]" />
                         <span className="text-muted-foreground">Marque:</span>
                         <span className="font-medium">{brand}</span>
                       </div>
                     )}
 
                     <div className="flex items-center gap-3 text-sm">
-                      <Globe className="h-4 w-4 text-[#80368D]" />
+                      <Globe className="h-4 w-4 text-[#F2B33D]" />
                       <span className="text-muted-foreground">Pays:</span>
                       <span className="font-medium">{country}</span>
                     </div>
 
                     <div className="flex items-center gap-3 text-sm">
-                      <Monitor className="h-4 w-4 text-[#80368D]" />
+                      <Monitor className="h-4 w-4 text-[#F2B33D]" />
                       <span className="text-muted-foreground">Plateforme:</span>
                       <span className="font-medium">{platform}</span>
                     </div>
 
                     <div className="flex items-center gap-3 text-sm">
-                      <Mail className="h-4 w-4 text-[#80368D]" />
+                      <Mail className="h-4 w-4 text-[#F2B33D]" />
                       <span className="text-muted-foreground">Format:</span>
                       <span className="font-medium">{format}</span>
                     </div>
 
                     <div className="flex items-center gap-3 text-sm">
-                      <Calendar className="h-4 w-4 text-[#80368D]" />
+                      <Calendar className="h-4 w-4 text-[#F2B33D]" />
                       <span className="text-muted-foreground">Date:</span>
                       <span className="font-medium">{date}</span>
                     </div>
@@ -639,10 +639,10 @@ export default function ContentDetailClient({ id }: { id: string }) {
               </Card>
 
               {/* CTA Card — inscription */}
-              <Card className="shadow-lg border-[#80368D]/20 bg-gradient-to-br from-[#80368D]/5 via-transparent to-[#D0E4F2]/20">
+              <Card className="shadow-lg border-[#F2B33D]/20 bg-gradient-to-br from-[#F2B33D]/5 via-transparent to-[#F5F5F5]/20">
                 <CardContent className="p-6 text-center">
-                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#80368D]/10 mb-4">
-                    <Sparkles className="h-7 w-7 text-[#80368D]" />
+                  <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-[#F2B33D]/10 mb-4">
+                    <Sparkles className="h-7 w-7 text-[#F2B33D]" />
                   </div>
                   <h3 className="font-bold text-lg mb-2">Accédez à tout le contenu</h3>
                   <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
@@ -650,7 +650,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                   </p>
                   <Button
                     asChild
-                    className="w-full bg-[#80368D] hover:bg-[#6b2d76] text-white font-semibold shadow-lg shadow-[#80368D]/25 h-12 text-base"
+                    className="w-full bg-[#F2B33D] hover:bg-[#6b2d76] text-white font-semibold shadow-lg shadow-[#F2B33D]/25 h-12 text-base"
                   >
                     <Link href={`/register?redirect=/content/${content.slug || content.id}`}>
                       S&apos;inscrire gratuitement
@@ -659,7 +659,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                   </Button>
                   <p className="text-xs text-muted-foreground mt-3">
                     Déjà membre ?{" "}
-                    <Link href={`/login?redirect=/content/${content.slug || content.id}`} className="text-[#80368D] font-semibold hover:underline">
+                    <Link href={`/login?redirect=/content/${content.slug || content.id}`} className="text-[#F2B33D] font-semibold hover:underline">
                       Se connecter
                     </Link>
                   </p>
@@ -669,7 +669,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
               {/* Bouton partage (même non connecté) */}
               <Button
                 variant="outline"
-                className="w-full gap-2 border-border hover:border-[#80368D]/30 hover:text-[#80368D]"
+                className="w-full gap-2 border-border hover:border-[#F2B33D]/30 hover:text-[#F2B33D]"
                 onClick={() => {
                   if (navigator.share) {
                     navigator.share({ title: content.title, url: window.location.href });
@@ -696,7 +696,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
       {/* Barre de progression de lecture */}
       <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-muted/30">
         <div
-          className="h-full bg-gradient-to-r from-[#80368D] to-[#a855f7] transition-all duration-150 ease-out"
+          className="h-full bg-gradient-to-r from-[#F2B33D] to-[#a855f7] transition-all duration-150 ease-out"
           style={{ width: `${readProgress}%` }}
         />
       </div>
@@ -730,7 +730,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
               className={cn(
                 "rounded-full px-6 py-2 text-sm font-semibold transition-all duration-200",
                 activeTab === "axe"
-                  ? "bg-[#80368D] text-white shadow-sm"
+                  ? "bg-[#F2B33D] text-white shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -742,7 +742,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
               className={cn(
                 "rounded-full px-6 py-2 text-sm font-semibold transition-all duration-200",
                 activeTab === "utilisation"
-                  ? "bg-[#80368D] text-white shadow-sm"
+                  ? "bg-[#F2B33D] text-white shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -835,7 +835,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
             {activeTab === "axe" && (
               <div className="space-y-6">
                 {content.analyse && (
-                  <Card className="border-l-4 border-l-[#80368D] shadow-sm">
+                  <Card className="border-l-4 border-l-[#F2B33D] shadow-sm">
                     <CardContent className="p-6">
                       <h2 className="font-bold text-lg mb-3">Analyse</h2>
                       <div
@@ -847,7 +847,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 )}
 
                 {content.why_this_axis && (
-                  <Card className="border-l-4 border-l-[#80368D] shadow-sm">
+                  <Card className="border-l-4 border-l-[#F2B33D] shadow-sm">
                     <CardContent className="p-6">
                       <h2 className="font-bold text-lg mb-3">Pourquoi cet axe</h2>
                       <div
@@ -859,7 +859,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 )}
 
                 {!content.analyse && !content.why_this_axis && content.description && (
-                  <Card className="border-l-4 border-l-[#80368D] shadow-sm">
+                  <Card className="border-l-4 border-l-[#F2B33D] shadow-sm">
                     <CardContent className="p-6">
                       <h2 className="font-bold text-lg mb-3">Analyse</h2>
                       <div
@@ -876,7 +876,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
             {activeTab === "utilisation" && (
               <div className="space-y-6">
                 {content.description && (
-                  <Card className="border-l-4 border-l-[#80368D] shadow-sm">
+                  <Card className="border-l-4 border-l-[#F2B33D] shadow-sm">
                     <CardContent className="p-6">
                       <h2 className="font-bold text-lg mb-3">Description</h2>
                       <div
@@ -888,7 +888,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 )}
 
                 {content.summary && (
-                  <Card className="border-l-4 border-l-[#80368D] shadow-sm">
+                  <Card className="border-l-4 border-l-[#F2B33D] shadow-sm">
                     <CardContent className="p-6">
                       <h2 className="font-bold text-lg mb-3">Résumé</h2>
                       <div
@@ -900,7 +900,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 )}
 
                 {content.tags && content.tags.length > 0 && (
-                  <Card className="border-l-4 border-l-[#80368D] shadow-sm">
+                  <Card className="border-l-4 border-l-[#F2B33D] shadow-sm">
                     <CardContent className="p-6">
                       <h2 className="font-bold text-lg mb-3">Tags</h2>
                       <div className="flex flex-wrap gap-2">
@@ -908,7 +908,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                           <Badge
                             key={tag}
                             variant="secondary"
-                            className="cursor-pointer hover:bg-[#80368D] hover:text-white transition-colors"
+                            className="cursor-pointer hover:bg-[#F2B33D] hover:text-white transition-colors"
                           >
                             {tag}
                           </Badge>
@@ -929,7 +929,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                     <Link
                       key={item.id}
                       href={`/content/${item.slug || item.id}`}
-                      className="flex gap-4 group p-4 rounded-xl border border-border hover:border-[#80368D]/30 hover:shadow-md transition-all bg-card"
+                      className="flex gap-4 group p-4 rounded-xl border border-border hover:border-[#F2B33D]/30 hover:shadow-md transition-all bg-card"
                       onClick={async (e) => {
                         if (!isFreeUser) return;
                         e.preventDefault();
@@ -965,7 +965,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-base font-semibold text-foreground group-hover:text-[#80368D] transition-colors line-clamp-1">
+                        <h4 className="text-base font-semibold text-foreground group-hover:text-[#F2B33D] transition-colors line-clamp-1">
                           {item.title}
                         </h4>
                         {item.summary ? (
@@ -1015,7 +1015,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
 
                 {/* Légende / description sous l'image */}
                 {content.description && (
-                  <p className="text-sm font-medium text-[#80368D] leading-relaxed line-clamp-4 px-1">
+                  <p className="text-sm font-medium text-[#F2B33D] leading-relaxed line-clamp-4 px-1">
                     {content.description.replace(/<[^>]*>/g, '').substring(0, 200)}{content.description.length > 200 ? '...' : ''}
                   </p>
                 )}
@@ -1039,7 +1039,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
               <Button
                 variant="outline"
                 size="icon"
-                className="h-10 w-10 border-border hover:border-[#80368D]/30 hover:text-[#80368D]"
+                className="h-10 w-10 border-border hover:border-[#F2B33D]/30 hover:text-[#F2B33D]"
                 onClick={() => {
                   if (!isAuthenticated) {
                     window.location.href = `/login?redirect=/content/${id}`;
@@ -1054,7 +1054,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
               <Button
                 variant="outline"
                 size="icon"
-                className="h-10 w-10 border-border hover:border-[#80368D]/30 hover:text-[#80368D]"
+                className="h-10 w-10 border-border hover:border-[#F2B33D]/30 hover:text-[#F2B33D]"
                 onClick={() => {
                   if (navigator.share) {
                     navigator.share({ title: content.title, url: window.location.href });
@@ -1081,7 +1081,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
               >
                 <Button
                   variant="outline"
-                  className="w-full gap-2 border-[#80368D]/30 text-[#80368D] hover:bg-[#80368D]/5 hover:border-[#80368D] font-semibold"
+                  className="w-full gap-2 border-[#F2B33D]/30 text-[#F2B33D] hover:bg-[#F2B33D]/5 hover:border-[#F2B33D] font-semibold"
                 >
                   <ExternalLink className="h-4 w-4" />
                   Voir la publication
@@ -1097,45 +1097,45 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 <div className="space-y-3">
                   {brand && (
                     <div className="flex items-center gap-3 text-sm">
-                      <Building2 className="h-4 w-4 text-[#80368D]" />
+                      <Building2 className="h-4 w-4 text-[#F2B33D]" />
                       <span className="text-muted-foreground">Marque:</span>
                       <span className="font-medium">{brand}</span>
                     </div>
                   )}
 
                   <div className="flex items-center gap-3 text-sm">
-                    <Tag className="h-4 w-4 text-[#80368D]" />
+                    <Tag className="h-4 w-4 text-[#F2B33D]" />
                     <span className="text-muted-foreground">Secteur:</span>
                     <span className="font-medium">{sector}</span>
                   </div>
 
                   <div className="flex items-center gap-3 text-sm">
-                    <Globe className="h-4 w-4 text-[#80368D]" />
+                    <Globe className="h-4 w-4 text-[#F2B33D]" />
                     <span className="text-muted-foreground">Pays:</span>
                     <span className="font-medium">{country}</span>
                   </div>
 
                   <div className="flex items-center gap-3 text-sm">
-                    <Mail className="h-4 w-4 text-[#80368D]" />
+                    <Mail className="h-4 w-4 text-[#F2B33D]" />
                     <span className="text-muted-foreground">Format:</span>
                     <span className="font-medium">{format}</span>
                   </div>
 
                   <div className="flex items-center gap-3 text-sm">
-                    <Monitor className="h-4 w-4 text-[#80368D]" />
+                    <Monitor className="h-4 w-4 text-[#F2B33D]" />
                     <span className="text-muted-foreground">Plateforme:</span>
                     <span className="font-medium">{platform}</span>
                   </div>
 
                   <div className="flex items-center gap-3 text-sm">
-                    <Calendar className="h-4 w-4 text-[#80368D]" />
+                    <Calendar className="h-4 w-4 text-[#F2B33D]" />
                     <span className="text-muted-foreground">Date:</span>
                     <span className="font-medium">{date}</span>
                   </div>
 
                   {agency && (
                     <div className="flex items-center gap-3 text-sm">
-                      <Building2 className="h-4 w-4 text-[#80368D]" />
+                      <Building2 className="h-4 w-4 text-[#F2B33D]" />
                       <span className="text-muted-foreground">Agence:</span>
                       <span className="font-medium">{agency}</span>
                     </div>

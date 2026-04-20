@@ -160,19 +160,19 @@ export default function ProfilePage() {
       
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-[#80368D]" />
+          <Loader2 className="h-8 w-8 animate-spin text-[#F2B33D]" />
         </div>
       ) : (
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-        <h1 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[#1A1F2B]">Mon Profil</h1>
+        <h1 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[#0F0F0F]">Mon Profil</h1>
         
         {/* Account Info Section */}
-        <section className="mt-8 rounded-xl border border-[#D0E4F2] bg-white p-6 shadow-sm">
-          <h2 className="font-[family-name:var(--font-heading)] text-lg font-semibold text-[#1A1F2B]">Informations du compte</h2>
+        <section className="mt-8 rounded-xl border border-[#F5F5F5] bg-white p-6 shadow-sm">
+          <h2 className="font-[family-name:var(--font-heading)] text-lg font-semibold text-[#0F0F0F]">Informations du compte</h2>
           
           <div className="mt-6 flex flex-col items-start gap-6 sm:flex-row">
             <div className="relative">
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#80368D] text-2xl font-bold text-white">
+              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#F2B33D] text-2xl font-bold text-white">
                 {user.name.split(" ").map(n => n[0]).join("")}
               </div>
             </div>
@@ -180,12 +180,12 @@ export default function ProfilePage() {
             <div className="flex-1 space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <Label htmlFor="name" className="text-sm text-[#1A1F2B]/60">Nom complet</Label>
-                  <div className="mt-1 flex items-center gap-2 rounded-lg bg-[#D0E4F2]/20 px-3 py-2">
-                    <Lock className="h-4 w-4 text-[#1A1F2B]/40" />
-                    <p className="font-medium text-[#1A1F2B]">{user.name}</p>
+                  <Label htmlFor="name" className="text-sm text-[#0F0F0F]/60">Nom complet</Label>
+                  <div className="mt-1 flex items-center gap-2 rounded-lg bg-[#F5F5F5]/20 px-3 py-2">
+                    <Lock className="h-4 w-4 text-[#0F0F0F]/40" />
+                    <p className="font-medium text-[#0F0F0F]">{user.name}</p>
                   </div>
-                  <p className="mt-1 text-xs text-[#1A1F2B]/40">Ce champ est en lecture seule</p>
+                  <p className="mt-1 text-xs text-[#0F0F0F]/40">Ce champ est en lecture seule</p>
                 </div>
                 <div>
                   <Label htmlFor="email" className="text-sm text-muted-foreground">Email</Label>
@@ -205,13 +205,13 @@ export default function ProfilePage() {
           
           <div className="mt-4">
             {user.status === "none" && (
-              <div className="rounded-lg bg-[#D0E4F2]/30 p-4">
+              <div className="rounded-lg bg-[#F5F5F5]/30 p-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#D0E4F2]/50">
-                    <CreditCard className="h-5 w-5 text-[#1A1F2B]/60" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F5F5F5]/50">
+                    <CreditCard className="h-5 w-5 text-[#0F0F0F]/60" />
                   </div>
                   <div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#D0E4F2] px-2 py-0.5 text-xs font-medium text-[#1A1F2B]">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#F5F5F5] px-2 py-0.5 text-xs font-medium text-[#0F0F0F]">
                       Plan Gratuit
                     </span>
                     <p className="mt-1 text-sm text-muted-foreground">
@@ -219,7 +219,7 @@ export default function ProfilePage() {
                     </p>
                   </div>
                 </div>
-                <Button asChild className="mt-4 w-full shadow-lg shadow-primary/25 sm:w-auto bg-[#80368D] hover:bg-[#80368D]/90">
+                <Button asChild className="mt-4 w-full shadow-lg shadow-primary/25 sm:w-auto bg-[#F2B33D] hover:bg-[#F2B33D]/90">
                   <Link href="/subscribe">
                     Choisir une formule
                     <ArrowRight className="ml-2 h-4 w-4" />
@@ -229,13 +229,13 @@ export default function ProfilePage() {
             )}
 
             {user.status === "subscribed" && (
-              <div className="rounded-lg bg-[#80368D]/10 p-4">
+              <div className="rounded-lg bg-[#F2B33D]/10 p-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#80368D]/20">
-                    <Check className="h-5 w-5 text-[#80368D]" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F2B33D]/20">
+                    <Check className="h-5 w-5 text-[#F2B33D]" />
                   </div>
                   <div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[#80368D] px-2 py-0.5 text-xs font-medium text-white">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#F2B33D] px-2 py-0.5 text-xs font-medium text-white">
                       <Check className="h-3 w-3" />
                       Abonné {user.plan || 'Pro'}
                     </span>
@@ -260,27 +260,27 @@ export default function ProfilePage() {
 
         {/* Monthly Usage Counter — Basic/Pro only */}
         {["Pro", "Basic"].includes(user.plan || "") && user.status === "subscribed" && (
-          <section className="mt-6 rounded-xl border border-[#80368D]/20 bg-gradient-to-br from-[#80368D]/5 to-[#a855f7]/5 p-6">
-            <h2 className="font-[family-name:var(--font-heading)] text-lg font-semibold text-[#1A1F2B] flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-[#80368D]" />
+          <section className="mt-6 rounded-xl border border-[#F2B33D]/20 bg-gradient-to-br from-[#F2B33D]/5 to-[#a855f7]/5 p-6">
+            <h2 className="font-[family-name:var(--font-heading)] text-lg font-semibold text-[#0F0F0F] flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-[#F2B33D]" />
               Votre activité ce mois
             </h2>
             <div className="mt-6 flex items-end gap-3">
-              <span className="font-[family-name:var(--font-heading)] text-6xl font-extrabold bg-gradient-to-r from-[#80368D] to-[#a855f7] bg-clip-text text-transparent">
+              <span className="font-[family-name:var(--font-heading)] text-6xl font-extrabold bg-gradient-to-r from-[#F2B33D] to-[#a855f7] bg-clip-text text-transparent">
                 {user.monthlyUsage || 0}
               </span>
               <div className="mb-2">
-                <p className="text-base font-semibold text-[#1A1F2B]">campagnes explorées</p>
-                <p className="text-sm text-[#1A1F2B]/60">ce mois-ci · réinitialise le 1er</p>
+                <p className="text-base font-semibold text-[#0F0F0F]">campagnes explorées</p>
+                <p className="text-sm text-[#0F0F0F]/60">ce mois-ci · réinitialise le 1er</p>
               </div>
             </div>
-            <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#80368D]/20">
+            <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#F2B33D]/20">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-[#80368D] to-[#a855f7] transition-all"
+                className="h-full rounded-full bg-gradient-to-r from-[#F2B33D] to-[#a855f7] transition-all"
                 style={{ width: `${Math.min(100, ((user.monthlyUsage || 0) / 100) * 100)}%` }}
               />
             </div>
-            <p className="mt-2 text-xs text-[#1A1F2B]/50">
+            <p className="mt-2 text-xs text-[#0F0F0F]/50">
               Ce compteur suit vos consultations de campagnes du mois en cours.
             </p>
           </section>
@@ -295,7 +295,7 @@ export default function ProfilePage() {
               size="sm"
               onClick={handleRefreshHistory}
               disabled={isRefreshingHistory}
-              className="bg-white border-[#D0E4F2] text-[#1A1F2B]"
+              className="bg-white border-[#F5F5F5] text-[#0F0F0F]"
             >
               {isRefreshingHistory ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

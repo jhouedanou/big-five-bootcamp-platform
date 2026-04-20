@@ -1,37 +1,32 @@
 /**
- * API Route: /api/track-click
+ * API Route: /api/track-search
  *
- * POST : incremente le compteur de consultations du jour.
- *        Bloque les free users a DAILY_CLICK_LIMIT consultations / jour.
- * GET  : retourne l'etat courant du compteur (remaining, limit, etc.)
+ * POST { filterId: string } : incremente le compteur de recherches pour ce filtre.
+ *   - Decouverte : 3 / filtre / jour
+ *   - Basic      : 15 / filtre / jour
+ *   - Pro        : illimite
  *
- * Reset automatique a minuit (UTC) via comparaison `daily_click_reset = today`.
+ * GET : retourne l'etat courant du compteur pour tous les filtres.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase-server'
-import { QUOTAS, resolveTier, todayKey, UNLIMITED } from '@/lib/quotas'
+import { QUOTAS, resolveTier, todayKey, bumpSearchCount, UNLIMITED } from '@/lib/quotas'
 
 export const dynamic = 'force-dynamic'
-
-/** Conserve pour compat avec l'UI existante. */
-const DAILY_CLICK_LIMIT = QUOTAS.free.dailyClickLimit
 
 type UserProfile = {
   id: string
   plan: string | null
   subscription_status: string | null
-  daily_click_count: number | null
-  daily_click_reset: string | null
-  monthly_campaigns_explored: number | null
+  daily_search_count: Record<string, number> | null
+  daily_search_reset: string | null
 }
 
 async function loadProfile(admin: ReturnType<typeof getSupabaseAdmin>, userId: string) {
   const { data, error } = await admin
     .from('users')
-    .select(
-      'id, plan, subscription_status, daily_click_count, daily_click_reset, monthly_campaigns_explored'
-    )
+    .select('id, plan, subscription_status, daily_search_count, daily_search_reset')
     .eq('id', userId)
     .single<UserProfile>()
 
@@ -39,13 +34,25 @@ async function loadProfile(admin: ReturnType<typeof getSupabaseAdmin>, userId: s
   return data
 }
 
-export async function POST(_request: NextRequest) {
+export async function POST(request: NextRequest) {
   try {
     const supabase = await getSupabaseServer()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
       return NextResponse.json({ error: 'Non authentifie' }, { status: 401 })
+    }
+
+    let body: { filterId?: string } = {}
+    try {
+      body = await request.json()
+    } catch {
+      // body optionnel : on refusera en dessous si filterId manquant
+    }
+
+    const filterId = (body.filterId || '').trim()
+    if (!filterId) {
+      return NextResponse.json({ error: 'filterId requis' }, { status: 400 })
     }
 
     const admin = getSupabaseAdmin()
@@ -55,67 +62,58 @@ export async function POST(_request: NextRequest) {
     }
 
     const tier = resolveTier(profile.plan, profile.subscription_status)
-    const isFree = tier === 'free'
-    const limit = QUOTAS[tier].dailyClickLimit
+    const limit = QUOTAS[tier].dailySearchPerFilter
     const today = todayKey()
 
-    let currentClicks = profile.daily_click_count || 0
-    if (profile.daily_click_reset !== today) {
-      currentClicks = 0
-    }
+    // Reset quotidien
+    const searchCount =
+      profile.daily_search_reset === today ? (profile.daily_search_count || {}) : {}
 
-    if (isFree && currentClicks >= limit) {
+    const currentForFilter = searchCount[filterId] || 0
+
+    if (limit !== UNLIMITED && currentForFilter >= limit) {
       return NextResponse.json(
         {
           allowed: false,
-          clicks: currentClicks,
+          filterId,
+          count: currentForFilter,
           limit,
           remaining: 0,
-          isFree,
           tier,
-          message: 'Limite quotidienne atteinte',
+          message: `Limite de ${limit} recherches atteinte pour ce filtre aujourd'hui.`,
         },
         { status: 403 }
       )
     }
 
-    const newClicks = currentClicks + 1
-    const newExplored = (profile.monthly_campaigns_explored || 0) + 1
-
-    const updateData: Record<string, unknown> = {
-      monthly_campaigns_explored: newExplored,
-      daily_click_reset: today,
-      updated_at: new Date().toISOString(),
-    }
-    if (isFree) {
-      updateData.daily_click_count = newClicks
-    } else {
-      updateData.daily_click_count = 0
-    }
+    const nextCount = bumpSearchCount(searchCount, filterId)
 
     const { error: updateError } = await (admin as any)
       .from('users')
-      .update(updateData)
+      .update({
+        daily_search_count: nextCount,
+        daily_search_reset: today,
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', user.id)
 
     if (updateError) {
-      console.error('Erreur update compteur:', updateError)
+      console.error('Erreur update search count:', updateError)
       return NextResponse.json({ error: 'Erreur mise a jour' }, { status: 500 })
     }
 
-    const remaining = limit === UNLIMITED ? null : Math.max(0, limit - newClicks)
-
     return NextResponse.json({
       allowed: true,
-      clicks: isFree ? newClicks : null,
+      filterId,
+      count: nextCount[filterId],
       limit: limit === UNLIMITED ? null : limit,
-      remaining,
-      explored: newExplored,
-      isFree,
+      remaining: limit === UNLIMITED ? null : Math.max(0, limit - nextCount[filterId]),
       tier,
+      // Map complete pour que le client puisse afficher tous les compteurs
+      counts: nextCount,
     })
   } catch (error) {
-    console.error('Erreur track-click:', error)
+    console.error('Erreur track-search:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
@@ -136,31 +134,25 @@ export async function GET(_request: NextRequest) {
     }
 
     const tier = resolveTier(profile.plan, profile.subscription_status)
-    const isFree = tier === 'free'
-    const limit = QUOTAS[tier].dailyClickLimit
+    const limit = QUOTAS[tier].dailySearchPerFilter
     const today = todayKey()
 
-    let clicks = profile.daily_click_count || 0
-    if (profile.daily_click_reset !== today) {
-      clicks = 0
+    let counts = profile.daily_search_count || {}
+    if (profile.daily_search_reset !== today) {
+      counts = {}
       await (admin as any)
         .from('users')
-        .update({ daily_click_count: 0, daily_click_reset: today })
+        .update({ daily_search_count: {}, daily_search_reset: today })
         .eq('id', user.id)
     }
 
     return NextResponse.json({
-      clicks,
+      counts,
       limit: limit === UNLIMITED ? null : limit,
-      remaining: limit === UNLIMITED ? null : Math.max(0, limit - clicks),
-      explored: profile.monthly_campaigns_explored || 0,
-      isFree,
       tier,
     })
   } catch (error) {
-    console.error('Erreur GET track-click:', error)
+    console.error('Erreur GET track-search:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
-
-export { DAILY_CLICK_LIMIT }

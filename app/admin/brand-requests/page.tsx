@@ -94,7 +94,7 @@ export default function AdminBrandRequestsPage() {
         <Link href="/admin" className="rounded-lg p-2 hover:bg-gray-100 transition-colors">
           <ArrowLeft className="h-5 w-5 text-gray-600" />
         </Link>
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#80368D] to-[#a855f7]">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#F2B33D] to-[#a855f7]">
           <Building2 className="h-5 w-5 text-white" />
         </div>
         <div>
@@ -107,7 +107,7 @@ export default function AdminBrandRequestsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-[#80368D]" />
+          <Loader2 className="h-8 w-8 animate-spin text-[#F2B33D]" />
         </div>
       ) : requests.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-12 text-center">
@@ -149,7 +149,7 @@ export default function AdminBrandRequestsPage() {
                         {req.social_networks.map((code) => (
                           <span
                             key={code}
-                            className="inline-flex items-center rounded-full bg-[#80368D]/10 px-2 py-0.5 text-[11px] font-medium text-[#80368D]"
+                            className="inline-flex items-center rounded-full bg-[#F2B33D]/10 px-2 py-0.5 text-[11px] font-medium text-[#F2B33D]"
                           >
                             {SOCIAL_LABELS[code] || code}
                           </span>
@@ -172,7 +172,7 @@ export default function AdminBrandRequestsPage() {
                                 href={u}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-xs text-[#80368D] hover:underline break-all"
+                                className="text-xs text-[#F2B33D] hover:underline break-all"
                               >
                                 🔗 {u}
                               </a>
@@ -185,15 +185,15 @@ export default function AdminBrandRequestsPage() {
                     {req.notes && <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 mb-3">{req.notes}</p>}
 
                     {req.admin_notes && !isEditing && (
-                      <div className="rounded-lg bg-[#80368D]/5 border border-[#80368D]/10 p-3 mb-3">
-                        <p className="text-xs font-semibold text-[#80368D]/60 mb-1">Note admin :</p>
+                      <div className="rounded-lg bg-[#F2B33D]/5 border border-[#F2B33D]/10 p-3 mb-3">
+                        <p className="text-xs font-semibold text-[#F2B33D]/60 mb-1">Note admin :</p>
                         <p className="text-sm text-gray-700">{req.admin_notes}</p>
                       </div>
                     )}
 
                     {/* Form d'édition admin */}
                     {isEditing && (
-                      <div className="mt-3 space-y-3 rounded-lg border border-[#80368D]/20 p-4 bg-[#80368D]/5">
+                      <div className="mt-3 space-y-3 rounded-lg border border-[#F2B33D]/20 p-4 bg-[#F2B33D]/5">
                         <div>
                           <label htmlFor={`note-${req.id}`} className="block text-xs font-semibold text-gray-600 mb-1">Note pour l'utilisateur</label>
                           <textarea
@@ -202,11 +202,11 @@ export default function AdminBrandRequestsPage() {
                             onChange={(e) => setAdminNotes(e.target.value)}
                             rows={2}
                             placeholder="Note visible par l'utilisateur..."
-                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#80368D] resize-none"
+                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#F2B33D] resize-none"
                           />
                         </div>
                         <div className="flex gap-2">
-                          <Button size="sm" disabled={saving} className="bg-[#80368D] hover:bg-[#80368D]/90"
+                          <Button size="sm" disabled={saving} className="bg-[#F2B33D] hover:bg-[#F2B33D]/90"
                             onClick={() => updateRequest(req.id, undefined, adminNotes)}>
                             {saving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
                             Enregistrer
@@ -222,7 +222,7 @@ export default function AdminBrandRequestsPage() {
                     <select
                       value={req.status}
                       onChange={(e) => updateRequest(req.id, e.target.value)}
-                      className="rounded-lg border border-gray-200 px-2 py-1.5 text-xs font-medium outline-none focus:border-[#80368D]"
+                      className="rounded-lg border border-gray-200 px-2 py-1.5 text-xs font-medium outline-none focus:border-[#F2B33D]"
                       aria-label="Changer le statut"
                     >
                       {statusOptions.map(opt => (

@@ -1269,7 +1269,7 @@ function CampaignsPageContent() {
                 {/* Lien vers la publication d'origine */}
                 <div className="space-y-2">
                   <Label htmlFor="camp-publication-url" className="text-gray-700 flex items-center gap-2">
-                    <ExternalLink className="h-4 w-4 text-[#80368D]" />
+                    <ExternalLink className="h-4 w-4 text-[#F2B33D]" />
                     Lien vers la publication d'origine
                   </Label>
                   <Input
@@ -1473,7 +1473,7 @@ function CampaignsPageContent() {
                         <Button
                           type="button"
                           variant="outline"
-                          className="border-[#80368D] text-[#80368D] hover:bg-[#80368D]/10 whitespace-nowrap"
+                          className="border-[#F2B33D] text-[#F2B33D] hover:bg-[#F2B33D]/10 whitespace-nowrap"
                           onClick={async () => {
                             const videoUrl = formData.videoUrl?.trim();
                             if (!videoUrl) return;

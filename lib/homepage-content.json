@@ -39,16 +39,16 @@
         "icon": "Target",
         "title": "S'enrichir, s’inspirer pour affiner votre stratégie",
         "description": "Filtrez par pays, industrie, format ou objectif. Trouvez exactement ce que vous cherchez.",
-        "color": "text-[#80368D]",
-        "bg": "bg-[#80368D]/10"
+        "color": "text-[#F2B33D]",
+        "bg": "bg-[#F2B33D]/10"
       },
       {
         "icon": "Layers",
         "title": "Bibliothèque actualisée",
         "descriptionTemplate": "Plus de {count} campagnes archivées et mises à jour quotidiennement par nos équipes.",
         "descriptionFallback": "Des campagnes archivées et mises à jour quotidiennement par nos équipes.",
-        "color": "text-[#29358B]",
-        "bg": "bg-[#29358B]/10"
+        "color": "text-[#0F0F0F]",
+        "bg": "bg-[#0F0F0F]/10"
       },
       {
         "icon": "Zap",
@@ -103,7 +103,7 @@
       {
         "key": "free",
         "name": "Découverte",
-        "description": "Pour explorer la plateforme.",
+        "description": "Pour les explorateurs.",
         "monthlyPrice": 0,
         "annualPrice": 0,
         "cta": "Commencer",
@@ -111,16 +111,19 @@
         "ctaVariant": "outline",
         "highlighted": false,
         "badge": null,
-        "color": "#1A1F2B",
+        "color": "#0F0F0F",
         "features": [
-          "3 / mois",
-          "Filtres de base",
-          "Email hebdomadaire"
+          "Accès limité",
+          "Filtres basique",
+          "3 campagnes consultables / jour",
+          "Favoris",
+          "Alertes email hebdo",
+          "3 recherches par filtre / jour"
         ],
         "excluded": [
           "Collections personnalisées",
-          "Téléchargement",
-          "Suivi de marques"
+          "Suivi de marques",
+          "Séance de débrief"
         ]
       },
       {
@@ -134,22 +137,25 @@
         "ctaVariant": "default",
         "highlighted": false,
         "badge": null,
-        "color": "#1A1F2B",
+        "color": "#0F0F0F",
         "features": [
-          "Accès illimité à la bibliothèque",
+          "Accès illimité",
           "Filtres avancés (Secteur, Pays...)",
+          "Consultations sans limite des campagnes",
+          "Favoris",
           "Collections personnalisées",
-          "Téléchargement des vidéos",
-          "Compteur d'usage mensuel"
+          "Alertes email hebdo",
+          "15 recherches par filtre / jour"
         ],
         "excluded": [
-          "Suivi de marques"
+          "Suivi de marques",
+          "Séance de débrief"
         ]
       },
       {
         "key": "pro",
         "name": "Pro",
-        "description": "Pour les créatifs exigeants.",
+        "description": "Pour les professionnels.",
         "monthlyPrice": 9900,
         "annualPrice": 99000,
         "cta": "Choisir Pro",
@@ -157,23 +163,22 @@
         "ctaVariant": "default",
         "highlighted": true,
         "badge": "Populaire",
-        "color": "#80368D",
+        "color": "#F2B33D",
         "features": [
-            "Accès illimité à la bibliothèque",
+          "Accès illimité",
           "Filtres avancés (Secteur, Pays...)",
+          "Consultations sans limite des campagnes",
+          "Favoris",
           "Collections personnalisées",
-          "Téléchargement des vidéos",
-          "Compteur d'usage mensuel",
-          "Recherches illimitées",
+          "Alertes email hebdo",
+          "Recherche par filtre illimitée",
           "Suivi de marques",
-          "Support prioritaire",
-          "Créer et partager des moodboard"
+          "Séance de débrief avec l'équipe Big Five"
         ],
         "boldFeatures": [
-          "Recherches illimitées",
+          "Recherche par filtre illimitée",
           "Suivi de marques",
-          "Support prioritaire",
-          "Créer et partager des moodboard"
+          "Séance de débrief avec l'équipe Big Five"
         ],
         "excluded": []
       }
@@ -183,15 +188,16 @@
       "subtitle": "Trouvez le plan qui correspond à vos besoins.",
       "tableHeader": "Fonctionnalité",
       "features": [
-        { "name": "Accès à la bibliothèque", "free": "5/mois", "basic": "Illimité", "pro": "Illimité" },
+        { "name": "Accès à la bibliothèque", "free": "Limité", "basic": "Illimité", "pro": "Illimité" },
+        { "name": "Consultations de campagnes", "free": "3 / jour", "basic": "Illimitées", "pro": "Illimitées" },
         { "name": "Filtres de base", "free": true, "basic": true, "pro": true },
         { "name": "Filtres avancés (Secteur, Pays, Format)", "free": false, "basic": true, "pro": true },
+        { "name": "Favoris", "free": true, "basic": true, "pro": true },
         { "name": "Collections personnalisées", "free": false, "basic": true, "pro": true },
-        { "name": "Téléchargement des vidéos", "free": false, "basic": true, "pro": true },
-        { "name": "Recherches illimitées", "free": false, "basic": false, "pro": true },
+        { "name": "Alertes email hebdo", "free": true, "basic": true, "pro": true },
+        { "name": "Recherches par filtre", "free": "3 / jour", "basic": "15 / jour", "pro": "Illimitées" },
         { "name": "Suivi de marques", "free": false, "basic": false, "pro": true },
-        { "name": "Support prioritaire", "free": false, "basic": false, "pro": true },
-        { "name": "Email hebdomadaire", "free": true, "basic": true, "pro": true }
+        { "name": "Séance de débrief avec l'équipe Big Five", "free": false, "basic": false, "pro": true }
       ]
     }
   }

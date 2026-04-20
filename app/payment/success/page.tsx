@@ -169,7 +169,7 @@ function PaymentSuccessContent() {
           <CardContent className="pt-8 pb-8">
             <div className="text-center">
               <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-violet-600" />
-              <p className="text-lg font-bold text-[#1A1F2B]">Verification de votre paiement...</p>
+              <p className="text-lg font-bold text-[#0F0F0F]">Verification de votre paiement...</p>
               <p className="text-sm text-gray-600 mt-2">Veuillez patienter</p>
               {retryCount > 0 && (
                 <div className="mt-4">
@@ -204,7 +204,7 @@ function PaymentSuccessContent() {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
               <Clock className="h-8 w-8 text-amber-600" />
             </div>
-            <CardTitle className="text-xl font-bold text-[#1A1F2B]">
+            <CardTitle className="text-xl font-bold text-[#0F0F0F]">
               Paiement en cours de traitement
             </CardTitle>
             <CardDescription className="text-base">
@@ -287,7 +287,7 @@ function PaymentSuccessContent() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <CardTitle className="text-xl font-bold text-[#1A1F2B]">
+            <CardTitle className="text-xl font-bold text-[#0F0F0F]">
               Verification du paiement
             </CardTitle>
             <CardDescription className="text-base">
@@ -297,7 +297,7 @@ function PaymentSuccessContent() {
           <CardContent className="space-y-4">
             {showManualInput && (
               <div className="space-y-3 p-4 bg-gray-50 rounded-xl">
-                <p className="text-sm font-medium text-[#1A1F2B]">
+                <p className="text-sm font-medium text-[#0F0F0F]">
                   Vous avez une reference de paiement ?
                 </p>
                 <div className="flex gap-2">
@@ -417,7 +417,7 @@ function PaymentSuccessContent() {
 
         <div className="flex flex-col sm:flex-row gap-4">
           <Link href="/dashboard" className="flex-1">
-            <Button className="w-full h-12 text-base font-semibold bg-gradient-to-r from-[#80368D] to-[#29358B] hover:opacity-90">
+            <Button className="w-full h-12 text-base font-semibold bg-gradient-to-r from-[#F2B33D] to-[#0F0F0F] hover:opacity-90">
               Acceder a la bibliotheque
             </Button>
           </Link>

@@ -79,8 +79,8 @@ function PaymentPendingInner() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white p-6">
         <div className="text-center">
-          <p className="text-[#1A1F2B]/70">Référence de paiement manquante.</p>
-          <Link href="/dashboard" className="text-[#80368D] underline mt-4 inline-block">
+          <p className="text-[#0F0F0F]/70">Référence de paiement manquante.</p>
+          <Link href="/dashboard" className="text-[#F2B33D] underline mt-4 inline-block">
             Retour au tableau de bord
           </Link>
         </div>
@@ -90,13 +90,13 @@ function PaymentPendingInner() {
 
   return (
     <div className="min-h-screen bg-white">
-      <header className="border-b border-[#D0E4F2]">
+      <header className="border-b border-[#F5F5F5]">
         <div className="mx-auto flex h-16 max-w-3xl items-center px-4">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#80368D]">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F2B33D]">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
-            <span className="font-bold text-[#1A1F2B]">Laveiye</span>
+            <span className="font-bold text-[#0F0F0F]">Laveiye</span>
           </Link>
         </div>
       </header>
@@ -104,28 +104,28 @@ function PaymentPendingInner() {
       <div className="mx-auto max-w-lg px-4 py-12 text-center">
         {status === "pending" && (
           <>
-            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#80368D]/10">
-              <Smartphone className="h-10 w-10 text-[#80368D]" />
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#F2B33D]/10">
+              <Smartphone className="h-10 w-10 text-[#F2B33D]" />
             </div>
-            <h1 className="text-2xl font-bold text-[#1A1F2B]">
+            <h1 className="text-2xl font-bold text-[#0F0F0F]">
               Confirmez sur votre téléphone
             </h1>
-            <p className="mt-3 text-[#1A1F2B]/70">
+            <p className="mt-3 text-[#0F0F0F]/70">
               Un message vous a été envoyé sur votre mobile. Saisissez votre
               code PIN Mobile Money pour valider le paiement.
             </p>
-            <div className="mt-8 flex items-center justify-center gap-2 text-sm text-[#1A1F2B]/60">
+            <div className="mt-8 flex items-center justify-center gap-2 text-sm text-[#0F0F0F]/60">
               <Loader2 className="h-4 w-4 animate-spin" />
               Vérification en cours... ({Math.round(elapsed / 1000)}s)
             </div>
             {pawapayStatus && (
-              <p className="mt-2 text-xs text-[#1A1F2B]/40">
+              <p className="mt-2 text-xs text-[#0F0F0F]/40">
                 Statut PawaPay : {pawapayStatus}
               </p>
             )}
             {authUrl && (
               <div className="mt-6">
-                <Button asChild className="bg-[#80368D] hover:bg-[#80368D]/90">
+                <Button asChild className="bg-[#F2B33D] hover:bg-[#F2B33D]/90">
                   <a href={authUrl}>Continuer le paiement</a>
                 </Button>
               </div>
@@ -138,8 +138,8 @@ function PaymentPendingInner() {
             <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#10B981]/10">
               <CheckCircle2 className="h-10 w-10 text-[#10B981]" />
             </div>
-            <h1 className="text-2xl font-bold text-[#1A1F2B]">Paiement confirmé</h1>
-            <p className="mt-3 text-[#1A1F2B]/70">
+            <h1 className="text-2xl font-bold text-[#0F0F0F]">Paiement confirmé</h1>
+            <p className="mt-3 text-[#0F0F0F]/70">
               Redirection en cours...
             </p>
           </>
@@ -150,17 +150,17 @@ function PaymentPendingInner() {
             <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-red-50">
               <XCircle className="h-10 w-10 text-red-600" />
             </div>
-            <h1 className="text-2xl font-bold text-[#1A1F2B]">
+            <h1 className="text-2xl font-bold text-[#0F0F0F]">
               Paiement {status === "rejected" ? "rejeté" : "échoué"}
             </h1>
             {failureMessage && (
-              <p className="mt-3 text-[#1A1F2B]/70">{failureMessage}</p>
+              <p className="mt-3 text-[#0F0F0F]/70">{failureMessage}</p>
             )}
             <div className="mt-6 flex justify-center gap-3">
               <Button asChild variant="outline">
                 <Link href="/dashboard">Retour</Link>
               </Button>
-              <Button asChild className="bg-[#80368D] hover:bg-[#80368D]/90">
+              <Button asChild className="bg-[#F2B33D] hover:bg-[#F2B33D]/90">
                 <Link href="/subscribe">Réessayer</Link>
               </Button>
             </div>

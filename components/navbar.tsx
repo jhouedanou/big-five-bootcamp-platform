@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase"
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [logoUrl, setLogoUrl] = useState("/logo.png")
+  const [logoUrl, setLogoUrl] = useState("/niggaz/colored.webp")
   const initialCheckDone = useRef(false)
 
   useEffect(() => {
@@ -52,15 +52,20 @@ export function Navbar() {
             <Image
               src={logoUrl}
               alt="Laveiye"
-              width={40}
-              height={40}
-              className="relative h-10 w-10"
+              width={208}
+              height={44}
+              className="relative h-11 w-auto dark:hidden"
+              priority
+            />
+            <Image
+              src="/niggaz/white.webp"
+              alt="Laveiye"
+              width={208}
+              height={44}
+              className="relative hidden h-11 w-auto dark:block"
               priority
             />
           </div>
-          <span className="font-[family-name:var(--font-heading)] text-xl font-bold text-[#0F0F0F]">
-            Laveiye
-          </span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">

@@ -99,14 +99,21 @@ export function DashboardNavbar({
         <div className="flex items-center gap-4">
           <Link href="/dashboard" className="flex items-center gap-2">
             <Image
-              src="/logo.png"
+              src="/niggaz/colored.webp"
               alt="Laveiye"
-              width={32}
-              height={32}
-              className="h-8 w-8"
+              width={189}
+              height={40}
+              className="h-10 w-auto dark:hidden"
               priority
             />
-            <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#0F0F0F]">Laveiye</span>
+            <Image
+              src="/niggaz/white.webp"
+              alt="Laveiye"
+              width={189}
+              height={40}
+              className="hidden h-10 w-auto dark:block"
+              priority
+            />
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex">

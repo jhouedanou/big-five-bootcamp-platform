@@ -76,24 +76,26 @@ export const FILTERS = {
 };
 
 export const BRAND_COLORS = {
-    violet: "#80368D", // RVB(128,54,141)
-    blue: "#29358B",   // RVB(41,53,139)
+    yellow: "#F2B33D",
+    black: "#0F0F0F",
     white: "#FFFFFF",
-    black: "#000000",
-    // Accents
-    accent1: "#4E34AD",
-    accent2: "#6F4ECC",
-    accent3: "#544580",
-    accent4: "#6752A3",
-    accent5: "#CE9D4D",
-    accent6: "#F2CA80",
+    neutral: "#F5F5F5",
+    // Aliases de compatibilite (tout ramene au triptyque)
+    violet: "#F2B33D",
+    blue: "#0F0F0F",
+    accent1: "#F2B33D",
+    accent2: "#F2B33D",
+    accent3: "#0F0F0F",
+    accent4: "#0F0F0F",
+    accent5: "#F2B33D",
+    accent6: "#F2B33D",
     accent7: "#F2B33D",
-    accent8: "#F8F4B7",
-    accent9: "#0A74C0",
-    accent10: "#1A1F2B",
-    accent11: "#30395C",
-    accent12: "#4A6491",
-    accent13: "#85A5CC",
-    accent14: "#D0E4F2",
-    accent15: "#12448B",
+    accent8: "#F5F5F5",
+    accent9: "#0F0F0F",
+    accent10: "#0F0F0F",
+    accent11: "#0F0F0F",
+    accent12: "#0F0F0F",
+    accent13: "#F5F5F5",
+    accent14: "#F5F5F5",
+    accent15: "#0F0F0F",
 };

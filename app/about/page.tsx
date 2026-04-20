@@ -9,7 +9,7 @@ export default function AboutPage() {
             <main className="flex-1">
                 {/* Hero Section */}
                 <section className="relative py-20 lg:py-32 overflow-hidden bg-gradient-to-b from-[#F5F5F5] to-white">
-                    <div className="absolute inset-0 bg-[linear-gradient(rgba(208,228,242,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(208,228,242,0.3)_1px,transparent_1px)] bg-[size:40px_40px]" />
+                    <div className="absolute inset-0 bg-[linear-gradient(rgba(245, 245, 245,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(245, 245, 245,0.3)_1px,transparent_1px)] bg-[size:40px_40px]" />
                     <div className="container relative mx-auto px-4 text-center">
                         <span className="inline-block py-1 px-3 rounded-full bg-[#F2B33D]/10 border border-[#F2B33D]/20 text-[#F2B33D] text-sm font-semibold mb-6">
                             Notre Mission

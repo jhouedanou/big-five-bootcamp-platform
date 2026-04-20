@@ -1,19 +1,7 @@
 import React from "react"
 import type { Metadata, Viewport } from 'next'
-import { Questrial, Montserrat } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
-
-const questrial = Questrial({
-  subsets: ["latin", "latin-ext"],
-  weight: "400",
-  variable: "--font-questrial"
-});
-const montserrat = Montserrat({
-  subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600", "700", "800", "900"],
-  variable: "--font-montserrat"
-});
 
 export const metadata: Metadata = {
   title: 'Laveiye - La référence créative',
@@ -50,7 +38,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body className={`${questrial.variable} ${montserrat.variable} font-sans antialiased`}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&display=swap"
+        />
+      </head>
+      <body className="font-sans antialiased">
         <Providers>
           {children}
         </Providers>

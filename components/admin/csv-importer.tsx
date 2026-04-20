@@ -382,7 +382,7 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
                                                         <TableCell>{row.featured || "—"}</TableCell>
                                                         <TableCell className="max-w-[200px] truncate">
                                                             {row.publication_url ? (
-                                                                <a href={row.publication_url} target="_blank" rel="noopener noreferrer" className="text-[#80368D] underline">
+                                                                <a href={row.publication_url} target="_blank" rel="noopener noreferrer" className="text-[#F2B33D] underline">
                                                                     {row.publication_url}
                                                                 </a>
                                                             ) : "—"}

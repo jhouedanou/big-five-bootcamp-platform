@@ -202,7 +202,7 @@ export default function DemoPage() {
           {/* Contrôles de vue */}
           <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="animate-fade-in-up">
-              <h2 className="font-[family-name:var(--font-montserrat)] text-2xl font-bold text-[#0F0F0F]">
+              <h2 className="font-sans text-2xl font-bold text-[#0F0F0F]">
                 Résultats
               </h2>
               <p className="mt-1 text-sm text-[#0F0F0F]/70">
@@ -265,7 +265,7 @@ export default function DemoPage() {
               <div className="mb-4 h-16 w-16 rounded-full bg-[#F5F5F5] flex items-center justify-center">
                 <SlidersHorizontal className="h-8 w-8 text-[#0F0F0F]/60" />
               </div>
-              <h3 className="font-[family-name:var(--font-montserrat)] text-xl font-semibold text-[#0F0F0F]">
+              <h3 className="font-sans text-xl font-semibold text-[#0F0F0F]">
                 Aucune campagne trouvée
               </h3>
               <p className="mt-2 text-muted-foreground max-w-md">

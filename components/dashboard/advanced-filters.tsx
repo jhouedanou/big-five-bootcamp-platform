@@ -106,7 +106,7 @@ export function AdvancedFilters({
     <div className="w-full space-y-6">
       {/* En-tête avec compteur */}
       <div className="text-center">
-        <h2 className="font-[family-name:var(--font-montserrat)] text-2xl font-bold text-foreground">
+        <h2 className="font-sans text-2xl font-bold text-foreground">
           + de <span className="text-primary">{totalResults.toLocaleString()}</span> campagnes
         </h2>
       </div>

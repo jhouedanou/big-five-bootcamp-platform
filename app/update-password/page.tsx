@@ -320,14 +320,14 @@ function UpdatePasswordContent() {
                   className="relative h-10 w-10 rounded-lg"
                 />
               </div>
-              <span className="font-[family-name:var(--font-questrial)] text-xl font-bold text-foreground">
+              <span className="font-sans text-xl font-bold text-foreground">
                 Laveiye
               </span>
             </Link>
           </div>
 
           <div>
-            <h1 className="font-[family-name:var(--font-montserrat)] text-2xl font-bold text-foreground">
+            <h1 className="font-sans text-2xl font-bold text-foreground">
               Nouveau mot de passe
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">

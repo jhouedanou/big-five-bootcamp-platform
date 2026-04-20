@@ -223,7 +223,7 @@ export async function GET(request: NextRequest) {
 
     <!-- CTA principal -->
     <div style="text-align: center; padding: 0 24px 32px;">
-      <a href="${appUrl}/dashboard" style="display: inline-block; background: linear-gradient(135deg, #F2B33D, #a855f7); color: white; padding: 16px 40px; border-radius: 50px; text-decoration: none; font-weight: 700; font-size: 16px; box-shadow: 0 4px 12px rgba(128,54,141,0.3);">
+      <a href="${appUrl}/dashboard" style="display: inline-block; background: linear-gradient(135deg, #F2B33D, #a855f7); color: white; padding: 16px 40px; border-radius: 50px; text-decoration: none; font-weight: 700; font-size: 16px; box-shadow: 0 4px 12px rgba(242, 179, 61,0.3);">
         Explorer la bibliothèque
       </a>
     </div>

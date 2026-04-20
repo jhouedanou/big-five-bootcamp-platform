@@ -124,7 +124,7 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
         <article className={`modern-card overflow-hidden hover-lift transition-all duration-300 hover:shadow-xl flex flex-row ${
           isPremium
             ? "ring-2 ring-amber-400/80 shadow-lg shadow-amber-400/20 hover:shadow-amber-400/30 hover:ring-amber-300"
-            : "hover:shadow-[#80368D]/10"
+            : "hover:shadow-[#F2B33D]/10"
         }`}>
           {/* Image compacte à gauche */}
           <div className="relative w-32 h-32 sm:w-40 sm:h-40 flex-shrink-0 overflow-hidden bg-gradient-to-br from-[#0A1F44] to-[#1a3a6e]">
@@ -192,11 +192,11 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
           {/* Contenu à droite */}
           <div className="flex-1 p-4 flex flex-col justify-between min-w-0">
             <div>
-              <h3 className="line-clamp-2 font-[family-name:var(--font-heading)] text-base font-bold text-[#1A1F2B] transition-colors group-hover:text-[#80368D]">
+              <h3 className="line-clamp-2 font-[family-name:var(--font-heading)] text-base font-bold text-[#0F0F0F] transition-colors group-hover:text-[#F2B33D]">
                 {content.title}
               </h3>
               {content.summary && (
-                <p className="mt-1.5 line-clamp-2 text-sm font-medium leading-relaxed text-[#1A1F2B]/70">
+                <p className="mt-1.5 line-clamp-2 text-sm font-medium leading-relaxed text-[#0F0F0F]/70">
                   {content.summary}
                 </p>
               )}
@@ -209,13 +209,13 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
                 {content.tags.slice(0, 2).map((tag) => (
                   <span
                     key={tag}
-                    className="rounded-full bg-[#D0E4F2]/60 px-2 py-0.5 text-xs font-medium text-[#1A1F2B]/80"
+                    className="rounded-full bg-[#F5F5F5]/60 px-2 py-0.5 text-xs font-medium text-[#0F0F0F]/80"
                   >
                     {tag}
                   </span>
                 ))}
               </div>
-              <div className="mt-2 flex items-center justify-between text-xs font-medium text-[#1A1F2B]/70">
+              <div className="mt-2 flex items-center justify-between text-xs font-medium text-[#0F0F0F]/70">
                 <div className="flex items-center gap-1.5">
                   <CountryFlag country={content.country} className="h-3.5 w-4" />
                   <span>{content.country}</span>
@@ -237,7 +237,7 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
       <article className={`modern-card overflow-hidden hover-lift transition-all duration-300 hover:shadow-xl ${
         isPremium
           ? "ring-2 ring-amber-400/80 shadow-lg shadow-amber-400/20 hover:shadow-amber-400/30 hover:ring-amber-300"
-          : "hover:shadow-[#80368D]/10"
+          : "hover:shadow-[#F2B33D]/10"
       }`}>
         <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-[#0A1F44] to-[#1a3a6e]">
           {content.imageUrl ? (
@@ -350,20 +350,20 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
 
           {/* Hover overlay */}
           <div className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100">
-            <span className="mb-4 rounded-full bg-[#80368D] px-5 py-2 text-sm font-semibold text-white shadow-lg">
+            <span className="mb-4 rounded-full bg-[#F2B33D] px-5 py-2 text-sm font-semibold text-white shadow-lg">
               Voir détails
             </span>
           </div>
         </div>
 
         <div className="p-5">
-          <h3 className="line-clamp-2 font-[family-name:var(--font-heading)] text-base font-bold text-[#1A1F2B] transition-colors group-hover:text-[#80368D]">
+          <h3 className="line-clamp-2 font-[family-name:var(--font-heading)] text-base font-bold text-[#0F0F0F] transition-colors group-hover:text-[#F2B33D]">
             {content.title}
           </h3>
 
           {/* Résumé de la campagne */}
           {content.summary && (
-            <p className="mt-2 line-clamp-2 text-sm font-medium leading-relaxed text-[#1A1F2B]/70">
+            <p className="mt-2 line-clamp-2 text-sm font-medium leading-relaxed text-[#0F0F0F]/70">
               {content.summary}
             </p>
           )}
@@ -375,14 +375,14 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
             {content.tags.slice(0, 2).map((tag) => (
               <span
                 key={tag}
-                className="rounded-full bg-[#D0E4F2]/60 px-2.5 py-1 text-xs font-medium text-[#1A1F2B]/80"
+                className="rounded-full bg-[#F5F5F5]/60 px-2.5 py-1 text-xs font-medium text-[#0F0F0F]/80"
               >
                 {tag}
               </span>
             ))}
           </div>
 
-          <div className="mt-4 flex items-center justify-between text-sm font-medium text-[#1A1F2B]/70">
+          <div className="mt-4 flex items-center justify-between text-sm font-medium text-[#0F0F0F]/70">
             <div className="flex items-center gap-1.5">
               <CountryFlag country={content.country} className="h-4 w-5" />
               <span>{content.country}</span>

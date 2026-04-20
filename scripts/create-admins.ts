@@ -99,7 +99,7 @@ async function createAdminUser(user: { email: string; name: string; password: st
             email: user.email,
             name: user.name,
             role: 'admin',
-            plan: 'Premium',
+            plan: 'Pro',
             status: 'active',
           }, { onConflict: 'id' })
 
@@ -123,7 +123,7 @@ async function createAdminUser(user: { email: string; name: string; password: st
     email: user.email,
     name: user.name,
     role: 'admin',
-    plan: 'Premium',
+    plan: 'Pro',
     status: 'active',
   }, { onConflict: 'id' })
 

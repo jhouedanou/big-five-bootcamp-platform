@@ -178,7 +178,7 @@ async function activateUserSubscription(payment: {
     await (supabaseAdmin as any)
       .from('users')
       .update({
-        plan: 'Premium',
+        plan: 'Pro',
         subscription_status: 'active',
         subscription_start_date: new Date().toISOString(),
         subscription_end_date: end,

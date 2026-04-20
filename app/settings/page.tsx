@@ -291,7 +291,7 @@ export default function SettingsPage() {
     })
   }
 
-  const isPremium = subscription.plan.toLowerCase() === "premium"
+  const isPremium = ["basic","pro"].includes(subscription.plan.toLowerCase())
 
   if (isLoading) {
     return (

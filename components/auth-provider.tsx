@@ -103,7 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else if (!error && data) {
         // Vérifier si l'abonnement payant est expiré
-        const isPaid = ["premium", "pro", "basic", "agency", "enterprise"].includes(
+        const isPaid = ["basic", "pro"].includes(
           data.plan?.toLowerCase() || ""
         )
         if (
@@ -284,8 +284,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isAuthenticated = !!user
   const isAdmin = userProfile?.role === "admin"
   const isModerator = userProfile?.role === "moderator" || isAdmin
-  const isPremium = ["premium", "pro", "basic", "agency", "enterprise"].includes(planLower)
-  const isEnterprise = planLower === "enterprise"
+  const isPremium = ["basic", "pro"].includes(planLower)
+  // Legacy : agency / enterprise n'existent plus mais on garde un flag neutre pour compat
+  const isEnterprise = false
   const userPlan = userProfile?.plan || "Free"
   const isFreeUser = !isPremium || userProfile?.subscription_status !== "active"
 

@@ -64,7 +64,7 @@ export function DashboardNavbar({
   // Use external props if provided, otherwise use context data
   const effectivePlan = externalUserPlan || contextUserPlan
   const isPremium = externalUserPlan
-    ? ["premium", "pro", "basic", "agency", "enterprise"].includes(externalUserPlan.toLowerCase())
+    ? ["basic", "pro"].includes(externalUserPlan.toLowerCase())
     : contextIsPremium
   const effectiveIsFreeUser = externalIsFreeUser !== undefined ? externalIsFreeUser : contextIsFreeUser
   const effectiveMonthlyClicks = externalMonthlyClicks !== undefined ? externalMonthlyClicks : contextMonthlyClicks

@@ -203,7 +203,7 @@ export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
                 </TableCell>
                 <TableCell>
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        user.plan === 'Premium'
+                        ['Pro','Basic'].includes(user.plan as string)
                             ? 'bg-amber-100 text-amber-800'
                             : 'bg-slate-100 text-slate-600'
                     }`}>

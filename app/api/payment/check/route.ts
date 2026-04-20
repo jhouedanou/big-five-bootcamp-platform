@@ -28,7 +28,7 @@ async function activatePremiumForPayment(payment: any) {
 
   try {
     let query = (supabaseAdmin as any).from('users').update({
-      plan: 'Premium',
+      plan: 'Pro',
       subscription_status: 'active',
       subscription_start_date: now.toISOString(),
       subscription_end_date: endDate.toISOString(),

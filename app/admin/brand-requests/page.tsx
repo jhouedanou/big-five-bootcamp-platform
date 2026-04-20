@@ -8,9 +8,11 @@ import Link from "next/link"
 interface BrandRequest {
   id: string
   brand_name: string
-  brand_url: string | null
-  brand_country: string | null
-  brand_sector: string | null
+  brand_url: string | null          // legacy (1er lien)
+  brand_urls: string[] | null
+  social_networks: string[] | null
+  brand_country: string | null      // legacy
+  brand_sector: string | null       // legacy
   notes: string | null
   status: string
   admin_notes: string | null
@@ -22,6 +24,14 @@ interface BrandRequest {
     email: string
     plan: string
   }
+}
+
+const SOCIAL_LABELS: Record<string, string> = {
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+  linkedin: 'LinkedIn',
+  x: 'X',
+  tiktok: 'TikTok',
 }
 
 const statusOptions = [
@@ -130,9 +140,47 @@ export default function AdminBrandRequestsPage() {
                     <div className="flex flex-wrap gap-3 text-xs text-gray-500 mb-2">
                       {req.brand_country && <span>📍 {req.brand_country}</span>}
                       {req.brand_sector && <span>🏷️ {req.brand_sector}</span>}
-                      {req.brand_url && <a href={req.brand_url} target="_blank" rel="noopener noreferrer" className="text-[#80368D] hover:underline">🔗 {req.brand_url}</a>}
                       <span>📅 {new Date(req.created_at).toLocaleDateString('fr-FR')}</span>
                     </div>
+
+                    {/* Réseaux sociaux cochés */}
+                    {req.social_networks && req.social_networks.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {req.social_networks.map((code) => (
+                          <span
+                            key={code}
+                            className="inline-flex items-center rounded-full bg-[#80368D]/10 px-2 py-0.5 text-[11px] font-medium text-[#80368D]"
+                          >
+                            {SOCIAL_LABELS[code] || code}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Liens (tableau brand_urls, fallback brand_url) */}
+                    {(() => {
+                      const urls =
+                        req.brand_urls && req.brand_urls.length > 0
+                          ? req.brand_urls
+                          : req.brand_url ? [req.brand_url] : []
+                      if (urls.length === 0) return null
+                      return (
+                        <ul className="space-y-0.5 mb-2">
+                          {urls.map((u, i) => (
+                            <li key={i}>
+                              <a
+                                href={u}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-[#80368D] hover:underline break-all"
+                              >
+                                🔗 {u}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      )
+                    })()}
 
                     {req.notes && <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 mb-3">{req.notes}</p>}
 

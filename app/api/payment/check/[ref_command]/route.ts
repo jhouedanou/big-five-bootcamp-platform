@@ -138,7 +138,7 @@ export async function POST(
         await supabase
           .from('users')
           .update({
-            plan: 'Premium',
+            plan: 'Pro',
             subscription_status: 'active',
             subscription_start_date: new Date().toISOString(),
             subscription_end_date: subscriptionEndDate.toISOString(),

@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { isPaidPlan } from "@/lib/pricing"
 
-type RequiredPlan = "basic" | "pro" | "agency"
+type RequiredPlan = "basic" | "pro"
 
 interface PlanGateProps {
   /** Le plan minimum requis pour accéder à cette fonctionnalité */
@@ -29,9 +29,10 @@ const PLAN_HIERARCHY: Record<string, number> = {
   free: 0,
   basic: 1,
   pro: 2,
-  premium: 2, // alias for pro
-  agency: 3,
-  enterprise: 3,
+  // Aliases legacy (avant normalisation avril 2026) — tous mappent sur Pro
+  premium: 2,
+  agency: 2,
+  enterprise: 2,
 }
 
 function getPlanLevel(plan: string): number {
@@ -42,7 +43,6 @@ function getPlanLevel(plan: string): number {
 const PLAN_LABELS: Record<RequiredPlan, string> = {
   basic: "Basic",
   pro: "Pro",
-  agency: "Agence",
 }
 
 export function hasAccess(currentPlan: string, requiredPlan: RequiredPlan): boolean {
@@ -150,7 +150,6 @@ export function PlanBadge({ plan }: { plan: RequiredPlan }) {
   const colors: Record<RequiredPlan, string> = {
     basic: "bg-[#1A1F2B]/10 text-[#1A1F2B]",
     pro: "bg-[#80368D]/10 text-[#80368D]",
-    agency: "bg-[#F2B33D]/10 text-[#b45309]",
   }
 
   return (

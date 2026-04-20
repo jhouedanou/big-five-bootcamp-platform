@@ -1,60 +1,161 @@
 'use client'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase"
-import { Loader2, Building2, Plus, CheckCircle2, Clock, XCircle, AlertTriangle, Lock, Send } from "lucide-react"
+import {
+  Loader2,
+  Building2,
+  Plus,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  AlertTriangle,
+  Lock,
+  Send,
+  Facebook,
+  Instagram,
+  Linkedin,
+  ExternalLink,
+  BarChart3,
+  Link2,
+} from "lucide-react"
 import Link from "next/link"
+
+// ---------------------------------------------------------------------------
+// Types & constants
+// ---------------------------------------------------------------------------
+
+type SocialCode = 'facebook' | 'instagram' | 'linkedin' | 'x' | 'tiktok'
 
 interface BrandRequest {
   id: string
   brand_name: string
-  brand_url: string | null
-  brand_country: string | null
-  brand_sector: string | null
+  brand_urls: string[] | null
+  brand_url: string | null   // legacy
+  social_networks: SocialCode[] | null
   notes: string | null
   status: string
   admin_notes: string | null
   created_at: string
 }
 
+// Icône custom pour X (Twitter) & TikTok (lucide n'en fournit pas d'exact)
+const XIcon = ({ className = "" }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+    <path d="M18.244 2H21l-6.52 7.453L22 22h-6.828l-4.76-6.23L4.8 22H2l6.98-7.98L2 2h6.914l4.32 5.71L18.244 2Zm-1.2 18.2h1.89L7.05 3.72H5.05l11.994 16.48Z" />
+  </svg>
+)
+const TikTokIcon = ({ className = "" }: { className?: string }) => (
+  <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+    <path d="M16.5 3a4.5 4.5 0 0 0 4.5 4.5v3.05a7.5 7.5 0 0 1-4.5-1.5v6.2a6.25 6.25 0 1 1-6.25-6.25c.35 0 .7.03 1.03.1v3.2a3.1 3.1 0 1 0 2.22 2.98V3h3Z" />
+  </svg>
+)
+
+const SOCIAL_NETWORKS: { code: SocialCode; label: string; Icon: React.FC<{ className?: string }>; color: string }[] = [
+  { code: 'facebook',  label: 'Facebook',  Icon: Facebook,   color: 'bg-[#1877F2]' },
+  { code: 'instagram', label: 'Instagram', Icon: Instagram,  color: 'bg-gradient-to-tr from-[#F58529] via-[#DD2A7B] to-[#8134AF]' },
+  { code: 'linkedin',  label: 'LinkedIn',  Icon: Linkedin,   color: 'bg-[#0A66C2]' },
+  { code: 'x',         label: 'X',         Icon: XIcon,      color: 'bg-black' },
+  { code: 'tiktok',    label: 'TikTok',    Icon: TikTokIcon, color: 'bg-black' },
+]
+
 const statusLabels: Record<string, { label: string; color: string; icon: any }> = {
-  pending: { label: 'En attente', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
-  accepted: { label: 'Acceptée', color: 'bg-blue-100 text-blue-800', icon: CheckCircle2 },
-  in_progress: { label: 'En cours', color: 'bg-purple-100 text-purple-800', icon: Loader2 },
-  completed: { label: 'Terminée', color: 'bg-green-100 text-green-800', icon: CheckCircle2 },
-  rejected: { label: 'Refusée', color: 'bg-red-100 text-red-800', icon: XCircle },
+  pending:     { label: 'En attente',  color: 'bg-yellow-100 text-yellow-800',  icon: Clock },
+  accepted:    { label: 'Acceptée',    color: 'bg-blue-100 text-blue-800',      icon: CheckCircle2 },
+  in_progress: { label: 'En cours',    color: 'bg-purple-100 text-purple-800',  icon: Loader2 },
+  completed:   { label: 'Terminée',    color: 'bg-green-100 text-green-800',    icon: CheckCircle2 },
+  rejected:    { label: 'Refusée',     color: 'bg-red-100 text-red-800',        icon: XCircle },
 }
+
+const ALLOWED_PLANS = ['pro']
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export default function BrandRequestsPage() {
   const [requests, setRequests] = useState<BrandRequest[]>([])
   const [loading, setLoading] = useState(true)
-  const [userPlan, setUserPlan] = useState("Free")
+  const [userPlan, setUserPlan] = useState<string>("Free")
+  const [userRole, setUserRole] = useState<string>("user")
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
-  // Form state
+  // Form state — strictement les champs demandés
   const [brandName, setBrandName] = useState("")
-  const [brandUrl, setBrandUrl] = useState("")
-  const [brandCountry, setBrandCountry] = useState("")
-  const [brandSector, setBrandSector] = useState("")
+  const [selectedSocials, setSelectedSocials] = useState<Set<SocialCode>>(new Set())
+  const [linksText, setLinksText] = useState("") // un lien par ligne
   const [notes, setNotes] = useState("")
 
-  // Suggestions depuis la base de données
-  const [suggestedBrands, setSuggestedBrands] = useState<string[]>([])
-  const [suggestedCountries, setSuggestedCountries] = useState<string[]>([])
-  const [suggestedSectors, setSuggestedSectors] = useState<string[]>([])
-
   const supabase = createClient()
-  const isAllowed = ['agency', 'enterprise'].includes(userPlan.toLowerCase())
+  const isAllowed =
+    userRole.toLowerCase() === 'admin' ||
+    ALLOWED_PLANS.includes(userPlan.toLowerCase())
+
+  // ---------------------------------------------------------------------
+  // Agrégation par marque — pour la section "Récap"
+  // Regroupe toutes les demandes portant le même nom (insensible à la casse)
+  // et fusionne : statuts, réseaux sociaux, liens uniques, date la + récente.
+  // ---------------------------------------------------------------------
+  type BrandSummary = {
+    name: string
+    total: number
+    statuses: Record<string, number>
+    socials: Set<SocialCode>
+    urls: Set<string>
+    lastRequestedAt: string
+  }
+
+  const brandSummaries = useMemo<BrandSummary[]>(() => {
+    const map = new Map<string, BrandSummary>()
+    for (const r of requests) {
+      const key = (r.brand_name || '').trim().toLowerCase()
+      if (!key) continue
+      let entry = map.get(key)
+      if (!entry) {
+        entry = {
+          name: r.brand_name,
+          total: 0,
+          statuses: {},
+          socials: new Set(),
+          urls: new Set(),
+          lastRequestedAt: r.created_at,
+        }
+        map.set(key, entry)
+      }
+      entry.total += 1
+      entry.statuses[r.status] = (entry.statuses[r.status] || 0) + 1
+      for (const s of r.social_networks || []) entry.socials.add(s)
+      const urlList =
+        (r.brand_urls && r.brand_urls.length > 0)
+          ? r.brand_urls
+          : (r.brand_url ? [r.brand_url] : [])
+      for (const u of urlList) entry.urls.add(u)
+      if (new Date(r.created_at) > new Date(entry.lastRequestedAt)) {
+        entry.lastRequestedAt = r.created_at
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => b.total - a.total)
+  }, [requests])
+
+  const globalStats = useMemo(() => {
+    const total = requests.length
+    const uniqueBrands = brandSummaries.length
+    const pending = requests.filter((r) => r.status === 'pending').length
+    const inProgress = requests.filter(
+      (r) => r.status === 'accepted' || r.status === 'in_progress'
+    ).length
+    const completed = requests.filter((r) => r.status === 'completed').length
+    return { total, uniqueBrands, pending, inProgress, completed }
+  }, [requests, brandSummaries])
 
   useEffect(() => {
     let mounted = true
-
     const loadData = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser()
@@ -62,13 +163,14 @@ export default function BrandRequestsPage() {
 
         const { data: profile } = await supabase
           .from('users')
-          .select('plan, subscription_status')
+          .select('plan, subscription_status, role')
           .eq('id', user.id)
           .single()
 
         if (!mounted) return
         if (profile) {
           setUserPlan(profile.plan || 'Free')
+          setUserRole((profile as any).role || 'user')
         }
 
         const res = await fetch('/api/brand-requests')
@@ -77,60 +179,92 @@ export default function BrandRequestsPage() {
           const data = await res.json()
           setRequests(data.requests || [])
         }
-
-        try {
-          const suggestionsRes = await fetch('/api/campaigns/suggestions')
-          if (!mounted) return
-          if (suggestionsRes.ok) {
-            const suggestions = await suggestionsRes.json()
-            setSuggestedBrands(suggestions.brands || [])
-            setSuggestedCountries(suggestions.countries || [])
-            setSuggestedSectors(suggestions.categories || [])
-          }
-        } catch { /* ignore */ }
-      } catch (err: any) {
-        if (err?.name === 'AbortError') return
-      } finally {
-        if (mounted) setLoading(false)
-      }
+      } catch { /* ignore */ }
+      finally { if (mounted) setLoading(false) }
     }
-
     loadData()
     return () => { mounted = false }
   }, [])
 
+  const toggleSocial = (code: SocialCode) => {
+    setSelectedSocials((prev) => {
+      const next = new Set(prev)
+      if (next.has(code)) next.delete(code)
+      else next.add(code)
+      return next
+    })
+  }
+
+  const resetForm = () => {
+    setBrandName("")
+    setSelectedSocials(new Set())
+    setLinksText("")
+    setNotes("")
+    setSubmitError(null)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!brandName.trim()) return
-    setSubmitting(true)
-    setSuccess(false)
     setSubmitError(null)
 
+    // Extraction des liens — une URL par ligne (ou séparées par des virgules)
+    const brandUrls = linksText
+      .split(/[\n,]+/)
+      .map((l) => l.trim())
+      .filter(Boolean)
+
+    // Validations client (doublent la validation serveur)
+    if (!brandName.trim()) {
+      setSubmitError("Le nom de la marque est requis.")
+      return
+    }
+    if (selectedSocials.size === 0) {
+      setSubmitError("Cochez au moins un réseau social.")
+      return
+    }
+    if (brandUrls.length === 0) {
+      setSubmitError("Au moins un lien est requis.")
+      return
+    }
+    const invalid = brandUrls.find((u) => {
+      try {
+        const parsed = new URL(u)
+        return parsed.protocol !== 'http:' && parsed.protocol !== 'https:'
+      } catch { return true }
+    })
+    if (invalid) {
+      setSubmitError(`Lien invalide : ${invalid}`)
+      return
+    }
+
+    setSubmitting(true)
+    setSuccess(false)
     try {
       const res = await fetch('/api/brand-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brandName, brandUrl, brandCountry, brandSector, notes }),
+        body: JSON.stringify({
+          brandName: brandName.trim(),
+          socialNetworks: Array.from(selectedSocials),
+          brandUrls,
+          notes: notes.trim() || undefined,
+        }),
       })
-
       const data = await res.json()
-
       if (res.ok) {
-        setRequests(prev => [data.request, ...prev])
-        setBrandName("")
-        setBrandUrl("")
-        setBrandCountry("")
-        setBrandSector("")
-        setNotes("")
+        setRequests((prev) => [data.request, ...prev])
+        resetForm()
         setShowForm(false)
         setSuccess(true)
         setTimeout(() => setSuccess(false), 5000)
       } else {
         setSubmitError(data.error || `Erreur ${res.status}`)
       }
-    } catch (err: any) {
-      setSubmitError("Erreur réseau, veuillez réessayer")
-    } finally { setSubmitting(false) }
+    } catch {
+      setSubmitError("Erreur réseau, veuillez réessayer.")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -138,31 +272,38 @@ export default function BrandRequestsPage() {
       <DashboardNavbar />
       <main className="flex-1">
         <div className="container mx-auto max-w-3xl px-4 pb-12 pt-8">
+          {/* Header */}
           <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#80368D] to-[#a855f7] shadow-lg shadow-[#80368D]/20">
                 <Building2 className="h-5 w-5 text-white" />
               </div>
-              <h1 className="text-3xl font-bold tracking-tight text-[#1A1F2B]">Suivi de marques</h1>
+              <h1 className="text-3xl font-bold tracking-tight text-[#1A1F2B]">
+                Demandes de curation de marques
+              </h1>
             </div>
             <p className="text-[#1A1F2B]/60">
-              Demandez le suivi d'une marque spécifique. Notre équipe priorisera la curation de contenus pour vos marques.
+              Renseignez les marques pour lesquelles vous souhaitez que la plateforme priorise la
+              curation de contenus.
             </p>
           </div>
 
+          {/* Loader */}
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="h-8 w-8 animate-spin text-[#80368D]" />
             </div>
           ) : !isAllowed ? (
+            // Upsell plan
             <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#D0E4F2] bg-white p-12 text-center">
               <Lock className="h-12 w-12 text-[#1A1F2B]/20 mb-4" />
-              <h3 className="text-xl font-bold text-[#1A1F2B] mb-2">Fonctionnalité Agency</h3>
+              <h3 className="text-xl font-bold text-[#1A1F2B] mb-2">Fonctionnalité réservée Pro</h3>
               <p className="text-[#1A1F2B]/60 max-w-md mb-6">
-                Le suivi de marques est réservé aux agences. Passez au plan Agency pour en profiter.
+                La curation de marques priorisées est réservée aux abonnés Pro. Passez au plan Pro
+                pour soumettre vos marques à suivre.
               </p>
               <Link href="/pricing">
-                <Button className="bg-[#80368D] hover:bg-[#80368D]/90">Voir les plans</Button>
+                <Button className="bg-[#80368D] hover:bg-[#80368D]/90">Passer au plan Pro</Button>
               </Link>
             </div>
           ) : (
@@ -176,11 +317,152 @@ export default function BrandRequestsPage() {
                 </div>
               )}
 
+              {/* Cartes statistiques globales */}
+              {requests.length > 0 && (
+                <div className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="rounded-xl border border-[#D0E4F2] bg-white p-4 shadow-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Building2 className="h-4 w-4 text-[#80368D]" />
+                      <span className="text-[11px] font-medium text-[#1A1F2B]/60 uppercase tracking-wide">
+                        Marques
+                      </span>
+                    </div>
+                    <p className="text-2xl font-bold text-[#1A1F2B]">{globalStats.uniqueBrands}</p>
+                    <p className="text-[11px] text-[#1A1F2B]/50">
+                      {globalStats.total} demande{globalStats.total > 1 ? 's' : ''}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-[#D0E4F2] bg-white p-4 shadow-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Clock className="h-4 w-4 text-yellow-600" />
+                      <span className="text-[11px] font-medium text-[#1A1F2B]/60 uppercase tracking-wide">
+                        En attente
+                      </span>
+                    </div>
+                    <p className="text-2xl font-bold text-[#1A1F2B]">{globalStats.pending}</p>
+                  </div>
+                  <div className="rounded-xl border border-[#D0E4F2] bg-white p-4 shadow-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Loader2 className="h-4 w-4 text-purple-600" />
+                      <span className="text-[11px] font-medium text-[#1A1F2B]/60 uppercase tracking-wide">
+                        En cours
+                      </span>
+                    </div>
+                    <p className="text-2xl font-bold text-[#1A1F2B]">{globalStats.inProgress}</p>
+                  </div>
+                  <div className="rounded-xl border border-[#D0E4F2] bg-white p-4 shadow-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <span className="text-[11px] font-medium text-[#1A1F2B]/60 uppercase tracking-wide">
+                        Terminées
+                      </span>
+                    </div>
+                    <p className="text-2xl font-bold text-[#1A1F2B]">{globalStats.completed}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Récap par marque */}
+              {brandSummaries.length > 0 && (
+                <section className="mb-8 rounded-xl border border-[#D0E4F2] bg-white shadow-sm overflow-hidden">
+                  <header className="flex items-center gap-2 border-b border-[#D0E4F2] px-5 py-3 bg-[#F4F8FB]">
+                    <BarChart3 className="h-4 w-4 text-[#80368D]" />
+                    <h2 className="text-sm font-bold text-[#1A1F2B] uppercase tracking-wide">
+                      Récap par marque
+                    </h2>
+                    <span className="ml-auto text-xs text-[#1A1F2B]/50">
+                      {brandSummaries.length} marque{brandSummaries.length > 1 ? 's' : ''} suivie{brandSummaries.length > 1 ? 's' : ''}
+                    </span>
+                  </header>
+
+                  <div className="divide-y divide-[#D0E4F2]">
+                    {brandSummaries.map((b) => {
+                      const socials = Array.from(b.socials)
+                      const urls = Array.from(b.urls)
+                      return (
+                        <div key={b.name.toLowerCase()} className="px-5 py-4">
+                          <div className="flex items-start justify-between gap-4 flex-wrap">
+                            {/* Nom + compteur */}
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#80368D]/10 text-[#80368D] font-bold text-sm shrink-0">
+                                {b.name.slice(0, 2).toUpperCase()}
+                              </div>
+                              <div className="min-w-0">
+                                <h3 className="font-bold text-[#1A1F2B] truncate">{b.name}</h3>
+                                <p className="text-xs text-[#1A1F2B]/50">
+                                  {b.total} demande{b.total > 1 ? 's' : ''} · Dernière le{' '}
+                                  {new Date(b.lastRequestedAt).toLocaleDateString('fr-FR', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric',
+                                  })}
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Statuts empilés */}
+                            <div className="flex flex-wrap gap-1.5">
+                              {Object.entries(b.statuses).map(([st, n]) => {
+                                const info = statusLabels[st] || statusLabels.pending
+                                return (
+                                  <span
+                                    key={st}
+                                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${info.color}`}
+                                    title={`${n} ${info.label.toLowerCase()}`}
+                                  >
+                                    {info.label} · {n}
+                                  </span>
+                                )
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Métadonnées cumulées */}
+                          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-[#1A1F2B]/60">
+                            {socials.length > 0 && (
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-medium text-[#1A1F2B]/70">Réseaux :</span>
+                                <div className="flex gap-1">
+                                  {socials.map((code) => {
+                                    const spec = SOCIAL_NETWORKS.find((s) => s.code === code)
+                                    if (!spec) return null
+                                    const { Icon, color } = spec
+                                    return (
+                                      <span
+                                        key={code}
+                                        className={`inline-flex h-5 w-5 items-center justify-center rounded text-white ${color}`}
+                                        title={spec.label}
+                                      >
+                                        <Icon className="h-3 w-3" />
+                                      </span>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-1.5">
+                              <Link2 className="h-3.5 w-3.5" />
+                              <span>
+                                {urls.length} lien{urls.length > 1 ? 's' : ''} unique{urls.length > 1 ? 's' : ''}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {/* Barre d'action */}
               <div className="mb-6 flex items-center justify-between">
                 <p className="text-sm text-[#1A1F2B]/60">
                   {requests.length} demande{requests.length > 1 ? 's' : ''} enregistrée{requests.length > 1 ? 's' : ''}
                 </p>
-                <Button onClick={() => setShowForm(!showForm)} className="bg-[#80368D] hover:bg-[#80368D]/90">
+                <Button
+                  onClick={() => { setShowForm(!showForm); setSubmitError(null) }}
+                  className="bg-[#80368D] hover:bg-[#80368D]/90"
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Nouvelle demande
                 </Button>
@@ -188,81 +470,140 @@ export default function BrandRequestsPage() {
 
               {/* Formulaire */}
               {showForm && (
-                <form onSubmit={handleSubmit} className="mb-8 rounded-xl border border-[#D0E4F2] bg-white p-6 shadow-sm">
-                  <h2 className="text-lg font-bold text-[#1A1F2B] mb-4">Demander le suivi d'une marque</h2>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <label htmlFor="brandName" className="block text-sm font-medium text-[#1A1F2B]/70 mb-1">Nom de la marque *</label>
-                      <input id="brandName" type="text" value={brandName} onChange={(e) => setBrandName(e.target.value)}
-                        list="brand-suggestions"
-                        placeholder="Ex: MTN, Orange, Coca-Cola..."
-                        className="w-full rounded-lg border border-[#D0E4F2] px-3 py-2 text-sm text-[#1A1F2B] outline-none focus:border-[#80368D] focus:ring-2 focus:ring-[#80368D]/20"
-                        required />
-                      <datalist id="brand-suggestions">
-                        {suggestedBrands.map((b) => <option key={b} value={b} />)}
-                      </datalist>
-                      {brandName && suggestedBrands.some(b => b.toLowerCase() === brandName.toLowerCase()) && (
-                        <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                          <CheckCircle2 className="h-3 w-3" /> Cette marque existe dans notre base
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label htmlFor="brandUrl" className="block text-sm font-medium text-[#1A1F2B]/70 mb-1">Site web / Page sociale</label>
-                      <input id="brandUrl" type="url" value={brandUrl} onChange={(e) => setBrandUrl(e.target.value)}
-                        placeholder="https://..."
-                        className="w-full rounded-lg border border-[#D0E4F2] px-3 py-2 text-sm text-[#1A1F2B] outline-none focus:border-[#80368D] focus:ring-2 focus:ring-[#80368D]/20" />
-                    </div>
-                    <div>
-                      <label htmlFor="brandCountry" className="block text-sm font-medium text-[#1A1F2B]/70 mb-1">Pays</label>
-                      <input id="brandCountry" type="text" value={brandCountry} onChange={(e) => setBrandCountry(e.target.value)}
-                        list="country-suggestions"
-                        placeholder="Ex: Côte d'Ivoire, Sénégal..."
-                        className="w-full rounded-lg border border-[#D0E4F2] px-3 py-2 text-sm text-[#1A1F2B] outline-none focus:border-[#80368D] focus:ring-2 focus:ring-[#80368D]/20" />
-                      <datalist id="country-suggestions">
-                        {suggestedCountries.map((c) => <option key={c} value={c} />)}
-                      </datalist>
-                      {brandCountry && suggestedCountries.some(c => c.toLowerCase() === brandCountry.toLowerCase()) && (
-                        <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                          <CheckCircle2 className="h-3 w-3" /> Ce pays existe dans notre base
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <label htmlFor="brandSector" className="block text-sm font-medium text-[#1A1F2B]/70 mb-1">Secteur</label>
-                      <input id="brandSector" type="text" value={brandSector} onChange={(e) => setBrandSector(e.target.value)}
-                        list="sector-suggestions"
-                        placeholder="Ex: Telecoms, FMCG, Banque..."
-                        className="w-full rounded-lg border border-[#D0E4F2] px-3 py-2 text-sm text-[#1A1F2B] outline-none focus:border-[#80368D] focus:ring-2 focus:ring-[#80368D]/20" />
-                      <datalist id="sector-suggestions">
-                        {suggestedSectors.map((s) => <option key={s} value={s} />)}
-                      </datalist>
-                      {brandSector && suggestedSectors.some(s => s.toLowerCase() === brandSector.toLowerCase()) && (
-                        <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
-                          <CheckCircle2 className="h-3 w-3" /> Ce secteur existe dans notre base
-                        </p>
-                      )}
-                    </div>
-                    <div className="sm:col-span-2">
-                      <label htmlFor="notes" className="block text-sm font-medium text-[#1A1F2B]/70 mb-1">Notes / Contexte</label>
-                      <textarea id="notes" value={notes} onChange={(e) => setNotes(e.target.value)}
-                        placeholder="Précisez votre besoin : types de campagnes recherchés, période, brief client..."
-                        rows={3}
-                        className="w-full rounded-lg border border-[#D0E4F2] px-3 py-2 text-sm text-[#1A1F2B] outline-none focus:border-[#80368D] focus:ring-2 focus:ring-[#80368D]/20 resize-none" />
-                    </div>
+                <form
+                  onSubmit={handleSubmit}
+                  className="mb-8 rounded-xl border border-[#D0E4F2] bg-white p-6 shadow-sm"
+                >
+                  <h2 className="text-lg font-bold text-[#1A1F2B] mb-4">
+                    Nouvelle demande de curation
+                  </h2>
+
+                  {/* 1) Nom de la marque */}
+                  <div className="mb-5">
+                    <label htmlFor="brandName" className="block text-sm font-medium text-[#1A1F2B]/80 mb-1.5">
+                      Nom de la marque <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="brandName"
+                      type="text"
+                      value={brandName}
+                      onChange={(e) => setBrandName(e.target.value)}
+                      placeholder="Ex: MTN, Orange, Coca-Cola..."
+                      className="w-full rounded-lg border border-[#D0E4F2] px-3 py-2 text-sm text-[#1A1F2B] outline-none focus:border-[#80368D] focus:ring-2 focus:ring-[#80368D]/20"
+                      required
+                    />
                   </div>
+
+                  {/* 2) Réseaux sociaux (checkboxes) */}
+                  <fieldset className="mb-5">
+                    <legend className="block text-sm font-medium text-[#1A1F2B]/80 mb-2">
+                      Réseaux sociaux à suivre <span className="text-red-500">*</span>
+                    </legend>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {SOCIAL_NETWORKS.map(({ code, label, Icon, color }) => {
+                        const checked = selectedSocials.has(code)
+                        return (
+                          <label
+                            key={code}
+                            className={`flex items-center gap-3 rounded-lg border px-3 py-2.5 cursor-pointer transition-colors select-none ${
+                              checked
+                                ? 'border-[#80368D] bg-[#80368D]/5 ring-1 ring-[#80368D]/20'
+                                : 'border-[#D0E4F2] bg-white hover:bg-[#F4F8FB]'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleSocial(code)}
+                              className="sr-only"
+                            />
+                            <span className={`flex h-8 w-8 items-center justify-center rounded-md text-white ${color}`}>
+                              <Icon className="h-4 w-4" />
+                            </span>
+                            <span className="text-sm font-medium text-[#1A1F2B] flex-1">{label}</span>
+                            <span
+                              className={`h-4 w-4 rounded border flex items-center justify-center transition-colors ${
+                                checked
+                                  ? 'border-[#80368D] bg-[#80368D]'
+                                  : 'border-[#D0E4F2] bg-white'
+                              }`}
+                              aria-hidden
+                            >
+                              {checked && (
+                                <svg className="h-3 w-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </span>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  </fieldset>
+
+                  {/* 3) Liens (multi-lignes, requis) */}
+                  <div className="mb-5">
+                    <label htmlFor="brandUrls" className="block text-sm font-medium text-[#1A1F2B]/80 mb-1.5">
+                      Lien(s) <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      id="brandUrls"
+                      value={linksText}
+                      onChange={(e) => setLinksText(e.target.value)}
+                      rows={4}
+                      required
+                      placeholder={"https://facebook.com/marque\nhttps://instagram.com/marque\nhttps://tiktok.com/@marque"}
+                      className="w-full rounded-lg border border-[#D0E4F2] px-3 py-2 text-sm text-[#1A1F2B] outline-none focus:border-[#80368D] focus:ring-2 focus:ring-[#80368D]/20 font-mono resize-none"
+                    />
+                    <p className="mt-1 text-xs text-[#1A1F2B]/50">
+                      Un lien par ligne. Les URLs doivent commencer par <code>http://</code> ou{' '}
+                      <code>https://</code>.
+                    </p>
+                  </div>
+
+                  {/* Notes optionnelles */}
+                  <div className="mb-5">
+                    <label htmlFor="notes" className="block text-sm font-medium text-[#1A1F2B]/80 mb-1.5">
+                      Notes complémentaires <span className="text-[#1A1F2B]/40 font-normal">(optionnel)</span>
+                    </label>
+                    <textarea
+                      id="notes"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      rows={2}
+                      placeholder="Précisions sur vos attentes, périodes ciblées, etc."
+                      className="w-full rounded-lg border border-[#D0E4F2] px-3 py-2 text-sm text-[#1A1F2B] outline-none focus:border-[#80368D] focus:ring-2 focus:ring-[#80368D]/20 resize-none"
+                    />
+                  </div>
+
                   {submitError && (
-                    <div className="mt-3 flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                    <div className="mb-4 flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
                       <AlertTriangle className="h-4 w-4 shrink-0" />
                       {submitError}
                     </div>
                   )}
-                  <div className="mt-4 flex gap-3">
-                    <Button type="submit" disabled={submitting || !brandName.trim()} className="bg-[#80368D] hover:bg-[#80368D]/90">
-                      {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
-                      Envoyer la demande
+
+                  {/* Bouton soumettre */}
+                  <div className="flex gap-3">
+                    <Button
+                      type="submit"
+                      disabled={submitting}
+                      className="bg-[#80368D] hover:bg-[#80368D]/90"
+                    >
+                      {submitting ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Send className="h-4 w-4 mr-2" />
+                      )}
+                      Soumettre
                     </Button>
-                    <Button type="button" variant="outline" onClick={() => setShowForm(false)}>Annuler</Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => { setShowForm(false); resetForm() }}
+                    >
+                      Annuler
+                    </Button>
                   </div>
                 </form>
               )}
@@ -273,10 +614,14 @@ export default function BrandRequestsPage() {
                   <Building2 className="h-12 w-12 text-[#1A1F2B]/20 mb-4" />
                   <h3 className="text-lg font-bold text-[#1A1F2B] mb-2">Aucune demande</h3>
                   <p className="text-sm text-[#1A1F2B]/60 max-w-md mb-4">
-                    Vous n'avez pas encore demandé de suivi de marque. Commencez par ajouter une marque que vous souhaitez suivre.
+                    Vous n'avez pas encore soumis de marque à suivre.
                   </p>
-                  <Button onClick={() => setShowForm(true)} className="bg-[#80368D] hover:bg-[#80368D]/90">
-                    <Plus className="h-4 w-4 mr-2" />Nouvelle demande
+                  <Button
+                    onClick={() => setShowForm(true)}
+                    className="bg-[#80368D] hover:bg-[#80368D]/90"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Nouvelle demande
                   </Button>
                 </div>
               ) : (
@@ -284,32 +629,81 @@ export default function BrandRequestsPage() {
                   {requests.map((req) => {
                     const statusInfo = statusLabels[req.status] || statusLabels.pending
                     const StatusIcon = statusInfo.icon
+                    const urls =
+                      (req.brand_urls && req.brand_urls.length > 0)
+                        ? req.brand_urls
+                        : (req.brand_url ? [req.brand_url] : [])
+                    const socials = req.social_networks || []
+
                     return (
                       <div key={req.id} className="rounded-xl border border-[#D0E4F2] bg-white p-5 shadow-sm">
                         <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-1">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-1.5 flex-wrap">
                               <h3 className="font-bold text-[#1A1F2B]">{req.brand_name}</h3>
-                              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusInfo.color}`}>
+                              <span
+                                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusInfo.color}`}
+                              >
                                 <StatusIcon className="h-3 w-3" />
                                 {statusInfo.label}
                               </span>
                             </div>
-                            <div className="flex flex-wrap gap-3 text-xs text-[#1A1F2B]/60">
-                              {req.brand_country && <span>📍 {req.brand_country}</span>}
-                              {req.brand_sector && <span>🏷️ {req.brand_sector}</span>}
-                              {req.brand_url && <a href={req.brand_url} target="_blank" rel="noopener noreferrer" className="text-[#80368D] hover:underline">🔗 Site web</a>}
-                            </div>
-                            {req.notes && <p className="mt-2 text-sm text-[#1A1F2B]/70">{req.notes}</p>}
+
+                            {socials.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 mb-2">
+                                {socials.map((code) => {
+                                  const spec = SOCIAL_NETWORKS.find((s) => s.code === code)
+                                  if (!spec) return null
+                                  const { Icon, label, color } = spec
+                                  return (
+                                    <span
+                                      key={code}
+                                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium text-white ${color}`}
+                                    >
+                                      <Icon className="h-3 w-3" />
+                                      {label}
+                                    </span>
+                                  )
+                                })}
+                              </div>
+                            )}
+
+                            {urls.length > 0 && (
+                              <ul className="space-y-0.5 mb-2">
+                                {urls.map((u, i) => (
+                                  <li key={i}>
+                                    <a
+                                      href={u}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-sm text-[#80368D] hover:underline break-all"
+                                    >
+                                      <ExternalLink className="h-3 w-3 shrink-0" />
+                                      {u}
+                                    </a>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+
+                            {req.notes && (
+                              <p className="mt-2 text-sm text-[#1A1F2B]/70">{req.notes}</p>
+                            )}
                             {req.admin_notes && (
                               <div className="mt-2 rounded-lg bg-[#D0E4F2]/30 p-3">
-                                <p className="text-xs font-semibold text-[#1A1F2B]/60 mb-1">Réponse de l'équipe :</p>
+                                <p className="text-xs font-semibold text-[#1A1F2B]/60 mb-1">
+                                  Réponse de l'équipe :
+                                </p>
                                 <p className="text-sm text-[#1A1F2B]">{req.admin_notes}</p>
                               </div>
                             )}
                           </div>
                           <p className="text-xs text-[#1A1F2B]/40 shrink-0">
-                            {new Date(req.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            {new Date(req.created_at).toLocaleDateString('fr-FR', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                            })}
                           </p>
                         </div>
                       </div>

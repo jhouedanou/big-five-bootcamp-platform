@@ -10,7 +10,7 @@ const userCreateSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8).optional(),
   role: z.enum(["user", "admin"]).optional(),
-  plan: z.enum(["Free", "Premium"]).optional(),
+  plan: z.enum(["Free", "Basic", "Pro"]).optional(),
   status: z.enum(["active", "inactive"]).optional(),
 })
 

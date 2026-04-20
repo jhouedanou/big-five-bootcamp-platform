@@ -88,8 +88,8 @@ const steps = [
     id: 5,
     title: "Previsualiser une campagne",
     icon: Eye,
-    color: "text-purple-400",
-    bgColor: "bg-purple-500/20",
+    color: "text-[#0F0F0F]",
+    bgColor: "bg-[#F2B33D]/20",
     content: [
       "Cliquez sur l'icone de menu (trois points verticaux) a droite de la campagne",
       "Selectionnez \"Apercu\"",

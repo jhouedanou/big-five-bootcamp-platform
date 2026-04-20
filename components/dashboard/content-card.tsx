@@ -63,9 +63,9 @@ const platformConfig: Record<string, { bg: string; icon: React.ReactNode }> = {
 
 const sectorColors: Record<string, string> = {
   "Telecoms": "bg-blue-600 text-white font-semibold shadow-md shadow-blue-600/20",
-  "Banque/Finance": "bg-purple-600 text-white font-semibold shadow-md shadow-purple-600/20",
+  "Banque/Finance": "bg-[#F2B33D] text-white font-semibold shadow-md shadow-[#F2B33D]/20",
   "FMCG": "bg-orange-500 text-white font-semibold shadow-md shadow-orange-500/20",
-  "E-commerce": "bg-pink-600 text-white font-semibold shadow-md shadow-pink-600/20",
+  "E-commerce": "bg-[#F2B33D] text-white font-semibold shadow-md shadow-[#F2B33D]/20",
   "Tech": "bg-cyan-600 text-white font-semibold shadow-md shadow-cyan-600/20",
   "Mode": "bg-rose-600 text-white font-semibold shadow-md shadow-rose-600/20",
   "Energie": "bg-yellow-500 text-white font-semibold shadow-md shadow-yellow-500/20",
@@ -319,7 +319,7 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
                 e.stopPropagation()
                 window.location.href = `/admin/campaigns?edit=${content.id}`
               }}
-              className="absolute right-2.5 bottom-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-violet-600/90 hover:bg-violet-600 shadow-lg backdrop-blur-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-violet-400/50"
+              className="absolute right-2.5 bottom-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-[#F2B33D]/90 hover:bg-[#F2B33D] shadow-lg backdrop-blur-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#F2B33D]/50"
               title="Modifier (Admin)"
             >
               <Pencil className="h-3.5 w-3.5 text-white" />

@@ -65,7 +65,7 @@ const SOCIAL_NETWORKS: { code: SocialCode; label: string; Icon: React.FC<{ class
 const statusLabels: Record<string, { label: string; color: string; icon: any }> = {
   pending:     { label: 'En attente',  color: 'bg-yellow-100 text-yellow-800',  icon: Clock },
   accepted:    { label: 'Acceptée',    color: 'bg-blue-100 text-blue-800',      icon: CheckCircle2 },
-  in_progress: { label: 'En cours',    color: 'bg-purple-100 text-purple-800',  icon: Loader2 },
+  in_progress: { label: 'En cours',    color: 'bg-[#F5F5F5] text-[#0F0F0F]',  icon: Loader2 },
   completed:   { label: 'Terminée',    color: 'bg-green-100 text-green-800',    icon: CheckCircle2 },
   rejected:    { label: 'Refusée',     color: 'bg-red-100 text-red-800',        icon: XCircle },
 }
@@ -343,7 +343,7 @@ export default function BrandRequestsPage() {
                   </div>
                   <div className="rounded-xl border border-[#F5F5F5] bg-white p-4 shadow-sm">
                     <div className="flex items-center gap-2 mb-1">
-                      <Loader2 className="h-4 w-4 text-purple-600" />
+                      <Loader2 className="h-4 w-4 text-[#0F0F0F]" />
                       <span className="text-[11px] font-medium text-[#0F0F0F]/60 uppercase tracking-wide">
                         En cours
                       </span>

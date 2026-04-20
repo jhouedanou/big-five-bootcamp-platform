@@ -51,7 +51,7 @@ export default function AdminDashboardPage() {
       label: "Gérer les campagnes", 
       description: "Modifier ou supprimer",
       icon: Megaphone, 
-      gradient: "from-blue-500 to-indigo-600",
+      gradient: "from-[#F2B33D] to-[#F2B33D]",
       shadowColor: "shadow-blue-500/25"
     },
     { 
@@ -59,8 +59,8 @@ export default function AdminDashboardPage() {
       label: "Gérer les utilisateurs", 
       description: "Accès et permissions",
       icon: Users, 
-      gradient: "from-violet-500 to-purple-600",
-      shadowColor: "shadow-violet-500/25"
+      gradient: "from-[#F2B33D] to-[#F2B33D]",
+      shadowColor: "shadow-[#F2B33D]/25"
     },
   ];
 
@@ -78,16 +78,16 @@ export default function AdminDashboardPage() {
       value: stats.users,
       description: "Comptes actifs",
       icon: Users,
-      gradient: "from-blue-500 to-cyan-500",
-      bgGradient: "from-blue-500/10 to-cyan-500/10"
+      gradient: "from-[#F2B33D] to-cyan-500",
+      bgGradient: "from-[#F2B33D]/10 to-cyan-500/10"
     },
     {
       title: "Marques",
       value: stats.brands,
       description: "Marques différentes",
       icon: Building2,
-      gradient: "from-violet-500 to-purple-500",
-      bgGradient: "from-violet-500/10 to-purple-500/10"
+      gradient: "from-[#F2B33D] to-[#F2B33D]",
+      bgGradient: "from-[#F2B33D]/10 to-[#F2B33D]/10"
     },
     {
       title: "Pays",
@@ -189,7 +189,7 @@ export default function AdminDashboardPage() {
       {/* Recent Activity */}
       <div>
         <div className="flex items-center gap-2 mb-4">
-          <Eye className="w-5 h-5 text-violet-500" />
+          <Eye className="w-5 h-5 text-[#0F0F0F]" />
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Activité récente</h2>
         </div>
         {campaigns.length === 0 ? (

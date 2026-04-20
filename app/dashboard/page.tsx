@@ -412,8 +412,8 @@ export default function DashboardPage() {
       "bg-blue-600 text-white shadow-blue-600/25",
       "bg-orange-500 text-white shadow-orange-500/25",
       "bg-emerald-500 text-white shadow-emerald-500/25",
-      "bg-purple-600 text-white shadow-purple-600/25",
-      "bg-pink-500 text-white shadow-pink-500/25",
+      "bg-[#F2B33D] text-white shadow-[#F2B33D]/25",
+      "bg-[#F2B33D] text-white shadow-[#F2B33D]/25",
       "bg-cyan-500 text-white shadow-cyan-500/25",
     ]
 

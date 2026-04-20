@@ -850,7 +850,7 @@ function FavoritesPageContent() {
               <div className={`flex h-10 w-10 items-center justify-center rounded-xl shadow-lg ${
                 activeTab === 'collections'
                   ? 'bg-gradient-to-br from-[#F2B33D] to-[#0F0F0F] shadow-[#F2B33D]/20'
-                  : 'bg-gradient-to-br from-red-500 to-pink-500 shadow-red-500/20'
+                  : 'bg-gradient-to-br from-red-500 to-[#F2B33D] shadow-red-500/20'
               }`}>
                 {activeTab === 'collections'
                   ? <Grid3X3 className="h-5 w-5 text-white" />

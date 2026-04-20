@@ -37,7 +37,7 @@ const SOCIAL_LABELS: Record<string, string> = {
 const statusOptions = [
   { value: 'pending', label: 'En attente', color: 'bg-yellow-100 text-yellow-800' },
   { value: 'accepted', label: 'Acceptée', color: 'bg-blue-100 text-blue-800' },
-  { value: 'in_progress', label: 'En cours', color: 'bg-purple-100 text-purple-800' },
+  { value: 'in_progress', label: 'En cours', color: 'bg-[#F5F5F5] text-[#0F0F0F]' },
   { value: 'completed', label: 'Terminée', color: 'bg-green-100 text-green-800' },
   { value: 'rejected', label: 'Refusée', color: 'bg-red-100 text-red-800' },
 ]

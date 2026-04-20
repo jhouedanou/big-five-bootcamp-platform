@@ -768,7 +768,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 const iconBg = videoPlatform === "linkedin"
                   ? "bg-[#0A66C2]"
                   : videoPlatform === "instagram"
-                    ? "bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400"
+                    ? "bg-gradient-to-br from-[#F2B33D] via-[#F2B33D] to-orange-400"
                     : "bg-[#1877F2]";
 
                 return (
@@ -788,7 +788,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                           />
                           <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
                             <div className="bg-white/95 rounded-full p-5 shadow-xl group-hover:scale-110 transition-transform">
-                              <Play className="h-10 w-10 text-violet-600 ml-1" />
+                              <Play className="h-10 w-10 text-[#0F0F0F] ml-1" />
                             </div>
                           </div>
                         </div>
@@ -1029,7 +1029,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-10 w-10 text-violet-600 border-violet-300 hover:bg-violet-50 dark:text-violet-400 dark:border-violet-700 dark:hover:bg-violet-950"
+                    className="h-10 w-10 text-[#0F0F0F] border-[#0F0F0F]/30 hover:bg-[#F5F5F5] dark:text-[#0F0F0F] dark:border-[#0F0F0F] dark:hover:bg-[#F2B33D]"
                     title="Modifier cette campagne (Admin)"
                   >
                     <Pencil className="h-4 w-4" />

@@ -66,13 +66,13 @@ export default function AuthPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#0F0F0F]"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 to-blue-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F5F5F5] to-white p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">
@@ -131,7 +131,7 @@ export default function AuthPage() {
           <CardFooter className="flex flex-col space-y-4">
             <Button 
               type="submit" 
-              className="w-full bg-gradient-to-r from-violet-600 to-blue-600 hover:from-violet-700 hover:to-blue-700"
+              className="w-full bg-gradient-to-r from-[#F2B33D] to-[#0F0F0F] hover:from-[#F2B33D] hover:to-blue-700"
               disabled={isSubmitting}
             >
               {isSubmitting ? (
@@ -151,7 +151,7 @@ export default function AuthPage() {
                   <button
                     type="button"
                     onClick={() => setIsSignUp(false)}
-                    className="text-violet-600 hover:underline font-medium"
+                    className="text-[#0F0F0F] hover:underline font-medium"
                   >
                     Se connecter
                   </button>
@@ -162,7 +162,7 @@ export default function AuthPage() {
                   <button
                     type="button"
                     onClick={() => setIsSignUp(true)}
-                    className="text-violet-600 hover:underline font-medium"
+                    className="text-[#0F0F0F] hover:underline font-medium"
                   >
                     Créer un compte
                   </button>
@@ -173,7 +173,7 @@ export default function AuthPage() {
             {!isSignUp && (
               <Link 
                 href="/forgot-password"
-                className="text-sm text-muted-foreground hover:text-violet-600 text-center"
+                className="text-sm text-muted-foreground hover:text-[#0F0F0F] text-center"
               >
                 Mot de passe oublié?
               </Link>

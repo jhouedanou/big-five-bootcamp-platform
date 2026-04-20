@@ -342,8 +342,8 @@ function CampaignsPageContent() {
   const sectorColor = (sector: string) => {
     const colors: Record<string, string> = {
       Telecoms: "bg-blue-100 text-blue-700",
-      "E-commerce": "bg-pink-100 text-pink-700",
-      "Banque/Finance": "bg-purple-100 text-purple-700",
+      "E-commerce": "bg-[#F5F5F5] text-[#0F0F0F]",
+      "Banque/Finance": "bg-[#F5F5F5] text-[#0F0F0F]",
       FMCG: "bg-orange-100 text-orange-700",
       Tech: "bg-cyan-100 text-cyan-700",
       Energie: "bg-yellow-100 text-yellow-700",

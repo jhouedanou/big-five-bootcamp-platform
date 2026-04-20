@@ -102,9 +102,9 @@
 }
 
 @theme inline {
-  --font-sans: 'Google Sans', system-ui, -apple-system, sans-serif;
-  --font-heading: 'Google Sans', system-ui, -apple-system, sans-serif;
-  --font-body: 'Google Sans', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Outfit', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Bebas Neue', 'Outfit', system-ui, sans-serif;
+  --font-body: 'Outfit', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'JetBrains Mono Fallback', monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -150,17 +150,18 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Google Sans', system-ui, -apple-system, sans-serif;
+    font-family: 'Outfit', system-ui, -apple-system, sans-serif;
     color: var(--text-dark);
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Google Sans', system-ui, -apple-system, sans-serif;
-    font-weight: 700;
+    font-family: 'Bebas Neue', 'Outfit', system-ui, sans-serif;
+    font-weight: 400;
+    letter-spacing: 0.02em;
   }
 
   p, span, li, a {
-    font-family: 'Google Sans', system-ui, -apple-system, sans-serif;
+    font-family: 'Outfit', system-ui, -apple-system, sans-serif;
     font-weight: 400;
   }
   
@@ -509,7 +510,7 @@
 
 .modern-card:hover {
   border-color: var(--primary-violet);
-  box-shadow: 0 20px 40px -12px rgba(128, 54, 141, 0.15);
+  box-shadow: 0 20px 40px -12px rgba(242, 179, 61, 0.15);
   transform: translateY(-2px);
 }
 

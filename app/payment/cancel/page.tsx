@@ -123,7 +123,7 @@ export default function PaymentCancelPage() {
             className="w-full"
             size="lg"
             style={{
-              background: 'linear-gradient(135deg, var(--violet), var(--blue))',
+              background: 'linear-gradient(135deg, #F2B33D, #0F0F0F)',
             }}
           >
             <RefreshCcw className="mr-2 h-5 w-5" />
@@ -147,7 +147,7 @@ export default function PaymentCancelPage() {
           <p className="text-sm text-gray-600 mb-2">
             Vous rencontrez des difficultés ?
           </p>
-          <Link href="/contact" className="text-sm text-violet-600 hover:underline font-semibold">
+          <Link href="/contact" className="text-sm text-[#0F0F0F] hover:underline font-semibold">
             Contactez notre équipe support →
           </Link>
         </div>

@@ -2,8 +2,8 @@
  * Page: /payment/success
  *
  * Page de confirmation apres paiement
- * Moneroo redirige avec ?paymentId=...&paymentStatus=...&ref_command=...
- * Verifie le statut aupres de Moneroo si le webhook n'a pas encore ete traite
+ * PawaPay redirige avec ?paymentId=...&paymentStatus=...&ref_command=...
+ * Verifie le statut aupres de PawaPay si le webhook n'a pas encore ete traite
  */
 
 'use client';
@@ -71,7 +71,7 @@ function PaymentSuccessContent() {
       setLoading(true);
       setError(null);
 
-      // Premiere tentative : appeler directement le check Moneroo pour forcer la synchro
+      // Premiere tentative : appeler directement le check PawaPay pour forcer la synchro
       if (attempt === 0) {
         try {
           const checkResponse = await fetch(`/api/payment/check/${ref_command}`, {
@@ -79,7 +79,7 @@ function PaymentSuccessContent() {
           });
           const checkData = await checkResponse.json();
           if (checkData.success && checkData.payment?.status === 'completed') {
-            // Paiement confirme par Moneroo, charger les details complets
+            // Paiement confirme par PawaPay, charger les details complets
             const statusResponse = await fetch(`/api/payment/status/${ref_command}`);
             const statusData = await statusResponse.json();
             if (statusData.success && statusData.payment?.status === 'completed') {
@@ -91,7 +91,7 @@ function PaymentSuccessContent() {
             }
           }
         } catch (checkErr) {
-          console.error('Moneroo check error:', checkErr);
+          console.error('PawaPay check error:', checkErr);
         }
       }
 
@@ -146,7 +146,7 @@ function PaymentSuccessContent() {
   }, []);
 
   useEffect(() => {
-    // Moneroo redirige avec paymentId, paymentStatus et ref_command dans l'URL
+    // PawaPay redirige avec paymentId, paymentStatus et ref_command dans l'URL
     const refFromUrl = searchParams.get('ref_command') || searchParams.get('ref');
     const refFromStorage = sessionStorage.getItem('payment_ref');
     const ref_command = refFromUrl || refFromStorage;

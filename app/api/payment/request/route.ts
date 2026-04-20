@@ -1,29 +1,41 @@
 /**
  * API Route: POST /api/payment/request
  *
- * Cree une demande de paiement Moneroo pour une inscription a un bootcamp
+ * Cree une demande de paiement PawaPay pour une inscription a un bootcamp
  *
  * Body:
- * - sessionId: UUID de la session
- * - userEmail: Email de l'utilisateur
+ * - sessionId   : UUID de la session
+ * - userEmail   : Email de l'utilisateur
+ * - phoneNumber : MSISDN du client (ex. "2250707123456")
+ * - provider    : Code provider PawaPay (ex. "ORANGE_CIV", "WAVE_CIV", "MTN_MOMO_CIV")
+ * - currency?   : defaut "XOF"
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import {
-  initializePayment,
+  initiateDeposit,
   generateRefCommand,
   getReturnUrl,
-} from '@/lib/moneroo';
+  getFailedUrl,
+  checkDepositStatus,
+} from '@/lib/pawapay';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { sessionId, userEmail } = body;
+    const { sessionId, userEmail, phoneNumber, provider, currency = 'XOF' } = body;
 
     if (!sessionId || !userEmail) {
       return NextResponse.json(
         { error: 'Session ID and user email are required' },
+        { status: 400 }
+      );
+    }
+
+    if (!phoneNumber || !provider) {
+      return NextResponse.json(
+        { error: 'phoneNumber et provider sont requis (ex. provider: "ORANGE_CIV").' },
         { status: 400 }
       );
     }
@@ -79,7 +91,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Generer la reference
+    // 3. Generer la reference (UUIDv4 pour PawaPay)
     const ref_command = generateRefCommand('BOOTCAMP');
 
     // 4. Enregistrer le paiement
@@ -90,13 +102,15 @@ export async function POST(request: NextRequest) {
         amount: bootcamp.price,
         initial_amount: bootcamp.price,
         final_amount: bootcamp.price,
-        currency: 'XOF',
+        currency,
         status: 'pending',
         session_id: sessionId,
         user_email: userEmail,
         item_name: `${bootcamp.title} - Session ${new Date(session.start_date).toLocaleDateString('fr-FR')}`,
         item_description: bootcamp.tagline,
-        payment_method: 'Moneroo',
+        payment_method: 'pawapay',
+        provider,
+        client_phone: phoneNumber,
       })
       .select()
       .single();
@@ -109,38 +123,90 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Initialiser le paiement Moneroo
-    const monerooResponse = await initializePayment({
-      amount: bootcamp.price,
-      currency: 'XOF',
-      description: `${bootcamp.title} - Laveiye Bootcamp (${ref_command})`,
-      return_url: getReturnUrl(ref_command),
-      customer: {
-        email: userEmail,
-        first_name: userEmail.split('@')[0],
-        last_name: 'Laveiye',
-      },
-      metadata: {
-        ref_command,
-        type: 'bootcamp',
-        session_id: sessionId,
-        bootcamp_slug: bootcamp.slug,
-      },
-    });
+    // 5. Initier le depot PawaPay
+    const customerMessage = `Bootcamp ${String(bootcamp.title || '').slice(0, 12)}`.slice(0, 22);
 
-    // 6. Stocker l'ID Moneroo
-    await (supabaseAdmin as any)
-      .from('payments')
-      .update({
-        moneroo_payment_id: monerooResponse.data.id,
-      })
-      .eq('id', payment.id);
+    let pawapayResponse;
+    try {
+      pawapayResponse = await initiateDeposit({
+        depositId: ref_command,
+        amount: String(bootcamp.price),
+        currency,
+        payer: {
+          type: 'MMO',
+          accountDetails: { phoneNumber, provider },
+        },
+        customerMessage,
+        successfulUrl: getReturnUrl(ref_command),
+        failedUrl: getFailedUrl(ref_command),
+        metadata: [
+          { fieldName: 'ref_command', fieldValue: ref_command },
+          { fieldName: 'type', fieldValue: 'bootcamp' },
+          { fieldName: 'session_id', fieldValue: String(sessionId) },
+          { fieldName: 'bootcamp_slug', fieldValue: String(bootcamp.slug) },
+        ],
+      });
+    } catch (pawapayError) {
+      console.error('PawaPay initialization error:', pawapayError);
+      await (supabaseAdmin as any)
+        .from('payments')
+        .update({ status: 'failed' })
+        .eq('id', payment.id);
+
+      const errorMsg = pawapayError instanceof Error ? pawapayError.message : 'Erreur PawaPay';
+      return NextResponse.json(
+        { error: 'Le service de paiement est temporairement indisponible.', details: errorMsg },
+        { status: 502 }
+      );
+    }
+
+    if (pawapayResponse.status === 'REJECTED') {
+      await (supabaseAdmin as any)
+        .from('payments')
+        .update({
+          status: 'rejected',
+          failure_code: pawapayResponse.failureReason?.failureCode,
+          failure_message: pawapayResponse.failureReason?.failureMessage,
+        })
+        .eq('id', payment.id);
+
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Paiement rejete par PawaPay',
+          failureReason: pawapayResponse.failureReason,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Flow Wave : recuperer authorizationUrl
+    let authorizationUrl: string | undefined;
+    if (pawapayResponse.nextStep === 'GET_AUTH_URL') {
+      for (let i = 0; i < 3; i++) {
+        await new Promise((r) => setTimeout(r, 2000));
+        try {
+          const check = await checkDepositStatus(ref_command);
+          if (check.data?.authorizationUrl) {
+            authorizationUrl = check.data.authorizationUrl;
+            break;
+          }
+        } catch {
+          // ignore
+        }
+      }
+    }
 
     return NextResponse.json({
       success: true,
       paymentId: payment.id,
       ref_command,
-      redirect_url: monerooResponse.data.checkout_url,
+      depositId: ref_command,
+      status: pawapayResponse.status,
+      nextStep: pawapayResponse.nextStep,
+      redirect_url: authorizationUrl,
+      authorizationUrl,
+      pollingUrl: `/api/payment/pawapay/status/deposit/${ref_command}`,
     });
 
   } catch (error) {

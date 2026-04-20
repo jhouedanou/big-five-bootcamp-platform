@@ -3,12 +3,36 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, Check, Lock, Sparkles, Loader2, Calendar, Star, Zap } from "lucide-react"
+import { ArrowLeft, Check, Lock, Sparkles, Loader2, Calendar, Star, Zap, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
 import { LegalModal } from "@/components/legal-modal"
 
 type PlanChoice = "basic" | "pro"
+
+/** Providers PawaPay supportés pour l'abonnement. */
+const PAWAPAY_PROVIDERS = [
+  { value: 'MTN_MOMO_CIV', label: 'MTN Mobile Money — Côte d’Ivoire' },
+  { value: 'ORANGE_CIV', label: 'Orange Money — Côte d’Ivoire' },
+  { value: 'MOOV_CIV', label: 'Moov Money — Côte d’Ivoire' },
+  { value: 'WAVE_CIV', label: 'Wave — Côte d’Ivoire' },
+  { value: 'WAVE_SEN', label: 'Wave — Sénégal' },
+  { value: 'ORANGE_SEN', label: 'Orange Money — Sénégal' },
+  { value: 'FREE_SEN', label: 'Free Money — Sénégal' },
+  { value: 'ORANGE_BFA', label: 'Orange Money — Burkina Faso' },
+  { value: 'MOOV_BFA', label: 'Moov Money — Burkina Faso' },
+  { value: 'MTN_MOMO_BEN', label: 'MTN Mobile Money — Bénin' },
+  { value: 'MOOV_BEN', label: 'Moov Money — Bénin' },
+]
 
 const PLANS = {
   basic: {
@@ -56,6 +80,8 @@ export default function SubscribePage() {
   )
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [phoneNumber, setPhoneNumber] = useState("")
+  const [provider, setProvider] = useState<string>("ORANGE_CIV")
 
   useEffect(() => {
     if (!loading && !user) {
@@ -84,6 +110,16 @@ export default function SubscribePage() {
       return
     }
 
+    const cleanedPhone = phoneNumber.replace(/\D/g, '')
+    if (!cleanedPhone || cleanedPhone.length < 9) {
+      alert("Veuillez saisir un numéro de téléphone valide (format international).")
+      return
+    }
+    if (!provider) {
+      alert("Veuillez choisir votre opérateur Mobile Money.")
+      return
+    }
+
     setIsProcessing(true)
 
     try {
@@ -95,21 +131,27 @@ export default function SubscribePage() {
           userName: userProfile?.name || user.user_metadata?.name,
           plan: selectedPlan,
           billing: isAnnual ? 'annual' : 'monthly',
+          phoneNumber: cleanedPhone,
+          provider,
         }),
       })
 
       const data = await response.json()
 
-      if (!response.ok) {
-        throw new Error(data.error || "Erreur lors de la création du paiement")
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || data.details || "Erreur lors de la création du paiement")
       }
 
-      if (data.redirect_url) {
-        sessionStorage.setItem("payment_ref", data.ref_command)
-        window.location.href = data.redirect_url
-      } else {
-        throw new Error("URL de redirection manquante")
+      sessionStorage.setItem("payment_ref", data.ref_command)
+
+      // Flow Wave : redirection vers authorizationUrl
+      if (data.authorizationUrl || data.redirect_url) {
+        window.location.href = data.authorizationUrl || data.redirect_url
+        return
       }
+
+      // Flow PIN : redirection vers la page d'attente qui polle le statut
+      window.location.href = `/payment/pending?ref_command=${encodeURIComponent(data.ref_command)}`
     } catch (error) {
       console.error("Erreur de paiement:", error)
       alert(
@@ -330,13 +372,49 @@ export default function SubscribePage() {
           </ul>
         </div>
 
-        {/* Payment info */}
-        <div className="mt-6 rounded-lg bg-blue-50 p-4 text-sm text-blue-800">
-          <p>
-            Vous serez redirigé vers la page de paiement sécurisée Moneroo où
-            vous pourrez choisir votre moyen de paiement (Mobile Money, Carte
-            bancaire, etc.)
-          </p>
+        {/* Mobile Money — details de paiement PawaPay */}
+        <div className="mt-6 rounded-xl border border-[#D0E4F2] bg-white p-5 space-y-4">
+          <h3 className="text-sm font-semibold text-[#1A1F2B]">
+            Paiement Mobile Money
+          </h3>
+
+          <div className="space-y-2">
+            <Label htmlFor="pawapay-provider">Opérateur</Label>
+            <Select value={provider} onValueChange={setProvider}>
+              <SelectTrigger id="pawapay-provider">
+                <SelectValue placeholder="Choisissez votre opérateur" />
+              </SelectTrigger>
+              <SelectContent>
+                {PAWAPAY_PROVIDERS.map((p) => (
+                  <SelectItem key={p.value} value={p.value}>
+                    {p.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="pawapay-phone">Numéro de téléphone</Label>
+            <div className="relative">
+              <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="pawapay-phone"
+                type="tel"
+                inputMode="numeric"
+                placeholder="ex. 2250707123456"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                className="pl-9"
+                disabled={isProcessing}
+              />
+            </div>
+            <p className="text-xs text-[#1A1F2B]/50">
+              Format international avec l’indicatif pays (sans +).
+              Vous recevrez une notification sur votre téléphone pour confirmer
+              avec votre code PIN.
+            </p>
+          </div>
         </div>
 
         {/* Terms */}

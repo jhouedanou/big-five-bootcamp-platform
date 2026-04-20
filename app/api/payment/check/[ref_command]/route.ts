@@ -1,13 +1,15 @@
 /**
  * API Route: POST /api/payment/check/[ref_command]
  *
- * Verifie le statut d'un paiement directement aupres de Moneroo
+ * Verifie le statut d'un paiement directement aupres de PawaPay
  * et met a jour la base de donnees si le paiement est complete.
- * Fallback si le webhook n'a pas ete recu.
+ * Fallback si le callback n'a pas ete recu.
+ *
+ * Avec PawaPay, le `ref_command` est exactement le `depositId` (UUIDv4).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { retrievePayment } from '@/lib/moneroo';
+import { checkDepositStatus } from '@/lib/pawapay';
 import { createClient } from '@supabase/supabase-js';
 
 let _supabase: ReturnType<typeof createClient> | null = null;
@@ -21,13 +23,33 @@ function getSupabase() {
   return _supabase;
 }
 
+/** Mappe un statut PawaPay vers notre statut interne. */
+function mapPawaPayStatus(status: string): string {
+  switch (status) {
+    case 'COMPLETED':
+      return 'completed';
+    case 'FAILED':
+      return 'failed';
+    case 'REJECTED':
+      return 'rejected';
+    case 'DUPLICATE_IGNORED':
+      return 'duplicate';
+    case 'ACCEPTED':
+    case 'ENQUEUED':
+    case 'PROCESSING':
+    case 'IN_RECONCILIATION':
+    default:
+      return 'pending';
+  }
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ ref_command: string }> }
 ) {
   try {
     const { ref_command } = await params;
-    const supabase = getSupabase();
+    const supabase = getSupabase() as any;
 
     if (!ref_command) {
       return NextResponse.json(
@@ -66,31 +88,40 @@ export async function POST(
       });
     }
 
-    // 2. Verifier aupres de Moneroo
-    const monerooId = paymentData.moneroo_payment_id;
-    if (!monerooId) {
-      return NextResponse.json(
-        { error: 'No Moneroo payment ID found' },
-        { status: 400 }
-      );
+    // 2. Verifier aupres de PawaPay (ref_command === depositId)
+    const pawapayResult = await checkDepositStatus(ref_command);
+
+    if (pawapayResult.status === 'NOT_FOUND' || !pawapayResult.data) {
+      return NextResponse.json({
+        success: false,
+        message: 'Deposit not yet registered on PawaPay',
+        payment: {
+          ref_command: paymentData.ref_command,
+          status: paymentData.status,
+        },
+      });
     }
 
-    const monerooResult = await retrievePayment(monerooId);
-    const monerooData = monerooResult.data;
+    const deposit = pawapayResult.data;
+    const mappedStatus = mapPawaPayStatus(deposit.status);
 
-    console.log('Moneroo check result:', {
-      id: monerooData.id,
-      status: monerooData.status,
+    console.log('PawaPay check result:', {
+      depositId: deposit.depositId,
+      status: deposit.status,
+      mapped: mappedStatus,
     });
 
-    // 3. Si le paiement est confirme, mettre a jour
-    if (monerooData.status === 'success') {
+    // 3. Si COMPLETED : activer l'utilisateur / finaliser la commande
+    if (mappedStatus === 'completed') {
       const updateData: Record<string, unknown> = {
         status: 'completed',
-        payment_method: monerooData.method?.name || 'Moneroo',
-        client_phone: monerooData.payment_phone_number || monerooData.customer?.phone,
-        completed_at: monerooData.processed_at || new Date().toISOString(),
-        final_amount: monerooData.amount,
+        payment_method: 'pawapay',
+        provider: deposit.payer?.accountDetails?.provider,
+        client_phone: deposit.payer?.accountDetails?.phoneNumber,
+        provider_transaction_id: deposit.providerTransactionId,
+        completed_at: deposit.created || new Date().toISOString(),
+        final_amount: deposit.amount ? Number(deposit.amount) : paymentData.amount,
+        currency: deposit.currency || paymentData.currency,
       };
 
       await supabase
@@ -98,7 +129,7 @@ export async function POST(
         .update(updateData)
         .eq('id', paymentData.id);
 
-      // Si c'est un abonnement, activer l'utilisateur
+      // Abonnement : activer l'utilisateur
       if (paymentData.metadata?.type === 'subscription' && paymentData.metadata?.userId) {
         const subscriptionEndDate = paymentData.metadata.subscription_end_date
           ? new Date(paymentData.metadata.subscription_end_date)
@@ -124,26 +155,55 @@ export async function POST(
         payment: {
           ref_command: paymentData.ref_command,
           status: 'completed',
-          amount: monerooData.amount,
+          amount: deposit.amount,
+          currency: deposit.currency,
         },
       });
     }
 
-    // Paiement pas encore complete
+    // 4. Si FAILED / REJECTED : mettre a jour la base
+    if (mappedStatus === 'failed' || mappedStatus === 'rejected') {
+      await supabase
+        .from('payments')
+        .update({
+          status: mappedStatus,
+          failure_code: deposit.failureReason?.failureCode,
+          failure_message: deposit.failureReason?.failureMessage,
+        } as any)
+        .eq('id', paymentData.id);
+
+      return NextResponse.json({
+        success: false,
+        message: 'Payment failed',
+        payment: {
+          ref_command: paymentData.ref_command,
+          status: mappedStatus,
+          pawapay_status: deposit.status,
+          failureReason: deposit.failureReason,
+        },
+      });
+    }
+
+    // 5. Paiement en cours : informations de suivi
     return NextResponse.json({
       success: false,
       message: 'Payment not yet completed',
       payment: {
         ref_command: paymentData.ref_command,
         status: paymentData.status,
-        moneroo_status: monerooData.status,
+        pawapay_status: deposit.status,
+        nextStep: deposit.nextStep,
+        authorizationUrl: deposit.authorizationUrl,
       },
     });
 
   } catch (error) {
     console.error('Check payment error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      {
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: 500 }
     );
   }

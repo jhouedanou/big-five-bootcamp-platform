@@ -356,3 +356,33 @@ export function getActiveConfig(params?: {
     { method: 'GET' }
   )
 }
+
+// ============================================================================
+// Helpers de compatibilité (génération de références, URLs de retour)
+// ============================================================================
+
+/**
+ * Génère une référence commande unique.
+ * Avec PawaPay, le depositId doit être un UUIDv4 — donc on l'utilise directement
+ * comme ref_command pour simplifier le stockage et le check de statut.
+ */
+export function generateRefCommand(_prefix: string = 'BF'): string {
+  // On pourrait préfixer, mais l'API PawaPay exige un UUIDv4 strict.
+  // On retourne donc un UUIDv4 pur ; le préfixe peut être stocké ailleurs.
+  // randomUUID() est disponible dans Node 14.17+ et Edge runtime.
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { randomUUID } = require('crypto') as typeof import('crypto')
+  return randomUUID()
+}
+
+/**
+ * URL de retour après paiement (pour les flows avec redirection type Wave).
+ */
+export function getReturnUrl(refCommand: string): string {
+  return `${PUBLIC_BASE_URL}/payment/success?ref_command=${encodeURIComponent(refCommand)}`
+}
+
+export function getFailedUrl(refCommand: string): string {
+  return `${PUBLIC_BASE_URL}/payment/failed?ref_command=${encodeURIComponent(refCommand)}`
+}
+

@@ -51,7 +51,7 @@ interface PaymentMethodsConfig {
 }
 
 // ============================================================================
-// Données de référence — Moyens de paiement Moneroo par pays
+// Données de référence — Moyens de paiement PawaPay par pays
 // ============================================================================
 
 const PAYMENT_METHODS: Record<string, PaymentMethod> = {
@@ -367,7 +367,7 @@ export default function PaymentMethodsPage() {
           {
             key: "payment_methods_config",
             value: JSON.stringify(config),
-            description: "Configuration des moyens de paiement Moneroo par pays",
+            description: "Configuration des moyens de paiement PawaPay par pays",
             updated_at: new Date().toISOString(),
           },
           { onConflict: "key" }
@@ -475,7 +475,7 @@ export default function PaymentMethodsPage() {
             Moyens de paiement
           </h1>
           <p className="text-slate-500 mt-2">
-            Configurez les moyens de paiement Moneroo disponibles par pays
+            Configurez les moyens de paiement PawaPay disponibles par pays
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -542,7 +542,7 @@ export default function PaymentMethodsPage() {
               <CreditCard className="w-5 h-5 text-orange-600" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-slate-900">Moneroo</p>
+              <p className="text-2xl font-bold text-slate-900">PawaPay</p>
               <p className="text-xs text-slate-500">Passerelle de paiement</p>
             </div>
           </div>
@@ -747,24 +747,24 @@ export default function PaymentMethodsPage() {
         </h4>
         <ul className="text-sm text-blue-700 space-y-1.5">
           <li>
-            • Les moyens de paiement affichés correspondent à ceux supportés par Moneroo dans
+            • Les moyens de paiement affichés correspondent à ceux supportés par PawaPay dans
             chaque pays.
           </li>
           <li>
             • Désactiver un pays empêchera les utilisateurs de ce pays de souscrire un abonnement.
           </li>
           <li>
-            • La disponibilité réelle dépend aussi de la configuration de votre compte Moneroo.
+            • La disponibilité réelle dépend aussi de la configuration de votre compte PawaPay.
           </li>
           <li>
             • Consultez{" "}
             <a
-              href="https://docs.moneroo.io"
+              href="https://docs.pawapay.io"
               target="_blank"
               rel="noopener noreferrer"
               className="underline font-medium hover:text-blue-900"
             >
-              la documentation Moneroo
+              la documentation PawaPay
             </a>{" "}
             pour plus de détails.
           </li>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect, useCallback, useRef } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
@@ -194,6 +195,10 @@ function PaginationBar({ currentPage, totalPages, onPageChange }: { currentPage:
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const brandFilter = searchParams.get("brand") ?? ""
+
   const [campaigns, setCampaigns] = useState<ContentItem[]>([])
   const [weeklyCampaigns, setWeeklyCampaigns] = useState<ContentItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -202,30 +207,20 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [currentPage, setCurrentPage] = useState(1)
   const [activeQuickFilter, setActiveQuickFilter] = useState("Tous")
-  const [searchQuery, setSearchQuery] = useState("")
-  const [brandFilter, setBrandFilter] = useState<string>("")
+  // Pré-remplir la recherche depuis ?brand=X (lien direct depuis notification/email)
+  const [searchQuery, setSearchQuery] = useState(() => brandFilter)
   const itemsPerPage = 9
 
-  // Lire le parametre ?brand= (provenant d'une notification de suivi de marque complete)
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    const syncBrand = () => {
-      const params = new URLSearchParams(window.location.search)
-      setBrandFilter(params.get('brand') || "")
-    }
-    syncBrand()
-    window.addEventListener('popstate', syncBrand)
-    return () => window.removeEventListener('popstate', syncBrand)
-  }, [])
+    setSearchQuery(brandFilter)
+    setCurrentPage(1)
+  }, [brandFilter])
 
   const clearBrandFilter = useCallback(() => {
-    setBrandFilter("")
-    if (typeof window !== 'undefined') {
-      const url = new URL(window.location.href)
-      url.searchParams.delete('brand')
-      window.history.replaceState({}, '', url.toString())
-    }
-  }, [])
+    setSearchQuery("")
+    setCurrentPage(1)
+    router.replace("/dashboard")
+  }, [router])
 
   const { open: upgradeOpen, reason: upgradeReason, showUpgrade, closeUpgrade } = useUpgradePopup()
   const [bottomSheetOpen, setBottomSheetOpen] = useState(false)

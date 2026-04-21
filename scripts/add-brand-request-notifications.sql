@@ -4,7 +4,7 @@
 -- Ajoute le support du type `brand_request_completed` dans la table notifications
 -- (idempotent). La table `notifications` existe deja via add-notifications-system.sql
 -- et accepte n'importe quelle VARCHAR(50) comme `type`, donc aucun ALTER TABLE n'est
--- requis. On se contente d'un index partiel + commentaire pour la documentation.
+-- requis. On se contente d'index + commentaire pour la documentation.
 --
 -- Ce script est sur a executer plusieurs fois.
 -- ============================================================================
@@ -13,6 +13,16 @@
 CREATE INDEX IF NOT EXISTS idx_notifications_brand_request_completed
   ON notifications (user_id, created_at DESC)
   WHERE type = 'brand_request_completed';
+
+-- Index pour accélérer la requête "notifications non lues par type"
+CREATE INDEX IF NOT EXISTS idx_notifications_user_type_read
+  ON notifications (user_id, type, read)
+  WHERE read = false;
+
+-- Index sur action_url pour les notifications de marques (facultatif)
+CREATE INDEX IF NOT EXISTS idx_notifications_action_url
+  ON notifications (action_url)
+  WHERE action_url IS NOT NULL;
 
 -- Documentation mise a jour
 COMMENT ON COLUMN notifications.type IS

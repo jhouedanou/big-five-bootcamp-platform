@@ -203,7 +203,29 @@ export default function DashboardPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [activeQuickFilter, setActiveQuickFilter] = useState("Tous")
   const [searchQuery, setSearchQuery] = useState("")
+  const [brandFilter, setBrandFilter] = useState<string>("")
   const itemsPerPage = 9
+
+  // Lire le parametre ?brand= (provenant d'une notification de suivi de marque complete)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const syncBrand = () => {
+      const params = new URLSearchParams(window.location.search)
+      setBrandFilter(params.get('brand') || "")
+    }
+    syncBrand()
+    window.addEventListener('popstate', syncBrand)
+    return () => window.removeEventListener('popstate', syncBrand)
+  }, [])
+
+  const clearBrandFilter = useCallback(() => {
+    setBrandFilter("")
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('brand')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [])
 
   const { open: upgradeOpen, reason: upgradeReason, showUpgrade, closeUpgrade } = useUpgradePopup()
   const [bottomSheetOpen, setBottomSheetOpen] = useState(false)
@@ -454,7 +476,17 @@ export default function DashboardPage() {
   }
 
   const filteredContent = useMemo(() => {
+    const brandNeedle = brandFilter.trim().toLowerCase()
     return campaigns.filter((content) => {
+      // Filtre prioritaire par marque (lorsque ?brand= est present)
+      if (brandNeedle) {
+        const brandMatch =
+          (content.brand || '').toLowerCase().includes(brandNeedle) ||
+          content.title.toLowerCase().includes(brandNeedle) ||
+          content.tags?.some(t => t.toLowerCase().includes(brandNeedle))
+        if (!brandMatch) return false
+      }
+
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase()
         const matchesSearch =
@@ -488,7 +520,7 @@ export default function DashboardPage() {
 
       return true
     })
-  }, [selectedFilters, campaigns, searchQuery])
+  }, [selectedFilters, campaigns, searchQuery, brandFilter])
 
   // Appliquer les mêmes filtres aux campagnes de la semaine
   const filteredWeeklyCampaigns = useMemo(() => {
@@ -627,7 +659,34 @@ export default function DashboardPage() {
 
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 
-       
+          {/* Banniere contextuelle — suivi de marque active via ?brand= */}
+          {brandFilter && (
+            <div className="mb-6 rounded-2xl border-2 border-[#F2B33D]/30 bg-gradient-to-r from-[#F2B33D]/10 to-white p-4 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#F2B33D] shadow-lg shadow-[#F2B33D]/25">
+                    <Sparkles className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-[#0F0F0F]">
+                      Suivi active : <span className="text-[#F2B33D]">{brandFilter}</span>
+                    </p>
+                    <p className="text-xs text-[#0F0F0F]/60">
+                      {filteredContent.length} campagne{filteredContent.length > 1 ? 's' : ''} correspond{filteredContent.length > 1 ? 'ent' : ''} a votre demande
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-white border-[#F2B33D]/40 text-[#F2B33D] hover:bg-[#F2B33D]/5"
+                  onClick={clearBrandFilter}
+                >
+                  Effacer le filtre marque
+                </Button>
+              </div>
+            </div>
+          )}
 
           <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div className="animate-fade-in-up">

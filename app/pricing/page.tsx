@@ -105,7 +105,7 @@ export default function PricingPage() {
                                         </div>
                                     )}
                                     <div className={cn("mb-4 sm:mb-6", plan.badge && "mt-2")}>
-                                        <h3 className="font-bold text-xl mb-1 sm:mb-2 text-[#0F0F0F]">
+                                        <h3 className="font-bold text-xxl mb-1 sm:mb-2 text-[#0F0F0F]">
                                             {plan.name}
                                         </h3>
                                         <p className="text-[#0F0F0F]/60 text-sm">{plan.description}</p>
@@ -240,7 +240,7 @@ export default function PricingPage() {
                                                 const isIncluded = value === true || typeof value === "string"
                                                 return (
                                                     <li key={feature.name} className="flex items-center gap-2.5 text-sm">
-                                                        {isIncluded ? <Check className="h-4 w-4 text-[#C89B4A] shrink-0" /> : <X className="h-4 w-4 text-[#E11D48] shrink-0" />}
+                                                        {isIncluded ? <Check className="h-4 w-4 text-[#F2B33D] shrink-0" /> : <X className="h-4 w-4 text-[#E11D48] shrink-0" />}
                                                         <span className={cn(isIncluded ? "text-[#0F0F0F]/80" : "text-[#0F0F0F]/40")}>
                                                             {feature.name}
                                                             {typeof value === "string" && <span className="ml-1 font-semibold text-[#F2B33D]">({value})</span>}

@@ -23,6 +23,7 @@ import {
   Mail,
   Palette,
   CreditCard,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -32,6 +33,7 @@ const sidebarLinks = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, description: "Vue d'ensemble" },
   { href: "/admin/campaigns", label: "Campagnes", icon: Megaphone, description: "Gérer le contenu" },
   { href: "/admin/users", label: "Utilisateurs", icon: Users, description: "Gérer les accès" },
+  { href: "/admin/brand-requests", label: "Suivis de marques", icon: Building2, description: "Demandes de suivi" },
   { href: "/admin/mailchimp", label: "Mailchimp", icon: Mail, description: "Email marketing" },
   { href: "/admin/branding", label: "Branding", icon: Palette, description: "Logo et identité" },
   { href: "/admin/payment-methods", label: "Paiements", icon: CreditCard, description: "Moyens de paiement" },

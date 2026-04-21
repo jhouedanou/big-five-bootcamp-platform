@@ -187,11 +187,11 @@ export function DashboardNavbar({
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Compteur de clics mensuel (Free) */}
+          {/* Compteur de clics quotidien (Free) */}
           {effectiveIsFreeUser && (
             <div className="hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 bg-[#F5F5F5] text-[#0F0F0F] text-xs font-semibold">
               <MousePointer className="h-3.5 w-3.5" />
-              {effectiveMonthlyClicks}/{monthlyClickLimit || 5} ce mois
+              {effectiveMonthlyClicks}/{monthlyClickLimit || 3} aujourd'hui
             </div>
           )}
           {/* Compteur d'usage mensuel (Pro/Agency payant) */}

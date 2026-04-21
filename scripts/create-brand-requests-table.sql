@@ -22,10 +22,18 @@ CREATE INDEX IF NOT EXISTS idx_brand_requests_status ON brand_requests(status);
 -- RLS
 ALTER TABLE brand_requests ENABLE ROW LEVEL SECURITY;
 
+-- Idempotent : on drop les policies avant de recreer (sinon ERROR 42710 au re-run)
+DROP POLICY IF EXISTS "Users can view their own brand requests" ON brand_requests;
+DROP POLICY IF EXISTS "Users can create brand requests" ON brand_requests;
+DROP POLICY IF EXISTS "Users can update their own pending requests" ON brand_requests;
+
 CREATE POLICY "Users can view their own brand requests" ON brand_requests
   FOR SELECT USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can create brand requests" ON brand_requests
   FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own pending requests" ON brand_requests
+  FOR UPDATE USING (auth.uid() = user_id AND status = 'pending');
 
 -- Admin can see all (via service role key, bypasses RLS)

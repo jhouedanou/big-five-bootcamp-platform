@@ -9,7 +9,7 @@ import { createClient } from "@/lib/supabase"
 
 export function Footer() {
   const currentYear = new Date().getFullYear()
-  const [logoUrl, setLogoUrl] = useState("/logo.png")
+  const [logoUrl, setLogoUrl] = useState("/blcklogo.webp")
 
   useEffect(() => {
     const supabase = createClient()
@@ -44,12 +44,6 @@ export function Footer() {
                   height={44}
                   className="relative h-11 w-11 rounded-lg"
                 />
-              </div>
-              <div className="flex flex-col">
-                <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#0F0F0F]">
-                  Laveiye
-                </span>
-                <span className="text-xs text-[#0F0F0F]/50">L&apos;inspiration créative</span>
               </div>
             </Link>
             <p className="mt-4 text-sm leading-relaxed text-[#0F0F0F]/60">

@@ -119,7 +119,7 @@ export function HeroSection() {
 
             <h1 className="font-[family-name:var(--font-heading)] text-5xl font-extrabold tracking-tight text-[#0F0F0F] sm:text-6xl lg:text-7xl leading-[1.1] animate-fade-in-up delay-100">
               {t.title.line1}<br />
-              <span className="gradient-text relative inline-block">
+              <span className="text-[#F2B33D] relative inline-block">
                  {t.title.highlight}
                 <span className="absolute -bottom-2 left-0 w-full h-2 bg-[#F2B33D]/20 -rotate-1 rounded-full blur-sm"></span>
               </span> <br />
@@ -297,7 +297,7 @@ export function FeaturesSection() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="text-center max-w-2xl mx-auto mb-16">
           <h2 className="font-[family-name:var(--font-heading)] text-3xl font-bold tracking-tight text-[#0F0F0F] sm:text-4xl">
-            {t.title} <span className="gradient-text">{t.titleHighlight}</span>{t.titleSuffix}
+            {t.title} <span className="text-[#F2B33D]">{t.titleHighlight}</span>{t.titleSuffix}
           </h2>
           <p className="mt-4 text-lg text-[#0F0F0F]/70">
             {t.subtitle}

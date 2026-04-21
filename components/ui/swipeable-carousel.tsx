@@ -137,7 +137,7 @@ export function SwipeableCarousel({
             className="absolute -left-3 top-1/2 -translate-y-1/2 bg-white/90 dark:bg-background/80 backdrop-blur-sm p-2.5 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 group-hover:opacity-100 transition-all hover:bg-white dark:hover:bg-background/90 hover:scale-110 z-10 disabled:opacity-30 disabled:cursor-not-allowed"
             aria-label="Précédent"
           >
-            <ChevronLeft className="h-5 w-5 text-[#1A1F2B] dark:text-white" />
+            <ChevronLeft className="h-5 w-5 text-[#0F0F0F] dark:text-white" />
           </button>
           <button
             onClick={scrollNext}
@@ -145,7 +145,7 @@ export function SwipeableCarousel({
             className="absolute -right-3 top-1/2 -translate-y-1/2 bg-white/90 dark:bg-background/80 backdrop-blur-sm p-2.5 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 opacity-0 group-hover:opacity-100 transition-all hover:bg-white dark:hover:bg-background/90 hover:scale-110 z-10 disabled:opacity-30 disabled:cursor-not-allowed"
             aria-label="Suivant"
           >
-            <ChevronRight className="h-5 w-5 text-[#1A1F2B] dark:text-white" />
+            <ChevronRight className="h-5 w-5 text-[#0F0F0F] dark:text-white" />
           </button>
         </>
       )}
@@ -160,7 +160,7 @@ export function SwipeableCarousel({
               className={cn(
                 "h-2 rounded-full transition-all duration-300",
                 index === selectedIndex
-                  ? "bg-[#80368D] w-6"
+                  ? "bg-[#F2B33D] w-6"
                   : "bg-gray-300 dark:bg-gray-600 w-2 hover:bg-gray-400"
               )}
               aria-label={`Aller au groupe ${index + 1}`}

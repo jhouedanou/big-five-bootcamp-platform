@@ -164,12 +164,12 @@ function PaymentSuccessContent() {
   // Loader
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-violet-50 via-blue-50 to-white">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F5F5F5] via-white to-white">
         <Card className="max-w-md w-full shadow-xl border-2 mx-4">
           <CardContent className="pt-8 pb-8">
             <div className="text-center">
-              <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-violet-600" />
-              <p className="text-lg font-bold text-[#1A1F2B]">Verification de votre paiement...</p>
+              <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-[#0F0F0F]" />
+              <p className="text-lg font-bold text-[#0F0F0F]">Verification de votre paiement...</p>
               <p className="text-sm text-gray-600 mt-2">Veuillez patienter</p>
               {retryCount > 0 && (
                 <div className="mt-4">
@@ -178,7 +178,7 @@ function PaymentSuccessContent() {
                       <div
                         key={i}
                         className={`h-2 w-8 rounded-full transition-colors ${
-                          i < retryCount ? 'bg-violet-600' : 'bg-gray-200'
+                          i < retryCount ? 'bg-[#F2B33D]' : 'bg-gray-200'
                         }`}
                       />
                     ))}
@@ -198,13 +198,13 @@ function PaymentSuccessContent() {
   // Paiement en attente
   if (showPendingMessage && pendingPayment) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-violet-50 via-blue-50 to-white">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#F5F5F5] via-white to-white">
         <Card className="max-w-md w-full shadow-xl border-2">
           <CardHeader className="text-center pb-4">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
               <Clock className="h-8 w-8 text-amber-600" />
             </div>
-            <CardTitle className="text-xl font-bold text-[#1A1F2B]">
+            <CardTitle className="text-xl font-bold text-[#0F0F0F]">
               Paiement en cours de traitement
             </CardTitle>
             <CardDescription className="text-base">
@@ -212,7 +212,7 @@ function PaymentSuccessContent() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="bg-violet-50 rounded-xl p-4 space-y-2">
+            <div className="bg-[#F5F5F5] rounded-xl p-4 space-y-2">
               <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Reference</span>
                 <span className="text-sm font-bold font-mono">{pendingPayment.ref_command}</span>
@@ -251,7 +251,7 @@ function PaymentSuccessContent() {
                   setRetryCount(0);
                   verifyPayment(pendingPayment.ref_command, 0);
                 }}
-                className="w-full h-11 bg-violet-600 hover:bg-violet-700 font-semibold"
+                className="w-full h-11 bg-[#F2B33D] hover:bg-[#F2B33D] font-semibold"
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Verifier a nouveau
@@ -279,7 +279,7 @@ function PaymentSuccessContent() {
   // Erreur
   if (error || !paymentData) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-violet-50 via-blue-50 to-white">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-[#F5F5F5] via-white to-white">
         <Card className="max-w-md w-full shadow-xl border-2">
           <CardHeader className="text-center pb-4">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
@@ -287,7 +287,7 @@ function PaymentSuccessContent() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <CardTitle className="text-xl font-bold text-[#1A1F2B]">
+            <CardTitle className="text-xl font-bold text-[#0F0F0F]">
               Verification du paiement
             </CardTitle>
             <CardDescription className="text-base">
@@ -297,7 +297,7 @@ function PaymentSuccessContent() {
           <CardContent className="space-y-4">
             {showManualInput && (
               <div className="space-y-3 p-4 bg-gray-50 rounded-xl">
-                <p className="text-sm font-medium text-[#1A1F2B]">
+                <p className="text-sm font-medium text-[#0F0F0F]">
                   Vous avez une reference de paiement ?
                 </p>
                 <div className="flex gap-2">
@@ -306,7 +306,7 @@ function PaymentSuccessContent() {
                     value={manualRef}
                     onChange={(e) => setManualRef(e.target.value)}
                     placeholder="Ex: SUB_XXXXX_XXXXX"
-                    className="flex-1 h-11 px-4 rounded-lg border-2 border-gray-200 focus:border-violet-500 focus:outline-none text-sm font-medium"
+                    className="flex-1 h-11 px-4 rounded-lg border-2 border-gray-200 focus:border-[#0F0F0F] focus:outline-none text-sm font-medium"
                   />
                   <Button
                     onClick={() => {
@@ -315,7 +315,7 @@ function PaymentSuccessContent() {
                       }
                     }}
                     disabled={!manualRef.trim() || loading}
-                    className="h-11 px-6 bg-violet-600 hover:bg-violet-700"
+                    className="h-11 px-6 bg-[#F2B33D] hover:bg-[#F2B33D]"
                   >
                     {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Verifier'}
                   </Button>
@@ -345,7 +345,7 @@ function PaymentSuccessContent() {
   const { payment } = paymentData;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-blue-50 to-white p-4 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-[#F5F5F5] via-white to-white p-4 py-12">
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
@@ -372,21 +372,21 @@ function PaymentSuccessContent() {
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <Mail className="h-5 w-5 text-violet-600 mt-0.5" />
+                <Mail className="h-5 w-5 text-[#0F0F0F] mt-0.5" />
                 <div>
                   <p className="font-semibold text-sm">Montant</p>
                   <p className="text-sm text-gray-600">{payment.amount?.toLocaleString('fr-FR')} {payment.currency}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <User className="h-5 w-5 text-violet-600 mt-0.5" />
+                <User className="h-5 w-5 text-[#0F0F0F] mt-0.5" />
                 <div>
                   <p className="font-semibold text-sm">Methode de paiement</p>
                   <p className="text-sm text-gray-600">{payment.payment_method}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <Calendar className="h-5 w-5 text-violet-600 mt-0.5" />
+                <Calendar className="h-5 w-5 text-[#0F0F0F] mt-0.5" />
                 <div>
                   <p className="font-semibold text-sm">Date</p>
                   <p className="text-sm text-gray-600">
@@ -417,7 +417,7 @@ function PaymentSuccessContent() {
 
         <div className="flex flex-col sm:flex-row gap-4">
           <Link href="/dashboard" className="flex-1">
-            <Button className="w-full h-12 text-base font-semibold bg-gradient-to-r from-[#80368D] to-[#29358B] hover:opacity-90">
+            <Button className="w-full h-12 text-base font-semibold bg-gradient-to-r from-[#F2B33D] to-[#0F0F0F] hover:opacity-90">
               Acceder a la bibliotheque
             </Button>
           </Link>
@@ -448,7 +448,7 @@ export default function PaymentSuccessPage() {
       fallback={
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-center">
-            <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-violet-600" />
+            <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-[#0F0F0F]" />
             <p className="text-lg font-medium">Chargement...</p>
           </div>
         </div>

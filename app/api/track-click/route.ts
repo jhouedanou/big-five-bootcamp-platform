@@ -1,166 +1,166 @@
 /**
- * API Route: POST /api/track-click
- * 
- * Incrémente le compteur de clics mensuel pour l'utilisateur connecté.
- * Pour les free users : vérifie la limite de 5/mois
- * Pour les Pro/Agency : incrémente monthly_campaigns_explored (stats)
- * 
- * Reset automatique le 1er du mois (vérifié à chaque appel)
+ * API Route: /api/track-click
+ *
+ * POST : incremente le compteur de consultations du jour.
+ *        Bloque les free users a DAILY_CLICK_LIMIT consultations / jour.
+ * GET  : retourne l'etat courant du compteur (remaining, limit, etc.)
+ *
+ * Reset automatique a minuit (UTC) via comparaison `daily_click_reset = today`.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase-server'
+import { QUOTAS, resolveTier, todayKey, UNLIMITED } from '@/lib/quotas'
 
 export const dynamic = 'force-dynamic'
 
-const MONTHLY_CLICK_LIMIT = 3
+/** Conserve pour compat avec l'UI existante. */
+const DAILY_CLICK_LIMIT = QUOTAS.free.dailyClickLimit
 
-export async function POST(request: NextRequest) {
+type UserProfile = {
+  id: string
+  plan: string | null
+  subscription_status: string | null
+  daily_click_count: number | null
+  daily_click_reset: string | null
+  monthly_campaigns_explored: number | null
+}
+
+async function loadProfile(admin: ReturnType<typeof getSupabaseAdmin>, userId: string) {
+  const { data, error } = await admin
+    .from('users')
+    .select(
+      'id, plan, subscription_status, daily_click_count, daily_click_reset, monthly_campaigns_explored'
+    )
+    .eq('id', userId)
+    .single<UserProfile>()
+
+  if (error || !data) return null
+  return data
+}
+
+export async function POST(_request: NextRequest) {
   try {
     const supabase = await getSupabaseServer()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+      return NextResponse.json({ error: 'Non authentifie' }, { status: 401 })
     }
 
     const admin = getSupabaseAdmin()
-
-    // Récupérer le profil utilisateur
-    const { data: profile, error: profileError } = await admin
-      .from('users')
-      .select('id, plan, subscription_status, monthly_click_count, monthly_click_reset, monthly_campaigns_explored')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !profile) {
+    const profile = await loadProfile(admin, user.id)
+    if (!profile) {
       return NextResponse.json({ error: 'Profil introuvable' }, { status: 404 })
     }
 
-    // Vérifier si on doit reset le compteur (nouveau mois)
-    const now = new Date()
-    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const lastReset = profile.monthly_click_reset ? new Date(profile.monthly_click_reset) : new Date(0)
-    
-    let currentClicks = profile.monthly_click_count || 0
-    let currentExplored = profile.monthly_campaigns_explored || 0
+    const tier = resolveTier(profile.plan, profile.subscription_status)
+    const isFree = tier === 'free'
+    const limit = QUOTAS[tier].dailyClickLimit
+    const today = todayKey()
 
-    // Reset si le dernier reset est avant le 1er du mois courant
-    if (lastReset < firstOfMonth) {
+    let currentClicks = profile.daily_click_count || 0
+    if (profile.daily_click_reset !== today) {
       currentClicks = 0
-      currentExplored = 0
     }
 
-    // Déterminer si l'utilisateur est free
-    const isPaid = ['basic', 'pro'].includes(profile.plan?.toLowerCase() || '') && profile.subscription_status === 'active'
-    const isFree = !isPaid
-
-    // Pour les free users : vérifier la limite
-    if (isFree && currentClicks >= MONTHLY_CLICK_LIMIT) {
-      return NextResponse.json({
-        allowed: false,
-        clicks: currentClicks,
-        limit: MONTHLY_CLICK_LIMIT,
-        message: 'Limite mensuelle atteinte',
-      }, { status: 403 })
+    if (isFree && currentClicks >= limit) {
+      return NextResponse.json(
+        {
+          allowed: false,
+          clicks: currentClicks,
+          limit,
+          remaining: 0,
+          isFree,
+          tier,
+          message: 'Limite quotidienne atteinte',
+        },
+        { status: 403 }
+      )
     }
 
-    // Incrémenter les compteurs
     const newClicks = currentClicks + 1
-    const newExplored = currentExplored + 1
+    const newExplored = (profile.monthly_campaigns_explored || 0) + 1
 
-    const updateData: Record<string, any> = {
+    const updateData: Record<string, unknown> = {
       monthly_campaigns_explored: newExplored,
-      updated_at: now.toISOString(),
+      daily_click_reset: today,
+      updated_at: new Date().toISOString(),
     }
-
-    // Reset si nouveau mois
-    if (lastReset < firstOfMonth) {
-      updateData.monthly_click_reset = now.toISOString()
-    }
-
-    // Pour les free users, on met à jour le compteur de clics aussi
     if (isFree) {
-      updateData.monthly_click_count = newClicks
+      updateData.daily_click_count = newClicks
+    } else {
+      updateData.daily_click_count = 0
     }
 
-    const { error: updateError } = await admin
+    const { error: updateError } = await (admin as any)
       .from('users')
       .update(updateData)
       .eq('id', user.id)
 
     if (updateError) {
       console.error('Erreur update compteur:', updateError)
-      return NextResponse.json({ error: 'Erreur mise à jour' }, { status: 500 })
+      return NextResponse.json({ error: 'Erreur mise a jour' }, { status: 500 })
     }
+
+    const remaining = limit === UNLIMITED ? null : Math.max(0, limit - newClicks)
 
     return NextResponse.json({
       allowed: true,
       clicks: isFree ? newClicks : null,
-      limit: isFree ? MONTHLY_CLICK_LIMIT : null,
+      limit: limit === UNLIMITED ? null : limit,
+      remaining,
       explored: newExplored,
       isFree,
+      tier,
     })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Erreur track-click:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
 
-// GET - Récupérer l'état actuel du compteur
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const supabase = await getSupabaseServer()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
+      return NextResponse.json({ error: 'Non authentifie' }, { status: 401 })
     }
 
     const admin = getSupabaseAdmin()
-
-    const { data: profile } = await admin
-      .from('users')
-      .select('plan, subscription_status, monthly_click_count, monthly_click_reset, monthly_campaigns_explored')
-      .eq('id', user.id)
-      .single()
-
+    const profile = await loadProfile(admin, user.id)
     if (!profile) {
       return NextResponse.json({ error: 'Profil introuvable' }, { status: 404 })
     }
 
-    // Vérifier reset mensuel
-    const now = new Date()
-    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const lastReset = profile.monthly_click_reset ? new Date(profile.monthly_click_reset) : new Date(0)
+    const tier = resolveTier(profile.plan, profile.subscription_status)
+    const isFree = tier === 'free'
+    const limit = QUOTAS[tier].dailyClickLimit
+    const today = todayKey()
 
-    let clicks = profile.monthly_click_count || 0
-    let explored = profile.monthly_campaigns_explored || 0
-
-    if (lastReset < firstOfMonth) {
+    let clicks = profile.daily_click_count || 0
+    if (profile.daily_click_reset !== today) {
       clicks = 0
-      explored = 0
-      // Reset en base aussi
-      await admin
+      await (admin as any)
         .from('users')
-        .update({ 
-          monthly_click_count: 0, 
-          monthly_campaigns_explored: 0, 
-          monthly_click_reset: now.toISOString() 
-        })
+        .update({ daily_click_count: 0, daily_click_reset: today })
         .eq('id', user.id)
     }
 
-    const isPaid = ['basic', 'pro'].includes(profile.plan?.toLowerCase() || '') && profile.subscription_status === 'active'
-    const isFree = !isPaid
-
     return NextResponse.json({
       clicks,
-      limit: MONTHLY_CLICK_LIMIT,
-      explored,
+      limit: limit === UNLIMITED ? null : limit,
+      remaining: limit === UNLIMITED ? null : Math.max(0, limit - clicks),
+      explored: profile.monthly_campaigns_explored || 0,
       isFree,
+      tier,
     })
-  } catch (error: any) {
+  } catch (error) {
+    console.error('Erreur GET track-click:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
+
+export { DAILY_CLICK_LIMIT }

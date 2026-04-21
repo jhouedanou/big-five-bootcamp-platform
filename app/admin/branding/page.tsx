@@ -410,7 +410,7 @@ export default function BrandingPage() {
                     />
                   </div>
                 ) : (
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#80368D]">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F2B33D]">
                     <span className="text-white text-xs font-bold">BF</span>
                   </div>
                 )}

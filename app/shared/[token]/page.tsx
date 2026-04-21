@@ -96,10 +96,10 @@ export default async function SharedCollectionPage({ params }: PageProps) {
         <div className="container mx-auto px-4 pb-12 pt-8">
           {/* Header */}
           <div className="mb-8 flex flex-col items-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#80368D] to-[#29358B] shadow-lg">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#F2B33D] to-[#0F0F0F] shadow-lg">
               <FolderOpen className="h-7 w-7 text-white" />
             </div>
-            <h1 className="text-3xl font-bold tracking-tight text-[#1A1F2B]">
+            <h1 className="text-3xl font-bold tracking-tight text-[#0F0F0F]">
               {collection.name}
             </h1>
             {collection.description && (
@@ -115,7 +115,7 @@ export default async function SharedCollectionPage({ params }: PageProps) {
 
           {/* Grid */}
           {campaigns.length === 0 ? (
-            <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#D0E4F2] bg-white p-8 text-center">
+            <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border border-dashed border-[#F5F5F5] bg-white p-8 text-center">
               <p className="text-muted-foreground">Cette collection ne contient aucune campagne publiée.</p>
             </div>
           ) : (
@@ -124,7 +124,7 @@ export default async function SharedCollectionPage({ params }: PageProps) {
                 <Link
                   key={c.id}
                   href={`/content/${c.slug || c.id}`}
-                  className="group overflow-hidden rounded-xl border border-[#D0E4F2] bg-white shadow-sm transition-all hover:shadow-lg hover:-translate-y-1"
+                  className="group overflow-hidden rounded-xl border border-[#F5F5F5] bg-white shadow-sm transition-all hover:shadow-lg hover:-translate-y-1"
                 >
                   <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-[#0A1F44] to-[#1a3a6e]">
                     {c.thumbnail ? (
@@ -143,14 +143,14 @@ export default async function SharedCollectionPage({ params }: PageProps) {
                     )}
                     {c.platforms?.[0] && (
                       <div className="absolute right-2 top-2">
-                        <span className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-[#1A1F2B] shadow-sm backdrop-blur-sm">
+                        <span className="rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-[#0F0F0F] shadow-sm backdrop-blur-sm">
                           {c.platforms[0]}
                         </span>
                       </div>
                     )}
                   </div>
                   <div className="p-4">
-                    <h3 className="font-bold text-[#1A1F2B] line-clamp-2 group-hover:text-[#80368D] transition-colors">
+                    <h3 className="font-bold text-[#0F0F0F] line-clamp-2 group-hover:text-[#F2B33D] transition-colors">
                       {c.title}
                     </h3>
                     {c.description && (
@@ -160,17 +160,17 @@ export default async function SharedCollectionPage({ params }: PageProps) {
                     )}
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {c.category && (
-                        <span className="rounded-full bg-[#80368D]/10 px-2.5 py-0.5 text-xs font-medium text-[#80368D]">
+                        <span className="rounded-full bg-[#F2B33D]/10 px-2.5 py-0.5 text-xs font-medium text-[#F2B33D]">
                           {c.category}
                         </span>
                       )}
                       {c.format && (
-                        <span className="rounded-full bg-[#D0E4F2] px-2.5 py-0.5 text-xs font-medium text-[#1A1F2B]/70">
+                        <span className="rounded-full bg-[#F5F5F5] px-2.5 py-0.5 text-xs font-medium text-[#0F0F0F]/70">
                           {c.format}
                         </span>
                       )}
                       {c.brand && (
-                        <span className="rounded-full bg-[#D0E4F2] px-2.5 py-0.5 text-xs font-medium text-[#1A1F2B]/70">
+                        <span className="rounded-full bg-[#F5F5F5] px-2.5 py-0.5 text-xs font-medium text-[#0F0F0F]/70">
                           {c.brand}
                         </span>
                       )}
@@ -188,7 +188,7 @@ export default async function SharedCollectionPage({ params }: PageProps) {
             </p>
             <Link
               href="/"
-              className="inline-flex items-center gap-2 rounded-lg bg-[#80368D] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#6b2d78]"
+              className="inline-flex items-center gap-2 rounded-lg bg-[#F2B33D] px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#6b2d78]"
             >
               Découvrir la plateforme
             </Link>

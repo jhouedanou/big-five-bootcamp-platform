@@ -182,14 +182,14 @@ export default function DemoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-white to-[#D0E4F2]/20 relative">
-      <ParticlesBackground color="#80368D" particleCount={30} />
+    <div className="min-h-screen bg-gradient-to-br from-white via-white to-[#F5F5F5]/20 relative">
+      <ParticlesBackground color="#F2B33D" particleCount={30} />
       <div className="relative z-10">
         <DashboardNavbar />
 
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           {/* Section de filtres avancés style Adforum */}
-          <div className="mb-8 bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-[#D0E4F2] shadow-sm">
+          <div className="mb-8 bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-[#F5F5F5] shadow-sm">
             <AdvancedFilters
               filters={filterConfigs}
               selectedFilters={selectedFilters}
@@ -202,11 +202,11 @@ export default function DemoPage() {
           {/* Contrôles de vue */}
           <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="animate-fade-in-up">
-              <h2 className="font-[family-name:var(--font-montserrat)] text-2xl font-bold text-[#1A1F2B]">
+              <h2 className="font-sans text-2xl font-bold text-[#0F0F0F]">
                 Résultats
               </h2>
-              <p className="mt-1 text-sm text-[#1A1F2B]/70">
-                <span className="font-semibold text-[#80368D]">{filteredContent.length}</span> campagne{filteredContent.length > 1 ? "s" : ""} trouvée{filteredContent.length > 1 ? "s" : ""}
+              <p className="mt-1 text-sm text-[#0F0F0F]/70">
+                <span className="font-semibold text-[#F2B33D]">{filteredContent.length}</span> campagne{filteredContent.length > 1 ? "s" : ""} trouvée{filteredContent.length > 1 ? "s" : ""}
               </p>
             </div>
 
@@ -221,11 +221,11 @@ export default function DemoPage() {
                 {showAdvancedFilters ? "Masquer" : "Afficher"} les filtres
               </Button>
 
-              <div className="flex items-center gap-1 rounded-lg border border-[#D0E4F2] p-1 bg-white">
+              <div className="flex items-center gap-1 rounded-lg border border-[#F5F5F5] p-1 bg-white">
                 <button
                   type="button"
                   onClick={() => setViewMode("grid")}
-                  className={`rounded p-1.5 transition-colors ${viewMode === "grid" ? "bg-[#D0E4F2] text-[#1A1F2B]" : "text-[#1A1F2B]/60 hover:text-[#1A1F2B]"}`}
+                  className={`rounded p-1.5 transition-colors ${viewMode === "grid" ? "bg-[#F5F5F5] text-[#0F0F0F]" : "text-[#0F0F0F]/60 hover:text-[#0F0F0F]"}`}
                   aria-label="Vue grille"
                 >
                   <Grid3X3 className="h-4 w-4" />
@@ -233,7 +233,7 @@ export default function DemoPage() {
                 <button
                   type="button"
                   onClick={() => setViewMode("list")}
-                  className={`rounded p-1.5 transition-colors ${viewMode === "list" ? "bg-[#D0E4F2] text-[#1A1F2B]" : "text-[#1A1F2B]/60 hover:text-[#1A1F2B]"}`}
+                  className={`rounded p-1.5 transition-colors ${viewMode === "list" ? "bg-[#F5F5F5] text-[#0F0F0F]" : "text-[#0F0F0F]/60 hover:text-[#0F0F0F]"}`}
                   aria-label="Vue liste"
                 >
                   <LayoutList className="h-4 w-4" />
@@ -262,10 +262,10 @@ export default function DemoPage() {
           {/* Message si aucun résultat */}
           {paginatedContent.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="mb-4 h-16 w-16 rounded-full bg-[#D0E4F2] flex items-center justify-center">
-                <SlidersHorizontal className="h-8 w-8 text-[#1A1F2B]/60" />
+              <div className="mb-4 h-16 w-16 rounded-full bg-[#F5F5F5] flex items-center justify-center">
+                <SlidersHorizontal className="h-8 w-8 text-[#0F0F0F]/60" />
               </div>
-              <h3 className="font-[family-name:var(--font-montserrat)] text-xl font-semibold text-[#1A1F2B]">
+              <h3 className="font-sans text-xl font-semibold text-[#0F0F0F]">
                 Aucune campagne trouvée
               </h3>
               <p className="mt-2 text-muted-foreground max-w-md">

@@ -135,7 +135,7 @@ export default function NotificationsPage() {
           <div className="mb-8">
             <Link
               href="/dashboard"
-              className="inline-flex items-center gap-2 text-sm text-[#1A1F2B]/70 hover:text-[#1A1F2B] mb-4"
+              className="inline-flex items-center gap-2 text-sm text-[#0F0F0F]/70 hover:text-[#0F0F0F] mb-4"
             >
               <ArrowLeft className="h-4 w-4" />
               Retour au tableau de bord
@@ -143,11 +143,11 @@ export default function NotificationsPage() {
             
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="font-[family-name:var(--font-heading)] text-3xl font-bold text-[#1A1F2B]">
+                <h1 className="font-[family-name:var(--font-heading)] text-3xl font-bold text-[#0F0F0F]">
                   Notifications
                 </h1>
                 {unreadCount > 0 && (
-                  <p className="mt-1 text-sm text-[#1A1F2B]/60">
+                  <p className="mt-1 text-sm text-[#0F0F0F]/60">
                     {unreadCount} notification{unreadCount > 1 ? 's' : ''} non lue{unreadCount > 1 ? 's' : ''}
                   </p>
                 )}
@@ -173,7 +173,7 @@ export default function NotificationsPage() {
               variant={filter === 'all' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilter('all')}
-              className={filter === 'all' ? 'bg-[#80368D]' : ''}
+              className={filter === 'all' ? 'bg-[#F2B33D]' : ''}
             >
               Toutes
             </Button>
@@ -181,7 +181,7 @@ export default function NotificationsPage() {
               variant={filter === 'unread' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilter('unread')}
-              className={filter === 'unread' ? 'bg-[#80368D]' : ''}
+              className={filter === 'unread' ? 'bg-[#F2B33D]' : ''}
             >
               Non lues {unreadCount > 0 && `(${unreadCount})`}
             </Button>
@@ -190,15 +190,15 @@ export default function NotificationsPage() {
           {/* Notifications List */}
           {loading ? (
             <div className="flex items-center justify-center py-16">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#80368D] border-t-transparent" />
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#F2B33D] border-t-transparent" />
             </div>
           ) : notifications.length === 0 ? (
-            <div className="rounded-xl border border-[#D0E4F2] bg-[#D0E4F2]/10 py-16 text-center">
-              <Bell className="mx-auto h-16 w-16 text-[#D0E4F2]" />
-              <p className="mt-4 text-lg font-medium text-[#1A1F2B]">
+            <div className="rounded-xl border border-[#F5F5F5] bg-[#F5F5F5]/10 py-16 text-center">
+              <Bell className="mx-auto h-16 w-16 text-[#F5F5F5]" />
+              <p className="mt-4 text-lg font-medium text-[#0F0F0F]">
                 Aucune notification
               </p>
-              <p className="mt-2 text-sm text-[#1A1F2B]/60">
+              <p className="mt-2 text-sm text-[#0F0F0F]/60">
                 {filter === 'unread' 
                   ? 'Vous avez tout lu !' 
                   : 'Vous n\'avez pas encore de notifications'}
@@ -212,7 +212,7 @@ export default function NotificationsPage() {
                   className={cn(
                     'rounded-xl border transition-all hover:shadow-md',
                     notification.read 
-                      ? 'border-[#D0E4F2] bg-white' 
+                      ? 'border-[#F5F5F5] bg-white' 
                       : 'border-[#F2B33D] bg-[#F2B33D]/5'
                   )}
                 >
@@ -224,13 +224,13 @@ export default function NotificationsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
-                          <h3 className="font-semibold text-[#1A1F2B]">
+                          <h3 className="font-semibold text-[#0F0F0F]">
                             {notification.title}
                           </h3>
-                          <p className="mt-1 text-sm text-[#1A1F2B]/70">
+                          <p className="mt-1 text-sm text-[#0F0F0F]/70">
                             {notification.message}
                           </p>
-                          <p className="mt-2 text-xs text-[#1A1F2B]/50">
+                          <p className="mt-2 text-xs text-[#0F0F0F]/50">
                             {formatDate(notification.created_at)}
                           </p>
                         </div>
@@ -256,7 +256,7 @@ export default function NotificationsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="mt-3 border-[#80368D] text-[#80368D] hover:bg-[#80368D] hover:text-white"
+                            className="mt-3 border-[#F2B33D] text-[#F2B33D] hover:bg-[#F2B33D] hover:text-white"
                           >
                             Voir plus
                           </Button>

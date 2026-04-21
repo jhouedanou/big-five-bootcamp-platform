@@ -195,7 +195,7 @@ export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
                 <TableCell>
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                         user.role === 'admin'
-                            ? 'bg-purple-100 text-purple-800'
+                            ? 'bg-[#F5F5F5] text-[#0F0F0F]'
                             : 'bg-slate-100 text-slate-800'
                     }`}>
                         {user.role === 'admin' ? 'Admin' : 'Utilisateur'}

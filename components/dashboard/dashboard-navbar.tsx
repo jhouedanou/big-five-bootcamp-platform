@@ -94,37 +94,44 @@ export function DashboardNavbar({
   const subInfo = getSubscriptionInfo()
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-[#D0E4F2] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
+    <header className="sticky top-0 z-50 w-full border-b border-[#F5F5F5] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-4">
           <Link href="/dashboard" className="flex items-center gap-2">
             <Image
-              src="/logo.png"
+              src="/niggaz/colored.webp"
               alt="Laveiye"
-              width={32}
-              height={32}
-              className="h-8 w-8"
+              width={189}
+              height={40}
+              className="h-10 w-auto dark:hidden"
               priority
             />
-            <span className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#1A1F2B]">Laveiye</span>
+            <Image
+              src="/niggaz/white.webp"
+              alt="Laveiye"
+              width={189}
+              height={40}
+              className="hidden h-10 w-auto dark:block"
+              priority
+            />
           </Link>
 
           <nav className="hidden items-center gap-1 md:flex">
             <Link
               href="/dashboard"
-              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B] transition-colors hover:bg-[#D0E4F2]/50"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F] transition-colors hover:bg-[#F5F5F5]/50"
             >
               Bibliothèque
             </Link>
             <Link
               href="/profile"
-              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B]"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F]"
             >
               Profil
             </Link>
             <Link
               href="/favorites"
-              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] flex items-center gap-1"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1"
             >
               <Heart className="h-3.5 w-3.5" />
               Favoris
@@ -132,7 +139,7 @@ export function DashboardNavbar({
             {isPremium && (
               <Link
                 href="/favorites?tab=collections"
-                className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] flex items-center gap-1"
+                className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1"
               >
                 <FolderOpen className="h-3.5 w-3.5" />
                 Collections
@@ -141,7 +148,7 @@ export function DashboardNavbar({
             {isPremium && (
               <Link
                 href="/dashboard/brand-requests"
-                className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] flex items-center gap-1"
+                className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1"
               >
                 <Building2 className="h-3.5 w-3.5" />
                 Marques
@@ -153,9 +160,9 @@ export function DashboardNavbar({
         <div className="hidden flex-1 items-center justify-center px-8 md:flex">
           <div className="relative w-full max-w-xl group">
             {/* Glow gradient de fond */}
-            <div className="absolute -inset-1.5 bg-gradient-to-r from-[#80368D]/40 via-[#F2B33D]/30 to-[#29358B]/40 rounded-2xl blur-lg opacity-60 group-focus-within:opacity-100 group-hover:opacity-80 transition-opacity duration-300" />
+            <div className="absolute -inset-1.5 bg-gradient-to-r from-[#F2B33D]/40 via-[#F2B33D]/30 to-[#0F0F0F]/40 rounded-2xl blur-lg opacity-60 group-focus-within:opacity-100 group-hover:opacity-80 transition-opacity duration-300" />
             <div className="relative flex items-center">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center h-7 w-7 rounded-full bg-[#80368D] group-focus-within:bg-[#80368D] transition-colors">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center h-7 w-7 rounded-full bg-[#F2B33D] group-focus-within:bg-[#F2B33D] transition-colors">
                 <Search className="h-4 w-4 text-white" />
               </div>
               <input
@@ -163,13 +170,13 @@ export function DashboardNavbar({
                 placeholder="Rechercher par mots-clés, marque, secteur, pays..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-13 w-full rounded-2xl border-2 border-[#80368D]/40 bg-gradient-to-r from-[#D0E4F2]/40 to-white pl-14 pr-4 text-sm font-semibold text-[#1A1F2B] shadow-lg shadow-[#80368D]/15 outline-none transition-all placeholder:text-[#1A1F2B]/45 placeholder:font-medium focus:border-[#80368D] focus:ring-4 focus:ring-[#80368D]/20 focus:shadow-xl focus:shadow-[#80368D]/20 focus:bg-white hover:border-[#80368D]/60 hover:shadow-xl hover:shadow-[#80368D]/15"
+                className="h-13 w-full rounded-2xl border-2 border-[#F2B33D]/40 bg-gradient-to-r from-[#F5F5F5]/40 to-white pl-14 pr-4 text-sm font-semibold text-[#0F0F0F] shadow-lg shadow-[#F2B33D]/15 outline-none transition-all placeholder:text-[#0F0F0F]/45 placeholder:font-medium focus:border-[#F2B33D] focus:ring-4 focus:ring-[#F2B33D]/20 focus:shadow-xl focus:shadow-[#F2B33D]/20 focus:bg-white hover:border-[#F2B33D]/60 hover:shadow-xl hover:shadow-[#F2B33D]/15"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-[#1A1F2B]/50 hover:text-white hover:bg-[#80368D] transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-[#0F0F0F]/50 hover:text-white hover:bg-[#F2B33D] transition-colors"
                   aria-label="Effacer la recherche"
                 >
                   <X className="h-4 w-4" />
@@ -182,7 +189,7 @@ export function DashboardNavbar({
         <div className="flex items-center gap-2">
           {/* Compteur de clics mensuel (Free) */}
           {effectiveIsFreeUser && (
-            <div className="hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 bg-[#D0E4F2] text-[#1A1F2B] text-xs font-semibold">
+            <div className="hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 bg-[#F5F5F5] text-[#0F0F0F] text-xs font-semibold">
               <MousePointer className="h-3.5 w-3.5" />
               {effectiveMonthlyClicks}/{monthlyClickLimit || 5} ce mois
             </div>
@@ -238,7 +245,7 @@ export function DashboardNavbar({
             <Link href="/pricing" className="hidden md:flex">
               <Button
                 size="sm"
-                className="gap-1.5 text-xs font-semibold rounded-full px-3 h-8 bg-gradient-to-r from-[#80368D] to-[#29358B] text-white hover:opacity-90"
+                className="gap-1.5 text-xs font-semibold rounded-full px-3 h-8 bg-gradient-to-r from-[#F2B33D] to-[#0F0F0F] text-white hover:opacity-90"
               >
                 <Sparkles className="h-3.5 w-3.5" />
                 Voir les plans
@@ -249,19 +256,19 @@ export function DashboardNavbar({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#80368D] text-sm font-medium text-white">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F2B33D] text-sm font-medium text-white">
                   {initials}
                 </div>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 bg-white border-[#D0E4F2]">
+            <DropdownMenuContent align="end" className="w-56 bg-white border-[#F5F5F5]">
               <div className="px-2 py-1.5">
-                <p className="text-sm font-medium text-[#1A1F2B]">{userName || "Utilisateur"}</p>
-                <p className="text-xs text-[#1A1F2B]/60">{userEmail}</p>
+                <p className="text-sm font-medium text-[#0F0F0F]">{userName || "Utilisateur"}</p>
+                <p className="text-xs text-[#0F0F0F]/60">{userEmail}</p>
                 <div className="mt-2 flex items-center gap-1.5">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
                     isPremium
-                      ? "bg-[#80368D]/10 text-[#80368D]"
+                      ? "bg-[#F2B33D]/10 text-[#F2B33D]"
                       : "bg-[#10B981]/10 text-[#10B981]"
                   }`}>
                     {effectivePlan || "Gratuit"}
@@ -270,26 +277,26 @@ export function DashboardNavbar({
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/profile" className="flex items-center gap-2 text-[#1A1F2B]">
+                <Link href="/profile" className="flex items-center gap-2 text-[#0F0F0F]">
                   <User className="h-4 w-4" />
                   Profil
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/subscribe" className="flex items-center gap-2 text-[#1A1F2B]">
+                <Link href="/subscribe" className="flex items-center gap-2 text-[#0F0F0F]">
                   <CreditCard className="h-4 w-4" />
                   Abonnement
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/favorites" className="flex items-center gap-2 text-[#1A1F2B]">
+                <Link href="/favorites" className="flex items-center gap-2 text-[#0F0F0F]">
                   <Heart className="h-4 w-4" />
                   Mes Favoris
                 </Link>
               </DropdownMenuItem>
               {isPremium && (
                 <DropdownMenuItem asChild>
-                  <Link href="/favorites?tab=collections" className="flex items-center gap-2 text-[#1A1F2B]">
+                  <Link href="/favorites?tab=collections" className="flex items-center gap-2 text-[#0F0F0F]">
                     <FolderOpen className="h-4 w-4" />
                     Collections
                   </Link>
@@ -297,14 +304,14 @@ export function DashboardNavbar({
               )}
               {isPremium && (
                 <DropdownMenuItem asChild>
-                  <Link href="/dashboard/brand-requests" className="flex items-center gap-2 text-[#1A1F2B]">
+                  <Link href="/dashboard/brand-requests" className="flex items-center gap-2 text-[#0F0F0F]">
                     <Building2 className="h-4 w-4" />
                     Suivi de marques
                   </Link>
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem asChild>
-                <Link href="/settings" className="flex items-center gap-2 text-[#1A1F2B]">
+                <Link href="/settings" className="flex items-center gap-2 text-[#0F0F0F]">
                   <Settings className="h-4 w-4" />
                   Paramètres
                 </Link>
@@ -325,7 +332,7 @@ export function DashboardNavbar({
 
           <button
             type="button"
-            className="md:hidden text-[#1A1F2B]"
+            className="md:hidden text-[#0F0F0F]"
             onClick={() => setIsOpen(!isOpen)}
             aria-label="Toggle menu"
           >
@@ -335,35 +342,35 @@ export function DashboardNavbar({
       </div>
 
       {isOpen && (
-        <div className="border-t border-[#D0E4F2] bg-white md:hidden">
+        <div className="border-t border-[#F5F5F5] bg-white md:hidden">
           <div className="px-4 py-3">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#1A1F2B]/50" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#0F0F0F]/50" />
               <input
                 type="text"
                 placeholder="Rechercher des campagnes..."
-                className="h-10 w-full rounded-lg border border-[#D0E4F2] bg-white pl-10 pr-4 text-sm text-[#1A1F2B] outline-none"
+                className="h-10 w-full rounded-lg border border-[#F5F5F5] bg-white pl-10 pr-4 text-sm text-[#0F0F0F] outline-none"
               />
             </div>
           </div>
           <nav className="flex flex-col gap-1 px-4 pb-4">
             <Link
               href="/dashboard"
-              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B] transition-colors hover:bg-[#D0E4F2]/50"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F] transition-colors hover:bg-[#F5F5F5]/50"
               onClick={() => setIsOpen(false)}
             >
               Bibliothèque
             </Link>
             <Link
               href="/profile"
-              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B]"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F]"
               onClick={() => setIsOpen(false)}
             >
               Profil
             </Link>
             <Link
               href="/favorites"
-              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] flex items-center gap-1.5"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1.5"
               onClick={() => setIsOpen(false)}
             >
               <Heart className="h-4 w-4 text-red-500" />
@@ -372,10 +379,10 @@ export function DashboardNavbar({
             {isPremium && (
               <Link
                 href="/favorites?tab=collections"
-                className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B] flex items-center gap-1.5"
+                className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1.5"
                 onClick={() => setIsOpen(false)}
               >
-                <FolderOpen className="h-4 w-4 text-[#80368D]" />
+                <FolderOpen className="h-4 w-4 text-[#F2B33D]" />
                 Collections
               </Link>
             )}
@@ -389,7 +396,7 @@ export function DashboardNavbar({
                     ? "bg-amber-50 text-amber-800"
                     : isPremium && subInfo.expired
                       ? "bg-red-50 text-red-800"
-                      : "bg-gradient-to-r from-[#80368D]/10 to-[#29358B]/10 text-[#80368D] font-semibold"
+                      : "bg-gradient-to-r from-[#F2B33D]/10 to-[#0F0F0F]/10 text-[#F2B33D] font-semibold"
               }`}
               onClick={() => setIsOpen(false)}
             >
@@ -417,12 +424,12 @@ export function DashboardNavbar({
             </Link>
             <Link
               href="/settings"
-              className="rounded-md px-3 py-2 text-sm font-medium text-[#1A1F2B]/70 transition-colors hover:bg-[#D0E4F2]/50 hover:text-[#1A1F2B]"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F]"
               onClick={() => setIsOpen(false)}
             >
               Paramètres
             </Link>
-            <div className="border-t border-[#D0E4F2] mt-2 pt-2">
+            <div className="border-t border-[#F5F5F5] mt-2 pt-2">
               <button
                 type="button"
                 onClick={async () => {

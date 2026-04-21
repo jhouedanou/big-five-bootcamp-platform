@@ -237,8 +237,8 @@ export default function SettingsPage() {
         <Card className="bg-white border-gray-200 shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-500/10">
-                <Mail className="h-5 w-5 text-purple-600" />
+              <div className="p-2 rounded-lg bg-[#F2B33D]/10">
+                <Mail className="h-5 w-5 text-[#0F0F0F]" />
               </div>
               <div>
                 <CardTitle className="text-gray-900">Emails de contact</CardTitle>
@@ -281,7 +281,7 @@ export default function SettingsPage() {
                 <Button
                   onClick={handleSaveEmailSettings}
                   disabled={isSavingEmailSettings || !contactToEmail}
-                  className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-lg shadow-purple-500/25"
+                  className="bg-[#F2B33D] hover:bg-[#F2B33D] text-white shadow-lg shadow-[#F2B33D]/25"
                 >
                   {isSavingEmailSettings ? (
                     <>

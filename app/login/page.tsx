@@ -175,42 +175,42 @@ export default function LoginPage() {
 
       {/* Right side - Visual */}
       <div className="relative hidden w-0 flex-1 lg:block">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#D0E4F2] via-white to-[#D0E4F2]">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#F5F5F5] via-white to-[#F5F5F5]">
           {/* Animated background effects */}
           <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute -top-20 -right-20 h-60 w-60 rounded-full bg-[#80368D]/20 blur-3xl animate-pulse-glow" />
+            <div className="absolute -top-20 -right-20 h-60 w-60 rounded-full bg-[#F2B33D]/20 blur-3xl animate-pulse-glow" />
             <div className="absolute -bottom-20 -left-20 h-60 w-60 rounded-full bg-[#F2B33D]/20 blur-3xl animate-pulse-glow delay-300" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-80 w-80 rounded-full bg-[#29358B]/10 blur-3xl animate-pulse-glow delay-500" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-80 w-80 rounded-full bg-[#0F0F0F]/10 blur-3xl animate-pulse-glow delay-500" />
           </div>
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#80368D]/20 via-transparent to-transparent" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[#F2B33D]/20 via-transparent to-transparent" />
           {/* Grid pattern overlay */}
           <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,.02)_1px,transparent_1px)] bg-[size:60px_60px]" />
 
           <div className="relative flex h-full flex-col items-center justify-center p-12">
             <div className="max-w-md text-center">
-              <span className="inline-flex items-center gap-2 rounded-full bg-[#80368D]/10 px-4 py-1.5 text-sm font-medium text-[#80368D] mb-6">
+              <span className="inline-flex items-center gap-2 rounded-full bg-[#F2B33D]/10 px-4 py-1.5 text-sm font-medium text-[#F2B33D] mb-6">
                 <Sparkles className="h-4 w-4 text-[#F2B33D]" />
                 Plateforme creative
               </span>
-              <h2 className="font-[family-name:var(--font-heading)] text-4xl font-bold text-[#1A1F2B]">
+              <h2 className="font-[family-name:var(--font-heading)] text-4xl font-bold text-[#0F0F0F]">
                 <span>
                   {"L'inspiration creative"}
                 </span>
                 <br />
-                <span className="bg-gradient-to-r from-[#80368D] via-[#29358B] to-[#F2B33D] bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-[#F2B33D] via-[#0F0F0F] to-[#F2B33D] bg-clip-text text-transparent">
                   a portee de clic
                 </span>
               </h2>
-              <p className="mt-6 text-lg text-[#1A1F2B]/70">
+              <p className="mt-6 text-lg text-[#0F0F0F]/70">
                 Des milliers de campagnes social media pour inspirer vos prochaines créations.
               </p>
               <div className="mt-10 grid grid-cols-3 gap-4">
                 {[
                   { gradient: "from-[#FFCC00] to-[#FF9500]" },
-                  { gradient: "from-[#80368D] to-[#29358B]" },
+                  { gradient: "from-[#F2B33D] to-[#0F0F0F]" },
                   { gradient: "from-[#1DA1F2] to-[#0D8ECF]" },
                 ].map((item, i) => (
-                  <div key={i} className="aspect-square overflow-hidden rounded-xl bg-white/80 border border-[#D0E4F2] shadow-lg hover-lift">
+                  <div key={i} className="aspect-square overflow-hidden rounded-xl bg-white/80 border border-[#F5F5F5] shadow-lg hover-lift">
                     <div className={`h-full w-full bg-gradient-to-br ${item.gradient} opacity-80`} />
                   </div>
                 ))}
@@ -219,18 +219,18 @@ export default function LoginPage() {
               {/* Stats */}
               <div className="mt-10 flex items-center justify-center gap-8">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-[#1A1F2B]">{stats.campaigns > 0 ? `${formatNumber(stats.campaigns)}+` : '...'}</div>
-                  <div className="text-xs text-[#1A1F2B]/60">Campagnes</div>
+                  <div className="text-2xl font-bold text-[#0F0F0F]">{stats.campaigns > 0 ? `${formatNumber(stats.campaigns)}+` : '...'}</div>
+                  <div className="text-xs text-[#0F0F0F]/60">Campagnes</div>
                 </div>
-                <div className="h-8 w-px bg-[#D0E4F2]" />
+                <div className="h-8 w-px bg-[#F5F5F5]" />
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-[#1A1F2B]">{stats.brands > 0 ? `${formatNumber(stats.brands)}+` : '...'}</div>
-                  <div className="text-xs text-[#1A1F2B]/60">Marques</div>
+                  <div className="text-2xl font-bold text-[#0F0F0F]">{stats.brands > 0 ? `${formatNumber(stats.brands)}+` : '...'}</div>
+                  <div className="text-xs text-[#0F0F0F]/60">Marques</div>
                 </div>
-                <div className="h-8 w-px bg-[#D0E4F2]" />
+                <div className="h-8 w-px bg-[#F5F5F5]" />
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-[#1A1F2B]">{stats.countries > 0 ? `${formatNumber(stats.countries)}+` : '...'}</div>
-                  <div className="text-xs text-[#1A1F2B]/60">Pays</div>
+                  <div className="text-2xl font-bold text-[#0F0F0F]">{stats.countries > 0 ? `${formatNumber(stats.countries)}+` : '...'}</div>
+                  <div className="text-xs text-[#0F0F0F]/60">Pays</div>
                 </div>
               </div>
             </div>

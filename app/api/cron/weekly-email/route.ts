@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
                 <img src="${c.thumbnail}" alt="" width="80" height="60" style="border-radius: 8px; object-fit: cover; display: block;" />
               </td>` : ''}
               <td style="vertical-align: top;">
-                <a href="${appUrl}/dashboard" style="font-weight: 600; color: #80368D; text-decoration: none; font-size: 14px;">
+                <a href="${appUrl}/dashboard" style="font-weight: 600; color: #F2B33D; text-decoration: none; font-size: 14px;">
                   ${c.title}
                 </a>
                 <br/>
@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
 
     // Tags industries
     const industryTags = industriesList.slice(0, 6).map(ind =>
-      `<span style="display: inline-block; background: #f3e8ff; color: #80368D; padding: 4px 12px; border-radius: 50px; font-size: 12px; font-weight: 500; margin: 2px 4px 2px 0;">${ind}</span>`
+      `<span style="display: inline-block; background: #f3e8ff; color: #F2B33D; padding: 4px 12px; border-radius: 50px; font-size: 12px; font-weight: 500; margin: 2px 4px 2px 0;">${ind}</span>`
     ).join('')
 
     // Tags pays
@@ -140,18 +140,18 @@ export async function GET(request: NextRequest) {
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #f8f9fa; padding: 20px;">
   <div style="background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
     <!-- Header -->
-    <div style="background: linear-gradient(135deg, #80368D, #a855f7); padding: 36px 24px; text-align: center;">
+    <div style="background: linear-gradient(135deg, #F2B33D, #a855f7); padding: 36px 24px; text-align: center;">
       <h1 style="color: white; margin: 0; font-size: 26px; letter-spacing: -0.5px;">Laveiye</h1>
       <p style="color: rgba(255,255,255,0.85); margin: 10px 0 0; font-size: 15px;">Votre veille créative — Semaine du ${weekLabel}</p>
     </div>
 
     <!-- Intro éditorialisée -->
     <div style="padding: 28px 24px 0;">
-      <p style="color: #1A1F2B; font-size: 16px; line-height: 1.6; margin: 0 0 6px;">
+      <p style="color: #0F0F0F; font-size: 16px; line-height: 1.6; margin: 0 0 6px;">
         Bonjour,
       </p>
       <p style="color: #444; font-size: 15px; line-height: 1.7; margin: 0;">
-        Cette semaine, <strong style="color: #80368D;">${newCampaigns.length} nouvelle${newCampaigns.length > 1 ? 's' : ''} campagne${newCampaigns.length > 1 ? 's' : ''}</strong>
+        Cette semaine, <strong style="color: #F2B33D;">${newCampaigns.length} nouvelle${newCampaigns.length > 1 ? 's' : ''} campagne${newCampaigns.length > 1 ? 's' : ''}</strong>
         ${newCampaigns.length > 1 ? 'ont été ajoutées' : 'a été ajoutée'} à la bibliothèque,
         couvrant <strong>${industriesList.length} secteur${industriesList.length > 1 ? 's' : ''}</strong>
         et <strong>${countriesList.length} pays</strong>.
@@ -163,8 +163,8 @@ export async function GET(request: NextRequest) {
       <table cellpadding="0" cellspacing="0" border="0" width="100%">
         <tr>
           <td width="33%" style="text-align: center; padding: 16px 8px; background: #faf5ff; border-radius: 12px;">
-            <div style="font-size: 28px; font-weight: 800; color: #80368D;">${newCampaigns.length}</div>
-            <div style="font-size: 11px; color: #80368D; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">Campagnes</div>
+            <div style="font-size: 28px; font-weight: 800; color: #F2B33D;">${newCampaigns.length}</div>
+            <div style="font-size: 11px; color: #F2B33D; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">Campagnes</div>
           </td>
           <td width="4%"></td>
           <td width="33%" style="text-align: center; padding: 16px 8px; background: #f0f9ff; border-radius: 12px;">
@@ -182,13 +182,13 @@ export async function GET(request: NextRequest) {
 
     <!-- Industries couvertes -->
     <div style="padding: 0 24px 16px;">
-      <h3 style="color: #1A1F2B; font-size: 14px; font-weight: 700; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px;">Industries couvertes</h3>
+      <h3 style="color: #0F0F0F; font-size: 14px; font-weight: 700; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px;">Industries couvertes</h3>
       <div>${industryTags}</div>
     </div>
 
     <!-- Pays représentés -->
     <div style="padding: 0 24px 20px;">
-      <h3 style="color: #1A1F2B; font-size: 14px; font-weight: 700; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px;">Pays représentés</h3>
+      <h3 style="color: #0F0F0F; font-size: 14px; font-weight: 700; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px;">Pays représentés</h3>
       <div>${countryTags}</div>
     </div>
 
@@ -196,13 +196,13 @@ export async function GET(request: NextRequest) {
     ${starCampaign ? `
     <div style="padding: 0 24px 20px;">
       <div style="background: linear-gradient(135deg, #faf5ff, #f0f9ff); border: 2px solid #e9d5ff; border-radius: 12px; padding: 20px; text-align: center;">
-        <div style="font-size: 11px; color: #80368D; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Campagne de la semaine</div>
+        <div style="font-size: 11px; color: #F2B33D; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Campagne de la semaine</div>
         ${starCampaign.thumbnail ? `<img src="${starCampaign.thumbnail}" alt="" width="100%" style="border-radius: 8px; max-height: 200px; object-fit: cover; margin-bottom: 12px;" />` : ''}
-        <h3 style="color: #1A1F2B; font-size: 18px; margin: 0 0 4px;">${starCampaign.title}</h3>
+        <h3 style="color: #0F0F0F; font-size: 18px; margin: 0 0 4px;">${starCampaign.title}</h3>
         <p style="color: #666; font-size: 13px; margin: 0 0 12px;">
           ${starCampaign.brand ? `${starCampaign.brand} · ` : ''}${starCampaign.country || ''}${starCampaign.category ? ` · ${starCampaign.category}` : ''}
         </p>
-        <a href="${appUrl}/dashboard" style="display: inline-block; background: #80368D; color: white; padding: 10px 24px; border-radius: 50px; text-decoration: none; font-weight: 600; font-size: 14px;">
+        <a href="${appUrl}/dashboard" style="display: inline-block; background: #F2B33D; color: white; padding: 10px 24px; border-radius: 50px; text-decoration: none; font-weight: 600; font-size: 14px;">
           Voir la campagne
         </a>
       </div>
@@ -211,7 +211,7 @@ export async function GET(request: NextRequest) {
 
     <!-- Liste des campagnes -->
     <div style="padding: 0 24px 24px;">
-      <h3 style="color: #1A1F2B; font-size: 14px; font-weight: 700; margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.5px;">
+      <h3 style="color: #0F0F0F; font-size: 14px; font-weight: 700; margin: 0 0 12px; text-transform: uppercase; letter-spacing: 0.5px;">
         Toutes les nouveautés
       </h3>
       <table style="width: 100%; border-collapse: collapse; background: #fafafa; border-radius: 12px; overflow: hidden;">
@@ -223,7 +223,7 @@ export async function GET(request: NextRequest) {
 
     <!-- CTA principal -->
     <div style="text-align: center; padding: 0 24px 32px;">
-      <a href="${appUrl}/dashboard" style="display: inline-block; background: linear-gradient(135deg, #80368D, #a855f7); color: white; padding: 16px 40px; border-radius: 50px; text-decoration: none; font-weight: 700; font-size: 16px; box-shadow: 0 4px 12px rgba(128,54,141,0.3);">
+      <a href="${appUrl}/dashboard" style="display: inline-block; background: linear-gradient(135deg, #F2B33D, #a855f7); color: white; padding: 16px 40px; border-radius: 50px; text-decoration: none; font-weight: 700; font-size: 16px; box-shadow: 0 4px 12px rgba(242, 179, 61,0.3);">
         Explorer la bibliothèque
       </a>
     </div>
@@ -232,7 +232,7 @@ export async function GET(request: NextRequest) {
     <div style="background: #f8f9fa; padding: 20px 24px; text-align: center; border-top: 1px solid #e5e7eb;">
       <p style="color: #999; font-size: 12px; margin: 0; line-height: 1.6;">
         Vous recevez cet email car vous êtes inscrit sur Laveiye.<br/>
-        <a href="${appUrl}/profile" style="color: #80368D;">Gérer mes préférences</a> · <a href="${appUrl}/profile" style="color: #999;">Se désabonner</a>
+        <a href="${appUrl}/profile" style="color: #F2B33D;">Gérer mes préférences</a> · <a href="${appUrl}/profile" style="color: #999;">Se désabonner</a>
       </p>
     </div>
   </div>

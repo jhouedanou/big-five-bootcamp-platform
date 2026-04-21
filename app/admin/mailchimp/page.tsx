@@ -409,8 +409,8 @@ export default function MailchimpSettingsPage() {
           <Card className="bg-white border-gray-200 shadow-sm">
             <CardHeader>
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-500/10">
-                  <Users className="h-5 w-5 text-purple-600" />
+                <div className="p-2 rounded-lg bg-[#F2B33D]/10">
+                  <Users className="h-5 w-5 text-[#0F0F0F]" />
                 </div>
                 <div>
                   <CardTitle className="text-gray-900">Synchronisation des utilisateurs</CardTitle>
@@ -431,7 +431,7 @@ export default function MailchimpSettingsPage() {
                 onClick={handleSyncUsers}
                 disabled={isSyncing}
                 variant="outline"
-                className="border-purple-300 text-purple-700 hover:bg-purple-50"
+                className="border-[#0F0F0F]/30 text-[#0F0F0F] hover:bg-[#F5F5F5]"
               >
                 {isSyncing ? (
                   <>
@@ -566,7 +566,7 @@ export default function MailchimpSettingsPage() {
                       {metadata.sectors.map((s) => (
                         <span
                           key={s}
-                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-700"
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-[#F5F5F5] text-[#0F0F0F]"
                         >
                           {s}
                         </span>

@@ -79,26 +79,26 @@ export function PlanGate({
         </div>
         <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-[2px] rounded-lg">
           <div className="text-center p-4 max-w-sm">
-            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#80368D]/10">
-              <Lock className="h-5 w-5 text-[#80368D]" />
+            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#F2B33D]/10">
+              <Lock className="h-5 w-5 text-[#F2B33D]" />
             </div>
-            <p className="text-sm font-medium text-[#1A1F2B] mb-1">
+            <p className="text-sm font-medium text-[#0F0F0F] mb-1">
               Fonctionnalité {planLabel}
             </p>
-            <p className="text-xs text-[#1A1F2B]/60 mb-3">
+            <p className="text-xs text-[#0F0F0F]/60 mb-3">
               {message || defaultMessage}
             </p>
             {onUpgradeClick ? (
               <Button
                 size="sm"
                 onClick={onUpgradeClick}
-                className="bg-[#80368D] hover:bg-[#80368D]/90 text-white text-xs"
+                className="bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-white text-xs"
               >
                 Passer au plan {planLabel}
                 <ArrowRight className="ml-1 h-3 w-3" />
               </Button>
             ) : (
-              <Button size="sm" asChild className="bg-[#80368D] hover:bg-[#80368D]/90 text-white text-xs">
+              <Button size="sm" asChild className="bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-white text-xs">
                 <Link href={`/subscribe?plan=${requiredPlan}`}>
                   Passer au plan {planLabel}
                   <ArrowRight className="ml-1 h-3 w-3" />
@@ -113,14 +113,14 @@ export function PlanGate({
 
   // Mode badge/inline
   return (
-    <div className="rounded-lg border border-[#D0E4F2] bg-[#D0E4F2]/10 p-4 text-center">
-      <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-[#80368D]/10">
-        <Lock className="h-4 w-4 text-[#80368D]" />
+    <div className="rounded-lg border border-[#F5F5F5] bg-[#F5F5F5]/10 p-4 text-center">
+      <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-[#F2B33D]/10">
+        <Lock className="h-4 w-4 text-[#F2B33D]" />
       </div>
-      <p className="text-sm font-medium text-[#1A1F2B] mb-1">
+      <p className="text-sm font-medium text-[#0F0F0F] mb-1">
         Réservé au plan {planLabel}
       </p>
-      <p className="text-xs text-[#1A1F2B]/60 mb-3">
+      <p className="text-xs text-[#0F0F0F]/60 mb-3">
         {message || defaultMessage}
       </p>
       {onUpgradeClick ? (
@@ -128,13 +128,13 @@ export function PlanGate({
           size="sm"
           variant="outline"
           onClick={onUpgradeClick}
-          className="text-[#80368D] border-[#80368D]/30 hover:bg-[#80368D]/5 text-xs"
+          className="text-[#F2B33D] border-[#F2B33D]/30 hover:bg-[#F2B33D]/5 text-xs"
         >
           Découvrir le plan {planLabel}
           <ArrowRight className="ml-1 h-3 w-3" />
         </Button>
       ) : (
-        <Button size="sm" variant="outline" asChild className="text-[#80368D] border-[#80368D]/30 hover:bg-[#80368D]/5 text-xs">
+        <Button size="sm" variant="outline" asChild className="text-[#F2B33D] border-[#F2B33D]/30 hover:bg-[#F2B33D]/5 text-xs">
           <Link href={`/subscribe?plan=${requiredPlan}`}>
             Découvrir le plan {planLabel}
             <ArrowRight className="ml-1 h-3 w-3" />
@@ -148,8 +148,8 @@ export function PlanGate({
 /** Badge inline pour indiquer qu'une fonctionnalité nécessite un plan spécifique */
 export function PlanBadge({ plan }: { plan: RequiredPlan }) {
   const colors: Record<RequiredPlan, string> = {
-    basic: "bg-[#1A1F2B]/10 text-[#1A1F2B]",
-    pro: "bg-[#80368D]/10 text-[#80368D]",
+    basic: "bg-[#0F0F0F]/10 text-[#0F0F0F]",
+    pro: "bg-[#F2B33D]/10 text-[#F2B33D]",
   }
 
   return (

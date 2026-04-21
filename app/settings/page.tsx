@@ -295,40 +295,40 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-white via-white to-[#D0E4F2]/20">
+      <div className="min-h-screen bg-gradient-to-br from-white via-white to-[#F5F5F5]/20">
         <DashboardNavbar />
         <div className="flex items-center justify-center py-32">
-          <Loader2 className="h-8 w-8 animate-spin text-[#80368D]" />
+          <Loader2 className="h-8 w-8 animate-spin text-[#F2B33D]" />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-white to-[#D0E4F2]/20">
+    <div className="min-h-screen bg-gradient-to-br from-white via-white to-[#F5F5F5]/20">
       <DashboardNavbar />
       
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="font-[family-name:var(--font-heading)] text-3xl font-bold tracking-tight text-[#1A1F2B]">
+          <h1 className="font-[family-name:var(--font-heading)] text-3xl font-bold tracking-tight text-[#0F0F0F]">
             Paramètres
           </h1>
-          <p className="mt-2 text-base font-medium text-[#1A1F2B]/70">
+          <p className="mt-2 text-base font-medium text-[#0F0F0F]/70">
             Gérez votre compte et vos préférences
           </p>
         </div>
 
         {/* Section Sécurité - Mot de passe */}
-        <section className="rounded-2xl border-2 border-[#D0E4F2] bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border-2 border-[#F5F5F5] bg-white p-6 shadow-sm">
           <div className="flex items-center gap-3 mb-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#80368D] to-[#a855f7] shadow-lg shadow-[#80368D]/25">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-[#F2B33D] to-[#a855f7] shadow-lg shadow-[#F2B33D]/25">
               <Shield className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h2 className="font-[family-name:var(--font-heading)] text-xl font-bold text-[#1A1F2B]">
+              <h2 className="font-[family-name:var(--font-heading)] text-xl font-bold text-[#0F0F0F]">
                 Sécurité
               </h2>
-              <p className="text-sm font-medium text-[#1A1F2B]/60">
+              <p className="text-sm font-medium text-[#0F0F0F]/60">
                 Modifier votre mot de passe
               </p>
             </div>
@@ -337,11 +337,11 @@ export default function SettingsPage() {
           <form onSubmit={handleChangePassword} className="space-y-5">
             {/* Email (lecture seule) */}
             <div>
-              <Label className="text-sm font-semibold text-[#1A1F2B]">
+              <Label className="text-sm font-semibold text-[#0F0F0F]">
                 Email du compte
               </Label>
-              <div className="mt-1.5 flex items-center gap-2 rounded-lg bg-[#D0E4F2]/30 px-4 py-3">
-                <span className="text-base font-medium text-[#1A1F2B]">
+              <div className="mt-1.5 flex items-center gap-2 rounded-lg bg-[#F5F5F5]/30 px-4 py-3">
+                <span className="text-base font-medium text-[#0F0F0F]">
                   {userEmail || "Non connecté"}
                 </span>
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -350,53 +350,53 @@ export default function SettingsPage() {
 
             {/* Nouveau mot de passe */}
             <div>
-              <Label htmlFor="newPassword" className="text-sm font-semibold text-[#1A1F2B]">
+              <Label htmlFor="newPassword" className="text-sm font-semibold text-[#0F0F0F]">
                 Nouveau mot de passe
               </Label>
               <div className="relative mt-1.5">
-                <KeyRound className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#1A1F2B]/40" />
+                <KeyRound className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#0F0F0F]/40" />
                 <Input
                   id="newPassword"
                   type={showNewPassword ? "text" : "password"}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="h-12 pl-11 pr-11 text-base border-2 border-[#D0E4F2] focus:border-[#80368D]"
+                  className="h-12 pl-11 pr-11 text-base border-2 border-[#F5F5F5] focus:border-[#F2B33D]"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#1A1F2B]/40 hover:text-[#1A1F2B]"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0F0F0F]/40 hover:text-[#0F0F0F]"
                 >
                   {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
-              <p className="mt-1.5 text-xs font-medium text-[#1A1F2B]/50">
+              <p className="mt-1.5 text-xs font-medium text-[#0F0F0F]/50">
                 Min. 8 caractères, 1 majuscule, 1 chiffre
               </p>
             </div>
 
             {/* Confirmer mot de passe */}
             <div>
-              <Label htmlFor="confirmPassword" className="text-sm font-semibold text-[#1A1F2B]">
+              <Label htmlFor="confirmPassword" className="text-sm font-semibold text-[#0F0F0F]">
                 Confirmer le nouveau mot de passe
               </Label>
               <div className="relative mt-1.5">
-                <KeyRound className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#1A1F2B]/40" />
+                <KeyRound className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-[#0F0F0F]/40" />
                 <Input
                   id="confirmPassword"
                   type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="h-12 pl-11 pr-11 text-base border-2 border-[#D0E4F2] focus:border-[#80368D]"
+                  className="h-12 pl-11 pr-11 text-base border-2 border-[#F5F5F5] focus:border-[#F2B33D]"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#1A1F2B]/40 hover:text-[#1A1F2B]"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0F0F0F]/40 hover:text-[#0F0F0F]"
                 >
                   {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -418,7 +418,7 @@ export default function SettingsPage() {
             <Button
               type="submit"
               disabled={isChangingPassword || !newPassword || !confirmPassword}
-              className="h-12 w-full text-base font-bold bg-gradient-to-r from-[#80368D] to-[#a855f7] hover:from-[#6b2d76] hover:to-[#9333ea] text-white shadow-lg shadow-[#80368D]/25 disabled:opacity-50"
+              className="h-12 w-full text-base font-bold bg-gradient-to-r from-[#F2B33D] to-[#a855f7] hover:from-[#6b2d76] hover:to-[#9333ea] text-white shadow-lg shadow-[#F2B33D]/25 disabled:opacity-50"
             >
               {isChangingPassword ? (
                 <>
@@ -436,7 +436,7 @@ export default function SettingsPage() {
         </section>
 
         {/* Section Abonnement */}
-        <section className="mt-6 rounded-2xl border-2 border-[#D0E4F2] bg-white p-6 shadow-sm">
+        <section className="mt-6 rounded-2xl border-2 border-[#F5F5F5] bg-white p-6 shadow-sm">
           <div className="flex items-center gap-3 mb-6">
             <div className={`flex h-12 w-12 items-center justify-center rounded-xl shadow-lg ${
               isPremium 
@@ -446,10 +446,10 @@ export default function SettingsPage() {
               <Crown className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h2 className="font-[family-name:var(--font-heading)] text-xl font-bold text-[#1A1F2B]">
+              <h2 className="font-[family-name:var(--font-heading)] text-xl font-bold text-[#0F0F0F]">
                 Abonnement
               </h2>
-              <p className="text-sm font-medium text-[#1A1F2B]/60">
+              <p className="text-sm font-medium text-[#0F0F0F]/60">
                 Gérez votre plan et facturation
               </p>
             </div>
@@ -489,7 +489,7 @@ export default function SettingsPage() {
                     </span>
                   </div>
                   {isPremium && subscription.endDate && (
-                    <p className="mt-1 flex items-center gap-1.5 text-sm font-medium text-[#1A1F2B]/60">
+                    <p className="mt-1 flex items-center gap-1.5 text-sm font-medium text-[#0F0F0F]/60">
                       <Calendar className="h-4 w-4" />
                       Renouvellement le {formatDate(subscription.endDate)}
                     </p>
@@ -512,33 +512,33 @@ export default function SettingsPage() {
           {/* Détails de l'abonnement Premium */}
           {isPremium && (
             <div className="mt-6 space-y-4">
-              <h3 className="font-semibold text-[#1A1F2B]">Détails de l'abonnement</h3>
+              <h3 className="font-semibold text-[#0F0F0F]">Détails de l'abonnement</h3>
               
               <div className="grid gap-4 sm:grid-cols-2">
-                <div className="rounded-xl bg-[#D0E4F2]/20 p-4">
-                  <p className="text-sm font-medium text-[#1A1F2B]/60">Date de début</p>
-                  <p className="mt-1 text-base font-bold text-[#1A1F2B]">
+                <div className="rounded-xl bg-[#F5F5F5]/20 p-4">
+                  <p className="text-sm font-medium text-[#0F0F0F]/60">Date de début</p>
+                  <p className="mt-1 text-base font-bold text-[#0F0F0F]">
                     {formatDate(subscription.startDate)}
                   </p>
                 </div>
-                <div className="rounded-xl bg-[#D0E4F2]/20 p-4">
-                  <p className="text-sm font-medium text-[#1A1F2B]/60">Prochaine facturation</p>
-                  <p className="mt-1 text-base font-bold text-[#1A1F2B]">
+                <div className="rounded-xl bg-[#F5F5F5]/20 p-4">
+                  <p className="text-sm font-medium text-[#0F0F0F]/60">Prochaine facturation</p>
+                  <p className="mt-1 text-base font-bold text-[#0F0F0F]">
                     {formatDate(subscription.endDate)}
                   </p>
                 </div>
                 {subscription.paymentMethod && (
-                  <div className="rounded-xl bg-[#D0E4F2]/20 p-4">
-                    <p className="text-sm font-medium text-[#1A1F2B]/60">Moyen de paiement</p>
-                    <p className="mt-1 text-base font-bold text-[#1A1F2B]">
+                  <div className="rounded-xl bg-[#F5F5F5]/20 p-4">
+                    <p className="text-sm font-medium text-[#0F0F0F]/60">Moyen de paiement</p>
+                    <p className="mt-1 text-base font-bold text-[#0F0F0F]">
                       {subscription.paymentMethod}
                     </p>
                   </div>
                 )}
                 {subscription.amount && (
-                  <div className="rounded-xl bg-[#D0E4F2]/20 p-4">
-                    <p className="text-sm font-medium text-[#1A1F2B]/60">Montant</p>
-                    <p className="mt-1 text-base font-bold text-[#1A1F2B]">
+                  <div className="rounded-xl bg-[#F5F5F5]/20 p-4">
+                    <p className="text-sm font-medium text-[#0F0F0F]/60">Montant</p>
+                    <p className="mt-1 text-base font-bold text-[#0F0F0F]">
                       {subscription.amount.toLocaleString()} FCFA / mois
                     </p>
                   </div>
@@ -546,7 +546,7 @@ export default function SettingsPage() {
               </div>
 
               {/* Actions abonnement */}
-              <div className="flex flex-wrap gap-3 pt-4 border-t border-[#D0E4F2]">
+              <div className="flex flex-wrap gap-3 pt-4 border-t border-[#F5F5F5]">
                 {subscription.status === "active" && !cancellationRequested && (
                   <Button 
                     variant="outline" 
@@ -583,7 +583,7 @@ export default function SettingsPage() {
           {/* Avantages Premium (pour utilisateurs Free) */}
           {!isPremium && (
             <div className="mt-6">
-              <h3 className="font-semibold text-[#1A1F2B] mb-4">Avantages Premium</h3>
+              <h3 className="font-semibold text-[#0F0F0F] mb-4">Avantages Premium</h3>
               <div className="grid gap-3">
                 {[
                   "Accès illimité à toutes les campagnes",
@@ -596,7 +596,7 @@ export default function SettingsPage() {
                     <div className="flex h-6 w-6 items-center justify-center rounded-full bg-green-100">
                       <CheckCircle2 className="h-4 w-4 text-green-600" />
                     </div>
-                    <span className="text-sm font-medium text-[#1A1F2B]">{feature}</span>
+                    <span className="text-sm font-medium text-[#0F0F0F]">{feature}</span>
                   </div>
                 ))}
               </div>
@@ -605,16 +605,16 @@ export default function SettingsPage() {
         </section>
 
         {/* Section Historique & Reçus de paiement */}
-        <section className="mt-6 rounded-2xl border-2 border-[#D0E4F2] bg-white p-6 shadow-sm">
+        <section className="mt-6 rounded-2xl border-2 border-[#F5F5F5] bg-white p-6 shadow-sm">
           <div className="flex items-center gap-3 mb-6">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/25">
               <Receipt className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h2 className="font-[family-name:var(--font-heading)] text-xl font-bold text-[#1A1F2B]">
+              <h2 className="font-[family-name:var(--font-heading)] text-xl font-bold text-[#0F0F0F]">
                 Historique & Reçus
               </h2>
-              <p className="text-sm font-medium text-[#1A1F2B]/60">
+              <p className="text-sm font-medium text-[#0F0F0F]/60">
                 Téléchargez vos reçus de paiement
               </p>
             </div>
@@ -641,10 +641,10 @@ export default function SettingsPage() {
                         <FileText className={`h-5 w-5 ${isCompleted ? "text-emerald-600" : "text-gray-400"}`} />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-bold text-[#1A1F2B] truncate">
+                        <p className="text-sm font-bold text-[#0F0F0F] truncate">
                           {payment.amount?.toLocaleString("fr-FR")} FCFA
                         </p>
-                        <p className="text-xs font-medium text-[#1A1F2B]/50">
+                        <p className="text-xs font-medium text-[#0F0F0F]/50">
                           {date.toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" })}
                           {" · "}
                           {payment.payment_method || "Mobile Money"}
@@ -678,7 +678,7 @@ export default function SettingsPage() {
               <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
                 <Receipt className="h-6 w-6 text-gray-400" />
               </div>
-              <p className="text-sm font-medium text-[#1A1F2B]/50">
+              <p className="text-sm font-medium text-[#0F0F0F]/50">
                 Aucun paiement enregistré
               </p>
             </div>
@@ -689,7 +689,7 @@ export default function SettingsPage() {
         <div className="mt-6 text-center">
           <Link 
             href="/profile" 
-            className="text-sm font-semibold text-[#80368D] hover:text-[#6b2d76] transition-colors"
+            className="text-sm font-semibold text-[#F2B33D] hover:text-[#6b2d76] transition-colors"
           >
             Modifier mes informations de profil →
           </Link>

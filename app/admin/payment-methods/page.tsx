@@ -273,7 +273,7 @@ function getMethodTypeColor(type: PaymentMethod["type"]): string {
     case "card":
       return "bg-blue-500/10 text-blue-600 border-blue-200";
     case "bank":
-      return "bg-purple-500/10 text-purple-600 border-purple-200";
+      return "bg-[#F2B33D]/10 text-[#0F0F0F] border-[#0F0F0F]/30";
     case "wallet":
       return "bg-amber-500/10 text-amber-600 border-amber-200";
   }

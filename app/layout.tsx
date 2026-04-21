@@ -1,44 +1,19 @@
 import React from "react"
 import type { Metadata, Viewport } from 'next'
-import { Questrial, Montserrat } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
-
-const questrial = Questrial({
-  subsets: ["latin", "latin-ext"],
-  weight: "400",
-  variable: "--font-questrial"
-});
-const montserrat = Montserrat({
-  subsets: ["latin", "latin-ext"],
-  weight: ["400", "500", "600", "700", "800", "900"],
-  variable: "--font-montserrat"
-});
 
 export const metadata: Metadata = {
   title: 'Laveiye - La référence créative',
   description: 'Benchmarkez, analysez et créez des concepts gagnants en quelques minutes.',
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+    icon: '/icon.png',
+    apple: '/icon.png',
   },
 }
 
 export const viewport: Viewport = {
-  themeColor: '#80368D',
+  themeColor: '#F2B33D',
 }
 
 import { Providers } from "@/components/providers"
@@ -50,7 +25,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body className={`${questrial.variable} ${montserrat.variable} font-sans antialiased`}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        />
+      </head>
+      <body className="font-sans antialiased">
         <Providers>
           {children}
         </Providers>

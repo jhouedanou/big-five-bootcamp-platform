@@ -86,7 +86,7 @@ export default function ExampleCheckout({ sessionId }: ExampleCheckoutProps) {
             <div className="border-t pt-4">
               <div className="flex justify-between text-lg font-bold">
                 <span>Total à payer</span>
-                <span className="text-violet-600">
+                <span className="text-[#0F0F0F]">
                   {bootcamp.price.toLocaleString('fr-FR')} FCFA
                 </span>
               </div>
@@ -136,7 +136,7 @@ export default function ExampleCheckout({ sessionId }: ExampleCheckoutProps) {
           <Card className="w-full max-w-md">
             <CardContent className="pt-6 text-center">
               <p className="mb-4">Vous devez être connecté pour procéder au paiement</p>
-              <a href="/auth" className="text-violet-600 hover:underline">
+              <a href="/auth" className="text-[#0F0F0F] hover:underline">
                 Se connecter →
               </a>
             </CardContent>

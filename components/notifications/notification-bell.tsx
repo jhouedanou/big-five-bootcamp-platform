@@ -135,7 +135,7 @@ export function NotificationBell() {
         >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#F2B33D] text-xs font-bold text-[#1A1F2B]">
+            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#F2B33D] text-xs font-bold text-[#0F0F0F]">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
@@ -145,13 +145,13 @@ export function NotificationBell() {
       <DropdownMenuContent align="end" className="w-[380px] p-0">
         {/* Header */}
         <div className="flex items-center justify-between border-b px-4 py-3">
-          <h3 className="font-semibold text-[#1A1F2B]">Notifications</h3>
+          <h3 className="font-semibold text-[#0F0F0F]">Notifications</h3>
           {unreadCount > 0 && (
             <Button
               variant="ghost"
               size="sm"
               onClick={markAllAsRead}
-              className="h-auto p-0 text-xs text-[#80368D] hover:text-[#80368D]/80"
+              className="h-auto p-0 text-xs text-[#F2B33D] hover:text-[#F2B33D]/80"
             >
               Tout marquer comme lu
             </Button>
@@ -162,12 +162,12 @@ export function NotificationBell() {
         <div className="max-h-[400px] overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#80368D] border-t-transparent" />
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#F2B33D] border-t-transparent" />
             </div>
           ) : notifications.length === 0 ? (
             <div className="py-8 text-center">
-              <Bell className="mx-auto h-12 w-12 text-[#D0E4F2]" />
-              <p className="mt-2 text-sm text-[#1A1F2B]/60">
+              <Bell className="mx-auto h-12 w-12 text-[#F5F5F5]" />
+              <p className="mt-2 text-sm text-[#0F0F0F]/60">
                 Aucune notification
               </p>
             </div>
@@ -177,8 +177,8 @@ export function NotificationBell() {
                 <div
                   key={notification.id}
                   className={cn(
-                    'px-4 py-3 transition-colors hover:bg-[#D0E4F2]/20',
-                    !notification.read && 'bg-[#D0E4F2]/10'
+                    'px-4 py-3 transition-colors hover:bg-[#F5F5F5]/20',
+                    !notification.read && 'bg-[#F5F5F5]/10'
                   )}
                 >
                   <div className="flex gap-3">
@@ -187,36 +187,36 @@ export function NotificationBell() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="font-medium text-sm text-[#1A1F2B]">
+                        <p className="font-medium text-sm text-[#0F0F0F]">
                           {notification.title}
                         </p>
                         {!notification.read && (
                           <button
                             onClick={() => markAsRead(notification.id)}
-                            className="flex-shrink-0 rounded-full p-1 hover:bg-[#D0E4F2]/50"
+                            className="flex-shrink-0 rounded-full p-1 hover:bg-[#F5F5F5]/50"
                             aria-label="Marquer comme lu"
                           >
-                            <Check className="h-3 w-3 text-[#80368D]" />
+                            <Check className="h-3 w-3 text-[#F2B33D]" />
                           </button>
                         )}
                       </div>
-                      <p className="mt-1 text-xs text-[#1A1F2B]/70 line-clamp-2">
+                      <p className="mt-1 text-xs text-[#0F0F0F]/70 line-clamp-2">
                         {notification.message}
                       </p>
                       <div className="mt-2 flex items-center gap-2">
-                        <span className="text-xs text-[#1A1F2B]/50">
+                        <span className="text-xs text-[#0F0F0F]/50">
                           {getRelativeTime(notification.created_at)}
                         </span>
                         {notification.action_url && (
                           <>
-                            <span className="text-[#1A1F2B]/30">•</span>
+                            <span className="text-[#0F0F0F]/30">•</span>
                             <Link
                               href={notification.action_url}
                               onClick={() => {
                                 markAsRead(notification.id);
                                 setIsOpen(false);
                               }}
-                              className="text-xs text-[#80368D] hover:underline"
+                              className="text-xs text-[#F2B33D] hover:underline"
                             >
                               Voir plus
                             </Link>
@@ -237,7 +237,7 @@ export function NotificationBell() {
             <Link
               href="/notifications"
               onClick={() => setIsOpen(false)}
-              className="text-sm text-[#80368D] hover:underline"
+              className="text-sm text-[#F2B33D] hover:underline"
             >
               Voir toutes les notifications
             </Link>

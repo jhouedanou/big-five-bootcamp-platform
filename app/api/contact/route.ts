@@ -69,12 +69,12 @@ export async function POST(request: NextRequest) {
       subject: `Nouveau message de ${firstName} ${lastName}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <div style="background: #80368D; padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
+          <div style="background: #F2B33D; padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
             <h1 style="color: white; margin: 0; font-size: 24px;">Laveiye</h1>
             <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0;">Nouveau message de contact</p>
           </div>
           <div style="background: #f9fafb; padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-            <h2 style="color: #1A1F2B; margin: 0 0 16px;">Message de ${firstName} ${lastName}</h2>
+            <h2 style="color: #0F0F0F; margin: 0 0 16px;">Message de ${firstName} ${lastName}</h2>
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
               <tr>
                 <td style="padding: 8px 12px; background: #e5e7eb; border-radius: 6px 0 0 0; font-weight: 600; color: #374151; width: 100px;">Nom</td>
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
               </tr>
               <tr>
                 <td style="padding: 8px 12px; background: #e5e7eb; font-weight: 600; color: #374151;">Email</td>
-                <td style="padding: 8px 12px; background: #f3f4f6; color: #4b5563;"><a href="mailto:${email}" style="color: #80368D;">${email}</a></td>
+                <td style="padding: 8px 12px; background: #f3f4f6; color: #4b5563;"><a href="mailto:${email}" style="color: #F2B33D;">${email}</a></td>
               </tr>
             </table>
             <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-top: 12px;">
@@ -113,12 +113,12 @@ export async function POST(request: NextRequest) {
         subject: 'Confirmation : nous avons bien reçu votre message',
         html: `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <div style="background: #80368D; padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
+            <div style="background: #F2B33D; padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
               <h1 style="color: white; margin: 0; font-size: 24px;">Laveiye</h1>
               <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0;">Accusé de réception</p>
             </div>
             <div style="background: #f9fafb; padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-              <h2 style="color: #1A1F2B; margin: 0 0 16px;">Merci ${firstName} !</h2>
+              <h2 style="color: #0F0F0F; margin: 0 0 16px;">Merci ${firstName} !</h2>
               <p style="color: #4b5563; line-height: 1.6;">
                 Nous avons bien reçu votre message et nous vous répondrons dans les plus brefs délais.
               </p>

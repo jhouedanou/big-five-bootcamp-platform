@@ -76,12 +76,12 @@ export function CollectionModal({
           <DialogTitle className="flex items-center gap-2">
             {isEditing ? (
               <>
-                <Pencil className="h-5 w-5 text-[#80368D]" />
+                <Pencil className="h-5 w-5 text-[#F2B33D]" />
                 Modifier la collection
               </>
             ) : (
               <>
-                <FolderPlus className="h-5 w-5 text-[#80368D]" />
+                <FolderPlus className="h-5 w-5 text-[#F2B33D]" />
                 Nouvelle collection
               </>
             )}
@@ -134,7 +134,7 @@ export function CollectionModal({
             <Button
               type="submit"
               disabled={!name.trim() || isSaving}
-              className="bg-[#80368D] hover:bg-[#80368D]/90 text-white"
+              className="bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-white"
             >
               {isSaving ? (
                 <>

@@ -79,7 +79,10 @@ export async function POST(request: NextRequest) {
       urls.forEach((u: string) => allUrls.add(u.trim().toLowerCase()))
 
       const socials: string[] = req.social_networks ?? []
-      socials.forEach((s: string) => allSocials.add(s))
+      socials.forEach((s: string) => {
+        const normalized = s.trim().toLowerCase()
+        if (normalized) allSocials.add(normalized)
+      })
 
       const note: string | null = req.notes
       if (note && note.trim() && !notesParts.includes(note.trim())) {

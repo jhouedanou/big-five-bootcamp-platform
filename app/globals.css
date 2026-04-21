@@ -160,7 +160,7 @@
     letter-spacing: 0.02em;
   }
 
-  p, span, li, a {
+  p, li, a {
     font-family: 'Outfit', system-ui, -apple-system, sans-serif;
     font-weight: 400;
   }

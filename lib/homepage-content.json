@@ -103,7 +103,7 @@
       {
         "key": "free",
         "name": "Découverte",
-        "description": "Pour les explorateurs.",
+        "description": "Pour explorer la plateforme.",
         "monthlyPrice": 0,
         "annualPrice": 0,
         "cta": "Commencer",
@@ -122,6 +122,7 @@
         ],
         "excluded": [
           "Collections personnalisées",
+          "Téléchargement de visuels",
           "Suivi de marques",
           "Séance de débrief"
         ]
@@ -139,23 +140,24 @@
         "badge": null,
         "color": "#0F0F0F",
         "features": [
-          "Accès illimité",
+          "Accès illimité à la bibliothèque",
           "Filtres avancés (Secteur, Pays...)",
-          "Consultations sans limite des campagnes",
+          "Campagnes consultables illimitées",
           "Favoris",
           "Collections personnalisées",
+          "Téléchargement de visuels",
           "Alertes email hebdo",
           "15 recherches par filtre / jour"
         ],
         "excluded": [
           "Suivi de marques",
-          "Séance de débrief"
+          "Séance de débrief avec l'équipe Big Five"
         ]
       },
       {
         "key": "pro",
         "name": "Pro",
-        "description": "Pour les professionnels.",
+        "description": "Pour les créatifs exigeants.",
         "monthlyPrice": 9900,
         "annualPrice": 99000,
         "cta": "Choisir Pro",
@@ -165,11 +167,12 @@
         "badge": "Populaire",
         "color": "#F2B33D",
         "features": [
-          "Accès illimité",
+          "Accès illimité à la bibliothèque",
           "Filtres avancés (Secteur, Pays...)",
-          "Consultations sans limite des campagnes",
+          "Campagnes consultables illimitées",
           "Favoris",
           "Collections personnalisées",
+          "Téléchargement de visuels",
           "Alertes email hebdo",
           "Recherche par filtre illimitée",
           "Suivi de marques",
@@ -188,14 +191,15 @@
       "subtitle": "Trouvez le plan qui correspond à vos besoins.",
       "tableHeader": "Fonctionnalité",
       "features": [
-        { "name": "Accès à la bibliothèque", "free": "Limité", "basic": "Illimité", "pro": "Illimité" },
-        { "name": "Consultations de campagnes", "free": "3 / jour", "basic": "Illimitées", "pro": "Illimitées" },
-        { "name": "Filtres de base", "free": true, "basic": true, "pro": true },
-        { "name": "Filtres avancés (Secteur, Pays, Format)", "free": false, "basic": true, "pro": true },
+        { "name": "Accès à la bibliothèque", "free": "Aperçu scroll (clic bloqué)", "basic": "Illimité", "pro": "Illimité" },
+        { "name": "Compteur d'usage mensuel", "free": true, "basic": true, "pro": true },
         { "name": "Favoris", "free": true, "basic": true, "pro": true },
+        { "name": "Filtres avancés", "free": false, "basic": true, "pro": true },
+        { "name": "Campagnes consultables", "free": "3 par jour", "basic": "Illimité", "pro": "Illimité" },
         { "name": "Collections personnalisées", "free": false, "basic": true, "pro": true },
+        { "name": "Téléchargement de visuels", "free": false, "basic": true, "pro": true },
         { "name": "Alertes email hebdo", "free": true, "basic": true, "pro": true },
-        { "name": "Recherches par filtre", "free": "3 / jour", "basic": "15 / jour", "pro": "Illimitées" },
+        { "name": "Limite de recherche par filtre", "free": "3 par jour", "basic": "15 par jour", "pro": "Illimité" },
         { "name": "Suivi de marques", "free": false, "basic": false, "pro": true },
         { "name": "Séance de débrief avec l'équipe Big Five", "free": false, "basic": false, "pro": true }
       ]

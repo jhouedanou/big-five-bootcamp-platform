@@ -80,10 +80,10 @@ export function Footer() {
             <div>
               <h3 className="text-sm font-semibold uppercase tracking-wider text-[#0F0F0F]">Entreprise</h3>
               <nav className="mt-4 flex flex-col gap-3">
-                <Link href="/about" className="group flex items-center text-sm text-[#0F0F0F]/60 transition-colors hover:text-[#F2B33D]">
-                  À propos
+                <a href="https://bigfive.solutions" target="_blank" rel="noopener noreferrer" className="group flex items-center text-sm text-[#0F0F0F]/60 transition-colors hover:text-[#F2B33D]">
+                  Big Five
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </Link>
+                </a>
                 <Link href="/contact" className="group flex items-center text-sm text-[#0F0F0F]/60 transition-colors hover:text-[#F2B33D]">
                   Contact
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -129,9 +129,9 @@ export function Footer() {
         {/* Bottom section */}
         <div className="mt-12 flex flex-col items-center justify-between gap-6 border-t border-[#F5F5F5] pt-8 md:flex-row">
           <p className="flex items-center gap-1 text-sm text-[#0F0F0F]/50">
-            &copy; {currentYear} Creative Library powered by{" "}
-            <a href="https://bigfive.solutions.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#F2B33D] transition-colors">
-              Laveiye
+            &copy; {currentYear} Laveiye powered by{" "}
+            <a href="https://bigfive.solutions" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#F2B33D] transition-colors">
+              Big Five
             </a>.
           </p>
 

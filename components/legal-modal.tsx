@@ -165,9 +165,9 @@ export function LegalModal({ trigger, defaultTab = "cgu" }: LegalModalProps) {
                   Les prix de nos services sont indiqués en FCFA (Franc CFA) et peuvent inclure :
                 </p>
                 <ul className="list-disc pl-6 space-y-1 text-sm">
-                  <li><strong>Plan Gratuit (Free) :</strong> 0 FCFA - Accès limité aux contenus de base</li>
-                  <li><strong>Plan Pro :</strong> 15 000 FCFA/mois - Accès complet aux contenus premium</li>
-                  <li><strong>Plan Premium :</strong> 25 000 FCFA/mois - Tous les avantages Pro + support prioritaire</li>
+                  <li><strong>Plan Découverte :</strong> 0 FCFA - Accès limité à la plateforme</li>
+                  <li><strong>Plan Basic :</strong> 4 900 FCFA/mois - Accès à beaucoup plus de fonctionnalités</li>
+                  <li><strong>Plan Premium :</strong> 9 900 FCFA/mois - Tous les fonctionnalités Basic + des avantages exclusifs</li>
                 </ul>
                 <p className="text-sm leading-relaxed mt-2">
                   Les prix peuvent être modifiés à tout moment, mais les abonnements en cours 
@@ -205,7 +205,7 @@ export function LegalModal({ trigger, defaultTab = "cgu" }: LegalModalProps) {
                   <li>Service non conforme à la description</li>
                 </ul>
                 <p className="text-sm leading-relaxed mt-2">
-                  Les demandes de remboursement doivent être envoyées à support@bigfive.com dans 
+                  Les demandes de remboursement doivent être envoyées à support@laveiye.com dans
                   les 7 jours suivant l&apos;achat.
                 </p>
 
@@ -232,7 +232,7 @@ export function LegalModal({ trigger, defaultTab = "cgu" }: LegalModalProps) {
                 <h3 className="text-lg font-semibold mt-6 mb-3">10. Service client</h3>
                 <p className="text-sm leading-relaxed">
                   Pour toute question concernant votre abonnement ou facturation, contactez-nous à 
-                  support@bigfive.com ou via le formulaire de contact disponible sur le site.
+                  support@laveiye.com ou via le formulaire de contact disponible sur le site.
                 </p>
               </div>
             </TabsContent>
@@ -316,7 +316,7 @@ export function LegalModal({ trigger, defaultTab = "cgu" }: LegalModalProps) {
                   <li><strong>Droit de retrait du consentement :</strong> retirer votre consentement à tout moment</li>
                 </ul>
                 <p className="text-sm leading-relaxed mt-2">
-                  Pour exercer ces droits, contactez-nous à privacy@bigfive.com
+                  Pour exercer ces droits, contactez-nous à support@laveiye.com
                 </p>
 
                 <h3 className="text-lg font-semibold mt-6 mb-3">8. Cookies</h3>
@@ -345,8 +345,8 @@ export function LegalModal({ trigger, defaultTab = "cgu" }: LegalModalProps) {
                   Pour toute question concernant cette Politique de Confidentialité, contactez-nous :
                 </p>
                 <ul className="list-none pl-0 space-y-1 text-sm mt-2">
-                  <li>Email : privacy@bigfive.com</li>
-                  <li>Téléphone : +225 XX XX XX XX XX</li>
+                  <li>Email : support@laveiye.com</li>
+                  <li>Téléphone : +225 21 59 42 28</li>
                   <li>Adresse : Laveiye, Abidjan, Côte d&apos;Ivoire</li>
                 </ul>
               </div>

@@ -80,7 +80,7 @@ export default function ContactPage() {
                                             </div>
                                             <div>
                                                 <p className="font-medium">Email</p>
-                                                <p className="text-sm text-muted-foreground">contact@bigfive.solutions.com</p>
+                                                <p className="text-sm text-muted-foreground">support@laveiye.com</p>
                                             </div>
                                         </div>
                                         <div className="flex items-start gap-4">
@@ -98,7 +98,7 @@ export default function ContactPage() {
                                             </div>
                                             <div>
                                                 <p className="font-medium">Téléphone</p>
-                                                <p className="text-sm text-muted-foreground">+225 07 47 97 06 27</p>
+                                                <p className="text-sm text-muted-foreground">+225 21 59 42 28</p>
                                             </div>
                                         </div>
                                     </div>

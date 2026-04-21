@@ -94,29 +94,25 @@ export default function PricingPage() {
                                 <div
                                     key={plan.key}
                                     className={cn(
-                                        "rounded-2xl bg-white p-6 sm:p-8 shadow-lg flex flex-col w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]",
-                                        plan.highlighted
-                                            ? "border-2 border-[#F2B33D] shadow-2xl shadow-[#F2B33D]/20 relative lg:-translate-y-4"
-                                            : "border border-[#F5F5F5]"
+                                        "relative rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]",
+                                        "bg-[#FAF6EE] border border-[#EADFC8]",
+                                        plan.highlighted && "shadow-xl lg:-translate-y-4"
                                     )}
                                 >
                                     {plan.badge && (
-                                        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#F2B33D] text-[#0F0F0F] px-4 py-1.5 rounded-full text-sm font-bold shadow-lg whitespace-nowrap">
+                                        <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#C89B4A] text-white px-5 py-1.5 rounded-full text-sm font-semibold shadow-md whitespace-nowrap">
                                             {plan.badge}
                                         </div>
                                     )}
                                     <div className={cn("mb-4 sm:mb-6", plan.badge && "mt-2")}>
-                                        <h3 className={cn(
-                                            "font-bold text-xl mb-1 sm:mb-2",
-                                            plan.highlighted ? "text-[#F2B33D]" : "text-[#0F0F0F]"
-                                        )}>
+                                        <h3 className="font-bold text-xl mb-1 sm:mb-2 text-[#0F0F0F]">
                                             {plan.name}
                                         </h3>
                                         <p className="text-[#0F0F0F]/60 text-sm">{plan.description}</p>
                                     </div>
                                     <div className="mb-2">
                                         {plan.monthlyPrice === 0 ? (
-                                            <span className="text-3xl sm:text-4xl font-bold text-[#0F0F0F]">{pricingContent.priceLabels.free}</span>
+                                            <span className="text-4xl sm:text-5xl font-extrabold text-[#C89B4A] font-[family-name:var(--font-heading)]">{pricingContent.priceLabels.free}</span>
                                         ) : plan.monthlyPrice === -1 ? (
                                             <span className="text-2xl sm:text-3xl font-bold text-[#0F0F0F]">{pricingContent.priceLabels.custom}</span>
                                         ) : (
@@ -148,12 +144,12 @@ export default function PricingPage() {
                                         asChild
                                         variant={plan.ctaVariant}
                                         className={cn(
-                                            "w-full mb-6 sm:mb-8 font-semibold",
+                                            "w-full mb-6 sm:mb-8 font-semibold rounded-xl",
                                             plan.highlighted
-                                                ? "h-12 text-base font-bold shadow-lg shadow-[#F2B33D]/25 bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-white"
+                                                ? "h-12 text-base font-bold bg-[#C89B4A] hover:bg-[#b8862f] text-white shadow-md"
                                                 : plan.ctaVariant === "default"
-                                                    ? "h-11 bg-[#0F0F0F] hover:bg-[#0F0F0F]/90 text-white"
-                                                    : "h-11 border-[#F5F5F5] text-[#0F0F0F]"
+                                                    ? "h-12 bg-[#0F0F0F] hover:bg-[#0F0F0F]/90 text-white"
+                                                    : "h-12 bg-white border border-[#EADFC8] text-[#C89B4A] hover:bg-[#F5EFE0]"
                                         )}
                                     >
                                         {plan.ctaLink.startsWith("mailto:") ? (
@@ -166,15 +162,15 @@ export default function PricingPage() {
                                     </Button>
                                     <ul className="space-y-3 text-sm flex-1">
                                         {plan.features.map((feature) => (
-                                            <li key={feature} className={cn("flex items-center gap-2 text-[#0F0F0F]/70", plan.boldFeatures?.includes(feature) && "font-bold text-[#0F0F0F]")}>
-                                                <Check className="h-4 w-4 text-[#F2B33D] shrink-0" />
-                                                {feature}
+                                            <li key={feature} className={cn("flex items-start gap-2 text-[#0F0F0F]/80", plan.boldFeatures?.includes(feature) && "font-bold text-[#0F0F0F]")}>
+                                                <Check className="h-4 w-4 text-[#C89B4A] shrink-0 mt-0.5" />
+                                                <span>{feature}</span>
                                             </li>
                                         ))}
                                         {plan.excluded.map((feature) => (
-                                            <li key={feature} className="flex items-center gap-2 text-[#0F0F0F]/40">
-                                                <X className="h-4 w-4 shrink-0" />
-                                                {feature}
+                                            <li key={feature} className="flex items-start gap-2 text-[#0F0F0F]/40">
+                                                <X className="h-4 w-4 text-[#E11D48] shrink-0 mt-0.5" />
+                                                <span>{feature}</span>
                                             </li>
                                         ))}
                                     </ul>
@@ -217,7 +213,7 @@ export default function PricingPage() {
                                                     return (
                                                         <td key={planKey} className={cn("p-4 sm:p-5 text-center", planKey === "pro" && "bg-[#F2B33D]/5")}>
                                                             {typeof value === "boolean" ? (
-                                                                value ? <Check className="h-5 w-5 text-[#10B981] mx-auto" /> : <Minus className="h-5 w-5 text-[#0F0F0F]/20 mx-auto" />
+                                                                value ? <Check className="h-5 w-5 text-[#C89B4A] mx-auto" /> : <X className="h-5 w-5 text-[#E11D48] mx-auto" />
                                                             ) : (
                                                                 <span className="text-sm font-semibold text-[#0F0F0F]">{value}</span>
                                                             )}
@@ -244,7 +240,7 @@ export default function PricingPage() {
                                                 const isIncluded = value === true || typeof value === "string"
                                                 return (
                                                     <li key={feature.name} className="flex items-center gap-2.5 text-sm">
-                                                        {isIncluded ? <Check className="h-4 w-4 text-[#10B981] shrink-0" /> : <Minus className="h-4 w-4 text-[#0F0F0F]/20 shrink-0" />}
+                                                        {isIncluded ? <Check className="h-4 w-4 text-[#C89B4A] shrink-0" /> : <X className="h-4 w-4 text-[#E11D48] shrink-0" />}
                                                         <span className={cn(isIncluded ? "text-[#0F0F0F]/80" : "text-[#0F0F0F]/40")}>
                                                             {feature.name}
                                                             {typeof value === "string" && <span className="ml-1 font-semibold text-[#F2B33D]">({value})</span>}

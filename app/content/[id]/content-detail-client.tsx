@@ -755,7 +755,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-start">
 
           {/* ---- Colonne gauche : contenu principal ---- */}
-          <div className="space-y-6 min-w-0">
+          <div className="space-y-6 min-w-0 order-2 lg:order-1">
 
             {/* Video player — embed multi-plateforme (affiché dans les 2 tabs si présent) */}
             {content.video_url && (() => {
@@ -986,7 +986,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
           </div>
 
           {/* ---- Colonne droite : Sidebar sticky ---- */}
-          <div className="lg:sticky lg:top-6 space-y-6">
+          <div className="order-1 lg:order-2 lg:sticky lg:top-6 space-y-6">
             {/* Image créative */}
             {hasGallery && (
               <div className="space-y-4">

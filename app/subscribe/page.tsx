@@ -42,7 +42,7 @@ const PLANS = {
     annualPrice: "49 000",
     dailyCost: "~163",
     description: "Pour les indépendants",
-    color: "#1A1F2B",
+    color: "#0F0F0F",
     features: [
       "Accès illimité à toute la bibliothèque",
       "Filtres avancés (Secteur, Pays, Format...)",
@@ -58,7 +58,7 @@ const PLANS = {
     annualPrice: "99 000",
     dailyCost: "~330",
     description: "Pour les créatifs exigeants",
-    color: "#80368D",
+    color: "#F2B33D",
     features: [
       "Tout du plan Basic",
       "Recherches illimitées",
@@ -166,20 +166,20 @@ export default function SubscribePage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="border-b border-[#D0E4F2] bg-white">
+      <header className="border-b border-[#F5F5F5] bg-white">
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 text-sm text-[#1A1F2B]/70 hover:text-[#1A1F2B]"
+            className="flex items-center gap-2 text-sm text-[#0F0F0F]/70 hover:text-[#0F0F0F]"
           >
             <ArrowLeft className="h-4 w-4" />
             Retour
           </Link>
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#80368D]">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F2B33D]">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
-            <span className="font-[family-name:var(--font-heading)] font-bold text-[#1A1F2B]">
+            <span className="font-[family-name:var(--font-heading)] font-bold text-[#0F0F0F]">
               Laveiye
             </span>
           </Link>
@@ -188,12 +188,12 @@ export default function SubscribePage() {
       </header>
 
       <div className="mx-auto max-w-2xl px-4 py-8">
-        <h1 className="text-center font-[family-name:var(--font-heading)] text-2xl font-bold text-[#1A1F2B]">
+        <h1 className="text-center font-[family-name:var(--font-heading)] text-2xl font-bold text-[#0F0F0F]">
           {isActive
             ? "Prolonger ou changer de formule"
             : "Choisissez votre formule"}
         </h1>
-        <p className="mt-2 text-center text-[#1A1F2B]/60">
+        <p className="mt-2 text-center text-[#0F0F0F]/60">
           {isActive
             ? `${isAnnual ? '365' : '30'} jours supplémentaires seront ajoutés à votre abonnement`
             : "Débloquez l'accès complet à Laveiye"}
@@ -205,10 +205,10 @@ export default function SubscribePage() {
             <div className="flex items-start gap-3">
               <Calendar className="h-5 w-5 text-[#10B981] mt-0.5 flex-shrink-0" />
               <div>
-                <p className="font-semibold text-[#1A1F2B]">
+                <p className="font-semibold text-[#0F0F0F]">
                   Abonnement actif — {userProfile?.plan || "Pro"}
                 </p>
-                <p className="mt-1 text-sm text-[#1A1F2B]/70">
+                <p className="mt-1 text-sm text-[#0F0F0F]/70">
                   Il te reste{" "}
                   <span className="font-bold text-[#10B981]">
                     {daysRemaining} jour{daysRemaining > 1 ? "s" : ""}
@@ -221,7 +221,7 @@ export default function SubscribePage() {
                   })}
                   )
                 </p>
-                <p className="mt-1 text-sm text-[#1A1F2B]/70">
+                <p className="mt-1 text-sm text-[#0F0F0F]/70">
                   En renouvelant maintenant,{" "}
                   <span className="font-semibold">
                     {isAnnual ? '365 jours' : '30 jours'} seront ajoutés
@@ -235,13 +235,13 @@ export default function SubscribePage() {
 
         {/* Toggle mensuel / annuel */}
         <div className="mt-8 flex items-center justify-center gap-3">
-          <span className={`text-sm font-medium transition-colors ${!isAnnual ? 'text-[#1A1F2B]' : 'text-[#1A1F2B]/50'}`}>Mensuel</span>
+          <span className={`text-sm font-medium transition-colors ${!isAnnual ? 'text-[#0F0F0F]' : 'text-[#0F0F0F]/50'}`}>Mensuel</span>
           {/* eslint-disable-next-line jsx-a11y/role-supports-aria-props */}
           <button
             type="button"
             onClick={() => setIsAnnual(!isAnnual)}
-            className={`relative inline-flex h-7 w-[52px] shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#80368D] focus-visible:ring-offset-2 ${
-              isAnnual ? 'bg-[#80368D]' : 'bg-[#D0E4F2]'
+            className={`relative inline-flex h-7 w-[52px] shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F2B33D] focus-visible:ring-offset-2 ${
+              isAnnual ? 'bg-[#F2B33D]' : 'bg-[#F5F5F5]'
             }`}
             role="switch"
             aria-checked={isAnnual ? "true" : "false"}
@@ -253,7 +253,7 @@ export default function SubscribePage() {
               } mt-[1px]`}
             />
           </button>
-          <span className={`text-sm font-medium transition-colors ${isAnnual ? 'text-[#1A1F2B]' : 'text-[#1A1F2B]/50'}`}>
+          <span className={`text-sm font-medium transition-colors ${isAnnual ? 'text-[#0F0F0F]' : 'text-[#0F0F0F]/50'}`}>
             Annuel
             <span className="ml-1 inline-block rounded-full bg-[#10B981]/10 px-2 py-0.5 text-[10px] font-bold text-[#10B981]">2 mois offerts</span>
           </span>
@@ -267,39 +267,39 @@ export default function SubscribePage() {
             onClick={() => setSelectedPlan("basic")}
             className={`rounded-xl border-2 p-5 text-left transition-all ${
               selectedPlan === "basic"
-                ? "border-[#1A1F2B] bg-[#1A1F2B]/5 shadow-lg"
-                : "border-[#D0E4F2] bg-white hover:border-[#1A1F2B]/30"
+                ? "border-[#0F0F0F] bg-[#0F0F0F]/5 shadow-lg"
+                : "border-[#F5F5F5] bg-white hover:border-[#0F0F0F]/30"
             }`}
           >
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-lg text-[#1A1F2B]">Basic</h3>
+              <h3 className="font-bold text-lg text-[#0F0F0F]">Basic</h3>
               {selectedPlan === "basic" && (
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#1A1F2B]">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#0F0F0F]">
                   <Check className="h-3.5 w-3.5 text-white" />
                 </div>
               )}
             </div>
             <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-bold text-[#1A1F2B]">
+              <span className="text-2xl font-bold text-[#0F0F0F]">
                 {isAnnual ? '49 000' : '4 900'}
               </span>
-              <span className="text-sm text-[#1A1F2B]/60">{isAnnual ? 'XOF/an' : 'XOF/mois'}</span>
+              <span className="text-sm text-[#0F0F0F]/60">{isAnnual ? 'XOF/an' : 'XOF/mois'}</span>
             </div>
             {isAnnual ? (
               <p className="mt-1 text-xs text-[#10B981] font-medium">soit ~4 083 XOF/mois</p>
             ) : (
-              <p className="mt-1 text-xs text-[#1A1F2B]/50">soit 49 000 XOF/an</p>
+              <p className="mt-1 text-xs text-[#0F0F0F]/50">soit 49 000 XOF/an</p>
             )}
             <ul className="mt-4 space-y-2">
-              <li className="flex items-center gap-2 text-xs text-[#1A1F2B]/70">
+              <li className="flex items-center gap-2 text-xs text-[#0F0F0F]/70">
                 <Check className="h-3.5 w-3.5 text-[#10B981] shrink-0" />
                 Accès illimité
               </li>
-              <li className="flex items-center gap-2 text-xs text-[#1A1F2B]/70">
+              <li className="flex items-center gap-2 text-xs text-[#0F0F0F]/70">
                 <Check className="h-3.5 w-3.5 text-[#10B981] shrink-0" />
                 Filtres avancés
               </li>
-              <li className="flex items-center gap-2 text-xs text-[#1A1F2B]/70">
+              <li className="flex items-center gap-2 text-xs text-[#0F0F0F]/70">
                 <Check className="h-3.5 w-3.5 text-[#10B981] shrink-0" />
                 Collections & téléchargement
               </li>
@@ -312,42 +312,42 @@ export default function SubscribePage() {
             onClick={() => setSelectedPlan("pro")}
             className={`rounded-xl border-2 p-5 text-left transition-all relative ${
               selectedPlan === "pro"
-                ? "border-[#80368D] bg-[#80368D]/5 shadow-lg shadow-[#80368D]/10"
-                : "border-[#D0E4F2] bg-white hover:border-[#80368D]/30"
+                ? "border-[#F2B33D] bg-[#F2B33D]/5 shadow-lg shadow-[#F2B33D]/10"
+                : "border-[#F5F5F5] bg-white hover:border-[#F2B33D]/30"
             }`}
           >
-            <div className="absolute -top-3 right-3 bg-[#F2B33D] text-[#1A1F2B] px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+            <div className="absolute -top-3 right-3 bg-[#F2B33D] text-[#0F0F0F] px-2.5 py-0.5 rounded-full text-[10px] font-bold">
               Recommandé
             </div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-lg text-[#80368D]">Pro</h3>
+              <h3 className="font-bold text-lg text-[#F2B33D]">Pro</h3>
               {selectedPlan === "pro" && (
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#80368D]">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#F2B33D]">
                   <Check className="h-3.5 w-3.5 text-white" />
                 </div>
               )}
             </div>
             <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-bold text-[#1A1F2B]">
+              <span className="text-2xl font-bold text-[#0F0F0F]">
                 {isAnnual ? '99 000' : '9 900'}
               </span>
-              <span className="text-sm text-[#1A1F2B]/60">{isAnnual ? 'XOF/an' : 'XOF/mois'}</span>
+              <span className="text-sm text-[#0F0F0F]/60">{isAnnual ? 'XOF/an' : 'XOF/mois'}</span>
             </div>
             {isAnnual ? (
               <p className="mt-1 text-xs text-[#10B981] font-medium">soit ~8 250 XOF/mois</p>
             ) : (
-              <p className="mt-1 text-xs text-[#1A1F2B]/50">soit 99 000 XOF/an</p>
+              <p className="mt-1 text-xs text-[#0F0F0F]/50">soit 99 000 XOF/an</p>
             )}
             <ul className="mt-4 space-y-2">
-              <li className="flex items-center gap-2 text-xs text-[#1A1F2B]/70">
+              <li className="flex items-center gap-2 text-xs text-[#0F0F0F]/70">
                 <Check className="h-3.5 w-3.5 text-[#10B981] shrink-0" />
                 Tout du Basic
               </li>
-              <li className="flex items-center gap-2 text-xs text-[#1A1F2B]/70">
+              <li className="flex items-center gap-2 text-xs text-[#0F0F0F]/70">
                 <Check className="h-3.5 w-3.5 text-[#10B981] shrink-0" />
                 Recherches illimitées
               </li>
-              <li className="flex items-center gap-2 text-xs text-[#1A1F2B]/70">
+              <li className="flex items-center gap-2 text-xs text-[#0F0F0F]/70">
                 <Check className="h-3.5 w-3.5 text-[#10B981] shrink-0" />
                 Suivi de marques
               </li>
@@ -356,8 +356,8 @@ export default function SubscribePage() {
         </div>
 
         {/* Features of selected plan */}
-        <div className="mt-6 rounded-xl border border-[#D0E4F2] bg-[#D0E4F2]/10 p-5">
-          <h3 className="text-sm font-semibold text-[#1A1F2B] mb-3">
+        <div className="mt-6 rounded-xl border border-[#F5F5F5] bg-[#F5F5F5]/10 p-5">
+          <h3 className="text-sm font-semibold text-[#0F0F0F] mb-3">
             Ce qui est inclus dans le plan {plan.name} :
           </h3>
           <ul className="space-y-2.5">
@@ -366,15 +366,15 @@ export default function SubscribePage() {
                 <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#10B981]/20 shrink-0">
                   <Check className="h-3 w-3 text-[#10B981]" />
                 </div>
-                <span className="text-sm text-[#1A1F2B]">{feature}</span>
+                <span className="text-sm text-[#0F0F0F]">{feature}</span>
               </li>
             ))}
           </ul>
         </div>
 
         {/* Mobile Money — details de paiement PawaPay */}
-        <div className="mt-6 rounded-xl border border-[#D0E4F2] bg-white p-5 space-y-4">
-          <h3 className="text-sm font-semibold text-[#1A1F2B]">
+        <div className="mt-6 rounded-xl border border-[#F5F5F5] bg-white p-5 space-y-4">
+          <h3 className="text-sm font-semibold text-[#0F0F0F]">
             Paiement Mobile Money
           </h3>
 
@@ -409,7 +409,7 @@ export default function SubscribePage() {
                 disabled={isProcessing}
               />
             </div>
-            <p className="text-xs text-[#1A1F2B]/50">
+            <p className="text-xs text-[#0F0F0F]/50">
               Format international avec l’indicatif pays (sans +).
               Vous recevrez une notification sur votre téléphone pour confirmer
               avec votre code PIN.
@@ -426,14 +426,14 @@ export default function SubscribePage() {
             onChange={(e) => setAcceptTerms(e.target.checked)}
             className="mt-1 h-4 w-4 rounded border-border"
           />
-          <label htmlFor="terms" className="text-sm text-[#1A1F2B]/60">
+          <label htmlFor="terms" className="text-sm text-[#0F0F0F]/60">
             {"J'accepte les"}{" "}
             <LegalModal
               defaultTab="cgv"
               trigger={
                 <button
                   type="button"
-                  className="text-[#80368D] hover:underline"
+                  className="text-[#F2B33D] hover:underline"
                 >
                   CGV et la politique de confidentialité
                 </button>
@@ -446,7 +446,7 @@ export default function SubscribePage() {
         <Button
           onClick={handlePayment}
           disabled={!acceptTerms || isProcessing}
-          className="mt-6 h-12 w-full shadow-lg shadow-[#80368D]/25 bg-[#80368D] hover:bg-[#80368D]/90 text-white font-bold text-base"
+          className="mt-6 h-12 w-full shadow-lg shadow-[#F2B33D]/25 bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-white font-bold text-base"
         >
           {isProcessing ? (
             <>
@@ -462,27 +462,27 @@ export default function SubscribePage() {
         </Button>
 
         {/* Recap */}
-        <div className="mt-6 rounded-xl border border-[#D0E4F2] bg-white p-4">
+        <div className="mt-6 rounded-xl border border-[#F5F5F5] bg-white p-4">
           <div className="space-y-2 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-[#1A1F2B]/60">
+              <span className="text-[#0F0F0F]/60">
                 {isActive ? "Renouvellement" : "Abonnement"} Laveiye —{" "}
                 {plan.name} ({isAnnual ? 'Annuel' : 'Mensuel'})
               </span>
-              <span className="font-medium text-[#1A1F2B]">
+              <span className="font-medium text-[#0F0F0F]">
                 {isAnnual ? (selectedPlan === 'basic' ? '49 000' : '99 000') : plan.priceFormatted} XOF
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[#1A1F2B]/60">Durée ajoutée</span>
-              <span className="text-[#1A1F2B]">+{isAnnual ? '365' : '30'} jours ({isAnnual ? '1 an' : '1 mois'})</span>
+              <span className="text-[#0F0F0F]/60">Durée ajoutée</span>
+              <span className="text-[#0F0F0F]">+{isAnnual ? '365' : '30'} jours ({isAnnual ? '1 an' : '1 mois'})</span>
             </div>
             {isActive && (
               <div className="flex items-center justify-between">
-                <span className="text-[#1A1F2B]/60">
+                <span className="text-[#0F0F0F]/60">
                   Nouvelle date d{"'"}expiration
                 </span>
-                <span className="text-[#1A1F2B] font-medium">
+                <span className="text-[#0F0F0F] font-medium">
                   {new Date(
                     subscriptionEndDate!.getTime() +
                       (isAnnual ? 365 : 30) * 24 * 60 * 60 * 1000
@@ -502,9 +502,9 @@ export default function SubscribePage() {
                 </span>
               </div>
             )}
-            <div className="border-t border-[#D0E4F2] pt-2 flex items-center justify-between">
-              <span className="font-semibold text-[#1A1F2B]">Total</span>
-              <span className="font-bold text-[#80368D]">
+            <div className="border-t border-[#F5F5F5] pt-2 flex items-center justify-between">
+              <span className="font-semibold text-[#0F0F0F]">Total</span>
+              <span className="font-bold text-[#F2B33D]">
                 {isAnnual ? (selectedPlan === 'basic' ? '49 000' : '99 000') : plan.priceFormatted} XOF
               </span>
             </div>
@@ -512,10 +512,10 @@ export default function SubscribePage() {
         </div>
 
         {/* Compare link */}
-        <p className="mt-4 text-center text-sm text-[#1A1F2B]/50">
+        <p className="mt-4 text-center text-sm text-[#0F0F0F]/50">
           <Link
             href="/pricing"
-            className="text-[#80368D] hover:underline"
+            className="text-[#F2B33D] hover:underline"
           >
             Comparer toutes les formules
           </Link>

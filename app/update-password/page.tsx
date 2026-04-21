@@ -15,9 +15,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 // Loading component for Suspense fallback
 function UpdatePasswordLoading() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-violet-50 via-blue-50 to-white">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#F5F5F5] via-white to-white">
       <div className="text-center">
-        <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-violet-600" />
+        <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-[#0F0F0F]" />
         <p className="text-lg font-medium">Chargement...</p>
       </div>
     </div>
@@ -216,9 +216,9 @@ function UpdatePasswordContent() {
   // Afficher un loader pendant la vérification de session
   if (isValidSession === null) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-violet-50 via-blue-50 to-white">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#F5F5F5] via-white to-white">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-violet-600" />
+          <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-[#0F0F0F]" />
           <p className="text-lg font-medium">Vérification...</p>
         </div>
       </div>
@@ -228,13 +228,13 @@ function UpdatePasswordContent() {
   // Session invalide - lien expiré ou accès direct
   if (!isValidSession) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-violet-50 via-blue-50 to-white p-4">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#F5F5F5] via-white to-white p-4">
         <Card className="max-w-md w-full shadow-xl border-2">
           <CardHeader className="text-center pb-4">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
               <Lock className="h-8 w-8 text-amber-600" />
             </div>
-            <CardTitle className="text-xl font-bold text-[#1A1F2B]">
+            <CardTitle className="text-xl font-bold text-[#0F0F0F]">
               Lien expiré ou invalide
             </CardTitle>
             <CardDescription className="text-base">
@@ -246,7 +246,7 @@ function UpdatePasswordContent() {
               Veuillez demander un nouveau lien de réinitialisation.
             </p>
             <div className="flex flex-col gap-2">
-              <Button asChild className="w-full bg-violet-600 hover:bg-violet-700">
+              <Button asChild className="w-full bg-[#F2B33D] hover:bg-[#F2B33D]">
                 <Link href="/forgot-password">
                   Demander un nouveau lien
                 </Link>
@@ -267,13 +267,13 @@ function UpdatePasswordContent() {
   // Succès
   if (isSuccess) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-violet-50 via-blue-50 to-white p-4">
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#F5F5F5] via-white to-white p-4">
         <Card className="max-w-md w-full shadow-xl border-2">
           <CardHeader className="text-center pb-4">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
               <CheckCircle2 className="h-8 w-8 text-green-600" />
             </div>
-            <CardTitle className="text-xl font-bold text-[#1A1F2B]">
+            <CardTitle className="text-xl font-bold text-[#0F0F0F]">
               Mot de passe mis à jour !
             </CardTitle>
             <CardDescription className="text-base">
@@ -320,14 +320,14 @@ function UpdatePasswordContent() {
                   className="relative h-10 w-10 rounded-lg"
                 />
               </div>
-              <span className="font-[family-name:var(--font-questrial)] text-xl font-bold text-foreground">
+              <span className="font-sans text-xl font-bold text-foreground">
                 Laveiye
               </span>
             </Link>
           </div>
 
           <div>
-            <h1 className="font-[family-name:var(--font-montserrat)] text-2xl font-bold text-foreground">
+            <h1 className="font-sans text-2xl font-bold text-foreground">
               Nouveau mot de passe
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -448,7 +448,7 @@ function UpdatePasswordContent() {
 
             <Button
               type="submit"
-              className="w-full h-11 bg-gradient-to-r from-violet-600 to-violet-700 hover:from-violet-700 hover:to-violet-800 font-semibold"
+              className="w-full h-11 bg-[#F2B33D] hover:bg-[#F2B33D] font-semibold"
               disabled={isLoading || password !== confirmPassword || password.length < 8}
             >
               {isLoading ? (
@@ -466,7 +466,7 @@ function UpdatePasswordContent() {
 
       {/* Panneau décoratif côté droit */}
       <div className="relative hidden w-0 flex-1 lg:block">
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600">
+        <div className="absolute inset-0 bg-[#F2B33D]">
           <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20" />
           <div className="absolute inset-0 flex items-center justify-center p-12">
             <div className="max-w-lg text-center text-white">

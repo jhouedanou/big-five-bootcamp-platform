@@ -13,32 +13,32 @@ export default function PaywallPage() {
   ]
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#D0E4F2]/30 to-white px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-[#F5F5F5]/30 to-white px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="mb-8 flex justify-center">
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#80368D]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F2B33D]">
               <Sparkles className="h-6 w-6 text-white" />
             </div>
-            <span className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[#1A1F2B]">Laveiye</span>
+            <span className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[#0F0F0F]">Laveiye</span>
           </Link>
         </div>
 
         {/* Main Card */}
-        <div className="rounded-2xl border border-[#D0E4F2] bg-white p-8 text-center shadow-xl">
+        <div className="rounded-2xl border border-[#F5F5F5] bg-white p-8 text-center shadow-xl">
           {/* Icon */}
           <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#F2B33D]/20">
             <Clock className="h-10 w-10 text-[#F2B33D]" />
           </div>
           
-          <h1 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[#1A1F2B]">
+          <h1 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[#0F0F0F]">
             Passez à un abonnement payant
           </h1>
 
-          <p className="mt-3 text-[#1A1F2B]/70">
+          <p className="mt-3 text-[#0F0F0F]/70">
             Débloquez {"l'accès"} complet à la bibliothèque à partir de{" "}
-            <span className="font-semibold text-[#1A1F2B]">4 900 XOF/mois</span>.
+            <span className="font-semibold text-[#0F0F0F]">4 900 XOF/mois</span>.
           </p>
 
           {/* Benefits */}
@@ -48,13 +48,13 @@ export default function PaywallPage() {
                 <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#10B981]/20">
                   <Check className="h-3 w-3 text-[#10B981]" />
                 </div>
-                <span className="text-sm text-[#1A1F2B]">{benefit}</span>
+                <span className="text-sm text-[#0F0F0F]">{benefit}</span>
               </li>
             ))}
           </ul>
 
           {/* Pricing Card */}
-          <div className="mt-8 rounded-xl bg-[#80368D] p-6 text-left">
+          <div className="mt-8 rounded-xl bg-[#F2B33D] p-6 text-left">
             <div className="flex items-baseline gap-1">
               <span className="font-[family-name:var(--font-heading)] text-4xl font-bold text-white">25 000</span>
               <span className="text-lg text-white/70">XOF/mois</span>
@@ -75,7 +75,7 @@ export default function PaywallPage() {
           </div>
 
           {/* CTA */}
-          <Button asChild className="mt-6 h-12 w-full text-base shadow-lg shadow-[#80368D]/25 bg-[#80368D] hover:bg-[#80368D]/90 text-white">
+          <Button asChild className="mt-6 h-12 w-full text-base shadow-lg shadow-[#F2B33D]/25 bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-white">
             <Link href="/subscribe">
               {"S'abonner"} maintenant
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -85,7 +85,7 @@ export default function PaywallPage() {
           {/* Logout link */}
           <Link 
             href="/"
-            className="mt-4 inline-flex items-center gap-1 text-sm text-[#1A1F2B]/60 transition-colors hover:text-[#1A1F2B]"
+            className="mt-4 inline-flex items-center gap-1 text-sm text-[#0F0F0F]/60 transition-colors hover:text-[#0F0F0F]"
           >
             <LogOut className="h-4 w-4" />
             Non merci, me deconnecter

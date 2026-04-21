@@ -168,7 +168,7 @@ export function AddToCollectionModal({
       <DialogContent className="sm:max-w-[420px] bg-white max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg">
-            <FolderPlus className="h-5 w-5 text-[#80368D]" />
+            <FolderPlus className="h-5 w-5 text-[#F2B33D]" />
             Ajouter à une collection
           </DialogTitle>
           {campaignTitle && (
@@ -181,7 +181,7 @@ export function AddToCollectionModal({
         <div className="flex-1 overflow-y-auto space-y-2 py-2 min-h-0">
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-[#80368D]" />
+              <Loader2 className="h-6 w-6 animate-spin text-[#F2B33D]" />
             </div>
           ) : collections.length === 0 && !showNewInput ? (
             <div className="text-center py-6">
@@ -192,7 +192,7 @@ export function AddToCollectionModal({
               <Button
                 size="sm"
                 onClick={() => setShowNewInput(true)}
-                className="bg-[#80368D] hover:bg-[#80368D]/90 text-white"
+                className="bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-white"
               >
                 <FolderPlus className="h-4 w-4 mr-2" />
                 Créer ma première collection
@@ -211,8 +211,8 @@ export function AddToCollectionModal({
                     className={cn(
                       "w-full flex items-center gap-3 rounded-lg px-3 py-3 text-left transition-all border",
                       isIn
-                        ? "bg-[#80368D]/5 border-[#80368D]/30 hover:bg-[#80368D]/10"
-                        : "bg-white border-gray-200 hover:bg-gray-50 hover:border-[#80368D]/20",
+                        ? "bg-[#F2B33D]/5 border-[#F2B33D]/30 hover:bg-[#F2B33D]/10"
+                        : "bg-white border-gray-200 hover:bg-gray-50 hover:border-[#F2B33D]/20",
                       isToggling && "opacity-50 cursor-wait"
                     )}
                   >
@@ -220,7 +220,7 @@ export function AddToCollectionModal({
                       className={cn(
                         "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
                         isIn
-                          ? "bg-[#80368D] text-white"
+                          ? "bg-[#F2B33D] text-white"
                           : "bg-gray-100 text-gray-400"
                       )}
                     >
@@ -233,7 +233,7 @@ export function AddToCollectionModal({
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-[#1A1F2B] truncate">
+                      <p className="text-sm font-medium text-[#0F0F0F] truncate">
                         {col.name}
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -241,7 +241,7 @@ export function AddToCollectionModal({
                       </p>
                     </div>
                     {isIn && (
-                      <span className="text-xs font-medium text-[#80368D] shrink-0">
+                      <span className="text-xs font-medium text-[#F2B33D] shrink-0">
                         ✓ Ajouté
                       </span>
                     )}
@@ -275,7 +275,7 @@ export function AddToCollectionModal({
                 size="sm"
                 onClick={createAndAdd}
                 disabled={!newName.trim() || creating}
-                className="bg-[#80368D] hover:bg-[#80368D]/90 text-white shrink-0"
+                className="bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-white shrink-0"
               >
                 {creating ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -289,7 +289,7 @@ export function AddToCollectionModal({
               variant="outline"
               size="sm"
               onClick={() => setShowNewInput(true)}
-              className="w-full gap-2 text-[#80368D] border-[#80368D]/30 hover:bg-[#80368D]/5"
+              className="w-full gap-2 text-[#F2B33D] border-[#F2B33D]/30 hover:bg-[#F2B33D]/5"
             >
               <FolderPlus className="h-4 w-4" />
               Nouvelle collection

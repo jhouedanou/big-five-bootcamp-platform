@@ -137,16 +137,16 @@ export function FiltersSidebar({
     <aside className={className}>
       <div className="sticky top-20">
         {/* En-tête des filtres */}
-        <div className="flex items-center justify-between pb-5 mb-2 border-b-2 border-[#80368D]/20">
+        <div className="flex items-center justify-between pb-5 mb-2 border-b-2 border-[#F2B33D]/20">
           <div className="flex items-center gap-3">
-            <h2 className="font-[family-name:var(--font-heading)] text-base font-bold uppercase tracking-wide text-[#1A1F2B]">
+            <h2 className="font-[family-name:var(--font-heading)] text-base font-bold uppercase tracking-wide text-[#0F0F0F]">
               Filtres
             </h2>
             {isFreeUser && (
               <button
                 type="button"
                 onClick={onLockedFilterClick}
-                className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[#80368D]/10 to-[#a855f7]/10 border border-[#80368D]/20 px-3 py-1 text-xs font-semibold text-[#80368D] hover:from-[#80368D]/20 hover:to-[#a855f7]/20 transition-all"
+                className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[#F2B33D]/10 to-[#a855f7]/10 border border-[#F2B33D]/20 px-3 py-1 text-xs font-semibold text-[#F2B33D] hover:from-[#F2B33D]/20 hover:to-[#a855f7]/20 transition-all"
               >
                 🔓 Tout débloquer
               </button>
@@ -157,7 +157,7 @@ export function FiltersSidebar({
               variant="ghost"
               size="sm"
               onClick={clearAllFilters}
-              className="h-auto px-3 py-1.5 text-sm font-semibold text-[#80368D] hover:text-white hover:bg-[#80368D] rounded-full transition-all"
+              className="h-auto px-3 py-1.5 text-sm font-semibold text-[#F2B33D] hover:text-white hover:bg-[#F2B33D] rounded-full transition-all"
             >
               Réinitialiser ({totalFilters})
             </Button>
@@ -172,8 +172,8 @@ export function FiltersSidebar({
                 key={group.name}
                 className={`rounded-xl border-2 overflow-hidden transition-all ${
                   isLocked
-                    ? "border-[#D0E4F2] bg-white/30"
-                    : "border-[#D0E4F2] bg-white/50 hover:border-[#80368D]/30"
+                    ? "border-[#F5F5F5] bg-white/30"
+                    : "border-[#F5F5F5] bg-white/50 hover:border-[#F2B33D]/30"
                 }`}
               >
                 <button
@@ -188,36 +188,36 @@ export function FiltersSidebar({
                   className={`flex w-full items-center justify-between px-4 py-3.5 text-left transition-colors ${
                     isLocked
                       ? "cursor-not-allowed"
-                      : "hover:bg-[#D0E4F2]/30"
+                      : "hover:bg-[#F5F5F5]/30"
                   }`}
                 >
                   <span className="flex items-center gap-2.5">
-                    <span className="text-base font-bold text-[#1A1F2B]">{group.name}</span>
-                    {isLocked && <Lock className="h-3.5 w-3.5 text-[#1A1F2B]/40" />}
+                    <span className="text-base font-bold text-[#0F0F0F]">{group.name}</span>
+                    {isLocked && <Lock className="h-3.5 w-3.5 text-[#0F0F0F]/40" />}
                     {!isLocked && (selectedFilters[group.name]?.length ?? 0) > 0 && (
-                      <Badge className="h-6 rounded-full bg-[#80368D] px-2.5 text-sm font-bold text-white shadow-md shadow-[#80368D]/25">
+                      <Badge className="h-6 rounded-full bg-[#F2B33D] px-2.5 text-sm font-bold text-white shadow-md shadow-[#F2B33D]/25">
                         {selectedFilters[group.name]?.length}
                       </Badge>
                     )}
-                    <span className="text-sm font-medium text-[#1A1F2B]/50">
+                    <span className="text-sm font-medium text-[#0F0F0F]/50">
                       ({group.options.length})
                     </span>
                   </span>
                   {isLocked ? (
-                    <span className="text-xs font-medium text-[#FFFFFF] bg-[#80368D] px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-medium text-[#FFFFFF] bg-[#F2B33D] px-2 py-0.5 rounded-full">
                       Pro
                     </span>
                   ) : expandedGroups.includes(group.name) ? (
-                    <ChevronUp className="h-5 w-5 text-[#80368D]" />
+                    <ChevronUp className="h-5 w-5 text-[#F2B33D]" />
                   ) : (
-                    <ChevronDown className="h-5 w-5 text-[#1A1F2B]/50" />
+                    <ChevronDown className="h-5 w-5 text-[#0F0F0F]/50" />
                   )}
                 </button>
 
                 {!isLocked && expandedGroups.includes(group.name) && (
-                  <div className="flex flex-col gap-1.5 px-3 pb-4 pt-1 max-h-56 overflow-y-auto border-t border-[#D0E4F2]">
+                  <div className="flex flex-col gap-1.5 px-3 pb-4 pt-1 max-h-56 overflow-y-auto border-t border-[#F5F5F5]">
                     {group.options.length === 0 ? (
-                      <p className="text-sm font-medium text-[#1A1F2B]/50 italic px-2 py-2">
+                      <p className="text-sm font-medium text-[#0F0F0F]/50 italic px-2 py-2">
                         Aucune option disponible
                       </p>
                     ) : (
@@ -230,23 +230,23 @@ export function FiltersSidebar({
                             onClick={() => toggleFilter(group.name, option)}
                             className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-all ${
                               isSelected
-                                ? "bg-[#80368D] text-white shadow-md shadow-[#80368D]/25"
-                                : "bg-white text-[#1A1F2B] hover:bg-[#D0E4F2]/50 border border-[#D0E4F2] hover:border-[#80368D]/30"
+                                ? "bg-[#F2B33D] text-white shadow-md shadow-[#F2B33D]/25"
+                                : "bg-white text-[#0F0F0F] hover:bg-[#F5F5F5]/50 border border-[#F5F5F5] hover:border-[#F2B33D]/30"
                             }`}
                           >
                             <div className={`flex h-5 w-5 items-center justify-center rounded-md border-2 transition-all ${
                               isSelected
                                 ? "border-white bg-white"
-                                : "border-[#D0E4F2] bg-white"
+                                : "border-[#F5F5F5] bg-white"
                             }`}>
                               {isSelected && (
-                                <svg className="h-3.5 w-3.5 text-[#80368D]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="h-3.5 w-3.5 text-[#F2B33D]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                                 </svg>
                               )}
                             </div>
                             {group.hasIcons && platformIcons[option] && (
-                              <span className={isSelected ? "text-white" : "text-[#1A1F2B]/70"}>{platformIcons[option]}</span>
+                              <span className={isSelected ? "text-white" : "text-[#0F0F0F]/70"}>{platformIcons[option]}</span>
                             )}
                             {group.name === "Pays" && (
                               <CountryFlag country={option} className="h-4 w-5" />
@@ -265,8 +265,8 @@ export function FiltersSidebar({
 
         {/* Indicateur de filtres dynamiques */}
         {dynamicOptions && (
-          <div className="mt-5 pt-4 border-t-2 border-[#D0E4F2]">
-            <p className="text-sm font-medium text-[#1A1F2B]/50 text-center">
+          <div className="mt-5 pt-4 border-t-2 border-[#F5F5F5]">
+            <p className="text-sm font-medium text-[#0F0F0F]/50 text-center">
               ✨ Filtres basés sur vos campagnes
             </p>
           </div>

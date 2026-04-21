@@ -260,7 +260,7 @@ export function CreativeCard({ creative, showFavoriteButton = true }: CreativeCa
                                             {/* Overlay play button */}
                                             <div className="absolute inset-0 flex items-center justify-center bg-black/30 rounded-lg group-hover:bg-black/40 transition-colors">
                                                 <div className="bg-white/90 rounded-full p-4 shadow-lg group-hover:scale-110 transition-transform">
-                                                    <PlayCircle className="h-12 w-12 text-violet-600" />
+                                                    <PlayCircle className="h-12 w-12 text-[#0F0F0F]" />
                                                 </div>
                                             </div>
                                         </div>
@@ -364,7 +364,7 @@ export function CreativeCard({ creative, showFavoriteButton = true }: CreativeCa
                                     href={creative.videoUrl}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white font-medium rounded-xl hover:from-violet-700 hover:to-purple-700 transition-all shadow-lg"
+                                    className="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#F2B33D] text-white font-medium rounded-xl hover:bg-[#F2B33D] transition-all shadow-lg"
                                 >
                                     <PlayCircle className="h-5 w-5" />
                                     Voir la vidéo sur {getPlatformLabel(videoPlatform!)}

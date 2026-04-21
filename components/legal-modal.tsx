@@ -346,7 +346,7 @@ export function LegalModal({ trigger, defaultTab = "cgu" }: LegalModalProps) {
                 </p>
                 <ul className="list-none pl-0 space-y-1 text-sm mt-2">
                   <li>Email : support@laveiye.com</li>
-                  <li>Téléphone : +225 21 59 42 28</li>
+                  <li>Téléphone : +225 21 59 42 28 / +225 07 47 97 06 27</li>
                   <li>Adresse : Laveiye, Abidjan, Côte d&apos;Ivoire</li>
                 </ul>
               </div>

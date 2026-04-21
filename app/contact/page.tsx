@@ -99,6 +99,7 @@ export default function ContactPage() {
                                             <div>
                                                 <p className="font-medium">Téléphone</p>
                                                 <p className="text-sm text-muted-foreground">+225 21 59 42 28</p>
+                                                <p className="text-sm text-muted-foreground">+225 07 47 97 06 27</p>
                                             </div>
                                         </div>
                                     </div>

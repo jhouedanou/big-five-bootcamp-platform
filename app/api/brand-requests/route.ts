@@ -126,14 +126,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3) Liens — au moins un requis
+    // 3) Liens — requis sauf si la marque existe déjà dans les campagnes
+    //    (dans ce cas, l'équipe sait où chercher via les campagnes existantes)
     const urlsRaw: string[] = Array.isArray(brandUrls)
       ? brandUrls.map((u) => String(u).trim()).filter(Boolean)
       : []
 
-    if (urlsRaw.length === 0) {
+    const { data: existing } = await admin
+      .from('campaigns')
+      .select('brand')
+      .ilike('brand', brandName.trim())
+      .limit(1)
+    const brandIsKnown = (existing?.length ?? 0) > 0
+
+    if (urlsRaw.length === 0 && !brandIsKnown) {
       return NextResponse.json(
-        { error: 'Au moins un lien est requis.' },
+        { error: 'Au moins un lien est requis pour une nouvelle marque.' },
         { status: 400 }
       )
     }

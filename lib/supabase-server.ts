@@ -7,9 +7,17 @@ import { createServerClient } from '@supabase/ssr'
  * Utilise la service_role key pour bypasser les RLS policies
  */
 export function getSupabaseAdmin() {
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!serviceKey) {
+    // Fail fast: using anon key here would silently make admin routes subject to RLS
+    // which is a common source of "no data for admin" bugs. Throw to make the
+    // misconfiguration visible during development.
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY is not set — admin operations require the service role key')
+  }
+
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    serviceKey,
     {
       auth: {
         autoRefreshToken: false,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
@@ -21,6 +21,12 @@ import {
   ExternalLink,
   BarChart3,
   Link2,
+  ArrowRight,
+  Copy,
+  Rss,
+  Check,
+  Sparkles,
+  ChevronDown,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -89,8 +95,60 @@ export default function BrandRequestsPage() {
   // Form state — strictement les champs demandés
   const [brandName, setBrandName] = useState("")
   const [selectedSocials, setSelectedSocials] = useState<Set<SocialCode>>(new Set())
-  const [linksText, setLinksText] = useState("") // un lien par ligne
+  const [linksText, setLinksText] = useState("") // un lien par ligne (optionnel)
   const [notes, setNotes] = useState("")
+  const [copiedKey, setCopiedKey] = useState<string | null>(null)
+
+  // Liste des marques déjà présentes dans les campagnes du backend.
+  // Alimente l'autocomplétion du champ "Nom de la marque" et prévient les doublons.
+  const [knownBrands, setKnownBrands] = useState<string[]>([])
+  const [brandDropdownOpen, setBrandDropdownOpen] = useState(false)
+  const brandInputRef = useRef<HTMLDivElement>(null)
+
+  // Ferme le dropdown au clic extérieur
+  useEffect(() => {
+    if (!brandDropdownOpen) return
+    const handler = (e: MouseEvent) => {
+      if (brandInputRef.current && !brandInputRef.current.contains(e.target as Node)) {
+        setBrandDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [brandDropdownOpen])
+
+  const normalizedBrand = brandName.trim().toLowerCase()
+  const isKnownBrand = normalizedBrand.length > 0 && knownBrands.some(
+    (b) => b.toLowerCase() === normalizedBrand
+  )
+  const filteredBrands = useMemo(() => {
+    if (!normalizedBrand) return knownBrands.slice(0, 50)
+    return knownBrands
+      .filter((b) => b.toLowerCase().includes(normalizedBrand))
+      .slice(0, 50)
+  }, [knownBrands, normalizedBrand])
+
+  // Construit l'URL deep-link vers le dashboard filtre par cette marque
+  // Exemple : /dashboard?brand=MTN&socials=facebook,instagram
+  const buildBrandDeepLink = (name: string, socials?: SocialCode[]) => {
+    const params = new URLSearchParams()
+    params.set('brand', name)
+    if (socials && socials.length > 0) {
+      params.set('socials', socials.join(','))
+    }
+    return `/dashboard?${params.toString()}`
+  }
+
+  const copyDeepLink = async (key: string, url: string) => {
+    try {
+      const full = typeof window !== 'undefined'
+        ? `${window.location.origin}${url}`
+        : url
+      await navigator.clipboard.writeText(full)
+      setCopiedKey(key)
+      setTimeout(() => setCopiedKey(null), 2000)
+    } catch { /* ignore */ }
+  }
 
   const supabase = createClient()
   const isAllowed =
@@ -173,11 +231,18 @@ export default function BrandRequestsPage() {
           setUserRole((profile as any).role || 'user')
         }
 
-        const res = await fetch('/api/brand-requests')
+        const [reqRes, brandsRes] = await Promise.all([
+          fetch('/api/brand-requests'),
+          fetch('/api/brands'),
+        ])
         if (!mounted) return
-        if (res.ok) {
-          const data = await res.json()
+        if (reqRes.ok) {
+          const data = await reqRes.json()
           setRequests(data.requests || [])
+        }
+        if (brandsRes.ok) {
+          const data = await brandsRes.json()
+          setKnownBrands(Array.isArray(data.brands) ? data.brands : [])
         }
       } catch { /* ignore */ }
       finally { if (mounted) setLoading(false) }
@@ -222,8 +287,8 @@ export default function BrandRequestsPage() {
       setSubmitError("Cochez au moins un réseau social.")
       return
     }
-    if (brandUrls.length === 0) {
-      setSubmitError("Au moins un lien est requis.")
+    if (brandUrls.length === 0 && !isKnownBrand) {
+      setSubmitError("Au moins un lien est requis pour une nouvelle marque.")
       return
     }
     const invalid = brandUrls.find((u) => {
@@ -447,6 +512,55 @@ export default function BrandRequestsPage() {
                               </span>
                             </div>
                           </div>
+
+                          {/* Lien unique vers le dashboard filtre */}
+                          {(() => {
+                            const deepLink = buildBrandDeepLink(b.name, socials as SocialCode[])
+                            const rssLink = `/api/rss/brand/${encodeURIComponent(b.name)}`
+                            const key = `brand-${b.name.toLowerCase()}`
+                            const copied = copiedKey === key
+                            return (
+                              <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-[#F2B33D]/20 bg-[#F2B33D]/5 px-3 py-2">
+                                <span className="text-[11px] font-semibold text-[#0F0F0F]/60 uppercase tracking-wide shrink-0">
+                                  Lien unique
+                                </span>
+                                <code className="flex-1 min-w-0 truncate text-xs text-[#0F0F0F]/80 font-mono">
+                                  {deepLink}
+                                </code>
+                                <Link href={deepLink}>
+                                  <Button size="sm" className="h-7 bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-xs">
+                                    <ArrowRight className="h-3 w-3 mr-1" />
+                                    Voir les campagnes
+                                  </Button>
+                                </Link>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs"
+                                  onClick={() => copyDeepLink(key, deepLink)}
+                                  title="Copier le lien"
+                                >
+                                  <Copy className="h-3 w-3 mr-1" />
+                                  {copied ? 'Copié !' : 'Copier'}
+                                </Button>
+                                <a
+                                  href={rssLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title="Flux RSS des campagnes de cette marque"
+                                >
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 text-xs border-orange-300 text-orange-700 hover:bg-orange-50"
+                                  >
+                                    <Rss className="h-3 w-3 mr-1" />
+                                    RSS
+                                  </Button>
+                                </a>
+                              </div>
+                            )
+                          })()}
                         </div>
                       )
                     })}
@@ -478,20 +592,86 @@ export default function BrandRequestsPage() {
                     Nouvelle demande de curation
                   </h2>
 
-                  {/* 1) Nom de la marque */}
+                  {/* 1) Nom de la marque — combobox avec marques connues */}
                   <div className="mb-5">
                     <label htmlFor="brandName" className="block text-sm font-medium text-[#0F0F0F]/80 mb-1.5">
                       Nom de la marque <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      id="brandName"
-                      type="text"
-                      value={brandName}
-                      onChange={(e) => setBrandName(e.target.value)}
-                      placeholder="Ex: MTN, Orange, Coca-Cola..."
-                      className="w-full rounded-lg border border-[#F5F5F5] px-3 py-2 text-sm text-[#0F0F0F] outline-none focus:border-[#F2B33D] focus:ring-2 focus:ring-[#F2B33D]/20"
-                      required
-                    />
+                    <div ref={brandInputRef} className="relative">
+                      <input
+                        id="brandName"
+                        type="text"
+                        value={brandName}
+                        onChange={(e) => { setBrandName(e.target.value); setBrandDropdownOpen(true) }}
+                        onFocus={() => setBrandDropdownOpen(true)}
+                        autoComplete="off"
+                        placeholder="Ex: MTN, Orange, Coca-Cola..."
+                        className="w-full rounded-lg border border-[#F5F5F5] pl-3 pr-9 py-2 text-sm text-[#0F0F0F] outline-none focus:border-[#F2B33D] focus:ring-2 focus:ring-[#F2B33D]/20"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setBrandDropdownOpen((v) => !v)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#0F0F0F]/40 hover:text-[#0F0F0F]/70"
+                        aria-label="Afficher les marques"
+                        tabIndex={-1}
+                      >
+                        <ChevronDown className={`h-4 w-4 transition-transform ${brandDropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {brandDropdownOpen && (
+                        <div className="absolute z-20 mt-1 w-full max-h-60 overflow-y-auto rounded-lg border border-[#F5F5F5] bg-white shadow-lg">
+                          {filteredBrands.length > 0 ? (
+                            <ul className="py-1">
+                              {filteredBrands.map((b) => {
+                                const selected = b.toLowerCase() === normalizedBrand
+                                return (
+                                  <li key={b}>
+                                    <button
+                                      type="button"
+                                      onClick={() => { setBrandName(b); setBrandDropdownOpen(false) }}
+                                      className={`flex w-full items-center justify-between px-3 py-2 text-sm text-left hover:bg-[#F4F8FB] ${
+                                        selected ? 'bg-[#F2B33D]/5 text-[#F2B33D] font-medium' : 'text-[#0F0F0F]'
+                                      }`}
+                                    >
+                                      <span className="truncate">{b}</span>
+                                      {selected && <Check className="h-4 w-4 shrink-0" />}
+                                    </button>
+                                  </li>
+                                )
+                              })}
+                            </ul>
+                          ) : (
+                            <div className="px-3 py-3 text-xs text-[#0F0F0F]/50">
+                              {knownBrands.length === 0
+                                ? "Aucune marque répertoriée pour le moment."
+                                : "Aucune marque ne correspond — ce sera une nouvelle demande."}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Badge d'état : marque connue vs nouvelle */}
+                    {brandName.trim() && (
+                      <p className="mt-2 flex items-center gap-1.5 text-xs">
+                        {isKnownBrand ? (
+                          <>
+                            <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
+                            <span className="text-green-700">
+                              Marque déjà suivie — les liens ne sont pas nécessaires.
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-3.5 w-3.5 text-[#F2B33D]" />
+                            <span className="text-[#0F0F0F]/60">
+                              Nouvelle marque — merci d'indiquer au moins un lien ci-dessous.
+                            </span>
+                          </>
+                        )}
+                      </p>
+                    )}
                   </div>
 
                   {/* 2) Réseaux sociaux (checkboxes) */}
@@ -541,25 +721,27 @@ export default function BrandRequestsPage() {
                     </div>
                   </fieldset>
 
-                  {/* 3) Liens (multi-lignes, requis) */}
-                  <div className="mb-5">
-                    <label htmlFor="brandUrls" className="block text-sm font-medium text-[#0F0F0F]/80 mb-1.5">
-                      Lien(s) <span className="text-red-500">*</span>
-                    </label>
-                    <textarea
-                      id="brandUrls"
-                      value={linksText}
-                      onChange={(e) => setLinksText(e.target.value)}
-                      rows={4}
-                      required
-                      placeholder={"https://facebook.com/marque\nhttps://instagram.com/marque\nhttps://tiktok.com/@marque"}
-                      className="w-full rounded-lg border border-[#F5F5F5] px-3 py-2 text-sm text-[#0F0F0F] outline-none focus:border-[#F2B33D] focus:ring-2 focus:ring-[#F2B33D]/20 font-mono resize-none"
-                    />
-                    <p className="mt-1 text-xs text-[#0F0F0F]/50">
-                      Un lien par ligne. Les URLs doivent commencer par <code>http://</code> ou{' '}
-                      <code>https://</code>.
-                    </p>
-                  </div>
+                  {/* 3) Liens — masqués si la marque est déjà suivie */}
+                  {!isKnownBrand && (
+                    <div className="mb-5">
+                      <label htmlFor="brandUrls" className="block text-sm font-medium text-[#0F0F0F]/80 mb-1.5">
+                        Lien(s) <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        id="brandUrls"
+                        value={linksText}
+                        onChange={(e) => setLinksText(e.target.value)}
+                        rows={4}
+                        required
+                        placeholder={"https://facebook.com/marque\nhttps://instagram.com/marque\nhttps://tiktok.com/@marque"}
+                        className="w-full rounded-lg border border-[#F5F5F5] px-3 py-2 text-sm text-[#0F0F0F] outline-none focus:border-[#F2B33D] focus:ring-2 focus:ring-[#F2B33D]/20 font-mono resize-none"
+                      />
+                      <p className="mt-1 text-xs text-[#0F0F0F]/50">
+                        Un lien par ligne. Les URLs doivent commencer par <code>http://</code> ou{' '}
+                        <code>https://</code>.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Notes optionnelles */}
                   <div className="mb-5">
@@ -697,6 +879,54 @@ export default function BrandRequestsPage() {
                                 <p className="text-sm text-[#0F0F0F]">{req.admin_notes}</p>
                               </div>
                             )}
+
+                            {/* CTA visible quand la demande est terminee : acces direct au dashboard filtre */}
+                            {req.status === 'completed' && (() => {
+                              const deepLink = buildBrandDeepLink(req.brand_name, socials)
+                              const key = `req-${req.id}`
+                              const copied = copiedKey === key
+                              return (
+                                <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2">
+                                  <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                                  <span className="text-xs font-semibold text-green-800 shrink-0">
+                                    Campagnes disponibles
+                                  </span>
+                                  <code className="flex-1 min-w-0 truncate text-xs text-green-900/70 font-mono">
+                                    {deepLink}
+                                  </code>
+                                  <Link href={deepLink}>
+                                    <Button size="sm" className="h-7 bg-green-600 hover:bg-green-700 text-white text-xs">
+                                      <ArrowRight className="h-3 w-3 mr-1" />
+                                      Voir
+                                    </Button>
+                                  </Link>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 text-xs border-green-200"
+                                    onClick={() => copyDeepLink(key, deepLink)}
+                                  >
+                                    <Copy className="h-3 w-3 mr-1" />
+                                    {copied ? 'Copié !' : 'Copier'}
+                                  </Button>
+                                  <a
+                                    href={`/api/rss/brand/${encodeURIComponent(req.brand_name)}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    title="Flux RSS des campagnes de cette marque"
+                                  >
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 text-xs border-green-200 text-green-800 hover:bg-green-100"
+                                    >
+                                      <Rss className="h-3 w-3 mr-1" />
+                                      RSS
+                                    </Button>
+                                  </a>
+                                </div>
+                              )
+                            })()}
                           </div>
                           <p className="text-xs text-[#0F0F0F]/40 shrink-0">
                             {new Date(req.created_at).toLocaleDateString('fr-FR', {

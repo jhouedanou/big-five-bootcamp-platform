@@ -12,22 +12,21 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase-server'
+import { getSupabaseAdmin } from '@/lib/supabase-server'
+import { checkAdmin } from '@/lib/admin-auth'
 
 export const dynamic = 'force-dynamic'
 
-async function checkAdmin() {
-  const supabase = await getSupabaseServer()
-  const { data: { user }, error } = await supabase.auth.getUser()
-  if (error || !user) return null
-  const admin = getSupabaseAdmin()
-  const { data: profile } = await admin.from('users').select('role').eq('id', user.id).single()
-  if (!profile || profile.role !== 'admin') return null
-  return user
-}
-
 export async function POST(request: NextRequest) {
   try {
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('[admin/brand-requests/merge] missing SUPABASE_SERVICE_ROLE_KEY')
+      return NextResponse.json(
+        { error: 'Server misconfiguration: SUPABASE_SERVICE_ROLE_KEY not set' },
+        { status: 500 }
+      )
+    }
+
     const adminUser = await checkAdmin()
     if (!adminUser) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
 
@@ -73,6 +72,7 @@ export async function POST(request: NextRequest) {
     const allUrls = new Set<string>()
     const allSocials = new Set<string>()
     const notesParts: string[] = []
+    const adminNotesParts: string[] = []
 
     for (const req of requests) {
       const urls: string[] = req.brand_urls ?? (req.brand_url ? [req.brand_url] : [])
@@ -88,17 +88,24 @@ export async function POST(request: NextRequest) {
       if (note && note.trim() && !notesParts.includes(note.trim())) {
         notesParts.push(note.trim())
       }
+
+      const adminNote: string | null = req.admin_notes
+      if (adminNote && adminNote.trim() && !adminNotesParts.includes(adminNote.trim())) {
+        adminNotesParts.push(adminNote.trim())
+      }
     }
 
     const mergedUrls = Array.from(allUrls)
     const mergedSocials = Array.from(allSocials)
     const mergedNotes = notesParts.join('\n---\n') || null
+    const mergedAdminNotes = adminNotesParts.join('\n---\n') || null
 
     const originalCanonical = {
       brand_urls: canonical.brand_urls ?? (canonical.brand_url ? [canonical.brand_url] : []),
       brand_url: canonical.brand_url ?? null,
       social_networks: canonical.social_networks ?? [],
       notes: canonical.notes ?? null,
+      admin_notes: canonical.admin_notes ?? null,
     }
 
     // Mettre à jour la demande canonique
@@ -109,6 +116,7 @@ export async function POST(request: NextRequest) {
         brand_url: mergedUrls[0] ?? null,
         social_networks: mergedSocials,
         notes: mergedNotes,
+        admin_notes: mergedAdminNotes,
         updated_at: new Date().toISOString(),
       })
       .eq('id', canonical.id)
@@ -133,6 +141,7 @@ export async function POST(request: NextRequest) {
           brand_url: originalCanonical.brand_url,
           social_networks: originalCanonical.social_networks,
           notes: originalCanonical.notes,
+          admin_notes: originalCanonical.admin_notes,
           updated_at: new Date().toISOString(),
         })
         .eq('id', canonical.id)
@@ -155,7 +164,8 @@ export async function POST(request: NextRequest) {
       merged: updated,
       deleted: duplicateIds,
     })
-  } catch {
+  } catch (e: any) {
+    console.error('[admin/brand-requests/merge]', e)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

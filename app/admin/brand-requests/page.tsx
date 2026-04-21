@@ -2,17 +2,17 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Building2, Loader2, CheckCircle2, XCircle, Clock, ArrowLeft, Play, MessageSquare } from "lucide-react"
+import { Building2, Loader2, ArrowLeft, MessageSquare, GitMerge, CheckSquare, Square } from "lucide-react"
 import Link from "next/link"
 
 interface BrandRequest {
   id: string
   brand_name: string
-  brand_url: string | null          // legacy (1er lien)
+  brand_url: string | null
   brand_urls: string[] | null
   social_networks: string[] | null
-  brand_country: string | null      // legacy
-  brand_sector: string | null       // legacy
+  brand_country: string | null
+  brand_sector: string | null
   notes: string | null
   status: string
   admin_notes: string | null
@@ -34,12 +34,12 @@ const SOCIAL_LABELS: Record<string, string> = {
   tiktok: 'TikTok',
 }
 
-const statusOptions = [
-  { value: 'pending', label: 'En attente', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'accepted', label: 'Acceptée', color: 'bg-blue-100 text-blue-800' },
-  { value: 'in_progress', label: 'En cours', color: 'bg-purple-100 text-purple-800' },
-  { value: 'completed', label: 'Terminée', color: 'bg-green-100 text-green-800' },
-  { value: 'rejected', label: 'Refusée', color: 'bg-red-100 text-red-800' },
+const STATUS_OPTIONS = [
+  { value: 'pending',     label: 'En attente', color: 'bg-yellow-100 text-yellow-800' },
+  { value: 'accepted',    label: 'Acceptée',   color: 'bg-blue-100 text-blue-800' },
+  { value: 'in_progress', label: 'En cours',   color: 'bg-purple-100 text-purple-800' },
+  { value: 'completed',   label: 'Terminée',   color: 'bg-green-100 text-green-800' },
+  { value: 'rejected',    label: 'Refusée',    color: 'bg-red-100 text-red-800' },
 ]
 
 export default function AdminBrandRequestsPage() {
@@ -49,11 +49,15 @@ export default function AdminBrandRequestsPage() {
   const [adminNotes, setAdminNotes] = useState("")
   const [saving, setSaving] = useState(false)
 
-  useEffect(() => {
-    loadRequests()
-  }, [])
+  // Sélection pour fusion
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [merging, setMerging] = useState(false)
+  const [mergeError, setMergeError] = useState<string | null>(null)
+
+  useEffect(() => { loadRequests() }, [])
 
   const loadRequests = async () => {
+    setLoading(true)
     try {
       const res = await fetch('/api/admin/brand-requests')
       if (res.ok) {
@@ -66,7 +70,7 @@ export default function AdminBrandRequestsPage() {
   const updateRequest = async (id: string, status?: string, notes?: string) => {
     setSaving(true)
     try {
-      const body: any = { id }
+      const body: Record<string, unknown> = { id }
       if (status) body.status = status
       if (notes !== undefined) body.adminNotes = notes
 
@@ -85,8 +89,49 @@ export default function AdminBrandRequestsPage() {
     } catch { /* ignore */ } finally { setSaving(false) }
   }
 
+  const toggleSelect = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+    setMergeError(null)
+  }
+
+  const handleMerge = async () => {
+    if (selected.size < 2) return
+    setMerging(true)
+    setMergeError(null)
+    try {
+      const res = await fetch('/api/admin/brand-requests/merge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: Array.from(selected) }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setMergeError(data.error || 'Erreur lors de la fusion.')
+      } else {
+        setSelected(new Set())
+        await loadRequests()
+      }
+    } catch {
+      setMergeError('Erreur réseau.')
+    } finally {
+      setMerging(false)
+    }
+  }
+
   const pendingCount = requests.filter(r => r.status === 'pending').length
   const inProgressCount = requests.filter(r => r.status === 'in_progress' || r.status === 'accepted').length
+
+  // Demandes sélectionnées — vérifier même marque / même user
+  const selectedRequests = requests.filter(r => selected.has(r.id))
+  const sameUser = selectedRequests.length > 1
+    && new Set(selectedRequests.map(r => r.user?.id)).size === 1
+  const sameBrand = selectedRequests.length > 1
+    && new Set(selectedRequests.map(r => r.brand_name.toLowerCase().trim())).size === 1
+  const canMerge = selected.size >= 2 && sameUser
 
   return (
     <div className="p-6">
@@ -105,6 +150,42 @@ export default function AdminBrandRequestsPage() {
         </div>
       </div>
 
+      {/* Barre de fusion */}
+      {selected.size >= 2 && (
+        <div className="mb-4 flex items-center gap-3 rounded-xl border border-[#80368D]/20 bg-[#80368D]/5 px-4 py-3">
+          <GitMerge className="h-5 w-5 text-[#80368D] shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-[#80368D]">
+              {selected.size} demandes sélectionnées
+            </p>
+            {!sameUser && (
+              <p className="text-xs text-red-500 mt-0.5">Les demandes doivent appartenir au même utilisateur.</p>
+            )}
+            {sameUser && !sameBrand && (
+              <p className="text-xs text-amber-600 mt-0.5">Attention : les marques sélectionnées sont différentes.</p>
+            )}
+            {mergeError && <p className="text-xs text-red-500 mt-0.5">{mergeError}</p>}
+          </div>
+          <Button
+            size="sm"
+            disabled={!canMerge || merging}
+            onClick={handleMerge}
+            className="bg-[#80368D] hover:bg-[#80368D]/90 shrink-0"
+          >
+            {merging ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <GitMerge className="h-3 w-3 mr-1" />}
+            Fusionner
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => { setSelected(new Set()); setMergeError(null) }}
+            className="shrink-0"
+          >
+            Annuler
+          </Button>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-[#80368D]" />
@@ -118,14 +199,34 @@ export default function AdminBrandRequestsPage() {
       ) : (
         <div className="space-y-4">
           {requests.map((req) => {
-            const currentStatus = statusOptions.find(s => s.value === req.status) || statusOptions[0]
+            const currentStatus = STATUS_OPTIONS.find(s => s.value === req.status) || STATUS_OPTIONS[0]
             const isEditing = editingId === req.id
+            const isSelected = selected.has(req.id)
 
             return (
-              <div key={req.id} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+              <div
+                key={req.id}
+                className={`rounded-xl border bg-white p-5 shadow-sm transition-all ${
+                  isSelected ? 'border-[#80368D]/40 ring-2 ring-[#80368D]/20' : 'border-gray-200'
+                }`}
+              >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
+                  {/* Checkbox sélection */}
+                  <button
+                    type="button"
+                    onClick={() => toggleSelect(req.id)}
+                    className="mt-0.5 shrink-0 text-gray-400 hover:text-[#80368D] transition-colors"
+                    aria-label={isSelected ? "Désélectionner" : "Sélectionner pour fusion"}
+                    title={isSelected ? "Désélectionner" : "Sélectionner pour fusion"}
+                  >
+                    {isSelected
+                      ? <CheckSquare className="h-5 w-5 text-[#80368D]" />
+                      : <Square className="h-5 w-5" />
+                    }
+                  </button>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
                       <h3 className="text-lg font-bold text-gray-900">{req.brand_name}</h3>
                       <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${currentStatus.color}`}>
                         {currentStatus.label}
@@ -143,7 +244,6 @@ export default function AdminBrandRequestsPage() {
                       <span>📅 {new Date(req.created_at).toLocaleDateString('fr-FR')}</span>
                     </div>
 
-                    {/* Réseaux sociaux cochés */}
                     {req.social_networks && req.social_networks.length > 0 && (
                       <div className="flex flex-wrap gap-1.5 mb-2">
                         {req.social_networks.map((code) => (
@@ -157,23 +257,15 @@ export default function AdminBrandRequestsPage() {
                       </div>
                     )}
 
-                    {/* Liens (tableau brand_urls, fallback brand_url) */}
                     {(() => {
-                      const urls =
-                        req.brand_urls && req.brand_urls.length > 0
-                          ? req.brand_urls
-                          : req.brand_url ? [req.brand_url] : []
-                      if (urls.length === 0) return null
+                      const urls = req.brand_urls?.length ? req.brand_urls : req.brand_url ? [req.brand_url] : []
+                      if (!urls.length) return null
                       return (
                         <ul className="space-y-0.5 mb-2">
                           {urls.map((u, i) => (
                             <li key={i}>
-                              <a
-                                href={u}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-[#80368D] hover:underline break-all"
-                              >
+                              <a href={u} target="_blank" rel="noopener noreferrer"
+                                className="text-xs text-[#80368D] hover:underline break-all">
                                 🔗 {u}
                               </a>
                             </li>
@@ -182,7 +274,9 @@ export default function AdminBrandRequestsPage() {
                       )
                     })()}
 
-                    {req.notes && <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 mb-3">{req.notes}</p>}
+                    {req.notes && (
+                      <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 mb-3">{req.notes}</p>
+                    )}
 
                     {req.admin_notes && !isEditing && (
                       <div className="rounded-lg bg-[#80368D]/5 border border-[#80368D]/10 p-3 mb-3">
@@ -191,11 +285,12 @@ export default function AdminBrandRequestsPage() {
                       </div>
                     )}
 
-                    {/* Form d'édition admin */}
                     {isEditing && (
                       <div className="mt-3 space-y-3 rounded-lg border border-[#80368D]/20 p-4 bg-[#80368D]/5">
                         <div>
-                          <label htmlFor={`note-${req.id}`} className="block text-xs font-semibold text-gray-600 mb-1">Note pour l'utilisateur</label>
+                          <label htmlFor={`note-${req.id}`} className="block text-xs font-semibold text-gray-600 mb-1">
+                            Note pour l'utilisateur
+                          </label>
                           <textarea
                             id={`note-${req.id}`}
                             value={adminNotes}
@@ -211,7 +306,10 @@ export default function AdminBrandRequestsPage() {
                             {saving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
                             Enregistrer
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => { setEditingId(null); setAdminNotes("") }}>Annuler</Button>
+                          <Button size="sm" variant="outline"
+                            onClick={() => { setEditingId(null); setAdminNotes("") }}>
+                            Annuler
+                          </Button>
                         </div>
                       </div>
                     )}
@@ -225,7 +323,7 @@ export default function AdminBrandRequestsPage() {
                       className="rounded-lg border border-gray-200 px-2 py-1.5 text-xs font-medium outline-none focus:border-[#80368D]"
                       aria-label="Changer le statut"
                     >
-                      {statusOptions.map(opt => (
+                      {STATUS_OPTIONS.map(opt => (
                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                       ))}
                     </select>

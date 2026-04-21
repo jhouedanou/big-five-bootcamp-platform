@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect, useCallback, useRef } from "react"
+import { useSearchParams } from "next/navigation"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
@@ -194,6 +195,8 @@ function PaginationBar({ currentPage, totalPages, onPageChange }: { currentPage:
 }
 
 export default function DashboardPage() {
+  const searchParams = useSearchParams()
+
   const [campaigns, setCampaigns] = useState<ContentItem[]>([])
   const [weeklyCampaigns, setWeeklyCampaigns] = useState<ContentItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -202,7 +205,8 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [currentPage, setCurrentPage] = useState(1)
   const [activeQuickFilter, setActiveQuickFilter] = useState("Tous")
-  const [searchQuery, setSearchQuery] = useState("")
+  // Pré-remplir la recherche depuis ?brand=X (lien direct depuis notification/email)
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("brand") ?? "")
   const itemsPerPage = 9
 
   const { open: upgradeOpen, reason: upgradeReason, showUpgrade, closeUpgrade } = useUpgradePopup()
@@ -599,7 +603,25 @@ export default function DashboardPage() {
 
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 
-       
+          {/* Bandeau filtre actif — affiché quand on arrive depuis une notification de marque */}
+          {searchParams.get("brand") && searchQuery === searchParams.get("brand") && (
+            <div className="mb-6 flex items-center gap-3 rounded-xl border border-[#80368D]/20 bg-[#80368D]/5 px-4 py-3">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600 text-lg">✅</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-[#1A1F2B]">
+                  Contenus filtrés pour <span className="text-[#80368D]">{searchParams.get("brand")}</span>
+                </p>
+                <p className="text-xs text-[#1A1F2B]/60">Votre demande de suivi a été traitée — voici les campagnes correspondantes.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setSearchQuery(""); window.history.replaceState(null, "", "/dashboard") }}
+                className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium text-[#80368D] hover:bg-[#80368D]/10 transition-colors"
+              >
+                Effacer le filtre
+              </button>
+            </div>
+          )}
 
           <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div className="animate-fade-in-up">

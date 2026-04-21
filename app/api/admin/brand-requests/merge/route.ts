@@ -94,6 +94,13 @@ export async function POST(request: NextRequest) {
     const mergedSocials = Array.from(allSocials)
     const mergedNotes = notesParts.join('\n---\n') || null
 
+    const originalCanonical = {
+      brand_urls: canonical.brand_urls ?? (canonical.brand_url ? [canonical.brand_url] : []),
+      brand_url: canonical.brand_url ?? null,
+      social_networks: canonical.social_networks ?? [],
+      notes: canonical.notes ?? null,
+    }
+
     // Mettre à jour la demande canonique
     const { data: updated, error: updateError } = await admin
       .from('brand_requests')
@@ -117,7 +124,31 @@ export async function POST(request: NextRequest) {
       .delete()
       .in('id', duplicateIds)
 
-    if (deleteError) return NextResponse.json({ error: deleteError.message }, { status: 500 })
+    if (deleteError) {
+      // Compensation: restaurer les champs fusionnés du canonical si la suppression échoue
+      const { error: rollbackError } = await admin
+        .from('brand_requests')
+        .update({
+          brand_urls: originalCanonical.brand_urls,
+          brand_url: originalCanonical.brand_url,
+          social_networks: originalCanonical.social_networks,
+          notes: originalCanonical.notes,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', canonical.id)
+
+      if (rollbackError) {
+        return NextResponse.json(
+          { error: `Suppression des doublons échouée: ${deleteError.message}. Rollback échoué: ${rollbackError.message}` },
+          { status: 500 }
+        )
+      }
+
+      return NextResponse.json(
+        { error: `Suppression des doublons échouée: ${deleteError.message}. Les changements ont été annulés.` },
+        { status: 500 }
+      )
+    }
 
     return NextResponse.json({
       success: true,

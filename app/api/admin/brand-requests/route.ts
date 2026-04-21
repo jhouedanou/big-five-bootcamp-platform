@@ -190,7 +190,7 @@ async function notifyCompletion(params: {
     await resend.emails.send({
       from,
       to: email,
-      subject: `Votre suivi de marque "${brandName}" est prêt`,
+      subject: `Votre suivi de marque "${brandName.replace(/[\r\n]/g, ' ')}" est prêt`,
       html: buildCompletedEmailHtml({
         userName: (userRow as any)?.name || '',
         brandName,
@@ -203,6 +203,19 @@ async function notifyCompletion(params: {
   }
 }
 
+function escapeHtml(input: string): string {
+  return input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function escapeHtmlAttr(input: string): string {
+  return escapeHtml(input)
+}
+
 function buildCompletedEmailHtml(params: {
   userName: string
   brandName: string
@@ -210,11 +223,13 @@ function buildCompletedEmailHtml(params: {
   adminNotes: string | null
 }): string {
   const { userName, brandName, dashboardUrl, adminNotes } = params
-  const safeName = userName || 'Bonjour'
+  const safeName = escapeHtml(userName || 'Bonjour')
+  const safeBrand = escapeHtml(brandName)
+  const safeHref = escapeHtmlAttr(dashboardUrl)
   const notesBlock = adminNotes
     ? `<div style="margin-top:16px;padding:16px;background:#fff7e6;border:1px solid #F2B33D33;border-radius:12px;">
          <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#b45309;">Note de l'équipe Laveiye</p>
-         <p style="margin:0;color:#0F0F0F;white-space:pre-line;">${adminNotes.replace(/</g, '&lt;')}</p>
+         <p style="margin:0;color:#0F0F0F;white-space:pre-line;">${escapeHtml(adminNotes)}</p>
        </div>`
     : ''
 
@@ -228,13 +243,13 @@ function buildCompletedEmailHtml(params: {
         <h2 style="color:#0F0F0F;margin:0 0 12px;font-size:20px;">${safeName},</h2>
         <p style="color:#374151;line-height:1.6;margin:0 0 16px;">
           Bonne nouvelle : votre demande de suivi pour la marque
-          <strong style="color:#F2B33D;">${brandName}</strong> est terminée.
+          <strong style="color:#F2B33D;">${safeBrand}</strong> est terminée.
         </p>
         <p style="color:#374151;line-height:1.6;margin:0 0 20px;">
           Les campagnes correspondantes sont disponibles dans votre tableau de bord.
         </p>
         <div style="text-align:center;margin:28px 0;">
-          <a href="${dashboardUrl}"
+          <a href="${safeHref}"
              style="display:inline-block;background:#F2B33D;color:#fff;text-decoration:none;padding:14px 28px;border-radius:10px;font-weight:700;">
             Voir les campagnes
           </a>

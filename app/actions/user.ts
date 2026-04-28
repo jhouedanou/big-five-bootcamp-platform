@@ -180,3 +180,34 @@ export async function setUserRole(userId: string, role: 'admin' | 'user') {
         return { success: false, error: "Impossible de modifier le rôle" }
     }
 }
+
+/**
+ * Réinitialise les compteurs de consultations/vues d'un utilisateur précis.
+ * Remet à zéro daily_click_count, monthly_campaigns_explored et les compteurs legacy.
+ */
+export async function resetUserViews(userId: string) {
+    try {
+        const supabase = getSupabaseAdmin()
+        const now = new Date()
+        const today = now.toISOString().split('T')[0] // YYYY-MM-DD
+
+        const { error } = await supabase
+            .from('users')
+            .update({
+                daily_click_count: 0,
+                daily_click_reset: today,
+                monthly_campaigns_explored: 0,
+                monthly_click_count: 0,
+                monthly_click_reset: now.toISOString(),
+                updated_at: now.toISOString(),
+            })
+            .eq('id', userId)
+
+        if (error) throw error
+        revalidatePath("/admin/users")
+        return { success: true }
+    } catch (error) {
+        console.error('Error resetting user views:', error)
+        return { success: false, error: "Impossible de réinitialiser les vues" }
+    }
+}

@@ -14,8 +14,8 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog"
 import { UserStatusToggle } from "./user-status-toggle"
-import { ChevronDown, ChevronRight, CreditCard, Calendar, Clock, Heart, XCircle, RotateCcw, Loader2, Mail, Send, ShieldCheck, ShieldOff } from "lucide-react"
-import { endSubscription, resetSubscription, setUserRole } from "@/app/actions/user"
+import { ChevronDown, ChevronRight, CreditCard, Calendar, Clock, Heart, XCircle, RotateCcw, Loader2, Mail, Send, ShieldCheck, ShieldOff, Eye } from "lucide-react"
+import { endSubscription, resetSubscription, setUserRole, resetUserViews } from "@/app/actions/user"
 
 interface Payment {
     id: string
@@ -96,6 +96,7 @@ export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
     const [isExpanded, setIsExpanded] = useState(false)
     const [isEndingSubscription, setIsEndingSubscription] = useState(false)
     const [isResettingSubscription, setIsResettingSubscription] = useState(false)
+    const [isResettingViews, setIsResettingViews] = useState(false)
     const [isTogglingRole, setIsTogglingRole] = useState(false)
     const [currentRole, setCurrentRole] = useState((user.role as string) || 'user')
     const [isSendingEmail, setIsSendingEmail] = useState(false)
@@ -196,6 +197,21 @@ export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
             alert('Erreur lors de la mise a jour')
         } finally {
             setIsResettingSubscription(false)
+        }
+    }
+
+    const handleResetViews = async () => {
+        if (!confirm(`Réinitialiser les compteurs de vues de ${user.name || user.email} ?`)) return
+        setIsResettingViews(true)
+        try {
+            const result = await resetUserViews(user.id as string)
+            if (!result.success) {
+                alert('Erreur : ' + (result.error || 'Impossible de réinitialiser les vues'))
+            }
+        } catch {
+            alert('Erreur lors de la réinitialisation des vues')
+        } finally {
+            setIsResettingViews(false)
         }
     }
 
@@ -369,6 +385,29 @@ export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
                                         {hasSubscription ? 'Reinitialiser' : 'Activer'}
                                     </Button>
                                 </div>
+                            </div>
+
+                            {/* Reset des vues / consultations */}
+                            <div
+                                className="mb-4 flex items-center gap-3 rounded-lg border bg-card p-3"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <span className="text-sm font-medium text-foreground mr-auto">
+                                    Compteurs de vues
+                                </span>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleResetViews}
+                                    disabled={isResettingViews}
+                                >
+                                    {isResettingViews ? (
+                                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                    ) : (
+                                        <Eye className="mr-1 h-3 w-3" />
+                                    )}
+                                    Réinitialiser les vues
+                                </Button>
                             </div>
 
                             <div className="flex items-center gap-2 mb-3">

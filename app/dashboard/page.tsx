@@ -524,7 +524,9 @@ export default function DashboardPage() {
   }, [weeklyCampaigns, filteredContent])
 
   const handleContentClick = useCallback(async (content: ContentItem): Promise<boolean> => {
-    // Appeler l'API pour tracker le clic
+    // Tracker le clic via l'API. La page détail consultera sessionStorage
+    // pour savoir que ce clic a déjà été comptabilisé ici, et n'incrémentera
+    // pas une seconde fois.
     try {
       const res = await fetch('/api/track-click', { method: 'POST' })
       const data = await res.json()
@@ -533,6 +535,11 @@ export default function DashboardPage() {
         showUpgrade("clicks")
         return false
       }
+
+      // Marquer ce contenu comme déjà tracké pour la page détail
+      try {
+        sessionStorage.setItem(`tracked-${content.id}`, Date.now().toString())
+      } catch { /* ignore (mode privé / quota) */ }
 
       // Spec : alerte popup uniquement quand il reste exactement 2 consultations
       // (ou 0, fallback informatif avant blocage au prochain clic).
@@ -814,7 +821,7 @@ export default function DashboardPage() {
                 slidesPerView={{ mobile: 1, tablet: 2, desktop: 3 }}
               >
                 {filteredWeeklyCampaigns.slice(0, 9).map((campaign) => (
-                  <div key={campaign.id} className="px-1">
+                  <div key={campaign.id} className="flex flex-1 flex-col px-1">
                     <ContentCard
                       content={campaign}
                       onBeforeNavigate={(c) => handleContentClick(c)}
@@ -847,7 +854,7 @@ export default function DashboardPage() {
                         </div>
 
                         <div className={`grid gap-6 ${viewMode === "grid"
-                          ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3"
+                          ? "grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 auto-rows-fr"
                           : "grid-cols-1"
                           }`}>
                           {group.campaigns.map((content) => (

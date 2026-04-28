@@ -233,8 +233,8 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
   }
 
   return (
-    <Link href={`/content/${content.slug || content.id}`} className="group block" onClick={handleClick}>
-      <article className={`modern-card overflow-hidden hover-lift transition-all duration-300 hover:shadow-xl ${
+    <Link href={`/content/${content.slug || content.id}`} className="group flex flex-1 flex-col" onClick={handleClick}>
+      <article className={`modern-card flex flex-1 flex-col overflow-hidden hover-lift transition-all duration-300 hover:shadow-xl ${
         isPremium
           ? "ring-2 ring-amber-400/80 shadow-lg shadow-amber-400/20 hover:shadow-amber-400/30 hover:ring-amber-300"
           : "hover:shadow-[#F2B33D]/10"
@@ -356,30 +356,32 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
           </div>
         </div>
 
-        <div className="p-5">
-          <h3 className="line-clamp-2 font-[family-name:var(--font-heading)] text-base font-bold text-[#0F0F0F] transition-colors group-hover:text-[#F2B33D]">
-            {content.title}
-          </h3>
+        <div className="flex flex-1 flex-col justify-between p-5">
+          <div>
+            <h3 className="line-clamp-2 font-[family-name:var(--font-heading)] text-base font-bold text-[#0F0F0F] transition-colors group-hover:text-[#F2B33D]">
+              {content.title}
+            </h3>
 
-          {/* Résumé de la campagne */}
-          {content.summary && (
-            <p className="mt-2 line-clamp-2 text-sm font-medium leading-relaxed text-[#0F0F0F]/70">
-              {content.summary}
-            </p>
-          )}
+            {/* Résumé de la campagne */}
+            {content.summary && (
+              <p className="mt-2 line-clamp-2 text-sm font-medium leading-relaxed text-[#0F0F0F]/70">
+                {content.summary}
+              </p>
+            )}
 
-          <div className="mt-3 flex flex-wrap gap-2">
-            <span className={`rounded-full px-2.5 py-1 text-xs ${sectorColor}`}>
-              {content.sector}
-            </span>
-            {content.tags.slice(0, 2).map((tag) => (
-              <span
-                key={tag}
-                className="rounded-full bg-[#F5F5F5]/60 px-2.5 py-1 text-xs font-medium text-[#0F0F0F]/80"
-              >
-                {tag}
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className={`rounded-full px-2.5 py-1 text-xs ${sectorColor}`}>
+                {content.sector}
               </span>
-            ))}
+              {content.tags.slice(0, 2).map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full bg-[#F5F5F5]/60 px-2.5 py-1 text-xs font-medium text-[#0F0F0F]/80"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
           </div>
 
           <div className="mt-4 flex items-center justify-between text-sm font-medium text-[#0F0F0F]/70">

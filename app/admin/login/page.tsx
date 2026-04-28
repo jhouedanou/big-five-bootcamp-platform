@@ -38,32 +38,12 @@ export default function AdminLoginPage() {
         return;
       }
 
-      // Vérifier si l'utilisateur est admin (via emails connus ou table users)
-      const adminEmails = ['jeanluc@bigfiveabidjan.com', 'cossi@bigfiveabidjan.com', 'yannick@bigfiveabidjan.com', 'franck@bigfiveabidjan.com', 'stephanie@bigfiveabidjan.com'];
-      
-      if (adminEmails.includes(email)) {
+      if (data.user?.app_metadata?.role === 'admin') {
         toast.success("Connexion réussie !", {
           description: "Bienvenue dans l'administration"
         });
         window.location.href = "/admin";
         return;
-      }
-
-      // Essayer de vérifier dans la table users
-      try {
-        const { data: userProfile, error: profileError } = await supabase
-          .from('users')
-          .select('role')
-          .eq('email', email)
-          .single();
-
-        if (!profileError && userProfile?.role === 'admin') {
-          toast.success("Connexion réussie !");
-          window.location.href = "/admin";
-          return;
-        }
-      } catch {
-        // Table non disponible
       }
 
       toast.error("Accès refusé", {

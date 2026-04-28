@@ -37,17 +37,11 @@ export function Footer() {
             <Link href="/" className="group inline-flex items-center gap-3 transition-all duration-300">
               <div className="relative">
                 <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-[#F2B33D]/20 to-[#F2B33D]/20 opacity-0 blur transition-opacity duration-300 group-hover:opacity-100" />
-                <Image
-                  src={logoUrl}
-                  alt="Laveiye"
-                  width={44}
-                  height={44}
-                  className="relative h-11 w-11 rounded-lg"
-                />
+               <img src="/logo.png" className="w-56"/>
               </div>
             </Link>
-            <p className="mt-4 text-sm leading-relaxed text-[#0F0F0F]/60">
-              Des milliers de campagnes marketing réelles pour inspirer vos prochaines créations.
+            <p className="mt-20 pt-6 text-sm leading-relaxed text-[#0F0F0F]/60">
+             Des milliers de campagnes social media pour inspirer vos prochaines créations.
             </p>
           </div>
 

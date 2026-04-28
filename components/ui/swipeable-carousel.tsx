@@ -115,12 +115,12 @@ export function SwipeableCarousel({
 
   return (
     <div className={cn("relative group", className)}>
-      <div className="overflow-hidden rounded-xl" ref={emblaRef}>
-        <div className={cn("flex touch-pan-y", isMultiSlide && "gap-4")}>
+      <div className="overflow-hidden rounded-xl pb-4" ref={emblaRef}>
+        <div className={cn("flex touch-pan-y items-stretch", isMultiSlide && "gap-4")}>
           {children.map((child, index) => (
             <div
               key={index}
-              className={cn("relative min-w-0", getSlideClassName())}
+              className={cn("relative flex min-w-0 flex-col", getSlideClassName())}
             >
               {child}
             </div>

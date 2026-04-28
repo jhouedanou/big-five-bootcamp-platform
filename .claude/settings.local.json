@@ -76,7 +76,8 @@
       "Bash(diff -u .backup-local/brands/route.ts app/api/brands/route.ts)",
       "Bash(diff -ru .backup-local/rss app/api/rss)",
       "Bash(npm audit *)",
-      "Bash(wait)"
+      "Bash(wait)",
+      "Bash(xargs cat *)"
     ]
   }
 }

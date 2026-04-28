@@ -14,8 +14,8 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog"
 import { UserStatusToggle } from "./user-status-toggle"
-import { ChevronDown, ChevronRight, CreditCard, Calendar, Clock, Heart, XCircle, RotateCcw, Loader2, Mail, Send } from "lucide-react"
-import { endSubscription, resetSubscription } from "@/app/actions/user"
+import { ChevronDown, ChevronRight, CreditCard, Calendar, Clock, Heart, XCircle, RotateCcw, Loader2, Mail, Send, ShieldCheck, ShieldOff } from "lucide-react"
+import { endSubscription, resetSubscription, setUserRole } from "@/app/actions/user"
 
 interface Payment {
     id: string
@@ -96,6 +96,8 @@ export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
     const [isExpanded, setIsExpanded] = useState(false)
     const [isEndingSubscription, setIsEndingSubscription] = useState(false)
     const [isResettingSubscription, setIsResettingSubscription] = useState(false)
+    const [isTogglingRole, setIsTogglingRole] = useState(false)
+    const [currentRole, setCurrentRole] = useState((user.role as string) || 'user')
     const [isSendingEmail, setIsSendingEmail] = useState(false)
     const [emailSent, setEmailSent] = useState(false)
     const [emailDialogOpen, setEmailDialogOpen] = useState(false)
@@ -160,6 +162,25 @@ export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
             alert('Erreur lors de l\'envoi')
         } finally {
             setIsSendingEmail(false)
+        }
+    }
+
+    const handleToggleRole = async () => {
+        const newRole = currentRole === 'admin' ? 'user' : 'admin'
+        const label = user.name || user.email
+        if (!confirm(`${newRole === 'admin' ? 'Passer' : 'Retirer le rôle admin de'} ${label} ?`)) return
+        setIsTogglingRole(true)
+        try {
+            const result = await setUserRole(user.id as string, newRole)
+            if (result.success) {
+                setCurrentRole(newRole)
+            } else {
+                alert('Erreur : ' + (result.error || 'Impossible de modifier le rôle'))
+            }
+        } catch {
+            alert('Erreur lors de la modification du rôle')
+        } finally {
+            setIsTogglingRole(false)
         }
     }
 
@@ -277,6 +298,31 @@ export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
                 <TableRow>
                     <TableCell colSpan={10} className="bg-muted/30 p-0">
                         <div className="px-6 py-4">
+                            {/* Role management */}
+                            <div className="mb-3 flex items-center gap-3 rounded-lg border bg-card p-3">
+                                <span className="text-sm font-medium text-foreground mr-auto">Rôle</span>
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                    currentRole === 'admin' ? 'bg-[#F5F5F5] text-[#0F0F0F]' : 'bg-slate-100 text-slate-800'
+                                }`}>
+                                    {currentRole === 'admin' ? 'Admin' : 'Utilisateur'}
+                                </span>
+                                <Button
+                                    variant={currentRole === 'admin' ? 'destructive' : 'outline'}
+                                    size="sm"
+                                    onClick={handleToggleRole}
+                                    disabled={isTogglingRole}
+                                >
+                                    {isTogglingRole ? (
+                                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                    ) : currentRole === 'admin' ? (
+                                        <ShieldOff className="mr-1 h-3 w-3" />
+                                    ) : (
+                                        <ShieldCheck className="mr-1 h-3 w-3" />
+                                    )}
+                                    {currentRole === 'admin' ? 'Retirer admin' : 'Passer admin'}
+                                </Button>
+                            </div>
+
                             {/* Subscription management */}
                             <div className="mb-4 flex items-center gap-3 rounded-lg border bg-card p-3">
                                 <span className="text-sm font-medium text-foreground mr-auto">Gestion abonnement</span>

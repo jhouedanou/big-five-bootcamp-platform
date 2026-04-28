@@ -120,9 +120,9 @@ export default function ContentDetailClient({ id }: { id: string }) {
   const [monthlyExplored, setMonthlyExplored] = useState(0);
   const [isBlocked, setIsBlocked] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const [clickTracked, setClickTracked] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [isUserAuthenticated, setIsUserAuthenticated] = useState(false);
+  const trackedRef = useRef(false);
   const isFreeUser = !isPaidPlan(userPlan);
   const router = useRouter();
 
@@ -143,59 +143,65 @@ export default function ContentDetailClient({ id }: { id: string }) {
   }, []);
 
   // Charger le plan utilisateur, vérifier la limite, et tracker le clic
-  // Uniquement pour les utilisateurs authentifiés
-  // Utilise l'API serveur (cookies fiables) plutôt que getSession() client (cache stale)
+  // Le dashboard tracke le clic au moment où l'utilisateur clique sur la carte,
+  // et pose un flag dans sessionStorage. Ici on ne POST que si on arrive en
+  // accès direct (URL partagée, bookmark) — le flag absent ou expiré.
+  // Le useRef empêche le double-fire de StrictMode.
   useEffect(() => {
-    // Ne pas tracker pour les visiteurs non authentifiés
     if (!authChecked || !isUserAuthenticated) return;
+    if (trackedRef.current) return;
+    trackedRef.current = true;
 
     const loadUserDataAndTrack = async () => {
       try {
-        // L'API track-click utilise getSupabaseServer() côté serveur
-        // qui lit les cookies de session (fiable même après refresh)
-        const getRes = await fetch('/api/track-click');
+        // Vérifier si le dashboard vient juste de tracker ce contenu
+        const trackedKey = `tracked-${id}`;
+        let alreadyTracked = false;
+        try {
+          const ts = sessionStorage.getItem(trackedKey);
+          if (ts) {
+            const age = Date.now() - parseInt(ts, 10);
+            if (age >= 0 && age < 30_000) alreadyTracked = true;
+            sessionStorage.removeItem(trackedKey);
+          }
+        } catch { /* sessionStorage indisponible */ }
 
-        if (getRes.status === 401) {
-          // Utilisateur non authentifié - le proxy devrait rediriger,
-          // mais au cas où, on ne fait rien (pas de gating possible)
+        const getRes = await fetch('/api/track-click');
+        if (getRes.status === 401) return;
+        if (!getRes.ok) return;
+
+        const getData = await getRes.json();
+        setMonthlyClicks(getData.clicks || 0);
+        setMonthlyExplored(getData.explored || 0);
+
+        if (!getData.isFree) {
+          setUserPlan('Pro');
+        }
+
+        // Limite déjà atteinte → bloquer
+        if (getData.isFree && (getData.clicks || 0) >= MONTHLY_CLICK_LIMIT) {
+          setIsBlocked(true);
+          setShowUpgrade(true);
           return;
         }
 
-        if (getRes.ok) {
-          const getData = await getRes.json();
-          setMonthlyClicks(getData.clicks || 0);
-          setMonthlyExplored(getData.explored || 0);
-
-          // Mettre à jour le plan depuis les données serveur
-          if (!getData.isFree) {
-            setUserPlan('Pro'); // L'API a confirmé que c'est un utilisateur payant
-          }
-
-          // Si free user et limite atteinte → bloquer l'accès
-          if (getData.isFree && (getData.clicks || 0) >= MONTHLY_CLICK_LIMIT) {
-            setIsBlocked(true);
-            setShowUpgrade(true);
-            return;
-          }
-
-          // Si free user et pas encore à la limite → tracker ce clic
-          if (getData.isFree) {
-            const postRes = await fetch('/api/track-click', { method: 'POST' });
-            if (postRes.ok) {
-              const postData = await postRes.json();
-              if (!postData.allowed) {
-                setIsBlocked(true);
-                setShowUpgrade(true);
-                return;
-              }
-              setMonthlyClicks(postData.clicks || getData.clicks || 0);
+        // Accès direct (pas de flag dashboard) → tracker maintenant
+        if (getData.isFree && !alreadyTracked) {
+          const postRes = await fetch('/api/track-click', { method: 'POST' });
+          if (postRes.ok) {
+            const postData = await postRes.json();
+            if (!postData.allowed) {
+              setIsBlocked(true);
+              setShowUpgrade(true);
+              return;
             }
+            setMonthlyClicks(postData.clicks ?? getData.clicks ?? 0);
           }
         }
       } catch { /* ignore */ }
     };
     loadUserDataAndTrack();
-  }, [authChecked, isUserAuthenticated]);
+  }, [authChecked, isUserAuthenticated, id]);
 
   // Barre de progression de lecture
   useEffect(() => {
@@ -711,11 +717,28 @@ export default function ContentDetailClient({ id }: { id: string }) {
           Retour à la bibliothèque
         </Link>
 
-        {/* ===== EN-TÊTE : Titre + sous-titre (pleine largeur) ===== */}
+        {/* ===== EN-TÊTE : Titre + axes + sous-titre ===== */}
         <div className="mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground font-[family-name:var(--font-heading)]">
-            {content.title}
-          </h1>
+          <div className="flex flex-wrap items-baseline gap-3 justify-between">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground font-[family-name:var(--font-heading)]">
+              {content.title}
+            </h1>
+            {content.axe && content.axe.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-xs font-semibold text-muted-foreground">
+                  {content.axe.length > 1 ? "Axes" : "Axe"} :
+                </span>
+                {content.axe.map((axe) => (
+                  <span
+                    key={axe}
+                    className="inline-flex items-center rounded-full border border-[#F2B33D]/40 bg-[#F2B33D]/10 px-2.5 py-0.5 text-xs font-medium text-[#b8850a] dark:text-[#F2B33D]"
+                  >
+                    {axe}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
           <p className="text-muted-foreground mt-1 text-sm">
             {brand}{brand && sector !== 'N/A' ? " - " : ""}{sector !== 'N/A' ? sector : ''}
           </p>
@@ -734,7 +757,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              Axe
+              Campagne
             </button>
             <button
               type="button"
@@ -746,7 +769,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              Utilisation
+              Détails
             </button>
           </div>
         </div>

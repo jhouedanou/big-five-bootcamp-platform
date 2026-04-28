@@ -153,3 +153,30 @@ export async function resetSubscription(userId: string, days: number = 30) {
         return { success: false, error: "Failed to reset subscription" }
     }
 }
+
+export async function setUserRole(userId: string, role: 'admin' | 'user') {
+    try {
+        const supabase = getSupabaseAdmin()
+
+        // Mettre à jour la table users
+        const { error: dbError } = await supabase
+            .from('users')
+            .update({ role, updated_at: new Date().toISOString() })
+            .eq('id', userId)
+
+        if (dbError) throw dbError
+
+        // Mettre à jour app_metadata dans Supabase Auth (utilisé pour le login admin)
+        const { error: authError } = await supabase.auth.admin.updateUserById(userId, {
+            app_metadata: { role },
+        })
+
+        if (authError) throw authError
+
+        revalidatePath("/admin/users")
+        return { success: true }
+    } catch (error) {
+        console.error('Error updating user role:', error)
+        return { success: false, error: "Impossible de modifier le rôle" }
+    }
+}

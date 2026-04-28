@@ -2,9 +2,9 @@
   "hero": {
     "badge": "La plus grande bibliothèque créative africaine",
     "title": {
-      "line1": "La première",
-      "highlight": "bibliothèque créative",
-      "line3": "africaine."
+      "line1": "L'inspiration",
+      "highlight": " créative ",
+      "line3": "sans limites."
     },
     "subtitle": "Accédez à la plus grande bibliothèque de campagnes marketing réelles en Afrique. Analysez, benchmarkez et créez des concepts gagnants en quelques minutes.",
     "cta": {
@@ -33,11 +33,11 @@
     "title": "Pourquoi utiliser",
     "titleHighlight": "Laveiye",
     "titleSuffix": "?",
-    "subtitle": "Une suite d'outils conçue pour accélérer votre processus créatif et valider vos intuitions.",
+    "subtitle": "S'enrichir, s'inspirer pour affiner votre stratégie.",
     "items": [
       {
         "icon": "Target",
-        "title": "S'enrichir, s’inspirer pour affiner votre stratégie",
+        "title": "Recherche par filtre",
         "description": "Filtrez par pays, industrie, format ou objectif. Trouvez exactement ce que vous cherchez.",
         "color": "text-[#F2B33D]",
         "bg": "bg-[#F2B33D]/10"
@@ -74,7 +74,7 @@
   "pricingTeaser": {
     "badge": "À partir de 4 900 XOF/mois",
     "title": "Commencez à créer des campagnes impactantes.",
-    "subtitle": "Rejoignez des centaines de professionnels qui utilisent Creative Library Big Five pour élever leur niveau de performance.",
+    "subtitle": "Rejoignez des centaines de professionnels qui utilisent Laveiye pour élever leur niveau de performance.",
     "cta": {
       "primary": "S'inscrire gratuitement",
       "secondary": "Voir les tarifs"

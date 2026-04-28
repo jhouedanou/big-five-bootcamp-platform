@@ -37,13 +37,7 @@ export function ConsultationBottomSheet({
 
   return (
     <div className="fixed inset-0 z-[100] pointer-events-none">
-      {/* Backdrop */}
-      <div
-        className={`absolute inset-0 bg-black/30 transition-opacity duration-300 pointer-events-auto ${
-          isVisible ? "opacity-100" : "opacity-0"
-        }`}
-        onClick={handleClose}
-      />
+      {/* Backdrop désactivé : la sheet apparaît seule, le contenu derrière reste interactif */}
 
       {/* Bottom Sheet */}
       <div

@@ -16,23 +16,55 @@ import {
 } from "@/components/ui/select"
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
 import { LegalModal } from "@/components/legal-modal"
+import { getOperatorLogo } from "@/lib/operator-logos"
 
 type PlanChoice = "basic" | "pro"
 
+/** Configuration par pays : indicatif, longueur locale attendue, masque d'affichage. */
+type CountryCode = 'CIV' | 'SEN' | 'BFA' | 'BEN'
+
+const COUNTRIES: Record<CountryCode, {
+  name: string
+  flag: string
+  dialCode: string // sans le +
+  localLength: number // nombre de chiffres après l'indicatif
+  // groupes pour le masque d'affichage (ex. [2,2,2,2,2] → "XX XX XX XX XX")
+  mask: number[]
+  placeholder: string
+}> = {
+  CIV: { name: "Côte d’Ivoire", flag: "🇨🇮", dialCode: "225", localLength: 10, mask: [2, 2, 2, 2, 2], placeholder: "07 07 12 34 56" },
+  SEN: { name: "Sénégal",      flag: "🇸🇳", dialCode: "221", localLength: 9,  mask: [2, 3, 2, 2],    placeholder: "77 123 45 67" },
+  BFA: { name: "Burkina Faso",  flag: "🇧🇫", dialCode: "226", localLength: 8,  mask: [2, 2, 2, 2],    placeholder: "70 12 34 56" },
+  BEN: { name: "Bénin",         flag: "🇧🇯", dialCode: "229", localLength: 10, mask: [2, 2, 2, 2, 2], placeholder: "01 90 12 34 56" },
+}
+
 /** Providers PawaPay supportés pour l'abonnement. */
-const PAWAPAY_PROVIDERS = [
-  { value: 'MTN_MOMO_CIV', label: 'MTN Mobile Money — Côte d’Ivoire' },
-  { value: 'ORANGE_CIV', label: 'Orange Money — Côte d’Ivoire' },
-  { value: 'MOOV_CIV', label: 'Moov Money — Côte d’Ivoire' },
-  { value: 'WAVE_CIV', label: 'Wave — Côte d’Ivoire' },
-  { value: 'WAVE_SEN', label: 'Wave — Sénégal' },
-  { value: 'ORANGE_SEN', label: 'Orange Money — Sénégal' },
-  { value: 'FREE_SEN', label: 'Free Money — Sénégal' },
-  { value: 'ORANGE_BFA', label: 'Orange Money — Burkina Faso' },
-  { value: 'MOOV_BFA', label: 'Moov Money — Burkina Faso' },
-  { value: 'MTN_MOMO_BEN', label: 'MTN Mobile Money — Bénin' },
-  { value: 'MOOV_BEN', label: 'Moov Money — Bénin' },
+const PAWAPAY_PROVIDERS: { value: string; label: string; country: CountryCode }[] = [
+  { value: 'MTN_MOMO_CIV', label: 'MTN Mobile Money — Côte d’Ivoire',  country: 'CIV' },
+  { value: 'ORANGE_CIV',   label: 'Orange Money — Côte d’Ivoire',       country: 'CIV' },
+  { value: 'MOOV_CIV',     label: 'Moov Money — Côte d’Ivoire',         country: 'CIV' },
+  { value: 'WAVE_CIV',     label: 'Wave — Côte d’Ivoire',               country: 'CIV' },
+  { value: 'WAVE_SEN',     label: 'Wave — Sénégal',                     country: 'SEN' },
+  { value: 'ORANGE_SEN',   label: 'Orange Money — Sénégal',              country: 'SEN' },
+  { value: 'FREE_SEN',     label: 'Free Money — Sénégal',                country: 'SEN' },
+  { value: 'ORANGE_BFA',   label: 'Orange Money — Burkina Faso',         country: 'BFA' },
+  { value: 'MOOV_BFA',     label: 'Moov Money — Burkina Faso',           country: 'BFA' },
+  { value: 'MTN_MOMO_BEN', label: 'MTN Mobile Money — Bénin',           country: 'BEN' },
+  { value: 'MOOV_BEN',     label: 'Moov Money — Bénin',                 country: 'BEN' },
 ]
+
+/** Formate des chiffres bruts selon un masque (groupes séparés par espaces). */
+function formatPhoneMask(digits: string, mask: number[]): string {
+  const clean = digits.replace(/\D/g, '')
+  const parts: string[] = []
+  let cursor = 0
+  for (const groupSize of mask) {
+    if (cursor >= clean.length) break
+    parts.push(clean.slice(cursor, cursor + groupSize))
+    cursor += groupSize
+  }
+  return parts.join(' ')
+}
 
 const PLANS = {
   basic: {
@@ -81,7 +113,27 @@ export default function SubscribePage() {
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [phoneNumber, setPhoneNumber] = useState("")
+  const [country, setCountry] = useState<CountryCode>("CIV")
   const [provider, setProvider] = useState<string>("ORANGE_CIV")
+
+  const countryConfig = COUNTRIES[country]
+  const providersForCountry = PAWAPAY_PROVIDERS.filter(p => p.country === country)
+  const maxLocalDigits = countryConfig.localLength
+  const cleanLocal = phoneNumber.replace(/\D/g, '')
+  const isPhoneValid = cleanLocal.length === maxLocalDigits
+
+  /** Quand on change de pays, reset l'opérateur et le numéro. */
+  const handleCountryChange = (next: CountryCode) => {
+    setCountry(next)
+    const firstProvider = PAWAPAY_PROVIDERS.find(p => p.country === next)
+    if (firstProvider) setProvider(firstProvider.value)
+    setPhoneNumber("")
+  }
+
+  const handlePhoneChange = (raw: string) => {
+    const digits = raw.replace(/\D/g, '').slice(0, maxLocalDigits)
+    setPhoneNumber(formatPhoneMask(digits, countryConfig.mask))
+  }
 
   useEffect(() => {
     if (!loading && !user) {
@@ -110,15 +162,17 @@ export default function SubscribePage() {
       return
     }
 
-    const cleanedPhone = phoneNumber.replace(/\D/g, '')
-    if (!cleanedPhone || cleanedPhone.length < 9) {
-      alert("Veuillez saisir un numéro de téléphone valide (format international).")
+    const localDigits = phoneNumber.replace(/\D/g, '')
+    if (localDigits.length !== countryConfig.localLength) {
+      alert(`Le numéro doit comporter ${countryConfig.localLength} chiffres pour ${countryConfig.name}.`)
       return
     }
     if (!provider) {
       alert("Veuillez choisir votre opérateur Mobile Money.")
       return
     }
+    // Format international (sans “+”) : indicatif pays + numéro local
+    const cleanedPhone = `${countryConfig.dialCode}${localDigits}`
 
     setIsProcessing(true)
 
@@ -378,15 +432,17 @@ export default function SubscribePage() {
           </h3>
 
           <div className="space-y-2">
-            <Label htmlFor="pawapay-provider">Opérateur</Label>
-            <Select value={provider} onValueChange={setProvider}>
-              <SelectTrigger id="pawapay-provider">
-                <SelectValue placeholder="Choisissez votre opérateur" />
+            <Label htmlFor="pawapay-country">Pays</Label>
+            <Select value={country} onValueChange={(v) => handleCountryChange(v as CountryCode)}>
+              <SelectTrigger id="pawapay-country">
+                <SelectValue placeholder="Choisissez votre pays" />
               </SelectTrigger>
               <SelectContent>
-                {PAWAPAY_PROVIDERS.map((p) => (
-                  <SelectItem key={p.value} value={p.value}>
-                    {p.label}
+                {(Object.keys(COUNTRIES) as CountryCode[]).map((code) => (
+                  <SelectItem key={code} value={code}>
+                    <span className="mr-2">{COUNTRIES[code].flag}</span>
+                    {COUNTRIES[code].name}
+                    <span className="ml-2 text-xs text-[#0F0F0F]/50">+{COUNTRIES[code].dialCode}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -394,24 +450,59 @@ export default function SubscribePage() {
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="pawapay-provider">Opérateur</Label>
+            <Select value={provider} onValueChange={setProvider}>
+              <SelectTrigger id="pawapay-provider">
+                <SelectValue placeholder="Choisissez votre opérateur" />
+              </SelectTrigger>
+              <SelectContent>
+                {providersForCountry.map((p) => {
+                  const logo = getOperatorLogo(p.value)
+                  return (
+                    <SelectItem key={p.value} value={p.value}>
+                      <span className="flex items-center gap-2">
+                        {logo && (
+                          <img
+                            src={logo.src}
+                            alt={logo.alt}
+                            className="h-5 w-5 rounded-sm object-contain bg-white"
+                          />
+                        )}
+                        {p.label}
+                      </span>
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="pawapay-phone">Numéro de téléphone</Label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="pawapay-phone"
-                type="tel"
-                inputMode="numeric"
-                placeholder="ex. 2250707123456"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                className="pl-9"
-                disabled={isProcessing}
-              />
+            <div className="relative flex items-stretch overflow-hidden rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-0">
+              <span className="flex select-none items-center gap-1.5 border-r border-input bg-[#F5F5F5]/60 px-3 text-sm text-[#0F0F0F]/70">
+                <span>{countryConfig.flag}</span>
+                <span className="font-medium">+{countryConfig.dialCode}</span>
+              </span>
+              <div className="relative flex-1">
+                <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="pawapay-phone"
+                  type="tel"
+                  inputMode="numeric"
+                  autoComplete="tel-national"
+                  placeholder={countryConfig.placeholder}
+                  value={phoneNumber}
+                  onChange={(e) => handlePhoneChange(e.target.value)}
+                  className="border-0 pl-9 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  disabled={isProcessing}
+                  aria-invalid={phoneNumber.length > 0 && !isPhoneValid}
+                />
+              </div>
             </div>
             <p className="text-xs text-[#0F0F0F]/50">
-              Format international avec l’indicatif pays (sans +).
-              Vous recevrez une notification sur votre téléphone pour confirmer
-              avec votre code PIN.
+              Saisissez votre numéro local ({countryConfig.localLength} chiffres). L’indicatif <strong>+{countryConfig.dialCode}</strong> est ajouté automatiquement.
+              Vous recevrez une notification sur votre téléphone pour confirmer avec votre code PIN.
             </p>
           </div>
         </div>

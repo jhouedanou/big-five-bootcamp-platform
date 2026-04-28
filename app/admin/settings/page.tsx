@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Save, Lock, Eye, EyeOff, Loader2, Mail } from "lucide-react";
+import { Save, Lock, Eye, EyeOff, Loader2, Mail, RotateCcw, Users } from "lucide-react";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
@@ -66,6 +66,26 @@ export default function SettingsPage() {
       toast.error(err instanceof Error ? err.message : "Erreur lors de la sauvegarde");
     } finally {
       setIsSavingEmailSettings(false);
+    }
+  };
+
+  // Reset vues Free
+  const [isResettingViews, setIsResettingViews] = useState(false);
+  const [resetResult, setResetResult] = useState<string | null>(null);
+
+  const handleResetFreeViews = async () => {
+    setIsResettingViews(true);
+    setResetResult(null);
+    try {
+      const res = await fetch("/api/admin/reset-free-views", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erreur");
+      toast.success(data.message);
+      setResetResult(data.message);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur lors de la réinitialisation");
+    } finally {
+      setIsResettingViews(false);
     }
   };
 
@@ -216,7 +236,7 @@ export default function SettingsPage() {
             <Button
               onClick={handleChangePassword}
               disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
-              className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg shadow-orange-500/25"
+              className="bg-[#F2B33D] hover:bg-[#d99a2a] text-white shadow-lg shadow-[#F2B33D]/25"
             >
               {isChangingPassword ? (
                 <>
@@ -381,6 +401,53 @@ export default function SettingsPage() {
                 onCheckedChange={(checked) => setSettings({ ...settings, emailNotifications: checked })}
               />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Reset vues utilisateurs Free */}
+        <Card className="bg-white border-gray-200 shadow-sm">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-red-500/10">
+                <RotateCcw className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <CardTitle className="text-gray-900">Réinitialiser les vues (plan Free)</CardTitle>
+                <CardDescription className="text-gray-600">
+                  Remet à zéro le compteur de consultations de campagnes de tous les utilisateurs en plan gratuit.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
+              <p className="text-sm text-amber-800">
+                <strong>Attention :</strong> cette action est irréversible. Elle remet à zéro{" "}
+                <code className="rounded bg-amber-100 px-1">daily_click_count</code> et{" "}
+                <code className="rounded bg-amber-100 px-1">monthly_campaigns_explored</code> pour
+                tous les utilisateurs Free.
+              </p>
+            </div>
+            {resetResult && (
+              <p className="text-sm text-green-700 font-medium">✓ {resetResult}</p>
+            )}
+            <Button
+              variant="destructive"
+              onClick={handleResetFreeViews}
+              disabled={isResettingViews}
+            >
+              {isResettingViews ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Réinitialisation...
+                </>
+              ) : (
+                <>
+                  <Users className="h-4 w-4 mr-2" />
+                  Réinitialiser les vues Free
+                </>
+              )}
+            </Button>
           </CardContent>
         </Card>
 

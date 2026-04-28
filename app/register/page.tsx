@@ -5,7 +5,7 @@ import React from "react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Eye, EyeOff, Mail, Lock, Sparkles, Check, Shield, User } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, Check, Shield, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -142,10 +142,9 @@ export default function RegisterPage() {
         <div className="mx-auto w-full max-w-sm lg:w-96">
           <div className="mb-8">
             <Link href="/" className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#F2B33D]">
-                <Sparkles className="h-5 w-5 text-white" />
+              <div className="flex w-45 items-center justify-center ">
+                <img src="/logo.png" alt="Laveiye" className="relative" />
               </div>
-              <span className="font-[family-name:var(--font-heading)] text-xl font-bold text-foreground">Laveiye</span>
             </Link>
           </div>
 

@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Clock, Check, ArrowRight, LogOut, Sparkles, Smartphone, CreditCard } from "lucide-react"
+import { Clock, Check, ArrowRight, LogOut, Smartphone, CreditCard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export default function PaywallPage() {
@@ -19,9 +19,8 @@ export default function PaywallPage() {
         <div className="mb-8 flex justify-center">
           <Link href="/" className="flex items-center gap-2">
             <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#F2B33D]">
-              <Sparkles className="h-6 w-6 text-white" />
+              <img src="/logo.png" alt="Laveiye" className="relative h-12 w-12 rounded-xl" />
             </div>
-            <span className="font-[family-name:var(--font-heading)] text-2xl font-bold text-[#0F0F0F]">Laveiye</span>
           </Link>
         </div>
 

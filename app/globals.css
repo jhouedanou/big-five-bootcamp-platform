@@ -154,6 +154,12 @@
     color: var(--text-dark);
   }
 
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href] {
+    cursor: pointer;
+  }
+
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Karla', 'Outfit', system-ui, sans-serif;
     font-weight: 700;
@@ -459,17 +465,11 @@
 
 /* Gradient text */
 .gradient-text {
-  background: linear-gradient(to right bottom, #F2B33D, #0F0F0F, #F2B33D);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #F2B33D;
 }
 
 .gradient-text-alt {
-  background: linear-gradient(to right, #0F0F0F, #F2B33D);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #F2B33D;
 }
 
 /* Hover effects */

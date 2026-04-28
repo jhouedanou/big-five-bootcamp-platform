@@ -94,7 +94,7 @@ function PaymentPendingInner() {
         <div className="mx-auto flex h-16 max-w-3xl items-center px-4">
           <Link href="/" className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F2B33D]">
-              <Sparkles className="h-4 w-4 text-white" />
+              <img src="/logo.png" alt="Laveiye" className="relative" />
             </div>
             <span className="font-bold text-[#0F0F0F]">Laveiye</span>
           </Link>

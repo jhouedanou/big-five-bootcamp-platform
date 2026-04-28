@@ -80,15 +80,9 @@ export default function AdminLoginPage() {
         <Card className="w-full bg-white/5 backdrop-blur-xl border-white/10 shadow-2xl">
           <CardHeader className="space-y-1 flex flex-col items-center pt-10 pb-6">
             <div className="relative mb-6">
-              <div className="absolute inset-0 bg-orange-500/30 rounded-2xl blur-xl pointer-events-none"></div>
-              <div className="relative w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/30">
-                <Image
-                  src="/logo.png"
-                  alt="Logo"
-                  width={40}
-                  height={40}
-                  className="h-10 w-10"
-                />
+              <div className="absolute inset-0 pointer-events-none"></div>
+              <div className="relative w-40 flex items-center justify-center">
+                <img src="/logo.png" className="w-100"/>
               </div>
               <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-br from-emerald-400 to-emerald-500 rounded-full flex items-center justify-center shadow-lg">
                 <Sparkles className="w-3 h-3 text-white" />
@@ -145,7 +139,7 @@ export default function AdminLoginPage() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-12 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-medium shadow-lg shadow-orange-500/25 rounded-xl transition-all hover:shadow-orange-500/40 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+                className="w-full h-12 bg-[#F2B33D] hover:bg-[#d99a2a] text-white font-medium shadow-lg shadow-[#F2B33D]/25 rounded-xl transition-all hover:shadow-[#F2B33D]/40 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
               >
                 {isLoading ? (
                   <div className="flex items-center gap-2">

@@ -353,7 +353,7 @@ export default function MailchimpSettingsPage() {
                 <Button
                   onClick={handleSave}
                   disabled={isSaving || !apiKey.trim() || !audienceId.trim()}
-                  className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg shadow-orange-500/25"
+                  className="bg-[#F2B33D] hover:bg-[#d99a2a] text-white shadow-lg shadow-[#F2B33D]/25"
                 >
                   {isSaving ? (
                     <>

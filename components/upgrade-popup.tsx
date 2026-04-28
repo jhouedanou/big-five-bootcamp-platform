@@ -46,24 +46,24 @@ export function UpgradePopup({ open, onClose, reason }: UpgradePopupProps) {
         </button>
 
         {/* Icon */}
-        <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#F2B33D] to-[#a855f7] shadow-lg shadow-[#F2B33D]/30">
-          <Sparkles className="h-8 w-8 text-white" />
+        <div className="mx-auto mb-6 flex w-50 items-center justify-center">
+        <img src="/logo.png" className="w-full" alt="Laveiye" />
         </div>
 
         {/* Title */}
         <h2 className="font-[family-name:var(--font-heading)] text-2xl font-bold text-center text-[#0F0F0F] mb-3">
           Débloquez tout le potentiel de Laveiye
         </h2>
-
+<br></br>
         <p className="text-center text-[#0F0F0F]/70 text-sm mb-8">
           {subtitle}
         </p>
-
+<br></br>
         {/* CTAs */}
         <div className="space-y-3">
           <Button
             asChild
-            className="w-full h-12 text-base font-bold bg-gradient-to-r from-[#F2B33D] to-[#a855f7] hover:from-[#6b2d76] hover:to-[#9333ea] text-white shadow-lg shadow-[#F2B33D]/25"
+            className="w-full h-12 text-base font-bold"
           >
             <Link href="/subscribe" onClick={onClose}>
               <Star className="mr-2 h-4 w-4" />
@@ -90,9 +90,9 @@ export function UpgradePopup({ open, onClose, reason }: UpgradePopupProps) {
             <p className="text-xs text-[#0F0F0F]/50">FCFA/mois</p>
           </div>
           <div className="rounded-xl bg-[#F2B33D]/10 border border-[#F2B33D]/20 p-3 text-center">
-            <p className="text-xs font-semibold text-[#F2B33D] mb-1">Pro ⭐</p>
-            <p className="text-lg font-extrabold text-[#F2B33D]">9 900</p>
-            <p className="text-xs text-[#F2B33D]/60">FCFA/mois</p>
+            <p className="text-xs font-semibold text-[#000000] mb-1">Pro ⭐</p>
+            <p className="text-lg font-extrabold text-[#000000]">9 900</p>
+            <p className="text-xs text-[#000000]/60">FCFA/mois</p>
           </div>
         </div>
       </div>

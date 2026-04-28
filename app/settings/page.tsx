@@ -418,7 +418,7 @@ export default function SettingsPage() {
             <Button
               type="submit"
               disabled={isChangingPassword || !newPassword || !confirmPassword}
-              className="h-12 w-full text-base font-bold bg-gradient-to-r from-[#F2B33D] to-[#a855f7] hover:from-[#6b2d76] hover:to-[#9333ea] text-white shadow-lg shadow-[#F2B33D]/25 disabled:opacity-50"
+              className="h-12 w-full text-base font-bold bg-[#F2B33D] hover:bg-[#d99a2a] text-white shadow-lg shadow-[#F2B33D]/25 disabled:opacity-50"
             >
               {isChangingPassword ? (
                 <>
@@ -499,7 +499,7 @@ export default function SettingsPage() {
 
               {!isPremium && (
                 <Link href="/subscribe">
-                  <Button className="h-11 px-6 text-sm font-bold bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white shadow-lg shadow-amber-500/25">
+                  <Button className="h-11 px-6 text-sm font-bold bg-[#F2B33D] hover:bg-[#d99a2a] text-white shadow-lg shadow-[#F2B33D]/25">
                     <Crown className="mr-2 h-4 w-4" />
                     Passer Premium
                     <ArrowRight className="ml-2 h-4 w-4" />

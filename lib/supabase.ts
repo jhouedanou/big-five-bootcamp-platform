@@ -32,10 +32,41 @@ export const createClient = () => {
   if (typeof window === 'undefined') {
     return createBrowserClient(url, key)
   }
-  
+
   if (globalForSupabase.__supabaseBrowserClient) return globalForSupabase.__supabaseBrowserClient
 
-  globalForSupabase.__supabaseBrowserClient = createBrowserClient(url, key)
+  // Lock custom : avale les AbortError ("signal is aborted without reason")
+  // émis par navigator.locks lors d'un unmount/navigation rapide ou d'une
+  // synchronisation multi-onglet. Ces erreurs sont bénignes mais polluent la
+  // console. Voir https://github.com/supabase/auth-js/issues/715
+  const safeNavigatorLock = async <R>(
+    name: string,
+    acquireTimeout: number,
+    fn: () => Promise<R>
+  ): Promise<R> => {
+    if (typeof navigator === 'undefined' || !navigator.locks?.request) {
+      return fn()
+    }
+    try {
+      return await navigator.locks.request(
+        name,
+        acquireTimeout === 0 ? { mode: 'exclusive', ifAvailable: true } : { mode: 'exclusive' },
+        async () => fn()
+      ) as R
+    } catch (err: any) {
+      // AbortError silencieux — le lock a été annulé (navigation, unmount, etc.)
+      if (err?.name === 'AbortError') {
+        return fn()
+      }
+      throw err
+    }
+  }
+
+  globalForSupabase.__supabaseBrowserClient = createBrowserClient(url, key, {
+    auth: {
+      lock: safeNavigatorLock as any,
+    },
+  })
   return globalForSupabase.__supabaseBrowserClient
 }
 

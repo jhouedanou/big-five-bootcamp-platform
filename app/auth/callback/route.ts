@@ -54,7 +54,9 @@ export async function GET(request: Request) {
         const { data, error } = await supabase.auth.verifyOtp({ token_hash, type: otpType })
         if (!error && data.session) {
             await ensureUserProfile(data.session.user)
-            return buildRedirect(origin, next, isRecoveryFlow, cookiesToSet, hasRecoveryCookie)
+            const isSignupFlow = !isRecoveryFlow && (otpType === 'signup' || otpType === 'email')
+            const targetNext = isSignupFlow ? '/auth/verified' : next
+            return buildRedirect(origin, targetNext, isRecoveryFlow, cookiesToSet, hasRecoveryCookie)
         }
         console.error('Auth callback (token_hash) error:', error)
     }

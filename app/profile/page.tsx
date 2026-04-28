@@ -266,7 +266,7 @@ export default function ProfilePage() {
               Votre activité ce mois
             </h2>
             <div className="mt-6 flex items-end gap-3">
-              <span className="font-[family-name:var(--font-heading)] text-6xl font-extrabold bg-gradient-to-r from-[#F2B33D] to-[#a855f7] bg-clip-text text-transparent">
+              <span className="font-[family-name:var(--font-heading)] text-6xl font-extrabold text-[#F2B33D]">
                 {user.monthlyUsage || 0}
               </span>
               <div className="mb-2">

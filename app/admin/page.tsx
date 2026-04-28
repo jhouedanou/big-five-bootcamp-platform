@@ -108,7 +108,7 @@ export default function AdminDashboardPage() {
             <div className="p-2 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg shadow-orange-500/30">
               <BarChart3 className="w-5 h-5" />
             </div>
-            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold tracking-tight text-[#F2B33D]">
               Dashboard
             </h1>
           </div>
@@ -202,7 +202,7 @@ export default function AdminDashboardPage() {
                 Aucune campagne pour le moment.
               </p>
               <Link href="/admin/campaigns?action=new">
-                <Button className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg shadow-orange-500/25">
+                <Button className="bg-[#F2B33D] hover:bg-[#d99a2a] text-white shadow-lg shadow-[#F2B33D]/25">
                   <PlusCircle className="w-4 h-4 mr-2" />
                   Créer votre première campagne
                 </Button>

@@ -100,7 +100,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           <p className="text-white/60 mb-6">Vous devez être administrateur pour accéder à cette section.</p>
           <Button
             onClick={() => router.push("/admin/login")}
-            className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg shadow-orange-500/25 px-8"
+            className="bg-[#F2B33D] hover:bg-[#d99a2a] text-white shadow-lg shadow-[#F2B33D]/25 px-8"
           >
             Se connecter
           </Button>
@@ -181,11 +181,11 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
               <Link
                 href="/admin/campaigns?action=new"
                 onClick={() => setSidebarOpen(false)}
-                className="flex items-center gap-3 px-4 py-3.5 rounded-xl 
-                  bg-gradient-to-r from-orange-500 to-orange-600 
+                className="flex items-center gap-3 px-4 py-3.5 rounded-xl
+                  bg-[#F2B33D] hover:bg-[#d99a2a]
                   text-white font-medium
-                  shadow-lg shadow-orange-500/30 
-                  hover:shadow-orange-500/50 hover:scale-[1.02]
+                  shadow-lg shadow-[#F2B33D]/30
+                  hover:shadow-[#F2B33D]/50 hover:scale-[1.02]
                   transition-all duration-200
                   group"
               >

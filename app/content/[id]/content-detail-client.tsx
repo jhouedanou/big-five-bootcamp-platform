@@ -28,6 +28,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useAuthContext } from "@/components/auth-provider";
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar";
 import { Navbar } from "@/components/navbar";
 import { createClient } from "@/lib/supabase";
@@ -111,6 +112,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
   const [error, setError] = useState<string | null>(null);
   const { isFavorite, toggleFavorite, isAuthenticated } = useFavorites();
   const { isAdmin } = useAuth();
+  const { refreshClickCounters } = useAuthContext();
   const [isToggling, setIsToggling] = useState(false);
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
   const [readProgress, setReadProgress] = useState(0);
@@ -180,6 +182,15 @@ export default function ContentDetailClient({ id }: { id: string }) {
               setIsBlocked(true);
               setShowUpgrade(true);
             }
+            // Synchroniser le compteur global (navbar)
+            refreshClickCounters().catch(() => {});
+            // Afficher le bottom sheet informatif tant qu'il reste des consultations
+            if (getData.isFree && getData.limit != null) {
+              const remaining = Math.max(0, getData.limit - (getData.clicks || 0));
+              setBottomSheetRemaining(remaining);
+              setBottomSheetOpen(true);
+              setTimeout(() => setBottomSheetOpen(false), 4000);
+            }
           }
           return;
         }
@@ -198,25 +209,26 @@ export default function ContentDetailClient({ id }: { id: string }) {
         setMonthlyClicks(data.clicks || 0);
         if (data.explored != null) setMonthlyExplored(data.explored);
 
+        // Mettre à jour le compteur global (navbar) après un clic tracké
+        refreshClickCounters().catch(() => {});
+
         // Poser le flag pour la dédup courte fenêtre
         try {
           sessionStorage.setItem(trackedKey, Date.now().toString());
         } catch { /* ignore */ }
 
-        // Spec : alerte popup uniquement quand il reste exactement 2 consultations
-        // (ou 0, fallback informatif avant blocage au prochain clic).
+        // Bottom sheet : afficher le compteur de consultations restantes à chaque
+        // consultation pour les utilisateurs gratuits (auto-fermeture après 4s).
         if (data.isFree && data.clicks != null && data.limit != null) {
-          const remaining = data.limit - data.clicks;
-          if (remaining === 2 || remaining === 0) {
-            setBottomSheetRemaining(remaining);
-            setBottomSheetOpen(true);
-            setTimeout(() => setBottomSheetOpen(false), 4000);
-          }
+          const remaining = Math.max(0, data.limit - data.clicks);
+          setBottomSheetRemaining(remaining);
+          setBottomSheetOpen(true);
+          setTimeout(() => setBottomSheetOpen(false), 4000);
         }
       } catch { /* ignore */ }
     };
     trackConsultation();
-  }, [authChecked, isUserAuthenticated, id, content]);
+  }, [authChecked, isUserAuthenticated, id, content, refreshClickCounters]);
 
   // Barre de progression de lecture
   useEffect(() => {
@@ -365,7 +377,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 Vous avez atteint votre limite de {MONTHLY_CLICK_LIMIT} campagnes consultées ce mois-ci.
               </p>
               <Button
-                className="mt-4 bg-gradient-to-r from-[#F2B33D] to-[#a855f7] hover:from-[#6b2d76] hover:to-[#9333ea] text-white"
+                className="mt-4 bg-[#F2B33D] hover:bg-[#d99a2a] text-white"
                 onClick={() => router.push('/subscribe')}
               >
                 Passer à un plan payant

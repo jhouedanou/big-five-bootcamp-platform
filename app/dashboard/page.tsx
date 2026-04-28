@@ -536,9 +536,17 @@ export default function DashboardPage() {
         return false
       }
 
-      // Marquer ce contenu comme déjà tracké pour la page détail
+      // Marquer ce contenu comme déjà tracké pour la page détail.
+      // La clé doit correspondre à ce que la page détail lira via le param URL :
+      // /content/<slug || id>
       try {
-        sessionStorage.setItem(`tracked-${content.id}`, Date.now().toString())
+        const navKey = content.slug || content.id
+        const ts = Date.now().toString()
+        sessionStorage.setItem(`tracked-${navKey}`, ts)
+        // Poser aussi sur l'id brut au cas où l'utilisateur navigue par UUID
+        if (content.slug && content.slug !== content.id) {
+          sessionStorage.setItem(`tracked-${content.id}`, ts)
+        }
       } catch { /* ignore (mode privé / quota) */ }
 
       // Spec : alerte popup uniquement quand il reste exactement 2 consultations

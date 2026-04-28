@@ -196,6 +196,11 @@ export default function ContentDetailClient({ id }: { id: string }) {
               return;
             }
             setMonthlyClicks(postData.clicks ?? getData.clicks ?? 0);
+            // Poser le flag pour éviter qu'un éventuel re-mount (Fast Refresh,
+            // navigation circulaire) ne retracke le même contenu.
+            try {
+              sessionStorage.setItem(`tracked-${id}`, Date.now().toString());
+            } catch { /* ignore */ }
           }
         }
       } catch { /* ignore */ }
@@ -428,6 +433,15 @@ export default function ContentDetailClient({ id }: { id: string }) {
             return;
           }
           setMonthlyClicks(data.clicks || 0);
+          // Poser le flag pour éviter un double POST sur la page de destination
+          try {
+            const navKey = item.slug || item.id;
+            const ts = Date.now().toString();
+            sessionStorage.setItem(`tracked-${navKey}`, ts);
+            if (item.slug && item.slug !== item.id) {
+              sessionStorage.setItem(`tracked-${item.id}`, ts);
+            }
+          } catch { /* ignore */ }
           router.push(`/content/${item.slug || item.id}`);
         } catch {
           router.push(`/content/${item.slug || item.id}`);
@@ -965,6 +979,14 @@ export default function ContentDetailClient({ id }: { id: string }) {
                             return;
                           }
                           setMonthlyClicks(data.clicks || 0);
+                          try {
+                            const navKey = item.slug || item.id;
+                            const ts = Date.now().toString();
+                            sessionStorage.setItem(`tracked-${navKey}`, ts);
+                            if (item.slug && item.slug !== item.id) {
+                              sessionStorage.setItem(`tracked-${item.id}`, ts);
+                            }
+                          } catch { /* ignore */ }
                           router.push(`/content/${item.slug || item.id}`);
                         } catch {
                           router.push(`/content/${item.slug || item.id}`);

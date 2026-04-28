@@ -82,7 +82,7 @@ export async function GET(
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #0F0F0F; background: #f8f9fa; padding: 40px; }
     .receipt { max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
-    .header { background: linear-gradient(135deg, #F2B33D, #0F0F0F); padding: 32px; text-align: center; color: white; }
+    .header { background: #F2B33D; padding: 32px; text-align: center; color: #0F0F0F; }
     .header h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
     .header p { font-size: 14px; opacity: 0.85; }
     .badge { display: inline-block; margin-top: 16px; background: rgba(255,255,255,0.2); border-radius: 20px; padding: 6px 16px; font-size: 13px; font-weight: 600; }

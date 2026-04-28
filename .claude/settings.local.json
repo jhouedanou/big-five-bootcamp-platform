@@ -61,7 +61,22 @@
       "Bash(wc:*)",
       "Bash(find /c/Users/socialmedia/Documents/GitHub/big-five-bootcamp-platform -type f \\\\\\(-name *.md -o -name *.txt \\\\\\))",
       "Bash(git checkout *)",
-      "Bash(git merge *)"
+      "Bash(git merge *)",
+      "Bash(git -C /Users/bfa/Documents/GitHub/big-five-bootcamp-platform status)",
+      "Bash(git -C /Users/bfa/Documents/GitHub/big-five-bootcamp-platform fetch origin)",
+      "Bash(git -C /Users/bfa/Documents/GitHub/big-five-bootcamp-platform diff --stat HEAD origin/main -- app/api/admin app/api/brands app/api/rss)",
+      "Bash(git -C /Users/bfa/Documents/GitHub/big-five-bootcamp-platform log --oneline HEAD..origin/main)",
+      "Bash(git -C /Users/bfa/Documents/GitHub/big-five-bootcamp-platform log --oneline origin/main..HEAD)",
+      "Bash(cp -R app/api/admin/brand-requests .backup-local/admin-brand-requests)",
+      "Bash(cp -R app/api/brands .backup-local/brands)",
+      "Bash(cp -R app/api/rss .backup-local/rss)",
+      "Bash(git stash *)",
+      "Bash(diff -u .backup-local/admin-brand-requests/route.ts app/api/admin/brand-requests/route.ts)",
+      "Bash(diff -u .backup-local/admin-brand-requests/merge/route.ts app/api/admin/brand-requests/merge/route.ts)",
+      "Bash(diff -u .backup-local/brands/route.ts app/api/brands/route.ts)",
+      "Bash(diff -ru .backup-local/rss app/api/rss)",
+      "Bash(npm audit *)",
+      "Bash(wait)"
     ]
   }
 }

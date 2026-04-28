@@ -89,11 +89,8 @@ export default function LoginPage() {
             <Link href="/" className="group inline-flex items-center gap-3 transition-all duration-300">
               <div className="relative">
                 <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-primary/20 to-accent/20 opacity-0 blur transition-opacity duration-300 group-hover:opacity-100" />
-                <img src="/logo.png" alt="Laveiye" className="relative h-10 w-10 rounded-lg" />
+                <img src="/logo.png" alt="Laveiye" className="relative w-50"/>
               </div>
-              <span className="font-[family-name:var(--font-heading)] text-xl font-bold text-foreground">
-                Laveiye
-              </span>
             </Link>
           </div>
 
@@ -197,7 +194,7 @@ export default function LoginPage() {
                   {"L'inspiration creative"}
                 </span>
                 <br />
-                <span className="bg-gradient-to-r from-[#F2B33D] via-[#0F0F0F] to-[#F2B33D] bg-clip-text text-transparent">
+                <span className="text-[#F2B33D]">
                   a portee de clic
                 </span>
               </h2>

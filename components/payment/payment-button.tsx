@@ -135,7 +135,7 @@ export default function PaymentButton({
           className={className}
           size="lg"
           style={{
-            background: 'linear-gradient(135deg, #F2B33D, #0F0F0F)',
+            background: '#F2B33D',
           }}
         >
           <CreditCard className="mr-2 h-5 w-5" />
@@ -202,7 +202,7 @@ export default function PaymentButton({
             onClick={handlePayment}
             disabled={isProcessing}
             style={{
-              background: 'linear-gradient(135deg, #F2B33D, #0F0F0F)',
+              background: '#F2B33D',
             }}
           >
             {isProcessing ? (

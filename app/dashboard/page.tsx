@@ -695,13 +695,13 @@ export default function DashboardPage() {
 
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               {/* Quick Filters */}
-              <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
+              <div className="flex">
                 {quickFilters.map((filter) => (
                   <button
                     key={filter.label}
                     type="button"
                     onClick={() => handleQuickFilter(filter)}
-                    className={`whitespace-nowrap rounded-full px-5 py-2 text-sm font-semibold transition-all duration-300 ${activeQuickFilter === filter.label
+                    className={`whitespace-nowrap rounded-full px-5 py-2 mr-2 text-sm font-semibold transition-all duration-300 ${activeQuickFilter === filter.label
                       ? `${filter.color} shadow-lg scale-105`
                       : "bg-white border border-[#F5F5F5] text-[#0F0F0F]/70 hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] hover:border-[#F2B33D]/50"
                       }`}

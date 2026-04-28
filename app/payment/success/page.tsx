@@ -417,7 +417,7 @@ function PaymentSuccessContent() {
 
         <div className="flex flex-col sm:flex-row gap-4">
           <Link href="/dashboard" className="flex-1">
-            <Button className="w-full h-12 text-base font-semibold bg-gradient-to-r from-[#F2B33D] to-[#0F0F0F] hover:opacity-90">
+            <Button className="w-full h-12 text-base font-semibold bg-[#F2B33D] text-black hover:bg-[#F2B33D]/90">
               Acceder a la bibliotheque
             </Button>
           </Link>

@@ -123,7 +123,7 @@ export default function PaymentCancelPage() {
             className="w-full"
             size="lg"
             style={{
-              background: 'linear-gradient(135deg, #F2B33D, #0F0F0F)',
+              background: '#F2B33D',
             }}
           >
             <RefreshCcw className="mr-2 h-5 w-5" />

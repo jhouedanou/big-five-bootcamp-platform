@@ -156,7 +156,7 @@ export function HeroSection() {
             <div className="mt-10 flex items-center gap-6 animate-fade-in-up delay-400">
               <div className="flex -space-x-3">
                 {displayUsers.map((user, i) => (
-                  <div key={i} className={`h-10 w-10 rounded-full border-2 border-background bg-gradient-to-br from-[#F2B33D]/20 to-[#0F0F0F]/20 z-${10 - i} flex items-center justify-center text-xs font-bold text-[#F2B33D]`}>
+                  <div key={i} className={`h-10 w-10 rounded-full border-2 border-background bg-[#F2B33D]/20 z-${10 - i} flex items-center justify-center text-xs font-bold text-[#F2B33D]`}>
                     {user.initials}
                   </div>
                 ))}
@@ -220,7 +220,7 @@ export function HeroSection() {
                                 unoptimized
                               />
                             ) : (
-                              <div className="absolute inset-0 bg-gradient-to-br from-[#F2B33D]/30 to-[#0F0F0F]/30 flex items-center justify-center text-white/80 text-xs font-bold">
+                              <div className="absolute inset-0 bg-[#F2B33D]/25 flex items-center justify-center text-[#0F0F0F]/80 text-xs font-bold">
                                 {campaign.title.substring(0, 2).toUpperCase()}
                               </div>
                             )}

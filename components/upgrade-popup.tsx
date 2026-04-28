@@ -15,7 +15,7 @@ export function UpgradePopup({ open, onClose, reason }: UpgradePopupProps) {
   if (!open) return null
 
   const messages: Record<string, string> = {
-    clicks: "Vous avez atteint votre limite de 5 campagnes consultées ce mois-ci.",
+    clicks: "Vous avez atteint votre limite de 3 campagnes consultées ce mois-ci.",
     filters: "Les filtres pays, secteur et tags sont réservés aux plans payants.",
     searches: "Vous avez atteint votre limite de recherches par filtre pour ce mois.",
     content: "Cliquez sur une campagne pour voir son détail complet.",

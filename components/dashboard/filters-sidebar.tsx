@@ -192,10 +192,10 @@ export function FiltersSidebar({
                   }`}
                 >
                   <span className="flex items-center gap-2.5">
-                    <span className="text-base font-bold text-[#0F0F0F]">{group.name}</span>
+                    <span className="text-base font-semibold text-[#0F0F0F]">{group.name}</span>
                     {isLocked && <Lock className="h-3.5 w-3.5 text-[#0F0F0F]/40" />}
                     {!isLocked && (selectedFilters[group.name]?.length ?? 0) > 0 && (
-                      <Badge className="h-6 rounded-full bg-[#F2B33D] px-2.5 text-sm font-bold text-white shadow-md shadow-[#F2B33D]/25">
+                      <Badge className="h-6 rounded-full bg-[#F2B33D] px-2.5 text-sm font-semibold text-white shadow-md shadow-[#F2B33D]/25">
                         {selectedFilters[group.name]?.length}
                       </Badge>
                     )}

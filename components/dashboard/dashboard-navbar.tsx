@@ -99,11 +99,11 @@ export function DashboardNavbar({
         <div className="flex items-center gap-4">
           <Link href="/dashboard" className="flex items-center gap-2">
             <Image
-              src="/niggaz/colored.webp"
+              src="/niggaz/normalGlogo.png"
               alt="Laveiye"
               width={189}
               height={40}
-              className="h-10 w-auto dark:hidden"
+              className="dark:hidden"
               priority
             />
             <Image
@@ -160,7 +160,7 @@ export function DashboardNavbar({
         <div className="hidden flex-1 items-center justify-center px-8 md:flex">
           <div className="relative w-full max-w-xl group">
             {/* Glow gradient de fond */}
-            <div className="absolute -inset-1.5 bg-gradient-to-r from-[#F2B33D]/40 via-[#F2B33D]/30 to-[#0F0F0F]/40 rounded-2xl blur-lg opacity-60 group-focus-within:opacity-100 group-hover:opacity-80 transition-opacity duration-300" />
+            <div className="absolute -inset-1.5 bg-[#F2B33D]/30 rounded-2xl blur-lg opacity-60 group-focus-within:opacity-100 group-hover:opacity-80 transition-opacity duration-300" />
             <div className="relative flex items-center">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center h-7 w-7 rounded-full bg-[#F2B33D] group-focus-within:bg-[#F2B33D] transition-colors">
                 <Search className="h-4 w-4 text-white" />
@@ -245,7 +245,7 @@ export function DashboardNavbar({
             <Link href="/pricing" className="hidden md:flex">
               <Button
                 size="sm"
-                className="gap-1.5 text-xs font-semibold rounded-full px-3 h-8 bg-gradient-to-r from-[#F2B33D] to-[#0F0F0F] text-white hover:opacity-90"
+                className="gap-1.5 text-xs font-semibold rounded-full px-3 h-8 bg-[#F2B33D] text-black hover:bg-[#F2B33D]/90"
               >
                 <Sparkles className="h-3.5 w-3.5" />
                 Voir les plans
@@ -396,7 +396,7 @@ export function DashboardNavbar({
                     ? "bg-amber-50 text-amber-800"
                     : isPremium && subInfo.expired
                       ? "bg-red-50 text-red-800"
-                      : "bg-gradient-to-r from-[#F2B33D]/10 to-[#0F0F0F]/10 text-[#F2B33D] font-semibold"
+                      : "bg-[#F2B33D]/10 text-[#F2B33D] font-semibold"
               }`}
               onClick={() => setIsOpen(false)}
             >

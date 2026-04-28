@@ -176,12 +176,7 @@ export default function SubscribePage() {
             Retour
           </Link>
           <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F2B33D]">
-              <Sparkles className="h-4 w-4 text-white" />
-            </div>
-            <span className="font-[family-name:var(--font-heading)] font-bold text-[#0F0F0F]">
-              Laveiye
-            </span>
+            <img src="/logo.png" className="w-30" alt="" />
           </Link>
           <div className="w-16" />
         </div>

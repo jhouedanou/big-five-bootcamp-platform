@@ -131,7 +131,7 @@ export default function AuthPage() {
           <CardFooter className="flex flex-col space-y-4">
             <Button 
               type="submit" 
-              className="w-full bg-gradient-to-r from-[#F2B33D] to-[#0F0F0F] hover:from-[#F2B33D] hover:to-blue-700"
+              className="w-full bg-[#F2B33D] text-black hover:bg-[#F2B33D]/90"
               disabled={isSubmitting}
             >
               {isSubmitting ? (

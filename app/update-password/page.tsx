@@ -317,7 +317,7 @@ function UpdatePasswordContent() {
                 <img
                   src="/logo.png"
                   alt="Laveiye"
-                  className="relative h-10 w-10 rounded-lg"
+                  className="relative"
                 />
               </div>
               <span className="font-sans text-xl font-bold text-foreground">

@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase"
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [logoUrl, setLogoUrl] = useState("/niggaz/colored.webp")
+  const [logoUrl, setLogoUrl] = useState("/niggaz/normalGlogo.png")
   const initialCheckDone = useRef(false)
 
   useEffect(() => {
@@ -54,7 +54,7 @@ export function Navbar() {
               alt="Laveiye"
               width={208}
               height={44}
-              className="relative h-11 w-auto dark:hidden"
+              className="relative dark:hidden"
               priority
             />
             <Image
@@ -62,7 +62,7 @@ export function Navbar() {
               alt="Laveiye"
               width={208}
               height={44}
-              className="relative hidden h-11 w-auto dark:block"
+              className="relative hidden dark:block"
               priority
             />
           </div>

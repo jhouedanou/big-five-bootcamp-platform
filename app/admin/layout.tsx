@@ -121,7 +121,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         <Link href="/admin" className="flex items-center gap-3">
           <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-2 rounded-xl shadow-lg shadow-orange-500/30">
             <Image
-              src="/logo.png"
+              src="/niggaz/normalGlogo.png"
               alt="Laveiye"
               width={24}
               height={24}

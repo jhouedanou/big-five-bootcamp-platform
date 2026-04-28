@@ -139,7 +139,11 @@ export default function SubscribePage() {
       const data = await response.json()
 
       if (!response.ok || !data.success) {
-        throw new Error(data.error || data.details || "Erreur lors de la création du paiement")
+        const failure = data.failureReason
+          ? `${data.failureReason.failureCode}: ${data.failureReason.failureMessage}`
+          : null
+        const message = [data.error, failure, data.details].filter(Boolean).join(" — ")
+        throw new Error(message || "Erreur lors de la création du paiement")
       }
 
       sessionStorage.setItem("payment_ref", data.ref_command)

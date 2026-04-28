@@ -187,12 +187,12 @@ export async function POST(request: NextRequest) {
         successfulUrl: getReturnUrl(ref_command),
         failedUrl: getFailedUrl(ref_command),
         metadata: [
-          { fieldName: 'ref_command', fieldValue: ref_command },
-          { fieldName: 'type', fieldValue: 'subscription' },
-          { fieldName: 'plan', fieldValue: planKey },
-          { fieldName: 'billing', fieldValue: isAnnual ? 'annual' : 'monthly' },
-          { fieldName: 'user_id', fieldValue: String((existingUser as any).id) },
-          { fieldName: 'renewal', fieldValue: isCurrentlyActive ? 'true' : 'false' },
+          { ref_command },
+          { type: 'subscription' },
+          { plan: planKey },
+          { billing: isAnnual ? 'annual' : 'monthly' },
+          { user_id: String((existingUser as any).id) },
+          { renewal: isCurrentlyActive ? 'true' : 'false' },
         ],
       });
     } catch (pawapayError) {

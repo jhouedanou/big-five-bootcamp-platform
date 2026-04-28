@@ -140,10 +140,10 @@ export async function POST(request: NextRequest) {
         successfulUrl: getReturnUrl(ref_command),
         failedUrl: getFailedUrl(ref_command),
         metadata: [
-          { fieldName: 'ref_command', fieldValue: ref_command },
-          { fieldName: 'type', fieldValue: 'bootcamp' },
-          { fieldName: 'session_id', fieldValue: String(sessionId) },
-          { fieldName: 'bootcamp_slug', fieldValue: String(bootcamp.slug) },
+          { ref_command },
+          { type: 'bootcamp' },
+          { session_id: String(sessionId) },
+          { bootcamp_slug: String(bootcamp.slug) },
         ],
       });
     } catch (pawapayError) {

@@ -219,7 +219,7 @@ export interface InitiateDepositInput {
   preAuthorisationCode?: string // Orange Burkina
   successfulUrl?: string // Wave SEN/CIV
   failedUrl?: string // Wave SEN/CIV
-  metadata?: Array<{ fieldName: string; fieldValue: string; isPII?: boolean }>
+  metadata?: Array<Record<string, string | boolean>>
 }
 
 export async function initiateDeposit(input: InitiateDepositInput) {
@@ -241,7 +241,7 @@ export interface InitiatePayoutInput {
   currency: string
   recipient: PawaPayMmoAccount
   customerMessage?: string
-  metadata?: Array<{ fieldName: string; fieldValue: string; isPII?: boolean }>
+  metadata?: Array<Record<string, string | boolean>>
 }
 
 export async function initiatePayout(input: InitiatePayoutInput) {
@@ -261,7 +261,7 @@ export interface InitiateRefundInput {
   depositId: string
   amount?: string // si omis → full refund du restant
   currency?: string
-  metadata?: Array<{ fieldName: string; fieldValue: string; isPII?: boolean }>
+  metadata?: Array<Record<string, string | boolean>>
 }
 
 export async function initiateRefund(input: InitiateRefundInput) {

@@ -3,11 +3,13 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { createClient } from '@supabase/supabase-js'
+import { verifyTurnstileToken } from "@/lib/turnstile"
 
 const registerSchema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
   email: z.string().email("Email invalide"),
   password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
+  turnstileToken: z.string().min(1, "Vérification anti-bot requise"),
 })
 
 function getSupabaseAdmin() {
@@ -38,30 +40,40 @@ export async function POST(request: Request) {
       )
     }
 
-    const { name, email, password } = validation.data
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://library.bigfive.solutions'
+    const { name, email, password, turnstileToken } = validation.data
 
-    // Méthode principale : signUp() pour que Supabase envoie l'email de confirmation
-    const supabaseAnon = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    const remoteIp =
+      request.headers.get("cf-connecting-ip") ||
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      undefined
+    const turnstile = await verifyTurnstileToken(turnstileToken, remoteIp)
+    if (!turnstile.success) {
+      return NextResponse.json(
+        {
+          error: "Vérification anti-bot échouée. Veuillez réessayer.",
+          details: turnstile.errorCodes?.join(", "),
+        },
+        { status: 400 }
+      )
+    }
 
-    const { data: signUpData, error: signUpError } = await supabaseAnon.auth.signUp({
+    // Création du compte via l'admin API avec email_confirm: true
+    // → l'utilisateur est immédiatement actif, pas de vérification email
+    const supabaseAdmin = getSupabaseAdmin()
+
+    const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      options: {
-        data: { name },
-        emailRedirectTo: `${appUrl}/auth/callback`,
-      },
+      email_confirm: true,
+      user_metadata: { name },
     })
 
-    if (signUpError) {
-      console.error("SignUp error:", signUpError.message)
+    if (createError) {
+      console.error("CreateUser error:", createError.message)
 
-      if (signUpError.message.includes('already registered') || 
-          signUpError.message.includes('already been registered') ||
-          signUpError.message.includes('already exists')) {
+      if (createError.message.toLowerCase().includes('already') ||
+          createError.message.toLowerCase().includes('exists') ||
+          createError.message.toLowerCase().includes('registered')) {
         return NextResponse.json(
           { error: "Un compte avec cet email existe déjà" },
           { status: 400 }
@@ -69,21 +81,12 @@ export async function POST(request: Request) {
       }
 
       return NextResponse.json(
-        { error: signUpError.message || "Erreur lors de la création du compte" },
+        { error: createError.message || "Erreur lors de la création du compte" },
         { status: 500 }
       )
     }
 
-    // Supabase peut retourner un user avec identities vide si l'email existe déjà
-    // (quand "Confirm email" est activé et que l'user n'a pas confirmé)
-    if (signUpData.user && signUpData.user.identities && signUpData.user.identities.length === 0) {
-      return NextResponse.json(
-        { error: "Un compte avec cet email existe déjà" },
-        { status: 400 }
-      )
-    }
-
-    if (!signUpData.user) {
+    if (!createData.user) {
       return NextResponse.json(
         { error: "Erreur lors de la création du compte" },
         { status: 500 }
@@ -91,38 +94,27 @@ export async function POST(request: Request) {
     }
 
     // Créer le profil dans la table users via service role (bypass RLS)
-    try {
-      const supabaseAdmin = getSupabaseAdmin()
-      const { error: profileError } = await supabaseAdmin
-        .from('users')
-        .insert({
-          id: signUpData.user.id,
-          email,
-          name,
-          role: 'user',
-          plan: 'Free',
-          status: 'active',
-        })
+    const { error: profileError } = await supabaseAdmin
+      .from('users')
+      .insert({
+        id: createData.user.id,
+        email,
+        name,
+        role: 'user',
+        plan: 'Free',
+        status: 'active',
+      })
 
-      if (profileError) {
-        console.error("Profile creation error:", profileError.message)
-        // Non bloquant — le profil sera créé au premier login si nécessaire
-      }
-    } catch (profileErr) {
-      console.error("Profile creation exception:", profileErr)
+    if (profileError) {
+      console.error("Profile creation error:", profileError.message)
+      // Non bloquant — le profil sera créé au premier login si nécessaire
     }
 
-    // Déterminer si un email de confirmation a été envoyé
-    // Si signUpData.session est null, c'est que l'email doit être confirmé
-    const needsEmailConfirmation = !signUpData.session
-
     return NextResponse.json({
-      message: needsEmailConfirmation 
-        ? "Compte créé ! Vérifie ta boîte mail pour confirmer ton adresse email."
-        : "Compte créé avec succès",
-      needsEmailConfirmation,
+      message: "Compte créé avec succès",
+      needsEmailConfirmation: false,
       user: {
-        id: signUpData.user.id,
+        id: createData.user.id,
         email,
         name,
       }

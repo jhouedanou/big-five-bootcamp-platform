@@ -129,6 +129,9 @@ export function Navbar() {
               <Button variant="ghost" asChild className="font-medium text-[#0F0F0F] hover:bg-[#F5F5F5]/50">
                 <Link href="/login">Connexion</Link>
               </Button>
+              <Button variant="outline" asChild className="font-semibold border-[#F2B33D] text-[#F2B33D] hover:bg-[#F2B33D]/10">
+                <Link href="/register">Inscription</Link>
+              </Button>
               <Button asChild className="group font-semibold shadow-lg shadow-[#F2B33D]/25 transition-all duration-300 hover:shadow-xl hover:shadow-[#F2B33D]/30 hover:scale-105 bg-[#F2B33D] hover:bg-[#F2B33D]/90">
                 <Link href="/pricing">
                   Voir les plans
@@ -214,6 +217,13 @@ export function Navbar() {
                   onClick={() => setIsOpen(false)}
                 >
                   Connexion
+                </Link>
+                <Link
+                  href="/register"
+                  className="rounded-xl px-4 py-3 text-sm font-semibold text-[#F2B33D] transition-all duration-300 hover:bg-[#F2B33D]/10 hover:translate-x-1"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Inscription
                 </Link>
                 <Button asChild className="mt-3 h-12 font-semibold shadow-lg shadow-[#F2B33D]/25 bg-[#F2B33D] hover:bg-[#F2B33D]/90">
                   <Link href="/pricing" onClick={() => setIsOpen(false)}>

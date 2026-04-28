@@ -9,7 +9,6 @@ import type { DynamicFilterOptions } from "@/components/dashboard/filters-sideba
 import { ContentCard, ContentItem } from "@/components/dashboard/content-card"
 import { ContentGridSkeleton } from "@/components/dashboard/content-card-skeleton"
 import { UpgradePopup, useUpgradePopup } from "@/components/upgrade-popup"
-import { ConsultationBottomSheet } from "@/components/consultation-bottom-sheet"
 import { createClient } from "@/lib/supabase"
 import { useAuthContext } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
@@ -223,8 +222,6 @@ export default function DashboardPage() {
   }, [router])
 
   const { open: upgradeOpen, reason: upgradeReason, showUpgrade, closeUpgrade } = useUpgradePopup()
-  const [bottomSheetOpen, setBottomSheetOpen] = useState(false)
-  const [bottomSheetRemaining, setBottomSheetRemaining] = useState(0)
 
   // Auth centralisé — AUCUN appel getUser() ni requête DB ici
   const {
@@ -523,50 +520,24 @@ export default function DashboardPage() {
     return weeklyCampaigns.filter(c => filteredIds.has(c.id))
   }, [weeklyCampaigns, filteredContent])
 
-  const handleContentClick = useCallback(async (content: ContentItem): Promise<boolean> => {
-    // Tracker le clic via l'API. La page détail consultera sessionStorage
-    // pour savoir que ce clic a déjà été comptabilisé ici, et n'incrémentera
-    // pas une seconde fois.
+  const handleContentClick = useCallback(async (_content: ContentItem): Promise<boolean> => {
+    // Le tracking est désormais fait par la page détail au chargement du contenu.
+    // Ici on se contente de vérifier si l'utilisateur est déjà bloqué pour
+    // empêcher la navigation et afficher l'upgrade.
     try {
-      const res = await fetch('/api/track-click', { method: 'POST' })
-      const data = await res.json()
-
-      if (!res.ok || !data.allowed) {
-        showUpgrade("clicks")
-        return false
-      }
-
-      // Marquer ce contenu comme déjà tracké pour la page détail.
-      // La clé doit correspondre à ce que la page détail lira via le param URL :
-      // /content/<slug || id>
-      try {
-        const navKey = content.slug || content.id
-        const ts = Date.now().toString()
-        sessionStorage.setItem(`tracked-${navKey}`, ts)
-        // Poser aussi sur l'id brut au cas où l'utilisateur navigue par UUID
-        if (content.slug && content.slug !== content.id) {
-          sessionStorage.setItem(`tracked-${content.id}`, ts)
-        }
-      } catch { /* ignore (mode privé / quota) */ }
-
-      // Spec : alerte popup uniquement quand il reste exactement 2 consultations
-      // (ou 0, fallback informatif avant blocage au prochain clic).
-      if (data.isFree && data.clicks != null && data.limit != null) {
-        const remaining = data.limit - data.clicks
-        if (remaining === 2 || remaining === 0) {
-          setBottomSheetRemaining(remaining)
-          setBottomSheetOpen(true)
-          setTimeout(() => setBottomSheetOpen(false), 4000)
+      const res = await fetch('/api/track-click') // GET
+      if (res.ok) {
+        const data = await res.json()
+        if (data.isFree && data.limit != null && (data.clicks || 0) >= data.limit) {
+          showUpgrade("clicks")
+          return false
         }
       }
-
-      // Rafraîchir les compteurs depuis le contexte centralisé
-      await refreshClickCounters()
     } catch {
       // En cas d'erreur réseau, laisser passer
     }
     return true
-  }, [showUpgrade, refreshClickCounters])
+  }, [showUpgrade])
 
   const accessibleContent = filteredContent
   const totalPages = Math.ceil(accessibleContent.length / itemsPerPage)
@@ -918,13 +889,6 @@ export default function DashboardPage() {
         reason={upgradeReason}
       />
 
-      {/* Bottom sheet consultations restantes (free users) */}
-      <ConsultationBottomSheet
-        open={bottomSheetOpen}
-        onClose={() => setBottomSheetOpen(false)}
-        remainingConsultations={bottomSheetRemaining}
-        totalLimit={MONTHLY_CLICK_LIMIT}
-      />
     </div>
   )
 }

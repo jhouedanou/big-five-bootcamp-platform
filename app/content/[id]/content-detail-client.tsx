@@ -40,6 +40,7 @@ import { isPaidPlan } from "@/lib/pricing";
 import { UpgradePopup } from "@/components/upgrade-popup";
 import { ReactionButtons } from "@/components/ui/reaction-buttons";
 import { AddToCollectionModal } from "@/components/collections/add-to-collection-modal";
+import { ConsultationBottomSheet } from "@/components/consultation-bottom-sheet";
 import { FolderPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -122,6 +123,8 @@ export default function ContentDetailClient({ id }: { id: string }) {
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [isUserAuthenticated, setIsUserAuthenticated] = useState(false);
+  const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
+  const [bottomSheetRemaining, setBottomSheetRemaining] = useState(0);
   const trackedRef = useRef(false);
   const isFreeUser = !isPaidPlan(userPlan);
   const router = useRouter();
@@ -142,71 +145,78 @@ export default function ContentDetailClient({ id }: { id: string }) {
     checkAuth();
   }, []);
 
-  // Charger le plan utilisateur, vérifier la limite, et tracker le clic
-  // Le dashboard tracke le clic au moment où l'utilisateur clique sur la carte,
-  // et pose un flag dans sessionStorage. Ici on ne POST que si on arrive en
-  // accès direct (URL partagée, bookmark) — le flag absent ou expiré.
-  // Le useRef empêche le double-fire de StrictMode.
+  // Tracker la consultation UNE FOIS le contenu chargé.
+  // Le useRef + sessionStorage flag évitent les doublons (StrictMode dev,
+  // Fast Refresh, navigation circulaire dans une fenêtre courte).
   useEffect(() => {
     if (!authChecked || !isUserAuthenticated) return;
+    if (!content) return; // attendre que la campagne soit chargée
     if (trackedRef.current) return;
     trackedRef.current = true;
 
-    const loadUserDataAndTrack = async () => {
+    const trackConsultation = async () => {
       try {
-        // Vérifier si le dashboard vient juste de tracker ce contenu
+        // Dédup courte fenêtre : si on a tracké ce même contenu très récemment
+        // (ex. retour arrière, re-mount), ne pas re-POST.
         const trackedKey = `tracked-${id}`;
-        let alreadyTracked = false;
+        let recentlyTracked = false;
         try {
           const ts = sessionStorage.getItem(trackedKey);
           if (ts) {
             const age = Date.now() - parseInt(ts, 10);
-            if (age >= 0 && age < 30_000) alreadyTracked = true;
-            sessionStorage.removeItem(trackedKey);
+            if (age >= 0 && age < 30_000) recentlyTracked = true;
           }
         } catch { /* sessionStorage indisponible */ }
 
-        const getRes = await fetch('/api/track-click');
-        if (getRes.status === 401) return;
-        if (!getRes.ok) return;
-
-        const getData = await getRes.json();
-        setMonthlyClicks(getData.clicks || 0);
-        setMonthlyExplored(getData.explored || 0);
-
-        if (!getData.isFree) {
-          setUserPlan('Pro');
-        }
-
-        // Limite déjà atteinte → bloquer
-        if (getData.isFree && (getData.clicks || 0) >= MONTHLY_CLICK_LIMIT) {
-          setIsBlocked(true);
-          setShowUpgrade(true);
+        if (recentlyTracked) {
+          // Lire l'état pour l'affichage sans incrémenter
+          const getRes = await fetch('/api/track-click');
+          if (getRes.ok) {
+            const getData = await getRes.json();
+            setMonthlyClicks(getData.clicks || 0);
+            setMonthlyExplored(getData.explored || 0);
+            if (!getData.isFree) setUserPlan('Pro');
+            if (getData.isFree && (getData.clicks || 0) >= MONTHLY_CLICK_LIMIT) {
+              setIsBlocked(true);
+              setShowUpgrade(true);
+            }
+          }
           return;
         }
 
-        // Accès direct (pas de flag dashboard) → tracker maintenant
-        if (getData.isFree && !alreadyTracked) {
-          const postRes = await fetch('/api/track-click', { method: 'POST' });
-          if (postRes.ok) {
-            const postData = await postRes.json();
-            if (!postData.allowed) {
-              setIsBlocked(true);
-              setShowUpgrade(true);
-              return;
-            }
-            setMonthlyClicks(postData.clicks ?? getData.clicks ?? 0);
-            // Poser le flag pour éviter qu'un éventuel re-mount (Fast Refresh,
-            // navigation circulaire) ne retracke le même contenu.
-            try {
-              sessionStorage.setItem(`tracked-${id}`, Date.now().toString());
-            } catch { /* ignore */ }
+        // Tracker le clic (POST). L'API renvoie 403 si limite déjà atteinte.
+        const postRes = await fetch('/api/track-click', { method: 'POST' });
+        const data = await postRes.json().catch(() => ({} as any));
+        if (!postRes.ok || !data.allowed) {
+          setIsBlocked(true);
+          setShowUpgrade(true);
+          if (data.clicks != null) setMonthlyClicks(data.clicks);
+          return;
+        }
+
+        if (!data.isFree) setUserPlan('Pro');
+        setMonthlyClicks(data.clicks || 0);
+        if (data.explored != null) setMonthlyExplored(data.explored);
+
+        // Poser le flag pour la dédup courte fenêtre
+        try {
+          sessionStorage.setItem(trackedKey, Date.now().toString());
+        } catch { /* ignore */ }
+
+        // Spec : alerte popup uniquement quand il reste exactement 2 consultations
+        // (ou 0, fallback informatif avant blocage au prochain clic).
+        if (data.isFree && data.clicks != null && data.limit != null) {
+          const remaining = data.limit - data.clicks;
+          if (remaining === 2 || remaining === 0) {
+            setBottomSheetRemaining(remaining);
+            setBottomSheetOpen(true);
+            setTimeout(() => setBottomSheetOpen(false), 4000);
           }
         }
       } catch { /* ignore */ }
     };
-    loadUserDataAndTrack();
-  }, [authChecked, isUserAuthenticated, id]);
+    trackConsultation();
+  }, [authChecked, isUserAuthenticated, id, content]);
 
   // Barre de progression de lecture
   useEffect(() => {
@@ -422,28 +432,26 @@ export default function ContentDetailClient({ id }: { id: string }) {
       href={`/content/${item.slug || item.id}`}
       className="flex gap-3 group"
       onClick={async (e) => {
-        if (!isFreeUser) return;
-        e.preventDefault();
-        try {
-          const res = await fetch('/api/track-click', { method: 'POST' });
-          const data = await res.json();
-          if (!res.ok || !data.allowed) {
-            setIsBlocked(true);
-            setShowUpgrade(true);
-            return;
-          }
-          setMonthlyClicks(data.clicks || 0);
-          // Poser le flag pour éviter un double POST sur la page de destination
+        // Si déjà bloqué, empêcher la navigation et proposer l'upgrade
+        if (isFreeUser && isBlocked) {
+          e.preventDefault();
+          setShowUpgrade(true);
+          return;
+        }
+        // Vérifier si l'utilisateur est à la limite avant de naviguer
+        if (isFreeUser) {
+          e.preventDefault();
           try {
-            const navKey = item.slug || item.id;
-            const ts = Date.now().toString();
-            sessionStorage.setItem(`tracked-${navKey}`, ts);
-            if (item.slug && item.slug !== item.id) {
-              sessionStorage.setItem(`tracked-${item.id}`, ts);
+            const res = await fetch('/api/track-click'); // GET
+            if (res.ok) {
+              const data = await res.json();
+              if (data.isFree && data.limit != null && (data.clicks || 0) >= data.limit) {
+                setIsBlocked(true);
+                setShowUpgrade(true);
+                return;
+              }
             }
-          } catch { /* ignore */ }
-          router.push(`/content/${item.slug || item.id}`);
-        } catch {
+          } catch { /* laisser passer */ }
           router.push(`/content/${item.slug || item.id}`);
         }
       }}
@@ -968,27 +976,24 @@ export default function ContentDetailClient({ id }: { id: string }) {
                       href={`/content/${item.slug || item.id}`}
                       className="flex gap-4 group p-4 rounded-xl border border-border hover:border-[#F2B33D]/30 hover:shadow-md transition-all bg-card"
                       onClick={async (e) => {
-                        if (!isFreeUser) return;
-                        e.preventDefault();
-                        try {
-                          const res = await fetch('/api/track-click', { method: 'POST' });
-                          const data = await res.json();
-                          if (!res.ok || !data.allowed) {
-                            setIsBlocked(true);
-                            setShowUpgrade(true);
-                            return;
-                          }
-                          setMonthlyClicks(data.clicks || 0);
+                        if (isFreeUser && isBlocked) {
+                          e.preventDefault();
+                          setShowUpgrade(true);
+                          return;
+                        }
+                        if (isFreeUser) {
+                          e.preventDefault();
                           try {
-                            const navKey = item.slug || item.id;
-                            const ts = Date.now().toString();
-                            sessionStorage.setItem(`tracked-${navKey}`, ts);
-                            if (item.slug && item.slug !== item.id) {
-                              sessionStorage.setItem(`tracked-${item.id}`, ts);
+                            const res = await fetch('/api/track-click'); // GET
+                            if (res.ok) {
+                              const data = await res.json();
+                              if (data.isFree && data.limit != null && (data.clicks || 0) >= data.limit) {
+                                setIsBlocked(true);
+                                setShowUpgrade(true);
+                                return;
+                              }
                             }
-                          } catch { /* ignore */ }
-                          router.push(`/content/${item.slug || item.id}`);
-                        } catch {
+                          } catch { /* laisser passer */ }
                           router.push(`/content/${item.slug || item.id}`);
                         }
                       }}
@@ -1206,6 +1211,14 @@ export default function ContentDetailClient({ id }: { id: string }) {
         open={showUpgrade}
         onClose={() => setShowUpgrade(false)}
         reason="clicks"
+      />
+
+      {/* Bottom sheet consultations restantes (free users) */}
+      <ConsultationBottomSheet
+        open={bottomSheetOpen}
+        onClose={() => setBottomSheetOpen(false)}
+        remainingConsultations={bottomSheetRemaining}
+        totalLimit={MONTHLY_CLICK_LIMIT}
       />
     </div>
   );

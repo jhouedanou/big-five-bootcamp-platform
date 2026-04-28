@@ -12,7 +12,6 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { LegalModal } from "@/components/legal-modal"
-import { Turnstile } from "@/components/turnstile"
 
 function formatNumber(n: number): string {
   if (n >= 1000) {
@@ -31,7 +30,8 @@ export default function RegisterPage() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [turnstileToken, setTurnstileToken] = useState("")
+  const [website, setWebsite] = useState("")
+  const [formStartedAt] = useState(() => Date.now())
   const [stats, setStats] = useState({ users: 0, campaigns: 0, brands: 0, countries: 0 })
 
   useEffect(() => {
@@ -43,19 +43,19 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (!turnstileToken) {
-      toast.error("Veuillez compléter la vérification anti-bot")
-      return
-    }
-
     setIsLoading(true)
 
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, turnstileToken }),
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          website,
+          elapsedMs: Date.now() - formStartedAt,
+        }),
       })
 
       const data = await res.json()
@@ -249,17 +249,24 @@ export default function RegisterPage() {
                 </Label>
               </div>
 
-              <Turnstile
-                onVerify={setTurnstileToken}
-                onExpire={() => setTurnstileToken("")}
-                onError={() => setTurnstileToken("")}
-              />
+              <div aria-hidden="true" className="absolute left-[-9999px] top-auto h-0 w-0 overflow-hidden">
+                <Label htmlFor="website">Site web</Label>
+                <Input
+                  id="website"
+                  name="website"
+                  type="text"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                />
+              </div>
             </div>
 
             <Button
               type="submit"
               className="h-11 w-full shadow-lg shadow-primary/25"
-              disabled={isLoading || !acceptTerms || !turnstileToken}
+              disabled={isLoading || !acceptTerms}
             >
               {isLoading ? "Creation du compte..." : "Creer mon compte"}
             </Button>

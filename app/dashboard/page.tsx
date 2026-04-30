@@ -679,15 +679,15 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center min-w-0">
               {/* Quick Filters */}
-              <div className="flex">
+              <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
                 {quickFilters.map((filter) => (
                   <button
                     key={filter.label}
                     type="button"
                     onClick={() => handleQuickFilter(filter)}
-                    className={`whitespace-nowrap rounded-full px-5 py-2 mr-2 text-sm font-semibold transition-all duration-300 ${activeQuickFilter === filter.label
+                    className={`whitespace-nowrap rounded-full px-5 py-2 text-sm font-semibold transition-all duration-300 ${activeQuickFilter === filter.label
                       ? `${filter.color} shadow-lg scale-105`
                       : "bg-white border border-[#F5F5F5] text-[#0F0F0F]/70 hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] hover:border-[#F2B33D]/50"
                       }`}

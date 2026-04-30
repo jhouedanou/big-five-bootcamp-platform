@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { createClient } from "@/lib/supabase"
+import { useAuthContext } from "@/components/auth-provider"
 import { toast } from "sonner"
 import { 
   KeyRound, 
@@ -49,6 +50,7 @@ interface PaymentRecord {
 export default function SettingsPage() {
   const router = useRouter()
   const supabase = createClient()
+  const { refreshProfile } = useAuthContext()
   
   // États pour le mot de passe
   const [currentPassword, setCurrentPassword] = useState("")
@@ -139,7 +141,10 @@ export default function SettingsPage() {
     }
 
     loadUserData()
-  }, [supabase, router])
+    // Synchroniser le contexte d'auth (navbar, plan, compteurs) avec la DB,
+    // utile après un paiement où le profil cache du contexte est obsolète.
+    refreshProfile()
+  }, [supabase, router, refreshProfile])
 
   // Validation du mot de passe
   const validatePassword = (password: string): { valid: boolean; message: string } => {

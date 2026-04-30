@@ -1,15 +1,7 @@
 export const dynamic = "force-dynamic"
 
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TableCell,
-} from "@/components/ui/table"
 import { getUsers, getPayments, getFavoritesCounts } from "@/app/actions/user"
-import { UserRow } from "./user-row"
+import { UsersTable } from "./users-table"
 
 export default async function UsersPage() {
   const [usersResult, paymentsResult, favoritesResult] = await Promise.all([
@@ -44,42 +36,11 @@ export default async function UsersPage() {
         </p>
       </div>
 
-      <div className="border rounded-lg bg-card text-card-foreground shadow-sm">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-8"></TableHead>
-              <TableHead>Nom</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Rôle</TableHead>
-              <TableHead>Plan</TableHead>
-              <TableHead>Accès</TableHead>
-              <TableHead>Abonnement</TableHead>
-              <TableHead>Favoris</TableHead>
-              <TableHead>Inscription</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
-                  Aucun utilisateur trouvé.
-                </TableCell>
-              </TableRow>
-            ) : (
-              users.map((user: Record<string, unknown>) => (
-                <UserRow
-                  key={user.id as string}
-                  user={user}
-                  payments={paymentsByEmail[(user.email as string)] || []}
-                  favoritesCount={(favoritesCounts as Record<string, number>)[user.id as string] || 0}
-                />
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <UsersTable
+        users={users as Array<Record<string, unknown>>}
+        paymentsByEmail={paymentsByEmail}
+        favoritesCounts={favoritesCounts as Record<string, number>}
+      />
     </div>
   )
 }

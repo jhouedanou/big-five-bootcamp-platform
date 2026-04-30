@@ -69,7 +69,7 @@ interface Campaign {
   year?: number | null;
   images?: string[] | null;
   analyse?: string | null;
-  why_this_axis?: string | null;
+  how_to_use?: string | null;
   summary?: string | null;
   slug?: string | null;
   axe?: string[] | null;
@@ -888,7 +888,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
               );
             })()}
 
-            {/* ---- Onglet AXE : Analyse + Pourquoi cet axe ---- */}
+            {/* ---- Onglet AXE : Analyse + Comment s'en servir ---- */}
             {activeTab === "axe" && (
               <div className="space-y-6">
                 {content.analyse && (
@@ -903,19 +903,19 @@ export default function ContentDetailClient({ id }: { id: string }) {
                   </Card>
                 )}
 
-                {content.why_this_axis && (
+                {content.how_to_use && (
                   <Card className="border-l-4 border-l-[#F2B33D] shadow-sm">
                     <CardContent className="p-6">
-                      <h2 className="font-bold text-lg mb-3">Pourquoi cet axe</h2>
+                      <h2 className="font-bold text-lg mb-3">Comment s'en servir</h2>
                       <div
                         className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
-                        dangerouslySetInnerHTML={{ __html: formatDescription(content.why_this_axis) }}
+                        dangerouslySetInnerHTML={{ __html: formatDescription(content.how_to_use) }}
                       />
                     </CardContent>
                   </Card>
                 )}
 
-                {!content.analyse && !content.why_this_axis && content.description && (
+                {!content.analyse && !content.how_to_use && content.description && (
                   <Card className="border-l-4 border-l-[#F2B33D] shadow-sm">
                     <CardContent className="p-6">
                       <h2 className="font-bold text-lg mb-3">Analyse</h2>

@@ -314,7 +314,7 @@ export default function DashboardPage() {
           year: campaign.year || undefined,
           axe: campaign.axe || [],
           analyse: fixBrokenEncoding(campaign.analyse) || undefined,
-          whyThisAxis: fixBrokenEncoding(campaign.why_this_axis) || undefined,
+          howToUse: fixBrokenEncoding(campaign.how_to_use) || undefined,
           status: campaign.status,
           accessLevel: campaign.access_level || 'free',
           createdAt: campaign.created_at,
@@ -625,7 +625,7 @@ export default function DashboardPage() {
   const weekLabel = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "d MMMM yyyy", { locale: fr })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-white via-white to-[#F5F5F5]/20 relative">
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-white via-white to-[#F5F5F5]/20 relative">
       <ParticlesBackground color="#F2B33D" particleCount={40} />
       <div className="relative z-10">
         <DashboardNavbar
@@ -681,7 +681,7 @@ export default function DashboardPage() {
 
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center min-w-0">
               {/* Quick Filters */}
-              <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
+              <div className="-mx-4 flex min-w-0 max-w-full flex-nowrap gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
                 {quickFilters.map((filter) => (
                   <button
                     key={filter.label}

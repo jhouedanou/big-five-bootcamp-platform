@@ -37,7 +37,7 @@ export interface ContentItem {
   status?: 'Publié' | 'Brouillon' | 'En attente'
   accessLevel?: 'free' | 'premium' // 'free' = visible par tous, 'premium' = réservé aux abonnés
   analyse?: string // Analyse stratégique de la campagne
-  whyThisAxis?: string // Justification de l'axe créatif utilisé
+  howToUse?: string // Comment s'en servir / s'inspirer de cette campagne
   slug?: string // Permalien SEO-friendly
   createdAt?: string // Date ISO de création (depuis Supabase)
   featured?: boolean // Mise en avant par l'admin (campagne de la semaine)

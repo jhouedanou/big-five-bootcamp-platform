@@ -119,7 +119,7 @@ const defaultFormData: Omit<ContentItem, "id"> = {
   status: "Brouillon",
   accessLevel: "free",
   analyse: "",
-  whyThisAxis: "",
+  howToUse: "",
   slug: "",
   featured: false,
   publicationUrl: "",
@@ -238,7 +238,7 @@ function CampaignsPageContent() {
       slug: item.slug || "",
       axe: item.axe || [],
       analyse: item.analyse || "",
-      whyThisAxis: item.whyThisAxis || "",
+      howToUse: item.howToUse || "",
       featured: item.featured || false,
       publicationUrl: item.publicationUrl || "",
     });
@@ -804,12 +804,12 @@ function CampaignsPageContent() {
                     />
                   </div>
                 )}
-                {previewCampaign.whyThisAxis && (
+                {previewCampaign.howToUse && (
                   <div>
-                    <h4 className="font-semibold text-gray-800 mb-1">Pourquoi cet axe</h4>
+                    <h4 className="font-semibold text-gray-800 mb-1">Comment s'en servir</h4>
                     <div
                       className="text-gray-600 prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: previewCampaign.whyThisAxis }}
+                      dangerouslySetInnerHTML={{ __html: previewCampaign.howToUse }}
                     />
                   </div>
                 )}
@@ -1579,13 +1579,13 @@ function CampaignsPageContent() {
                   />
                 </div>
 
-                {/* Pourquoi cet axe — saves to why_this_axis in DB */}
+                {/* Comment s'en servir — saves to how_to_use in DB */}
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Pourquoi cet axe</Label>
+                  <Label className="text-gray-700">Comment s'en servir</Label>
                   <RichTextEditor
-                    content={formData.whyThisAxis || ""}
-                    onChange={(content) => setFormData({ ...formData, whyThisAxis: content })}
-                    placeholder="Expliquez pourquoi cet axe créatif a été choisi pour cette campagne..."
+                    content={formData.howToUse || ""}
+                    onChange={(content) => setFormData({ ...formData, howToUse: content })}
+                    placeholder="Expliquez comment s'inspirer de cette campagne et l'appliquer concrètement..."
                     className="bg-white border-gray-300"
                   />
                 </div>

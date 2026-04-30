@@ -54,7 +54,7 @@ export function Footer() {
                   Fonctionnalités
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
-                <Link href="/#pricing" className="group flex items-center text-sm text-[#0F0F0F]/60 transition-colors hover:text-[#F2B33D]">
+                <Link href="/pricing" className="group flex items-center text-sm text-[#0F0F0F]/60 transition-colors hover:text-[#F2B33D]">
                   Tarifs
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>

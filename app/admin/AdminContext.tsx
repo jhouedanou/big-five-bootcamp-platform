@@ -5,6 +5,7 @@ import type { ContentItem } from "@/components/dashboard/content-card";
 import { createClient } from "@/lib/supabase";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { invalidateTempsFortsCache } from "@/components/temps-forts/use-temps-forts";
 
 export type { ContentItem };
 
@@ -186,6 +187,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       description: "Campagne digitale pour le lancement de MTN MoMo en Côte d'Ivoire",
       imageUrl: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800",
       platform: "Facebook",
+      platforms: ["Facebook"],
       country: "Côte d'Ivoire",
       sector: "Telecoms",
       format: "Vidéo",
@@ -203,6 +205,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       description: "Campagne 360° pour le nouveau Coca-Cola Zero Sugar",
       imageUrl: "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?w=800",
       platform: "Instagram",
+      platforms: ["Instagram"],
       country: "Sénégal",
       sector: "FMCG",
       format: "Image",
@@ -220,6 +223,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       description: "Campagne de sensibilisation aux services bancaires mobiles",
       imageUrl: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?w=800",
       platform: "YouTube",
+      platforms: ["YouTube"],
       country: "Togo",
       sector: "Banque/Finance",
       format: "Vidéo",
@@ -286,6 +290,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         description: campaign.description || '',
         imageUrl: campaign.thumbnail || '',
         platform: campaign.platforms?.[0] || 'Facebook',
+        platforms: campaign.platforms || [],
         country: campaign.country || '',
         sector: campaign.category || '',
         format: campaign.format || '',
@@ -305,6 +310,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         slug: campaign.slug || '',
         featured: campaign.featured || false,
         publicationUrl: campaign.publication_url || '',
+        tempsFortSlugs: campaign.temps_fort_slugs || [],
       }));
 
       setCampaigns(formattedCampaigns);
@@ -328,7 +334,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     if (data.summary !== undefined) record.summary = data.summary;
     if (data.description !== undefined) record.description = data.description;
     if (data.imageUrl !== undefined) record.thumbnail = data.imageUrl;
-    if (data.platform !== undefined) record.platforms = [data.platform];
+    if (data.platform !== undefined) record.platforms = data.platform ? [data.platform] : [];
     if (data.sector !== undefined) record.category = data.sector;
     if (data.videoUrl !== undefined) record.video_url = data.videoUrl || null;
     if (data.country !== undefined) record.country = data.country;
@@ -346,6 +352,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     if (data.slug !== undefined) record.slug = data.slug;
     if (data.featured !== undefined) record.featured = data.featured;
     if (data.publicationUrl !== undefined) record.publication_url = data.publicationUrl || null;
+    if (data.tempsFortSlugs !== undefined) record.temps_fort_slugs = data.tempsFortSlugs;
     return record;
   };
 
@@ -358,6 +365,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         id: `local-${Date.now()}`,
       };
       setCampaigns(prev => [newCampaign, ...prev]);
+      invalidateTempsFortsCache();
       toast.success("Campagne ajoutée localement", {
         description: "Note: La base de données n'est pas configurée. Les données seront perdues au rechargement."
       });
@@ -386,6 +394,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
           id: `local-${Date.now()}`,
         };
         setCampaigns(prev => [newCampaign, ...prev]);
+        invalidateTempsFortsCache();
         setIsUsingLocalData(true);
         toast.success("Campagne ajoutée localement", {
           description: "La table 'campaigns' n'existe pas dans Supabase. Exécutez le schéma SQL."
@@ -394,6 +403,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       }
       toast.success("Campagne ajoutée avec succès");
       await loadCampaignsFromSupabase();
+      invalidateTempsFortsCache();
     } catch (error: any) {
       console.error('Error creating campaign:', error);
       // Fallback local
@@ -402,6 +412,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         id: `local-${Date.now()}`,
       };
       setCampaigns(prev => [newCampaign, ...prev]);
+      invalidateTempsFortsCache();
       setIsUsingLocalData(true);
       toast.warning("Campagne ajoutée en mode hors-ligne", {
         description: "Configurez Supabase pour persister les données."
@@ -415,6 +426,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       setCampaigns(prev => prev.map(c => 
         c.id === id ? { ...c, ...updatedData } : c
       ));
+      invalidateTempsFortsCache();
       toast.success("Campagne mise à jour localement");
       return;
     }
@@ -437,16 +449,19 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         setCampaigns(prev => prev.map(c => 
           c.id === id ? { ...c, ...updatedData } : c
         ));
+        invalidateTempsFortsCache();
         toast.success("Campagne mise à jour localement");
         return;
       }
       toast.success("Campagne mise à jour avec succès");
       await loadCampaignsFromSupabase();
+      invalidateTempsFortsCache();
     } catch (error: any) {
       console.error('Error updating campaign:', error);
       setCampaigns(prev => prev.map(c => 
         c.id === id ? { ...c, ...updatedData } : c
       ));
+      invalidateTempsFortsCache();
       toast.warning("Mise à jour locale uniquement");
     }
   };
@@ -455,6 +470,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     // Si données locales ou ID local
     if (isUsingLocalData || id.startsWith('local-') || id.startsWith('sample-')) {
       setCampaigns(prev => prev.filter(c => c.id !== id));
+      invalidateTempsFortsCache();
       toast.success("Campagne supprimée");
       return;
     }
@@ -470,14 +486,17 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       
       if (!response.ok || result.error) {
         setCampaigns(prev => prev.filter(c => c.id !== id));
+        invalidateTempsFortsCache();
         toast.success("Campagne supprimée localement");
         return;
       }
       toast.success("Campagne supprimée");
       await loadCampaignsFromSupabase();
+      invalidateTempsFortsCache();
     } catch (error: any) {
       console.error('Error deleting campaign:', error);
       setCampaigns(prev => prev.filter(c => c.id !== id));
+      invalidateTempsFortsCache();
       toast.warning("Suppression locale uniquement");
     }
   };

@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import dynamic from "next/dynamic"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
+import { TempsFortsBanner } from "@/components/temps-forts/temps-forts-banner"
+import { TempsFortsPopup } from "@/components/temps-forts/temps-forts-popup"
 import type { DynamicFilterOptions } from "@/components/dashboard/filters-sidebar"
 import { ContentCard, ContentItem } from "@/components/dashboard/content-card"
 import { ContentGridSkeleton } from "@/components/dashboard/content-card-skeleton"
@@ -197,6 +199,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const brandFilter = searchParams.get("brand") ?? ""
+  const tempsFortFilter = searchParams.get("temps_fort") ?? ""
 
   const [campaigns, setCampaigns] = useState<ContentItem[]>([])
   const [weeklyCampaigns, setWeeklyCampaigns] = useState<ContentItem[]>([])
@@ -320,6 +323,7 @@ export default function DashboardPage() {
           createdAt: campaign.created_at,
           featured: campaign.featured || false,
           publicationUrl: campaign.publication_url || '',
+          tempsFortSlugs: campaign.temps_fort_slugs || [],
         }))
 
         // Mélanger aléatoirement les campagnes pour varier l'affichage
@@ -470,6 +474,11 @@ export default function DashboardPage() {
   const filteredContent = useMemo(() => {
     const brandNeedle = brandFilter.trim().toLowerCase()
     return campaigns.filter((content) => {
+      // Filtre prioritaire par temps fort (?temps_fort=slug)
+      if (tempsFortFilter) {
+        if (!content.tempsFortSlugs?.includes(tempsFortFilter)) return false
+      }
+
       // Filtre prioritaire par marque (lorsque ?brand= est present)
       if (brandNeedle) {
         const brandMatch =
@@ -512,7 +521,7 @@ export default function DashboardPage() {
 
       return true
     })
-  }, [selectedFilters, campaigns, searchQuery, brandFilter])
+  }, [selectedFilters, campaigns, searchQuery, brandFilter, tempsFortFilter])
 
   // Appliquer les mêmes filtres aux campagnes de la semaine
   const filteredWeeklyCampaigns = useMemo(() => {
@@ -637,6 +646,9 @@ export default function DashboardPage() {
           isFreeUser={isFreeUser}
           monthlyExplored={monthlyExplored}
         />
+
+        <TempsFortsBanner />
+        <TempsFortsPopup />
 
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 

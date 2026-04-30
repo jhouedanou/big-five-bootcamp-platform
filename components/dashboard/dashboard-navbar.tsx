@@ -124,6 +124,13 @@ export function DashboardNavbar({
               Bibliothèque
             </Link>
             <Link
+              href="/temps-forts"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Temps forts
+            </Link>
+            <Link
               href="/profile"
               className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F]"
             >
@@ -360,6 +367,14 @@ export function DashboardNavbar({
               onClick={() => setIsOpen(false)}
             >
               Bibliothèque
+            </Link>
+            <Link
+              href="/temps-forts"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1.5"
+              onClick={() => setIsOpen(false)}
+            >
+              <Sparkles className="h-4 w-4 text-[#F2B33D]" />
+              Temps forts
             </Link>
             <Link
               href="/profile"

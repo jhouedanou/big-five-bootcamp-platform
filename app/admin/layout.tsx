@@ -24,6 +24,7 @@ import {
   Palette,
   CreditCard,
   Building2,
+  CalendarHeart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -32,6 +33,7 @@ import Image from "next/image";
 const sidebarLinks = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, description: "Vue d'ensemble" },
   { href: "/admin/campaigns", label: "Campagnes", icon: Megaphone, description: "Gérer le contenu" },
+  { href: "/admin/temps-forts", label: "Temps forts", icon: CalendarHeart, description: "Événements & campagnes" },
   { href: "/admin/users", label: "Utilisateurs", icon: Users, description: "Gérer les accès" },
   { href: "/admin/brand-requests", label: "Suivis de marques", icon: Building2, description: "Demandes de suivi" },
   { href: "/admin/mailchimp", label: "Mailchimp", icon: Mail, description: "Email marketing" },

@@ -64,17 +64,28 @@ import { cn, getGoogleDriveImageUrl, generateSlug } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
 import { detectVideoPlatform, getEmbedUrl, isSupportedVideoUrl, getYouTubeThumbnail, getVideoPlatformLabel, getOriginalVideoUrl } from "@/lib/video-utils";
 import { ImageUpload, ImageUploadButton } from "@/components/ui/image-upload";
+import { useTempsForts } from "@/components/temps-forts/use-temps-forts";
 
-const platforms = ["Facebook", "Instagram", "TikTok", "YouTube", "LinkedIn", "Twitter/X"];
+const FALLBACK_PLATFORMS = ["Facebook", "Instagram", "TikTok", "YouTube", "LinkedIn", "Twitter/X"];
 const countries = ["Bénin", "Côte d'Ivoire", "Sénégal", "Burkina Faso", "Togo", "Guinée"];
-const sectors = ["Telecoms", "E-commerce", "Banque/Finance", "FMCG", "Tech", "Energie", "Industrie"];
+const FALLBACK_SECTORS = ["Telecoms", "E-commerce", "Banque/Finance", "FMCG", "Tech", "Energie", "Industrie"];
 const formats = ["Story", "Carrousel", "Vidéo", "Image", "Photo", "Vidéos Ad", "Image Ad", "Carrousel Ad"];
-const axes = [
+const FALLBACK_AXES = [
   "Focus produit", "Bénéfice produit", "Démonstration", "Utilisation",
   "Offre / Promotion", "Storytelling", "Transparence", "Humanisation",
   "RSE", "Langage de la cible", "Preuve sociale", "Gamification intelligente", "Education"
 ];
 const statuses = ["Brouillon", "En attente", "Publié"] as const;
+
+function uniqueSorted(values: Array<string | null | undefined>): string[] {
+  return Array.from(new Set(values.map((value) => value?.trim()).filter(Boolean) as string[])).sort((a, b) =>
+    a.localeCompare(b, "fr"),
+  );
+}
+
+function withFallback(values: string[], fallback: string[]): string[] {
+  return values.length > 0 ? values : fallback;
+}
 
 const FORM_STEPS = [
   { id: 1, title: "Informations", icon: FileText, description: "Détails de base" },
@@ -123,10 +134,12 @@ const defaultFormData: Omit<ContentItem, "id"> = {
   slug: "",
   featured: false,
   publicationUrl: "",
+  tempsFortSlugs: [],
 };
 
 function CampaignsPageContent() {
   const { campaigns, addCampaign, updateCampaign, deleteCampaign, isUsingLocalData, refreshCampaigns, userEmail } = useAdmin();
+  const { tempsForts: TEMPS_FORTS } = useTempsForts();
   const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterSector, setFilterSector] = useState<string>("all");
@@ -145,16 +158,26 @@ function CampaignsPageContent() {
   const [isBatchDeleting, setIsBatchDeleting] = useState(false);
   const ITEMS_PER_PAGE = 20;
 
-  // Extraire tous les tags existants des campagnes pour les suggestions
-  const existingTags = useMemo(() => {
-    const allTags = new Set<string>();
+  const campaignOptions = useMemo(() => {
+    const allTags: string[] = [];
+    const allAxes: string[] = [];
+
     campaigns.forEach((campaign) => {
-      campaign.tags?.forEach((tag) => {
-        if (tag) allTags.add(tag);
-      });
+      campaign.tags?.forEach((tag) => allTags.push(tag));
+      campaign.axe?.forEach((axe) => allAxes.push(axe));
     });
-    return Array.from(allTags).sort();
+
+    return {
+      platforms: withFallback(uniqueSorted(campaigns.map((campaign) => campaign.platform)), FALLBACK_PLATFORMS),
+      countries: withFallback(uniqueSorted(campaigns.map((campaign) => campaign.country)), countries),
+      sectors: withFallback(uniqueSorted(campaigns.map((campaign) => campaign.sector)), FALLBACK_SECTORS),
+      formats: withFallback(uniqueSorted(campaigns.map((campaign) => campaign.format)), formats),
+      axes: withFallback(uniqueSorted(allAxes), FALLBACK_AXES),
+      tags: uniqueSorted(allTags),
+    };
   }, [campaigns]);
+
+  const existingTags = campaignOptions.tags;
 
   // Filtrer les suggestions de tags basées sur l'input
   const filteredTagSuggestions = useMemo(() => {
@@ -196,7 +219,9 @@ function CampaignsPageContent() {
       (item.brand || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (item.agency || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSector = filterSector === "all" || item.sector === filterSector;
-    return matchesSearch && matchesSector;
+    const tempsFortFilter = searchParams.get("temps_fort");
+    const matchesTempsFort = !tempsFortFilter || (item.tempsFortSlugs || []).includes(tempsFortFilter);
+    return matchesSearch && matchesSector && matchesTempsFort;
   });
 
   const totalPages = Math.ceil(filteredCampaigns.length / ITEMS_PER_PAGE);
@@ -241,6 +266,7 @@ function CampaignsPageContent() {
       howToUse: item.howToUse || "",
       featured: item.featured || false,
       publicationUrl: item.publicationUrl || "",
+      tempsFortSlugs: item.tempsFortSlugs || [],
     });
     setTagInput("");
     setImageInput("");
@@ -438,7 +464,7 @@ function CampaignsPageContent() {
               </SelectTrigger>
               <SelectContent className="bg-white border-gray-200 text-gray-900">
                 <SelectItem value="all">Tous les secteurs</SelectItem>
-                {sectors.map((s) => (
+                {campaignOptions.sectors.map((s) => (
                   <SelectItem key={s} value={s}>{s}</SelectItem>
                 ))}
               </SelectContent>
@@ -1046,82 +1072,42 @@ function CampaignsPageContent() {
                 </div>
 
                 {/* Platform & Country */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-gray-700">Plateforme</Label>
-                    <Select
-                      value={formData.platform}
-                      onValueChange={(value) => setFormData({ ...formData, platform: value })}
-                    >
-                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white border-gray-200 text-gray-900">
-                        {platforms.map((p) => (
-                          <SelectItem key={p} value={p}>{p}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-gray-700">Pays</Label>
-                    <Select
-                      value={formData.country}
-                      onValueChange={(value) => setFormData({ ...formData, country: value })}
-                    >
-                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white border-gray-200 text-gray-900">
-                        {countries.map((c) => (
-                          <SelectItem key={c} value={c}>{c}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <SingleCheckboxGroup
+                    label="Plateforme"
+                    options={campaignOptions.platforms}
+                    value={formData.platform}
+                    onChange={(value) => setFormData({ ...formData, platform: value })}
+                  />
+                  <SingleCheckboxGroup
+                    label="Pays"
+                    options={campaignOptions.countries}
+                    value={formData.country}
+                    onChange={(value) => setFormData({ ...formData, country: value })}
+                  />
                 </div>
 
                 {/* Sector & Format */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-gray-700">Secteur</Label>
-                    <Select
-                      value={formData.sector}
-                      onValueChange={(value) => setFormData({ ...formData, sector: value })}
-                    >
-                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white border-gray-200 text-gray-900">
-                        {sectors.map((s) => (
-                          <SelectItem key={s} value={s}>{s}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-gray-700">Format</Label>
-                    <Select
-                      value={formData.format}
-                      onValueChange={(value) => setFormData({ ...formData, format: value })}
-                    >
-                      <SelectTrigger className="bg-white border-gray-300 text-gray-900">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white border-gray-200 text-gray-900">
-                        {formats.map((f) => (
-                          <SelectItem key={f} value={f}>{f}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <SingleCheckboxGroup
+                    label="Secteur"
+                    options={campaignOptions.sectors}
+                    value={formData.sector}
+                    onChange={(value) => setFormData({ ...formData, sector: value })}
+                  />
+                  <SingleCheckboxGroup
+                    label="Format"
+                    options={campaignOptions.formats}
+                    value={formData.format}
+                    onChange={(value) => setFormData({ ...formData, format: value })}
+                  />
                 </div>
 
                 {/* Axe (multi-select checkboxes) */}
                 <div className="space-y-2">
                   <Label className="text-gray-700">Axe(s)</Label>
                   <div className="grid grid-cols-2 gap-2 p-3 border border-gray-300 rounded-md bg-white max-h-48 overflow-y-auto">
-                    {axes.map((a) => (
+                    {campaignOptions.axes.map((a) => (
                       <label key={a} className="flex items-center gap-2 cursor-pointer text-sm text-gray-900 hover:bg-gray-50 rounded px-1 py-0.5">
                         <Checkbox
                           checked={(formData.axe || []).includes(a)}
@@ -1136,6 +1122,34 @@ function CampaignsPageContent() {
                           }}
                         />
                         {a}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Temps forts associés (multi-select checkboxes) */}
+                <div className="space-y-2">
+                  <Label className="text-gray-700">Temps forts associés</Label>
+                  <p className="text-xs text-gray-500">Cochez les événements auxquels cette campagne se rattache (ex: Coupe du monde, Ramadan…).</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 border border-gray-300 rounded-md bg-white max-h-56 overflow-y-auto">
+                    {TEMPS_FORTS.map((tf) => (
+                      <label key={tf.slug} className="flex items-center gap-2 cursor-pointer text-sm text-gray-900 hover:bg-gray-50 rounded px-1 py-0.5">
+                        <Checkbox
+                          checked={(formData.tempsFortSlugs || []).includes(tf.slug)}
+                          onCheckedChange={(checked) => {
+                            const current = formData.tempsFortSlugs || [];
+                            setFormData({
+                              ...formData,
+                              tempsFortSlugs: checked
+                                ? [...current, tf.slug]
+                                : current.filter((s) => s !== tf.slug),
+                            });
+                          }}
+                        />
+                        <span className="flex-1">
+                          <span className="font-medium">{tf.shortTitle || tf.title}</span>
+                          <span className="ml-1 text-xs text-gray-500">· {tf.category}</span>
+                        </span>
                       </label>
                     ))}
                   </div>
@@ -1593,6 +1607,18 @@ function CampaignsPageContent() {
                 {/* Tags */}
                 <div className="space-y-2">
                   <Label className="text-gray-700">Tags</Label>
+                  <MultiCheckboxGroup
+                    options={campaignOptions.tags}
+                    selectedValues={formData.tags}
+                    emptyLabel="Aucun tag existant dans la base pour le moment."
+                    onToggle={(tag, checked) => {
+                      const current = formData.tags || [];
+                      setFormData({
+                        ...formData,
+                        tags: checked ? [...current, tag] : current.filter((item) => item !== tag),
+                      });
+                    }}
+                  />
                   <div className="relative">
                     <div className="flex gap-2">
                       <Input
@@ -1796,6 +1822,75 @@ function CampaignsPageContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function SingleCheckboxGroup({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: string[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label className="text-gray-700">{label}</Label>
+      <div className="grid max-h-48 grid-cols-1 gap-2 overflow-y-auto rounded-md border border-gray-300 bg-white p-3 sm:grid-cols-2">
+        {options.map((option) => (
+          <label
+            key={option}
+            className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm text-gray-900 hover:bg-gray-50"
+          >
+            <Checkbox
+              checked={value === option}
+              onCheckedChange={(checked) => onChange(checked ? option : "")}
+            />
+            <span className="min-w-0 truncate">{option}</span>
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MultiCheckboxGroup({
+  options,
+  selectedValues,
+  onToggle,
+  emptyLabel,
+}: {
+  options: string[];
+  selectedValues: string[];
+  onToggle: (value: string, checked: boolean) => void;
+  emptyLabel: string;
+}) {
+  if (options.length === 0) {
+    return (
+      <div className="rounded-md border border-dashed border-gray-300 bg-gray-50 p-3 text-sm text-gray-500">
+        {emptyLabel}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid max-h-56 grid-cols-1 gap-2 overflow-y-auto rounded-md border border-gray-300 bg-white p-3 sm:grid-cols-2">
+      {options.map((option) => (
+        <label
+          key={option}
+          className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm text-gray-900 hover:bg-gray-50"
+        >
+          <Checkbox
+            checked={(selectedValues || []).includes(option)}
+            onCheckedChange={(checked) => onToggle(option, !!checked)}
+          />
+          <span className="min-w-0 truncate">{option}</span>
+        </label>
+      ))}
     </div>
   );
 }

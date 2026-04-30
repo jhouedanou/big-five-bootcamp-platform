@@ -21,6 +21,7 @@ export interface ContentItem {
   summary?: string // Résumé court de la campagne
   imageUrl: string
   platform: string
+  platforms?: string[]
   country: string
   sector: string
   format: string
@@ -42,6 +43,7 @@ export interface ContentItem {
   createdAt?: string // Date ISO de création (depuis Supabase)
   featured?: boolean // Mise en avant par l'admin (campagne de la semaine)
   publicationUrl?: string // Lien vers la publication d'origine
+  tempsFortSlugs?: string[] // Slugs des « Temps forts » associés (Coupe du monde, Ramadan, etc.)
 }
 
 interface ContentCardProps {

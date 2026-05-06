@@ -27,6 +27,8 @@ import {
   Check,
   Sparkles,
   ChevronDown,
+  FileText,
+  X,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -76,7 +78,11 @@ const statusLabels: Record<string, { label: string; color: string; icon: any }> 
   rejected:    { label: 'Refusée',     color: 'bg-red-100 text-red-800',        icon: XCircle },
 }
 
-const ALLOWED_PLANS = ['pro']
+const ALLOWED_PLANS = ['free', 'basic', 'pro']
+
+// Texte légal de la case obligatoire avant envoi.
+const LEGAL_CONSENT_LABEL =
+  "Je reconnais solliciter un service payant et accepte d’être contacté par LAVEIYE."
 
 // ---------------------------------------------------------------------------
 // Component
@@ -93,10 +99,16 @@ export default function BrandRequestsPage() {
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   // Form state — strictement les champs demandés
-  const [brandName, setBrandName] = useState("")
+  // Sélection multi-marques : `brandQuery` est le texte saisi (filtre + ajout free-text),
+  // `selectedBrands` est la liste finale de marques pour lesquelles on créera des demandes.
+  const [brandQuery, setBrandQuery] = useState("")
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([])
   const [selectedSocials, setSelectedSocials] = useState<Set<SocialCode>>(new Set())
   const [linksText, setLinksText] = useState("") // un lien par ligne (optionnel)
   const [notes, setNotes] = useState("")
+  const [legalConsent, setLegalConsent] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [cancelledNotice, setCancelledNotice] = useState(false)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
   // Liste des marques déjà présentes dans les campagnes du backend.
@@ -117,16 +129,40 @@ export default function BrandRequestsPage() {
     return () => document.removeEventListener('mousedown', handler)
   }, [brandDropdownOpen])
 
-  const normalizedBrand = brandName.trim().toLowerCase()
-  const isKnownBrand = normalizedBrand.length > 0 && knownBrands.some(
-    (b) => b.toLowerCase() === normalizedBrand
+  const normalizedQuery = brandQuery.trim().toLowerCase()
+  const isQueryKnownBrand = normalizedQuery.length > 0 && knownBrands.some(
+    (b) => b.toLowerCase() === normalizedQuery
+  )
+  const isQueryAlreadySelected = normalizedQuery.length > 0 && selectedBrands.some(
+    (b) => b.toLowerCase() === normalizedQuery
+  )
+  // Y a-t-il au moins une marque sélectionnée qui n'est pas répertoriée ?
+  // Si oui, le champ "Lien(s)" devient obligatoire.
+  const hasNewBrandSelected = selectedBrands.some(
+    (b) => !knownBrands.some((k) => k.toLowerCase() === b.toLowerCase())
   )
   const filteredBrands = useMemo(() => {
-    if (!normalizedBrand) return knownBrands.slice(0, 50)
-    return knownBrands
-      .filter((b) => b.toLowerCase().includes(normalizedBrand))
-      .slice(0, 50)
-  }, [knownBrands, normalizedBrand])
+    const selectedLower = new Set(selectedBrands.map((b) => b.toLowerCase()))
+    const base = normalizedQuery
+      ? knownBrands.filter((b) => b.toLowerCase().includes(normalizedQuery))
+      : knownBrands
+    return base.filter((b) => !selectedLower.has(b.toLowerCase())).slice(0, 50)
+  }, [knownBrands, normalizedQuery, selectedBrands])
+
+  const addBrand = (name: string) => {
+    const trimmed = name.trim()
+    if (!trimmed) return
+    const lower = trimmed.toLowerCase()
+    if (selectedBrands.some((b) => b.toLowerCase() === lower)) return
+    setSelectedBrands((prev) => [...prev, trimmed])
+    setBrandQuery("")
+    setBrandDropdownOpen(false)
+  }
+
+  const removeBrand = (name: string) => {
+    const lower = name.toLowerCase()
+    setSelectedBrands((prev) => prev.filter((b) => b.toLowerCase() !== lower))
+  }
 
   // Construit l'URL deep-link vers le dashboard filtre par cette marque
   // Exemple : /dashboard?brand=MTN&socials=facebook,instagram
@@ -261,16 +297,28 @@ export default function BrandRequestsPage() {
   }
 
   const resetForm = () => {
-    setBrandName("")
+    setBrandQuery("")
+    setSelectedBrands([])
     setSelectedSocials(new Set())
     setLinksText("")
     setNotes("")
+    setLegalConsent(false)
     setSubmitError(null)
   }
 
+  // Étape 1 : validation des champs et ouverture du pop-up explicatif.
+  // L'envoi réel n'a lieu qu'après confirmation explicite (pop-up "Service payant sur devis").
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setSubmitError(null)
+
+    // Si l'utilisateur a tapé du texte sans avoir cliqué "Ajouter", on l'inclut
+    // automatiquement comme une marque supplémentaire pour éviter une saisie perdue.
+    let brandsToSubmit = [...selectedBrands]
+    const pending = brandQuery.trim()
+    if (pending && !brandsToSubmit.some((b) => b.toLowerCase() === pending.toLowerCase())) {
+      brandsToSubmit.push(pending)
+    }
 
     // Extraction des liens — une URL par ligne (ou séparées par des virgules)
     const brandUrls = linksText
@@ -279,16 +327,19 @@ export default function BrandRequestsPage() {
       .filter(Boolean)
 
     // Validations client (doublent la validation serveur)
-    if (!brandName.trim()) {
-      setSubmitError("Le nom de la marque est requis.")
+    if (brandsToSubmit.length === 0) {
+      setSubmitError("Sélectionnez au moins une marque.")
       return
     }
     if (selectedSocials.size === 0) {
       setSubmitError("Cochez au moins un réseau social.")
       return
     }
-    if (brandUrls.length === 0 && !isKnownBrand) {
-      setSubmitError("Au moins un lien est requis pour une nouvelle marque.")
+    const hasNew = brandsToSubmit.some(
+      (b) => !knownBrands.some((k) => k.toLowerCase() === b.toLowerCase())
+    )
+    if (brandUrls.length === 0 && hasNew) {
+      setSubmitError("Au moins un lien est requis pour les nouvelles marques.")
       return
     }
     const invalid = brandUrls.find((u) => {
@@ -301,35 +352,88 @@ export default function BrandRequestsPage() {
       setSubmitError(`Lien invalide : ${invalid}`)
       return
     }
+    if (!legalConsent) {
+      setSubmitError("Vous devez accepter d'être contacté par LAVEIYE pour soumettre votre demande.")
+      return
+    }
+
+    // Synchroniser l'état (au cas où le free-text a été ajouté à la volée)
+    setSelectedBrands(brandsToSubmit)
+    setBrandQuery("")
+
+    // Tout est valide : on ouvre le pop-up explicatif "Service payant sur devis"
+    setCancelledNotice(false)
+    setConfirmOpen(true)
+  }
+
+  // Étape 2 : envoi effectif après confirmation utilisateur.
+  // On crée une demande par marque sélectionnée (mêmes réseaux / liens / notes).
+  const performSubmit = async () => {
+    setSubmitError(null)
+    const brandUrls = linksText
+      .split(/[\n,]+/)
+      .map((l) => l.trim())
+      .filter(Boolean)
 
     setSubmitting(true)
     setSuccess(false)
+    const created: BrandRequest[] = []
+    const errors: string[] = []
     try {
-      const res = await fetch('/api/brand-requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          brandName: brandName.trim(),
-          socialNetworks: Array.from(selectedSocials),
-          brandUrls,
-          notes: notes.trim() || undefined,
-        }),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        setRequests((prev) => [data.request, ...prev])
+      for (const name of selectedBrands) {
+        const trimmed = name.trim()
+        if (!trimmed) continue
+        try {
+          const res = await fetch('/api/brand-requests', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              brandName: trimmed,
+              socialNetworks: Array.from(selectedSocials),
+              brandUrls,
+              notes: notes.trim() || undefined,
+            }),
+          })
+          const data = await res.json().catch(() => ({} as any))
+          if (res.ok && data.request) {
+            created.push(data.request)
+          } else {
+            errors.push(`${trimmed} : ${data.error || `Erreur ${res.status}`}`)
+          }
+        } catch {
+          errors.push(`${trimmed} : erreur réseau`)
+        }
+      }
+
+      if (created.length > 0) {
+        setRequests((prev) => [...created, ...prev])
+      }
+
+      if (errors.length === 0 && created.length > 0) {
         resetForm()
         setShowForm(false)
+        setConfirmOpen(false)
         setSuccess(true)
-        setTimeout(() => setSuccess(false), 5000)
+        setTimeout(() => setSuccess(false), 6000)
+      } else if (created.length > 0) {
+        // Succès partiel : on garde le formulaire ouvert pour permettre de retenter
+        setSubmitError(
+          `${created.length} demande(s) envoyée(s). Échec pour : ${errors.join(' ; ')}`
+        )
+        setConfirmOpen(false)
       } else {
-        setSubmitError(data.error || `Erreur ${res.status}`)
+        setSubmitError(errors.join(' ; ') || "Échec de l'envoi.")
+        setConfirmOpen(false)
       }
-    } catch {
-      setSubmitError("Erreur réseau, veuillez réessayer.")
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const handleCancelConfirm = () => {
+    setConfirmOpen(false)
+    setCancelledNotice(true)
+    setTimeout(() => setCancelledNotice(false), 5000)
   }
 
   return (
@@ -344,12 +448,12 @@ export default function BrandRequestsPage() {
                 <Building2 className="h-5 w-5 text-white" />
               </div>
               <h1 className="text-3xl font-bold tracking-tight text-[#0F0F0F]">
-                Demandes de curation de marques
+                Suivi de marques
               </h1>
             </div>
             <p className="text-[#0F0F0F]/60">
-              Renseignez les marques pour lesquelles vous souhaitez que la plateforme priorise la
-              curation de contenus.
+              Soumettez les marques africaines que vous souhaitez voir suivies sur LAVEIYE.
+              Notre équipe analysera vos demandes afin de prioriser la curation de contenus.
             </p>
           </div>
 
@@ -358,27 +462,29 @@ export default function BrandRequestsPage() {
             <div className="flex items-center justify-center py-20">
               <Loader2 className="h-8 w-8 animate-spin text-[#F2B33D]" />
             </div>
-          ) : !isAllowed ? (
-            // Upsell plan
-            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[#F5F5F5] bg-white p-12 text-center">
-              <Lock className="h-12 w-12 text-[#0F0F0F]/20 mb-4" />
-              <h3 className="text-xl font-bold text-[#0F0F0F] mb-2">Fonctionnalité réservée Pro</h3>
-              <p className="text-[#0F0F0F]/60 max-w-md mb-6">
-                La curation de marques priorisées est réservée aux abonnés Pro. Passez au plan Pro
-                pour soumettre vos marques à suivre.
-              </p>
-              <Link href="/pricing">
-                <Button className="bg-[#F2B33D] hover:bg-[#F2B33D]/90">Passer au plan Pro</Button>
-              </Link>
-            </div>
-          ) : (
+          ) : !isAllowed ? null : (
             <>
               {success && (
-                <div className="mb-6 flex items-center gap-3 rounded-xl bg-green-50 border border-green-200 p-4">
-                  <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0" />
-                  <p className="text-sm font-medium text-green-800">
-                    Votre demande a été envoyée ! Notre équipe la traitera dans les prochains jours.
-                  </p>
+                <div className="mb-6 flex items-start gap-3 rounded-xl bg-green-50 border border-green-200 p-4">
+                  <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
+                  <div className="text-sm text-green-800">
+                    <p className="font-semibold mb-0.5">Demande envoyée avec succès !</p>
+                    <p>
+                      Votre demande de suivi de marque a bien été enregistrée. L'équipe LAVEIYE
+                      vous contactera par email afin d'échanger sur votre besoin et vous transmettre
+                      une proposition adaptée.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {cancelledNotice && (
+                <div className="mb-6 flex items-start gap-3 rounded-xl bg-[#F5F5F5]/60 border border-[#F5F5F5] p-4">
+                  <XCircle className="h-5 w-5 text-[#0F0F0F]/50 shrink-0 mt-0.5" />
+                  <div className="text-sm text-[#0F0F0F]/70">
+                    <p className="font-semibold mb-0.5 text-[#0F0F0F]">Demande annulée</p>
+                    <p>Votre demande n'a pas été envoyée.</p>
+                  </div>
                 </div>
               )}
 
@@ -589,7 +695,7 @@ export default function BrandRequestsPage() {
                   className="mb-8 rounded-xl border border-[#F5F5F5] bg-white p-6 shadow-sm"
                 >
                   <h2 className="text-lg font-bold text-[#0F0F0F] mb-4">
-                    Nouvelle demande de curation
+                    Nouvelle demande de suivi de marque
                   </h2>
 
                   {/* 1) Nom de la marque — combobox avec marques connues */}
@@ -765,12 +871,45 @@ export default function BrandRequestsPage() {
                     </div>
                   )}
 
+                  {/* Case à cocher obligatoire — service payant sur devis */}
+                  <label
+                    className={`mb-5 flex items-start gap-3 rounded-lg border px-4 py-3 cursor-pointer transition-colors select-none ${
+                      legalConsent
+                        ? 'border-[#F2B33D] bg-[#F2B33D]/5'
+                        : 'border-[#F5F5F5] bg-white hover:bg-[#F4F8FB]'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={legalConsent}
+                      onChange={(e) => setLegalConsent(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <span
+                      className={`mt-0.5 h-4 w-4 shrink-0 rounded border flex items-center justify-center transition-colors ${
+                        legalConsent
+                          ? 'border-[#F2B33D] bg-[#F2B33D]'
+                          : 'border-[#0F0F0F]/30 bg-white'
+                      }`}
+                      aria-hidden
+                    >
+                      {legalConsent && (
+                        <svg className="h-3 w-3 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </span>
+                    <span className="text-sm text-[#0F0F0F]">
+                      {LEGAL_CONSENT_LABEL} <span className="text-red-500">*</span>
+                    </span>
+                  </label>
+
                   {/* Bouton soumettre */}
                   <div className="flex gap-3">
                     <Button
                       type="submit"
-                      disabled={submitting}
-                      className="bg-[#F2B33D] hover:bg-[#F2B33D]/90"
+                      disabled={submitting || !legalConsent}
+                      className="bg-[#F2B33D] hover:bg-[#F2B33D]/90 disabled:opacity-50"
                     >
                       {submitting ? (
                         <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -945,6 +1084,81 @@ export default function BrandRequestsPage() {
           )}
         </div>
       </main>
+
+      {/* Pop-up explicatif "Service payant sur devis" — confirmation avant envoi */}
+      {confirmOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="brand-confirm-title"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => !submitting && handleCancelConfirm()}
+            aria-label="Fermer"
+          />
+          <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl p-6 sm:p-8 z-10">
+            <button
+              type="button"
+              onClick={() => !submitting && handleCancelConfirm()}
+              className="absolute right-4 top-4 rounded-full p-1.5 text-[#0F0F0F]/40 hover:bg-[#F5F5F5] hover:text-[#0F0F0F] transition-colors"
+              aria-label="Fermer"
+              disabled={submitting}
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#F2B33D]/15">
+              <FileText className="h-6 w-6 text-[#F2B33D]" />
+            </div>
+
+            <h2
+              id="brand-confirm-title"
+              className="text-center text-xl font-bold text-[#0F0F0F] mb-2"
+            >
+              Service payant sur devis
+            </h2>
+
+            <p className="text-center text-sm text-[#0F0F0F]/70 mb-2">
+              Le suivi personnalisé de marques est un service facturé sur devis.
+            </p>
+            <p className="text-center text-sm text-[#0F0F0F]/70 mb-6">
+              Après réception de votre demande, l'équipe LAVEIYE vous contactera par email afin
+              de mieux comprendre votre besoin et vous transmettre une proposition adaptée.
+            </p>
+
+            <div className="flex flex-col-reverse sm:flex-row gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 h-11"
+                onClick={handleCancelConfirm}
+                disabled={submitting}
+              >
+                Annuler
+              </Button>
+              <Button
+                type="button"
+                className="flex-1 h-11 bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-white font-semibold"
+                onClick={performSubmit}
+                disabled={submitting}
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Envoi…
+                  </>
+                ) : (
+                  "Confirmer ma demande"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </div>
   )

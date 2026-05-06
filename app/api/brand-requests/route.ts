@@ -23,7 +23,9 @@ const ALLOWED_SOCIAL_NETWORKS = [
 type SocialNetwork = (typeof ALLOWED_SOCIAL_NETWORKS)[number]
 
 // Plans autorisés à soumettre des demandes.
-const ALLOWED_PLANS = ['pro']
+// Le suivi de marques est ouvert à tous les profils (Découverte, Basic, Pro) :
+// le service est facturé sur devis, l'utilisateur reconnaît être contacté par LAVEIYE.
+const ALLOWED_PLANS = ['free', 'basic', 'pro']
 
 // Validation basique d'URL
 function isValidUrl(value: string): boolean {

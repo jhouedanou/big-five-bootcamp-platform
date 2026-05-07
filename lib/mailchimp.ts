@@ -111,8 +111,12 @@ export class MailchimpService {
    * Format clé : xxxx-us21 → data center = us21
    */
   private getDataCenter(apiKey: string): string {
-    const parts = apiKey.split('-')
-    return parts[parts.length - 1] || 'us1'
+    const normalized = apiKey.trim()
+    const match = normalized.match(/-([a-z]{2}\d{1,3})$/i)
+    if (!match) {
+      throw new Error('Clé API Mailchimp invalide (format attendu: xxxxx-us14)')
+    }
+    return match[1].toLowerCase()
   }
 
   /**
@@ -130,10 +134,10 @@ export class MailchimpService {
       return { success: false, error: 'Clé API non configurée' }
     }
 
-    const dc = this.getDataCenter(key)
-    const url = `https://${dc}.api.mailchimp.com/3.0/`
-
     try {
+      const dc = this.getDataCenter(key)
+      const url = `https://${dc}.api.mailchimp.com/3.0/`
+
       const response = await fetch(url, {
         method: 'GET',
         headers: {
@@ -254,8 +258,17 @@ export class MailchimpService {
       return { success: false, synced: 0, errors: [`Erreur récupération utilisateurs: ${error.message}`] }
     }
 
-    const dc = this.getDataCenter(config.apiKey)
-    const baseUrl = `https://${dc}.api.mailchimp.com/3.0`
+    let baseUrl = ''
+    try {
+      const dc = this.getDataCenter(config.apiKey)
+      baseUrl = `https://${dc}.api.mailchimp.com/3.0`
+    } catch (err: any) {
+      return {
+        success: false,
+        synced: 0,
+        errors: [err?.message || 'Configuration Mailchimp invalide'],
+      }
+    }
     const errors: string[] = []
     let synced = 0
 
@@ -311,6 +324,93 @@ export class MailchimpService {
   private async md5(text: string): Promise<string> {
     const crypto = await import('crypto')
     return crypto.createHash('md5').update(text).digest('hex')
+  }
+
+  /**
+   * Inscrit (ou met à jour) un contact unique dans une audience Mailchimp,
+   * avec merge fields et tags personnalisés. Utilisé par l'inscription au
+   * keynote LAVEIYE.
+   *
+   * Si audienceId n'est pas fourni, l'audience principale (config) est utilisée.
+   */
+  async upsertMember(input: {
+    email: string
+    mergeFields?: Record<string, string>
+    tags?: string[]
+    audienceId?: string
+    statusIfNew?: 'subscribed' | 'pending'
+  }): Promise<{ ok: true; status: string } | { ok: false; error: string }> {
+    if (!this.config) await this.loadConfig()
+    const config = this.config!
+
+    if (!config.apiKey) {
+      return { ok: false, error: 'Clé API Mailchimp non configurée' }
+    }
+    const audienceId = input.audienceId || config.audienceId
+    if (!audienceId) {
+      return { ok: false, error: 'Audience Mailchimp non configurée' }
+    }
+
+    let baseUrl = ''
+    try {
+      const dc = this.getDataCenter(config.apiKey)
+      baseUrl = `https://${dc}.api.mailchimp.com/3.0`
+    } catch (err: any) {
+      return {
+        ok: false,
+        error: err?.message || 'Configuration Mailchimp invalide',
+      }
+    }
+    const subscriberHash = await this.md5(input.email.toLowerCase())
+    const url = `${baseUrl}/lists/${audienceId}/members/${subscriberHash}`
+
+    const body: Record<string, unknown> = {
+      email_address: input.email,
+      status_if_new: input.statusIfNew || 'subscribed',
+    }
+    if (input.mergeFields && Object.keys(input.mergeFields).length) {
+      body.merge_fields = input.mergeFields
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          Authorization: `apikey ${config.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      })
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}))
+        return {
+          ok: false,
+          error: errData.detail || errData.title || `HTTP ${response.status}`,
+        }
+      }
+
+      const data = await response.json()
+
+      // Appliquer les tags séparément (endpoint dédié)
+      if (input.tags && input.tags.length) {
+        const tagsUrl = `${baseUrl}/lists/${audienceId}/members/${subscriberHash}/tags`
+        await fetch(tagsUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: `apikey ${config.apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tags: input.tags.map((name) => ({ name, status: 'active' })),
+          }),
+        }).catch(() => undefined)
+      }
+
+      return { ok: true, status: data.status || 'subscribed' }
+    } catch (err: any) {
+      return { ok: false, error: err?.message || 'Erreur réseau Mailchimp' }
+    }
   }
 }
 

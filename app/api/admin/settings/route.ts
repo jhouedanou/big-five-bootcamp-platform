@@ -81,7 +81,13 @@ export async function PUT(request: NextRequest) {
         if (value.startsWith('•')) {
           return // Ne pas mettre à jour, garder la valeur existante
         }
-        finalValue = encrypt(value)
+
+        const normalized = value.trim()
+        const isValidMailchimpKey = /-[a-z]{2}\d{1,3}$/i.test(normalized)
+        if (!isValidMailchimpKey) {
+          throw new Error('Clé API Mailchimp invalide (format attendu: xxxxx-us14)')
+        }
+        finalValue = encrypt(normalized)
       }
       
       const { error } = await supabase

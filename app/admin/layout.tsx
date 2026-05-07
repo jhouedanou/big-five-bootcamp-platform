@@ -37,6 +37,7 @@ const sidebarLinks = [
   { href: "/admin/users", label: "Utilisateurs", icon: Users, description: "Gérer les accès" },
   { href: "/admin/brand-requests", label: "Suivis de marques", icon: Building2, description: "Demandes de suivi" },
   { href: "/admin/mailchimp", label: "Mailchimp", icon: Mail, description: "Email marketing" },
+  { href: "/admin/keynote", label: "Keynote 21 mai", icon: Megaphone, description: "Inscriptions & codes promo" },
   { href: "/admin/branding", label: "Branding", icon: Palette, description: "Logo et identité" },
   { href: "/admin/payment-methods", label: "Paiements", icon: CreditCard, description: "Moyens de paiement" },
   { href: "/admin/settings", label: "Paramètres", icon: Settings, description: "Configuration" },

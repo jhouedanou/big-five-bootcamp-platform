@@ -6,10 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Save, Lock, Eye, EyeOff, Loader2, Mail, RotateCcw, Users } from "lucide-react";
+import { Save, Lock, Eye, EyeOff, Loader2, Mail, RotateCcw, Users, ShoppingCart, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 export default function SettingsPage() {
+  // Chariow widget settings
+  const [chariowProductId, setChariowProductId] = useState("");
+  const [chariowStoreDomain, setChariowStoreDomain] = useState("bootcamps.bigfive.solutions");
+  const [isLoadingChariow, setIsLoadingChariow] = useState(true);
+  const [isSavingChariow, setIsSavingChariow] = useState(false);
+
   const [settings, setSettings] = useState({
     maintenanceMode: false,
     allowRegistrations: true,
@@ -41,6 +47,49 @@ export default function SettingsPage() {
     };
     fetchEmailSettings();
   }, []);
+
+  useEffect(() => {
+    const fetchChariowSettings = async () => {
+      try {
+        const res = await fetch("/api/admin/settings");
+        const data = await res.json();
+        if (data.settings) {
+          setChariowProductId(data.settings.chariow_product_id || "");
+          setChariowStoreDomain(data.settings.chariow_store_domain || "bootcamps.bigfive.solutions");
+        }
+      } catch {
+        console.error("Erreur chargement paramètres Chariow");
+      } finally {
+        setIsLoadingChariow(false);
+      }
+    };
+    fetchChariowSettings();
+  }, []);
+
+  const handleSaveChariow = async () => {
+    setIsSavingChariow(true);
+    try {
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          settings: {
+            chariow_product_id: chariowProductId,
+            chariow_store_domain: chariowStoreDomain,
+          },
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Erreur");
+      }
+      toast.success("Paramètres Chariow enregistrés");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur lors de la sauvegarde");
+    } finally {
+      setIsSavingChariow(false);
+    }
+  };
 
   const handleSaveEmailSettings = async () => {
     setIsSavingEmailSettings(true);
@@ -315,6 +364,92 @@ export default function SettingsPage() {
                     </>
                   )}
                 </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Chariow Widget Settings */}
+        <Card className="bg-white border-gray-200 shadow-sm">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-[#F2B33D]/10">
+                <ShoppingCart className="h-5 w-5 text-[#F2B33D]" />
+              </div>
+              <div>
+                <CardTitle className="text-gray-900">Widget de paiement Chariow</CardTitle>
+                <CardDescription className="text-gray-600">
+                  Configurez le produit affiché sur la page keynote
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4 max-w-lg">
+            {isLoadingChariow ? (
+              <div className="flex items-center gap-2 text-gray-500 py-4">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-sm">Chargement...</span>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <Label htmlFor="chariowProductId" className="text-gray-900">
+                    ID du produit
+                  </Label>
+                  <p className="text-xs text-gray-500 mb-1.5">
+                    Valeur du champ <code className="bg-gray-100 px-1 rounded">data-product-id</code> du widget
+                  </p>
+                  <Input
+                    id="chariowProductId"
+                    type="text"
+                    value={chariowProductId}
+                    onChange={(e) => setChariowProductId(e.target.value)}
+                    placeholder="prd_xxxxxxxxxx"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="chariowStoreDomain" className="text-gray-900">
+                    Domaine de la boutique
+                  </Label>
+                  <p className="text-xs text-gray-500 mb-1.5">
+                    Valeur du champ <code className="bg-gray-100 px-1 rounded">data-store-domain</code>
+                  </p>
+                  <Input
+                    id="chariowStoreDomain"
+                    type="text"
+                    value={chariowStoreDomain}
+                    onChange={(e) => setChariowStoreDomain(e.target.value)}
+                    placeholder="bootcamps.bigfive.solutions"
+                  />
+                </div>
+                <div className="flex items-center gap-3 pt-1">
+                  <Button
+                    onClick={handleSaveChariow}
+                    disabled={isSavingChariow || !chariowProductId}
+                    className="bg-[#F2B33D] hover:bg-[#e0a435] text-white"
+                  >
+                    {isSavingChariow ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Enregistrement...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4 mr-2" />
+                        Enregistrer
+                      </>
+                    )}
+                  </Button>
+                  <a
+                    href="/keynote"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Voir la page keynote
+                  </a>
+                </div>
               </>
             )}
           </CardContent>

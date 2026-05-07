@@ -40,6 +40,11 @@ export default function MailchimpSettingsPage() {
   const [fromEmail, setFromEmail] = useState("");
   const [defaultTag, setDefaultTag] = useState("");
 
+  // Audience keynote (séparée de l'audience principale)
+  const [keynoteAudienceId, setKeynoteAudienceId] = useState("");
+  const [keynoteTag, setKeynoteTag] = useState("");
+  const [keynotePromoTag, setKeynotePromoTag] = useState("");
+
   // États UI
   const [showApiKey, setShowApiKey] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -75,6 +80,9 @@ export default function MailchimpSettingsPage() {
           setFromName(data.settings.mailchimp_from_name || "");
           setFromEmail(data.settings.mailchimp_from_email || "");
           setDefaultTag(data.settings.mailchimp_default_tag || "");
+          setKeynoteAudienceId(data.settings.mailchimp_keynote_audience_id || "");
+          setKeynoteTag(data.settings.mailchimp_keynote_tag || "");
+          setKeynotePromoTag(data.settings.mailchimp_keynote_promo_tag || "");
         }
       } catch {
         console.error("Erreur chargement configuration Mailchimp");
@@ -104,10 +112,13 @@ export default function MailchimpSettingsPage() {
         body: JSON.stringify({
           settings: {
             mailchimp_api_key: apiKey,
-            mailchimp_audience_id: audienceId,
+            mailchimp_audience_id: audienceId.trim(),
             mailchimp_from_name: fromName,
             mailchimp_from_email: fromEmail,
-            mailchimp_default_tag: defaultTag,
+            mailchimp_default_tag: defaultTag.trim(),
+            mailchimp_keynote_audience_id: keynoteAudienceId.trim(),
+            mailchimp_keynote_tag: keynoteTag.trim(),
+            mailchimp_keynote_promo_tag: keynotePromoTag.trim(),
           },
         }),
       });
@@ -402,6 +413,79 @@ export default function MailchimpSettingsPage() {
                   </div>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          {/* Audience Keynote (séparée) */}
+          <Card className="bg-white border-gray-200 shadow-sm">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-purple-500/10">
+                  <Mail className="h-5 w-5 text-purple-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-gray-900">Audience Keynote (LAVEIYE)</CardTitle>
+                  <CardDescription className="text-gray-600">
+                    Audience Mailchimp dédiée aux inscriptions keynote et codes promo. Séparée des emails marketing classiques.
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 max-w-lg">
+              <div>
+                <Label htmlFor="mc-keynote-audience-id" className="text-gray-900">
+                  ID de l'audience keynote
+                </Label>
+                <p className="text-xs text-gray-500 mb-1.5">
+                  ID de la liste Mailchimp recevant les inscriptions à la keynote (ex : <code>e799f1a2ee</code>). Si vide, l'audience principale est utilisée.
+                </p>
+                <Input
+                  id="mc-keynote-audience-id"
+                  value={keynoteAudienceId}
+                  onChange={(e) => setKeynoteAudienceId(e.target.value)}
+                  placeholder="e799f1a2ee"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="mc-keynote-tag" className="text-gray-900">
+                  Tag inscription keynote
+                </Label>
+                <p className="text-xs text-gray-500 mb-1.5">
+                  Tag appliqué aux contacts inscrits à la keynote
+                </p>
+                <Input
+                  id="mc-keynote-tag"
+                  value={keynoteTag}
+                  onChange={(e) => setKeynoteTag(e.target.value)}
+                  placeholder="keynote-2026"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="mc-keynote-promo-tag" className="text-gray-900">
+                  Tag code promo
+                </Label>
+                <p className="text-xs text-gray-500 mb-1.5">
+                  Tag appliqué pour la synchronisation des codes promo générés
+                </p>
+                <Input
+                  id="mc-keynote-promo-tag"
+                  value={keynotePromoTag}
+                  onChange={(e) => setKeynotePromoTag(e.target.value)}
+                  placeholder="promo-pre-launch"
+                />
+              </div>
+
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-sm text-purple-900">
+                <p className="font-medium mb-1">Champs de fusion (merge fields) à créer dans cette audience :</p>
+                <ul className="list-disc list-inside text-xs space-y-0.5">
+                  <li><code>FNAME</code> — Prénom (par défaut)</li>
+                  <li><code>LNAME</code> — Nom (par défaut)</li>
+                  <li><code>COUNTRY</code> — Pays (Text)</li>
+                  <li><code>PROMO</code> — Code promo généré (Text)</li>
+                </ul>
+              </div>
             </CardContent>
           </Card>
 

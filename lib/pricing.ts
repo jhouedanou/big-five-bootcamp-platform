@@ -107,10 +107,11 @@ export function isPaidPlan(plan: string | null | undefined): boolean {
 
 /**
  * Indique si un plan donne accès aux campagnes "premium" (réservées).
- * Seul le plan Pro débloque ce contenu — les comptes Free et Basic sont exclus.
+ * Les plans payants (Basic et Pro) débloquent ce contenu — seul le compte Free est exclu.
  */
 export function canAccessPremiumContent(plan: string | null | undefined): boolean {
-  return (plan || "").toLowerCase() === "pro"
+  const p = (plan || "").toLowerCase()
+  return p === "basic" || p === "pro"
 }
 
 /** Normalise vers un PlanKey canonique (les anciens noms sont rétro-compatibles). */

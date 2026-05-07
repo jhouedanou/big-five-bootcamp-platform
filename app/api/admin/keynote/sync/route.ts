@@ -30,9 +30,17 @@ export async function POST(request: NextRequest) {
     .in('key', ['mailchimp_keynote_audience_id', 'mailchimp_keynote_tag', 'mailchimp_keynote_promo_tag'])
   const map: Record<string, string> = {}
   settings?.forEach((row: { key: string; value: string }) => (map[row.key] = row.value))
-  const audienceId = map['mailchimp_keynote_audience_id'] || ''
-  const keynoteTag = map['mailchimp_keynote_tag'] || 'keynote-2026'
-  const promoTag = map['mailchimp_keynote_promo_tag'] || 'promo-pre-launch'
+  const audienceId = (map['mailchimp_keynote_audience_id'] || '').trim()
+  const keynoteTag = (map['mailchimp_keynote_tag'] || 'keynote-2026').trim()
+  const promoTag = (map['mailchimp_keynote_promo_tag'] || 'promo-pre-launch').trim()
+
+  console.log('[keynote/sync] settings read', {
+    rowCount: settings?.length || 0,
+    keys: settings?.map((s: { key: string }) => s.key) || [],
+    audienceId: audienceId || '(empty)',
+    keynoteTag,
+    promoTag,
+  })
 
   // Liste à synchroniser
   let query = supabase
@@ -47,19 +55,64 @@ export async function POST(request: NextRequest) {
 
   const { data: rows, error } = await query
   if (error) {
+    console.error('[keynote/sync] DB error:', error)
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  // Vérifier la config Mailchimp AVANT de boucler — message clair sinon
   const service = getMailchimpService()
-  await service.loadConfig()
+  let config
+  try {
+    config = await service.loadConfig()
+  } catch (err: any) {
+    console.error('[keynote/sync] loadConfig error:', err)
+    return NextResponse.json(
+      { error: `Config Mailchimp illisible : ${err?.message || 'erreur'}` },
+      { status: 500 }
+    )
+  }
+
+  if (!config.apiKey) {
+    return NextResponse.json(
+      {
+        error:
+          'Clé API Mailchimp non configurée. Renseignez-la dans Admin → Mailchimp.',
+      },
+      { status: 400 }
+    )
+  }
+
+  const effectiveAudienceId = audienceId || config.audienceId
+  if (!effectiveAudienceId) {
+    return NextResponse.json(
+      {
+        error:
+          "Aucune audience Mailchimp configurée. Renseignez 'Audience Keynote' (ou l'audience principale) dans Admin → Mailchimp.",
+      },
+      { status: 400 }
+    )
+  }
+
+  console.log('[keynote/sync] Starting sync', {
+    rows: rows?.length || 0,
+    audienceId: effectiveAudienceId,
+    keynoteTag,
+    promoTag,
+    usingMainAudience: !audienceId,
+  })
 
   let synced = 0
   const errors: { email: string; error: string }[] = []
 
   for (const r of rows || []) {
+    if (!r.email) {
+      errors.push({ email: '(vide)', error: 'Email manquant' })
+      continue
+    }
+
     const res = await service.upsertMember({
       email: r.email,
-      audienceId: audienceId || undefined,
+      audienceId: effectiveAudienceId,
       mergeFields: {
         FNAME: r.first_name || '',
         LNAME: r.last_name || '',
@@ -80,6 +133,7 @@ export async function POST(request: NextRequest) {
         })
         .eq('id', r.id)
     } else {
+      console.error('[keynote/sync] upsert failed', { email: r.email, error: res.error })
       errors.push({ email: r.email, error: res.error })
       await supabase
         .from('keynote_registrations')
@@ -92,10 +146,14 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  console.log('[keynote/sync] Done', { total: rows?.length || 0, synced, errors: errors.length })
+
   return NextResponse.json({
     ok: true,
     total: rows?.length || 0,
     synced,
     errors,
+    audienceId: effectiveAudienceId,
+    usingMainAudience: !audienceId,
   })
 }

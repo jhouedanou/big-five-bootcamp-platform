@@ -8,18 +8,20 @@ import { Button } from "@/components/ui/button"
 interface UpgradePopupProps {
   open: boolean
   onClose: () => void
-  reason?: "clicks" | "filters" | "searches" | "content" | "premium"
+  reason?: "clicks" | "filters" | "searches" | "searches-bar" | "searches-filters" | "content" | "premium"
 }
 
 export function UpgradePopup({ open, onClose, reason }: UpgradePopupProps) {
   if (!open) return null
 
   const messages: Record<string, string> = {
-    clicks: "Vous avez atteint votre limite de 3 campagnes consultées ce mois-ci.",
+    clicks: "Vous avez atteint votre limite quotidienne de 3 campagnes consultées.",
     filters: "Les filtres pays, secteur et tags sont réservés aux plans payants.",
-    searches: "Vous avez atteint votre limite de recherches par filtre pour ce mois.",
+    searches: "Vous avez atteint votre limite de recherches du jour.",
+    "searches-bar": "Vous avez atteint votre limite de recherches textuelles du jour. Passez à un plan supérieur pour explorer sans limite.",
+    "searches-filters": "Vous avez atteint votre limite de filtrage du jour sur cette catégorie. Passez à un plan supérieur pour filtrer sans limite.",
     content: "Cliquez sur une campagne pour voir son détail complet.",
-    premium: "Cette campagne Premium est réservée aux abonnés Pro. Passez au plan Pro pour la débloquer.",
+    premium: "Cette campagne Premium est réservée aux abonnés. Passez à un plan payant pour la débloquer.",
   }
 
   const subtitle = reason ? messages[reason] : "Passez à un plan payant pour débloquer toutes les fonctionnalités."

@@ -113,8 +113,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ) {
           // Abonnement expiré → forcer Free côté client
           setUserProfile({ ...data, plan: "Free", subscription_status: "expired" } as UserProfile)
-          // Fire & forget : synchroniser la DB
-          fetch("/api/cron/check-subscriptions").catch(() => {})
+          // Synchroniser la DB côté serveur, puis re-fetch pour refléter l'état officiel.
+          fetch("/api/cron/check-subscriptions")
+            .then(async () => {
+              try {
+                const { data: refreshed } = await supabase
+                  .from("users")
+                  .select("*")
+                  .eq("id", authUser.id)
+                  .single()
+                if (refreshed) setUserProfile(refreshed as UserProfile)
+              } catch (e) {
+                console.error("AuthProvider: refetch après cron a échoué", e)
+              }
+            })
+            .catch((err) => {
+              console.error("AuthProvider: cron check-subscriptions a échoué", err)
+            })
         } else {
           setUserProfile(data as UserProfile)
         }

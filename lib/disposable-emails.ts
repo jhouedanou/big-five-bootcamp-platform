@@ -167,6 +167,75 @@ const DISPOSABLE_EMAIL_DOMAINS = new Set<string>([
   "zoemail.org",
 ])
 
+// Domaines de test / RFC reserved / placeholder — à bloquer aussi pour les inscriptions publiques.
+const FAKE_EMAIL_DOMAINS = new Set<string>([
+  "test.com",
+  "test.fr",
+  "test.io",
+  "test.net",
+  "test.org",
+  "tests.com",
+  "exemple.com",
+  "exemple.fr",
+  "example.com", // RFC 2606
+  "example.org",
+  "example.net",
+  "example.fr",
+  "example.io",
+  "fake.com",
+  "fake.fr",
+  "faux.com",
+  "demo.com",
+  "domain.com",
+  "email.com",
+  "mail.com",
+  "abc.com",
+  "xyz.com",
+  "asdf.com",
+  "qwerty.com",
+  "azerty.com",
+  "aaa.com",
+  "bbb.com",
+  "ccc.com",
+  "lol.com",
+  "nope.com",
+  "noemail.com",
+  "no-email.com",
+  "spam.com",
+  "spamfree.com",
+  "invalid.com",
+  "localhost",
+  "localhost.com",
+  "yourcompany.com",
+  "yourdomain.fr",
+  "example.test",
+  "test.test",
+])
+
+// Patterns d'usernames manifestement bidons (avant @)
+const FAKE_USERNAME_PATTERNS = [
+  /^test\d*$/i,
+  /^tests?\d*$/i,
+  /^demo\d*$/i,
+  /^fake\d*$/i,
+  /^faux\d*$/i,
+  /^essai\d*$/i,
+  /^abc\d*$/i,
+  /^xyz\d*$/i,
+  /^aaa+\d*$/i,
+  /^asdf+\d*$/i,
+  /^qwerty\d*$/i,
+  /^azerty\d*$/i,
+  /^lol\d*$/i,
+  /^nope\d*$/i,
+  /^spam\d*$/i,
+  /^toto\d*$/i,
+  /^titi\d*$/i,
+  /^tata\d*$/i,
+  /^a$/i,
+  /^.{1,2}$/, // 1-2 caractères seulement
+]
+
 /**
  * Vérifie si un email utilise un domaine jetable / temporaire connu.
  */
@@ -177,3 +246,26 @@ export function isDisposableEmail(email: string): boolean {
   if (!domain) return false
   return DISPOSABLE_EMAIL_DOMAINS.has(domain)
 }
+
+/**
+ * Vérifie si un email semble être un email de test / placeholder / bidon.
+ * Combine domaines de test connus + patterns d'username manifestement faux.
+ */
+export function isFakeEmail(email: string): boolean {
+  const at = email.lastIndexOf("@")
+  if (at === -1) return true
+  const username = email.slice(0, at).trim().toLowerCase()
+  const domain = email.slice(at + 1).trim().toLowerCase()
+  if (!username || !domain) return true
+  if (FAKE_EMAIL_DOMAINS.has(domain)) return true
+  if (FAKE_USERNAME_PATTERNS.some((re) => re.test(username))) return true
+  return false
+}
+
+/**
+ * True si l'email est jetable OU bidon. Utilisé pour bloquer les inscriptions.
+ */
+export function isBlockedEmail(email: string): boolean {
+  return isDisposableEmail(email) || isFakeEmail(email)
+}
+

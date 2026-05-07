@@ -138,7 +138,7 @@ function RegistrationForm() {
         >
           {state.isNew ? "Vous êtes inscrit !" : "Vous êtes déjà inscrit"}
         </h3>
-        <p className="text-sm text-gray-500 leading-relaxed mb-5">
+        <p className="text-base text-[#0f0f0f] leading-relaxed mb-5">
           Un email de confirmation vous a été envoyé.<br />
           Voici votre <strong style={{ color: "#F2B33D" }}>code promo de pré-lancement</strong> :
         </p>
@@ -150,7 +150,7 @@ function RegistrationForm() {
             border: "1px dashed rgba(242,179,61,0.5)",
           }}
         >
-          <div className="text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-500 mb-2">
+          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#0f0f0f] mb-2">
             Votre code promo
           </div>
           <div
@@ -179,8 +179,8 @@ function RegistrationForm() {
           </button>
         </div>
 
-        <p className="text-xs text-gray-500 leading-relaxed">
-          <strong className="text-gray-900">3 mois d&apos;accès LAVEIYE pour 10 000 FCFA TTC</strong>
+        <p className="text-sm text-[#0f0f0f] leading-relaxed">
+          <strong className="text-[#0f0f0f]">3 mois d&apos;accès LAVEIYE pour 10 000 FCFA TTC</strong>
           <br />
           au lieu de 14 700 FCFA. Offre valable 48h après le keynote du 21 mai 2026.
         </p>
@@ -231,7 +231,7 @@ function RegistrationForm() {
         required
         value={country}
         onChange={(e) => setCountry(e.target.value)}
-        style={{ cursor: "pointer", color: country ? "#1a1a1a" : "#9b9b9b" }}
+        style={{ cursor: "pointer", color: country ? "#0f0f0f" : "#6b6b6b" }}
       >
         <option value="" disabled>
           Sélectionnez votre pays
@@ -255,11 +255,11 @@ function RegistrationForm() {
       <button
         type="submit"
         disabled={state.status === "submitting"}
-        className="w-full font-semibold text-sm rounded-md transition-all"
+        className="w-full font-bold text-base rounded-md transition-all"
         style={{
           background: "#F2B33D",
           color: "#0f0f0f",
-          padding: "14px 20px",
+          padding: "16px 22px",
           border: "none",
           cursor: state.status === "submitting" ? "wait" : "pointer",
           opacity: state.status === "submitting" ? 0.7 : 1,
@@ -269,7 +269,7 @@ function RegistrationForm() {
           ? "Inscription en cours…"
           : "Réserver ma place gratuitement →"}
       </button>
-      <p className="text-center text-[11px] text-gray-400 mt-3 leading-relaxed">
+      <p className="text-center text-xs text-[#0f0f0f] mt-3 leading-relaxed">
         Aucun spam. Désinscription possible à tout moment.
       </p>
     </form>
@@ -294,45 +294,47 @@ export default function KeynoteClient() {
       <style>{`
         .form-label {
           display: block;
-          font-size: 10px;
-          font-weight: 600;
+          font-size: 11px;
+          font-weight: 700;
           letter-spacing: 0.15em;
           text-transform: uppercase;
-          color: #6b6b6b;
-          margin-bottom: 6px;
+          color: #0f0f0f;
+          margin-bottom: 8px;
         }
         .form-input {
           width: 100%;
           background: #ffffff;
-          border: 1px solid #ede9e0;
+          border: 1px solid #d4cfc1;
           border-radius: 6px;
-          padding: 12px 14px;
+          padding: 14px 16px;
           font-family: var(--font-sans);
-          font-size: 14px;
-          color: #1a1a1a;
+          font-size: 16px;
+          color: #0f0f0f;
           outline: none;
           transition: border-color 0.2s;
-          margin-bottom: 14px;
+          margin-bottom: 16px;
           box-sizing: border-box;
         }
         .form-input:focus { border-color: #F2B33D; }
-        .form-input::placeholder { color: #d4d4d4; }
+        .form-input::placeholder { color: #9b9b9b; }
 
         .keynote-hero {
           display: grid;
-          grid-template-columns: 1fr 480px;
+          grid-template-columns: minmax(0, 1fr) minmax(420px, 540px);
           min-height: 100vh;
           padding-top: 68px;
         }
         .keynote-hero-left {
-          padding: 80px 60px 80px 80px;
+          padding: 64px 56px 64px 72px;
           border-right: 1px solid #f0ede6;
           position: relative;
+          min-width: 0;
         }
         .keynote-hero-right {
           background: #faf9f6;
-          padding: 80px 48px;
+          padding: 64px 40px;
           display: flex; align-items: center; justify-content: center;
+          min-width: 0;
         }
         .problems-grid {
           display: grid;
@@ -343,6 +345,11 @@ export default function KeynoteClient() {
         }
         .program-layout {
           display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: start;
+        }
+        @media (max-width: 1100px) {
+          .keynote-hero { grid-template-columns: minmax(0, 1fr) minmax(380px, 460px); }
+          .keynote-hero-left { padding: 56px 40px; }
+          .keynote-hero-right { padding: 56px 32px; }
         }
         @media (max-width: 900px) {
           .keynote-hero { grid-template-columns: 1fr; }
@@ -384,10 +391,10 @@ export default function KeynoteClient() {
             priority
           />
         </a>
-        <div className="flex items-center gap-2 text-xs font-medium text-gray-500">
+        <div className="flex items-center gap-2 text-sm font-semibold text-[#0f0f0f]">
           <span className="w-1.5 h-1.5 rounded-full" style={{ background: "#F2B33D" }} />
           <span>Keynote ·</span>
-          <span className="text-gray-900 font-medium">Jeudi 21 mai 2026 · 18h30</span>
+          <span className="text-[#0f0f0f] font-bold">Jeudi 21 mai 2026 · 18h30</span>
         </div>
       </nav>
 
@@ -428,11 +435,11 @@ export default function KeynoteClient() {
             <em className="not-italic" style={{ color: "#F2B33D" }}>SANS limite</em>
           </h1>
 
-          <p className="text-base font-light leading-relaxed text-gray-500 max-w-md mb-8">
+          <p className="text-lg font-normal leading-relaxed text-[#0f0f0f] max-w-md mb-8">
             Rejoignez la keynote de lancement de{" "}
-            <strong className="text-gray-900 font-medium">LAVEIYE</strong>. La première bibliothèque
-            créative social media dédiée à l&apos;Afrique francophone. 500 campagnes analysées, 7
-            marchés couverts.
+            <strong className="text-[#0f0f0f] font-bold">LAVEIYE</strong>. La première bibliothèque
+            cr&eacute;ative social media d&eacute;di&eacute;e &agrave; l&apos;Afrique francophone. 500 campagnes analys&eacute;es, 7
+            march&eacute;s couverts.
           </p>
 
           {/* Chips */}
@@ -445,7 +452,7 @@ export default function KeynoteClient() {
             ].map((label, i) => (
               <div
                 key={i}
-                className="flex items-center gap-1.5 text-xs text-gray-500 px-3 py-2 rounded-full"
+                className="flex items-center gap-1.5 text-sm font-medium text-[#0f0f0f] px-3 py-2 rounded-full"
                 style={{ border: "1px solid #ede9e0", background: "#faf9f6" }}
               >
                 {label}
@@ -465,11 +472,11 @@ export default function KeynoteClient() {
                 <div className="text-center">
                   <span
                     className="block leading-none min-w-[54px]"
-                    style={{ fontFamily: "var(--font-heading)", fontSize: 44, fontWeight: 700, color: "#0f0f0f" }}
+                    style={{ fontFamily: "var(--font-heading)", fontSize: 48, fontWeight: 700, color: "#0f0f0f" }}
                   >
                     {b.val}
                   </span>
-                  <span className="block text-[10px] font-medium uppercase tracking-[0.15em] text-gray-400 mt-1">
+                  <span className="block text-[11px] font-bold uppercase tracking-[0.15em] text-[#0f0f0f] mt-1">
                     {b.label}
                   </span>
                 </div>
@@ -484,7 +491,7 @@ export default function KeynoteClient() {
 
           <ul className="space-y-3">
             {BENEFITS.map((b, i) => (
-              <li key={i} className="flex items-start gap-3 text-sm text-gray-500 leading-relaxed">
+              <li key={i} className="flex items-start gap-3 text-base text-[#0f0f0f] leading-relaxed">
                 <span
                   className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5"
                   style={{ background: "#fef8ec", border: "1px solid rgba(242,179,61,0.4)" }}
@@ -501,21 +508,21 @@ export default function KeynoteClient() {
 
         {/* RIGHT — Form */}
         <div className="keynote-hero-right">
-          <div className="w-full max-w-sm" id="keynote-form-anchor">
+          <div className="w-full max-w-md" id="keynote-form-anchor">
             <div
               className="rounded-md"
               style={{
                 background: "#fff",
                 border: "1px solid #ede9e0",
                 boxShadow: "0 4px 32px rgba(0,0,0,0.06)",
-                padding: "32px 28px",
+                padding: "36px 32px",
               }}
             >
-              <div className="mb-5">
-                <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 24, fontWeight: 700, color: "#0f0f0f" }}>
+              <div className="mb-6">
+                <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 28, fontWeight: 700, color: "#0f0f0f" }}>
                   Réservez votre place
                 </h2>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-sm font-medium text-[#0f0f0f] mt-2">
                   Gratuit · En ligne ·{" "}
                   <strong style={{ color: "#F2B33D" }}>Places limitées</strong>
                 </p>
@@ -528,10 +535,10 @@ export default function KeynoteClient() {
               <a
                 href="/"
                 className="inline-flex items-center gap-2 transition-opacity"
-                style={{ opacity: 0.45 }}
+                style={{ opacity: 0.7 }}
               >
-                <Image src="/logo.png" alt="Big Five" width={18} height={18} className="object-contain" />
-                <span className="text-xs text-gray-500">une initiative Big Five Abidjan</span>
+                <Image src="/logo.png" alt="Big Five" width={20} height={20} className="object-contain" />
+                <span className="text-sm font-medium text-[#0f0f0f]">une initiative Big Five Abidjan</span>
               </a>
             </div>
           </div>
@@ -551,11 +558,11 @@ export default function KeynoteClient() {
           >
             <span
               className="block leading-none mb-1"
-              style={{ fontFamily: "var(--font-heading)", fontSize: 40, fontWeight: 700, color: "#F2B33D" }}
+              style={{ fontFamily: "var(--font-heading)", fontSize: 44, fontWeight: 700, color: "#F2B33D" }}
             >
               {s.num}
             </span>
-            <span className="text-xs text-gray-500">{s.label}</span>
+            <span className="text-sm font-medium text-[#0f0f0f]">{s.label}</span>
           </div>
         ))}
       </div>
@@ -590,7 +597,7 @@ export default function KeynoteClient() {
               >
                 {p.num}
               </div>
-              <p className="text-sm text-gray-500 leading-relaxed">{p.text}</p>
+              <p className="text-base text-[#0f0f0f] leading-relaxed">{p.text}</p>
             </div>
           ))}
           <div className="p-7" style={{ background: "#0f0f0f" }}>
@@ -600,7 +607,7 @@ export default function KeynoteClient() {
             >
               →
             </div>
-            <p className="text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.6)" }}>
+            <p className="text-base leading-relaxed" style={{ color: "#ffffff" }}>
               <strong style={{ color: "#F2B33D" }}>LAVEIYE résout tout ça.</strong> Lors du keynote, nous vous montrons comment en direct, sur la plateforme.
             </p>
           </div>
@@ -630,7 +637,7 @@ export default function KeynoteClient() {
             >
               Ce qui se passera lors du keynote
             </h2>
-            <p className="text-sm text-gray-500 leading-relaxed">
+            <p className="text-base text-[#0f0f0f] leading-relaxed">
               Une heure pour découvrir, comprendre et agir. Pas un webinaire de vente. Un moment de
               lancement.
             </p>
@@ -649,16 +656,16 @@ export default function KeynoteClient() {
                 }}
               >
                 <span
-                  className="text-sm font-semibold pt-0.5"
+                  className="text-base font-bold pt-0.5"
                   style={{ color: "#F2B33D", fontFamily: "var(--font-heading)" }}
                 >
                   {item.step}
                 </span>
                 <div>
-                  <p className="text-sm font-medium mb-1" style={{ color: "#0f0f0f" }}>
+                  <p className="text-base font-semibold mb-1" style={{ color: "#0f0f0f" }}>
                     {item.title}
                   </p>
-                  <p className="text-xs text-gray-500 leading-relaxed">{item.desc}</p>
+                  <p className="text-sm text-[#0f0f0f] leading-relaxed">{item.desc}</p>
                 </div>
               </li>
             ))}
@@ -691,16 +698,16 @@ export default function KeynoteClient() {
           <br />
           <span style={{ color: "#F2B33D" }}>Jeudi 21 mai. 18h30.</span>
         </h2>
-        <p className="relative text-base mb-8" style={{ color: "rgba(255,255,255,0.45)" }}>
+        <p className="relative text-lg mb-8" style={{ color: "rgba(255,255,255,0.85)" }}>
           Gratuit · En ligne · Code promo envoyé après inscription
         </p>
         <button
           onClick={scrollToForm}
-          className="relative inline-flex items-center gap-2 font-semibold text-sm transition-all"
+          className="relative inline-flex items-center gap-2 font-bold text-base transition-all"
           style={{
             background: "#F2B33D",
             color: "#0f0f0f",
-            padding: "16px 44px",
+            padding: "18px 48px",
             borderRadius: 6,
             fontFamily: "var(--font-sans)",
             border: "none",
@@ -725,7 +732,7 @@ export default function KeynoteClient() {
             className="h-6 w-auto"
           />
         </a>
-        <span className="text-xs text-gray-400">
+        <span className="text-sm font-medium text-[#0f0f0f]">
           Première bibliothèque créative social media dédiée à l&apos;Afrique francophone
         </span>
       </footer>

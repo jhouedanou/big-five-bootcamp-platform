@@ -24,6 +24,11 @@ import {
   getFailedUrl,
   checkDepositStatus,
 } from '@/lib/pawapay';
+import {
+  KEYNOTE_PROMO_OFFER,
+  isPromoCodeFormatValid,
+  normalizePromoCode,
+} from '@/lib/promo-codes';
 
 const PLAN_PRICES: Record<string, { price: number; annualPrice: number; label: string }> = {
   basic: { price: 4900, annualPrice: 49000, label: 'Basic' },
@@ -36,7 +41,7 @@ const ANNUAL_SUBSCRIPTION_DURATION_DAYS = 365;
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userEmail, userName, plan, billing, phoneNumber, provider, currency = 'XOF' } = body;
+    const { userEmail, userName, plan, billing, phoneNumber, provider, currency = 'XOF', promoCode } = body;
 
     if (!userEmail) {
       return NextResponse.json(
@@ -63,9 +68,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const SUBSCRIPTION_PRICE = isAnnual ? planConfig.annualPrice : planConfig.price;
-    const durationDays = isAnnual ? ANNUAL_SUBSCRIPTION_DURATION_DAYS : SUBSCRIPTION_DURATION_DAYS;
-    const billingLabel = isAnnual ? '1 an' : '1 mois';
+    // ——————————————————————————————————————————————————
+    // Code promo LAVEIYE — valide UNIQUEMENT pour le plan Basic
+    // Override : prix = 10 000 FCFA, durée = 90 jours
+    // ——————————————————————————————————————————————————
+    let promoApplied: { code: string; registrationId: string } | null = null;
+    const normalizedPromo = normalizePromoCode(promoCode);
+
+    if (normalizedPromo) {
+      if (!isPromoCodeFormatValid(normalizedPromo)) {
+        return NextResponse.json(
+          { error: 'Code promo invalide (format attendu : LAVEIYE-XXXX)' },
+          { status: 400 }
+        );
+      }
+      const { data: regRow } = await supabaseAdmin
+        .from('keynote_registrations')
+        .select('id, promo_code, promo_redeemed_at')
+        .eq('promo_code', normalizedPromo)
+        .maybeSingle();
+
+      if (!regRow) {
+        return NextResponse.json({ error: 'Code promo introuvable' }, { status: 404 });
+      }
+      if ((regRow as any).promo_redeemed_at) {
+        return NextResponse.json({ error: 'Ce code a déjà été utilisé' }, { status: 409 });
+      }
+      if (planKey !== KEYNOTE_PROMO_OFFER.plan) {
+        return NextResponse.json(
+          { error: `Ce code promo est réservé au plan ${KEYNOTE_PROMO_OFFER.planLabel}` },
+          { status: 400 }
+        );
+      }
+      promoApplied = { code: normalizedPromo, registrationId: (regRow as any).id };
+    }
+
+    const SUBSCRIPTION_PRICE = promoApplied
+      ? KEYNOTE_PROMO_OFFER.price
+      : (isAnnual ? planConfig.annualPrice : planConfig.price);
+    const durationDays = promoApplied
+      ? KEYNOTE_PROMO_OFFER.durationDays
+      : (isAnnual ? ANNUAL_SUBSCRIPTION_DURATION_DAYS : SUBSCRIPTION_DURATION_DAYS);
+    const billingLabel = promoApplied
+      ? KEYNOTE_PROMO_OFFER.durationLabel
+      : (isAnnual ? '1 an' : '1 mois');
 
     // Verifier si l'utilisateur existe
     let { data: existingUser, error: userError } = await supabaseAdmin
@@ -145,16 +191,20 @@ export async function POST(request: NextRequest) {
         type: 'subscription',
         plan: planKey,
         plan_label: planConfig.label,
-        billing: isAnnual ? 'annual' : 'monthly',
+        billing: promoApplied ? 'promo3m' : (isAnnual ? 'annual' : 'monthly'),
         renewal: isCurrentlyActive,
         duration_days: durationDays,
         subscription_end_date: subscriptionEndDate.toISOString(),
         previous_end_date: isCurrentlyActive ? currentEndDate!.toISOString() : null,
-        item_name: isCurrentlyActive
-          ? `Renouvellement Laveiye ${planConfig.label} - ${billingLabel}`
-          : `Abonnement Laveiye ${planConfig.label} - ${billingLabel}`,
+        item_name: promoApplied
+          ? `Offre LAVEIYE — ${planConfig.label} ${billingLabel}`
+          : (isCurrentlyActive
+              ? `Renouvellement Laveiye ${planConfig.label} - ${billingLabel}`
+              : `Abonnement Laveiye ${planConfig.label} - ${billingLabel}`),
         customer_name: customerName,
         userId: (existingUser as any).id,
+        promo_code: promoApplied?.code || null,
+        promo_registration_id: promoApplied?.registrationId || null,
       },
     };
 
@@ -190,9 +240,10 @@ export async function POST(request: NextRequest) {
           { ref_command },
           { type: 'subscription' },
           { plan: planKey },
-          { billing: isAnnual ? 'annual' : 'monthly' },
+          { billing: promoApplied ? 'promo3m' : (isAnnual ? 'annual' : 'monthly') },
           { user_id: String((existingUser as any).id) },
           { renewal: isCurrentlyActive ? 'true' : 'false' },
+          ...(promoApplied ? [{ promo_code: promoApplied.code }] : []),
         ],
       });
     } catch (pawapayError) {
@@ -264,10 +315,11 @@ export async function POST(request: NextRequest) {
       currency,
       plan: planKey,
       plan_label: planConfig.label,
-      billing: isAnnual ? 'annual' : 'monthly',
+      billing: promoApplied ? 'promo3m' : (isAnnual ? 'annual' : 'monthly'),
       duration_days: durationDays,
       subscription_end_date: subscriptionEndDate.toISOString(),
       renewal: isCurrentlyActive,
+      promo_code: promoApplied?.code || null,
     });
 
   } catch (error) {

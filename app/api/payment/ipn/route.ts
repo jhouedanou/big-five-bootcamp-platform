@@ -130,10 +130,30 @@ async function handlePaymentSuccess(
         ? new Date(customData.subscription_end_date) 
         : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 jours par défaut
 
+      // Plan strict — pas de fallback silencieux vers Pro.
+      const rawPlan = String(customData.plan || '').toLowerCase().trim();
+      let planName: 'Basic' | 'Pro';
+      if (rawPlan === 'basic') {
+        planName = 'Basic';
+      } else if (rawPlan === 'pro') {
+        planName = 'Pro';
+      } else {
+        console.error(
+          '[ipn] Plan invalide ou manquant dans custom_field, activation annul\u00e9e',
+          { paymentId: payment.id, rawPlan, customData }
+        );
+        return;
+      }
+
+      console.log('[ipn] Activation abonnement', {
+        userId: customData.userId,
+        plan: planName,
+      });
+
       const { error: userUpdateError } = await (supabaseAdmin as any)
         .from('users')
         .update({
-          plan: 'Pro',
+          plan: planName,
           subscription_status: 'active',
           subscription_start_date: new Date().toISOString(),
           subscription_end_date: subscriptionEndDate.toISOString(),
@@ -144,7 +164,20 @@ async function handlePaymentSuccess(
       if (userUpdateError) {
         console.error('Error updating user subscription:', userUpdateError);
       } else {
-        console.log('✅ Subscription activated for user:', customData.userId);
+        console.log('✅ Subscription activated for user:', customData.userId, '— plan:', planName);
+
+        // Marquer le code promo LAVEIYE comme consommé (idempotent)
+        if (customData.promo_code) {
+          try {
+            await (supabaseAdmin as any)
+              .from('keynote_registrations')
+              .update({ promo_redeemed_at: new Date().toISOString() })
+              .eq('promo_code', customData.promo_code)
+              .is('promo_redeemed_at', null);
+          } catch (promoErr) {
+            console.error('Error marking promo code redeemed:', promoErr);
+          }
+        }
         
         // Créer une notification de succès de paiement
         try {

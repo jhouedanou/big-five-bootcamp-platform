@@ -1,9 +1,9 @@
 /**
  * Page: /payment/success
  *
- * Page de confirmation apres paiement
+ * Page de confirmation après paiement.
  * PawaPay redirige avec ?paymentId=...&paymentStatus=...&ref_command=...
- * Verifie le statut aupres de PawaPay si le webhook n'a pas encore ete traite
+ * Vérifie le statut auprès de PawaPay si le webhook n'a pas encore été traité.
  */
 
 'use client';
@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Download, Calendar, User, Mail, Loader2, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { useAuthContext } from '@/components/auth-provider';
 
 interface PaymentData {
   payment: {
@@ -55,6 +56,7 @@ interface PaymentData {
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { refreshProfile } = useAuthContext();
   const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +67,7 @@ function PaymentSuccessContent() {
   const [showPendingMessage, setShowPendingMessage] = useState(false);
   const maxRetries = 5;
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const profileRefreshedRef = useRef(false);
 
   const verifyPayment = async (ref_command: string, attempt: number = 0) => {
     try {
@@ -79,7 +82,7 @@ function PaymentSuccessContent() {
           });
           const checkData = await checkResponse.json();
           if (checkData.success && checkData.payment?.status === 'completed') {
-            // Paiement confirme par PawaPay, charger les details complets
+            // Paiement confirmé par PawaPay, charger les détails complets
             const statusResponse = await fetch(`/api/payment/status/${ref_command}`);
             const statusData = await statusResponse.json();
             if (statusData.success && statusData.payment?.status === 'completed') {
@@ -87,6 +90,14 @@ function PaymentSuccessContent() {
               setLoading(false);
               sessionStorage.removeItem('payment_ref');
               sessionStorage.removeItem('payment_session_id');
+              if (!profileRefreshedRef.current) {
+                profileRefreshedRef.current = true;
+                try {
+                  await refreshProfile();
+                } catch (e) {
+                  console.error('refreshProfile error:', e);
+                }
+              }
               return;
             }
           }
@@ -100,7 +111,7 @@ function PaymentSuccessContent() {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        setError(data.error || 'Impossible de verifier le paiement');
+        setError(data.error || 'Impossible de vérifier le paiement');
         setLoading(false);
         setShowManualInput(true);
         return;
@@ -113,6 +124,15 @@ function PaymentSuccessContent() {
         setShowPendingMessage(false);
         sessionStorage.removeItem('payment_ref');
         sessionStorage.removeItem('payment_session_id');
+        // Forcer le rafraîchissement du profil pour afficher le bon plan partout.
+        if (!profileRefreshedRef.current) {
+          profileRefreshedRef.current = true;
+          try {
+            await refreshProfile();
+          } catch (e) {
+            console.error('refreshProfile error:', e);
+          }
+        }
         return;
       }
 
@@ -131,7 +151,7 @@ function PaymentSuccessContent() {
 
     } catch (err) {
       console.error('Error verifying payment:', err);
-      setError('Une erreur est survenue lors de la verification');
+      setError('Une erreur est survenue lors de la vérification');
       setLoading(false);
       setShowManualInput(true);
     }
@@ -152,7 +172,7 @@ function PaymentSuccessContent() {
     const ref_command = refFromUrl || refFromStorage;
 
     if (!ref_command) {
-      setError('Reference de paiement introuvable');
+      setError('Référence de paiement introuvable');
       setLoading(false);
       setShowManualInput(true);
       return;
@@ -169,7 +189,7 @@ function PaymentSuccessContent() {
           <CardContent className="pt-8 pb-8">
             <div className="text-center">
               <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-[#0F0F0F]" />
-              <p className="text-lg font-bold text-[#0F0F0F]">Verification de votre paiement...</p>
+              <p className="text-lg font-bold text-[#0F0F0F]">Vérification de votre paiement…</p>
               <p className="text-sm text-gray-600 mt-2">Veuillez patienter</p>
               {retryCount > 0 && (
                 <div className="mt-4">
@@ -208,13 +228,13 @@ function PaymentSuccessContent() {
               Paiement en cours de traitement
             </CardTitle>
             <CardDescription className="text-base">
-              Votre paiement a ete initie et est en attente de confirmation
+              Votre paiement a été initié et est en attente de confirmation
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-[#F5F5F5] rounded-xl p-4 space-y-2">
               <div className="flex justify-between">
-                <span className="text-sm text-gray-600">Reference</span>
+                <span className="text-sm text-gray-600">Référence</span>
                 <span className="text-sm font-bold font-mono">{pendingPayment.ref_command}</span>
               </div>
               <div className="flex justify-between">
@@ -237,7 +257,7 @@ function PaymentSuccessContent() {
                   <p className="font-bold text-blue-800 mb-1">Que se passe-t-il ?</p>
                   <p className="text-blue-700">
                     Le paiement est en cours de validation. Cela peut prendre quelques minutes.
-                    Vous recevrez une confirmation une fois le paiement valide.
+                    Vous recevrez une confirmation une fois le paiement validé.
                   </p>
                 </div>
               </div>
@@ -254,7 +274,7 @@ function PaymentSuccessContent() {
                 className="w-full h-11 bg-[#F2B33D] hover:bg-[#F2B33D] font-semibold"
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
-                Verifier a nouveau
+                Vérifier à nouveau
               </Button>
 
               <div className="grid grid-cols-2 gap-2">
@@ -268,7 +288,7 @@ function PaymentSuccessContent() {
             </div>
 
             <p className="text-xs text-center text-gray-500 pt-2">
-              Conservez votre reference : <span className="font-mono font-bold">{pendingPayment.ref_command}</span>
+              Conservez votre référence : <span className="font-mono font-bold">{pendingPayment.ref_command}</span>
             </p>
           </CardContent>
         </Card>
@@ -288,7 +308,7 @@ function PaymentSuccessContent() {
               </svg>
             </div>
             <CardTitle className="text-xl font-bold text-[#0F0F0F]">
-              Verification du paiement
+              Vérification du paiement
             </CardTitle>
             <CardDescription className="text-base">
               {error || 'Paiement introuvable'}
@@ -298,7 +318,7 @@ function PaymentSuccessContent() {
             {showManualInput && (
               <div className="space-y-3 p-4 bg-gray-50 rounded-xl">
                 <p className="text-sm font-medium text-[#0F0F0F]">
-                  Vous avez une reference de paiement ?
+                  Vous avez une référence de paiement ?
                 </p>
                 <div className="flex gap-2">
                   <input
@@ -317,7 +337,7 @@ function PaymentSuccessContent() {
                     disabled={!manualRef.trim() || loading}
                     className="h-11 px-6 bg-[#F2B33D] hover:bg-[#F2B33D]"
                   >
-                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Verifier'}
+                    {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Vérifier'}
                   </Button>
                 </div>
               </div>
@@ -351,10 +371,15 @@ function PaymentSuccessContent() {
           <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
             <CheckCircle2 className="h-12 w-12 text-green-600" />
           </div>
-          <h1 className="text-3xl font-bold mb-2">Paiement confirme !</h1>
+          <h1 className="text-3xl font-bold mb-2">Paiement confirmé !</h1>
           <p className="text-gray-600">
-            Votre {payment.item_name || 'abonnement'} a ete confirme avec succes
+            Votre {payment.item_name || 'abonnement'} a été confirmé avec succès
           </p>
+          {payment.metadata?.plan_label && (
+            <p className="mt-3 inline-block px-4 py-1.5 rounded-full bg-[#F2B33D]/15 text-[#0F0F0F] text-sm font-bold border border-[#F2B33D]/30">
+              Plan actif : {payment.metadata.plan_label}
+            </p>
+          )}
         </div>
 
         <Card className="mb-6">
@@ -367,7 +392,7 @@ function PaymentSuccessContent() {
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
                 <div>
-                  <p className="font-semibold text-sm">Reference</p>
+                  <p className="font-semibold text-sm">Référence</p>
                   <p className="text-sm text-gray-600 font-mono">{payment.ref_command}</p>
                 </div>
               </div>
@@ -381,7 +406,7 @@ function PaymentSuccessContent() {
               <div className="flex items-start gap-3">
                 <User className="h-5 w-5 text-[#0F0F0F] mt-0.5" />
                 <div>
-                  <p className="font-semibold text-sm">Methode de paiement</p>
+                  <p className="font-semibold text-sm">Méthode de paiement</p>
                   <p className="text-sm text-gray-600">{payment.payment_method}</p>
                 </div>
               </div>
@@ -405,10 +430,10 @@ function PaymentSuccessContent() {
             <div className="flex gap-3">
               <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
               <div className="text-sm">
-                <p className="font-bold text-blue-800 mb-2">Acces a votre abonnement</p>
+                <p className="font-bold text-blue-800 mb-2">Accès à votre abonnement</p>
                 <p className="text-blue-700">
-                  Votre abonnement est maintenant actif ! Vous pouvez acceder a tous les contenus premium
-                  immediatement depuis votre tableau de bord.
+                  Votre abonnement est maintenant actif ! Vous pouvez accéder à tous les contenus premium
+                  immédiatement depuis votre tableau de bord.
                 </p>
               </div>
             </div>
@@ -418,12 +443,12 @@ function PaymentSuccessContent() {
         <div className="flex flex-col sm:flex-row gap-4">
           <Link href="/dashboard" className="flex-1">
             <Button className="w-full h-12 text-base font-semibold bg-[#F2B33D] text-black hover:bg-[#F2B33D]/90">
-              Acceder a la bibliotheque
+              Accéder à la bibliothèque
             </Button>
           </Link>
           <Button variant="outline" className="flex-1 h-12" onClick={() => window.print()}>
             <Download className="mr-2 h-4 w-4" />
-            Telecharger la confirmation
+            Télécharger la confirmation
           </Button>
         </div>
 

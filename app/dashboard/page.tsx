@@ -212,6 +212,7 @@ export default function DashboardPage() {
   const searchParams = useSearchParams()
   const brandFilter = searchParams.get("brand") ?? ""
   const tempsFortFilter = searchParams.get("temps_fort") ?? ""
+  const initialSearch = searchParams.get("search") ?? ""
 
   const [campaigns, setCampaigns] = useState<ContentItem[]>([])
   const [weeklyCampaigns, setWeeklyCampaigns] = useState<ContentItem[]>([])
@@ -222,13 +223,21 @@ export default function DashboardPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [activeQuickFilter, setActiveQuickFilter] = useState("Tous")
   // Pré-remplir la recherche depuis ?brand=X (lien direct depuis notification/email)
-  const [searchQuery, setSearchQuery] = useState(() => brandFilter)
+  // ou ?search=X (navbar utilisée depuis une autre page).
+  const [searchQuery, setSearchQuery] = useState(() => brandFilter || initialSearch)
   const itemsPerPage = 9
 
+  // Quota de recherches par filtre / jour (Découverte: 3, Basic: 15, Pro: illimité)
+  const [searchQuota, setSearchQuota] = useState<{
+    counts: Record<string, number>
+    limit: number | null
+    tier: 'free' | 'basic' | 'pro'
+  }>({ counts: {}, limit: null, tier: 'free' })
+
   useEffect(() => {
-    setSearchQuery(brandFilter)
+    setSearchQuery(brandFilter || initialSearch)
     setCurrentPage(1)
-  }, [brandFilter])
+  }, [brandFilter, initialSearch])
 
   const clearBrandFilter = useCallback(() => {
     setSearchQuery("")
@@ -286,6 +295,23 @@ export default function DashboardPage() {
       years: Array.from(years),
       axes: Array.from(axes),
     }
+  }, [campaigns])
+
+  // Suggestions d'autocompl\u00e9tion pour la barre de recherche \u2014 collecte
+  // marques, agences, secteurs, pays, plateformes et tags depuis les campagnes.
+  const searchSuggestions = useMemo<string[]>(() => {
+    const set = new Set<string>()
+    campaigns.forEach((c) => {
+      if (c.brand) set.add(c.brand)
+      if (c.agency) set.add(c.agency)
+      if (c.sector) set.add(c.sector)
+      if (c.country) set.add(normalizeCountry(c.country))
+      if (c.platform) set.add(c.platform)
+      if (c.format) set.add(c.format)
+      c.tags?.forEach((t) => t && set.add(t))
+      c.axe?.forEach((a) => a && set.add(a))
+    })
+    return Array.from(set).filter(Boolean).sort((a, b) => a.localeCompare(b, 'fr'))
   }, [campaigns])
 
   // Charger les campagnes publiees depuis Supabase
@@ -363,6 +389,83 @@ export default function DashboardPage() {
 
     loadCampaigns()
   }, [])
+
+  // Charger l'\u00e9tat initial du quota de recherches par filtre / jour
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/track-search')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data) return
+        setSearchQuota({
+          counts: data.counts || {},
+          limit: data.limit ?? null,
+          tier: data.tier ?? 'free',
+        })
+      })
+      .catch(() => { /* silencieux */ })
+    return () => { cancelled = true }
+  }, [])
+
+  // Comptabiliser la barre de recherche textuelle comme un \"filtre\" (cat\u00e9gorie \"Recherche\").
+  // D\u00e9bounce de 800ms : on ne compte qu'une fois la frappe stabilis\u00e9e, et seulement
+  // si la requ\u00eate a chang\u00e9 par rapport \u00e0 la derni\u00e8re comptabilis\u00e9e.
+  const lastCountedSearchRef = useRef<string>("")
+  useEffect(() => {
+    const q = searchQuery.trim()
+    if (!q) return
+    if (q === lastCountedSearchRef.current) return
+
+    const handle = setTimeout(async () => {
+      // Pr\u00e9-blocage local : si la limite est d\u00e9j\u00e0 atteinte sur la cat\u00e9gorie \"Recherche\",
+      // on n'envoie m\u00eame pas la requ\u00eate.
+      if (searchQuota.limit !== null) {
+        const used = searchQuota.counts['Recherche'] || 0
+        if (used >= searchQuota.limit) {
+          showUpgrade('searches-bar')
+          setSearchQuery("")
+          return
+        }
+      }
+
+      try {
+        const res = await fetch('/api/track-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filterId: 'Recherche' }),
+        })
+        if (res.status === 403) {
+          try {
+            const data = await res.json()
+            if (data?.counts) {
+              setSearchQuota((s) => ({ ...s, counts: data.counts, limit: data.limit ?? s.limit }))
+            }
+          } catch { /* ignore */ }
+          showUpgrade('searches-bar')
+          setSearchQuery("")
+          return
+        }
+        if (res.ok) {
+          lastCountedSearchRef.current = q
+          try {
+            const data = await res.json()
+            if (data?.counts) {
+              setSearchQuota({
+                counts: data.counts,
+                limit: data.limit ?? null,
+                tier: data.tier ?? 'free',
+              })
+            }
+          } catch { /* ignore */ }
+        }
+      } catch {
+        // Erreur r\u00e9seau : on n'incr\u00e9mente pas localement, on r\u00e9essayera \u00e0 la prochaine frappe stable.
+      }
+    }, 800)
+
+    return () => clearTimeout(handle)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery])
 
   // Données d'exemple
   const getSampleCampaigns = (): ContentItem[] => [
@@ -473,15 +576,14 @@ export default function DashboardPage() {
     }
   }
 
-  const filteredContent = useMemo(() => {
-    const brandNeedle = brandFilter.trim().toLowerCase()
-    return campaigns.filter((content) => {
-      // Filtre prioritaire par temps fort (?temps_fort=slug)
+  const matchesFiltersAndQuery = useCallback(
+    (content: ContentItem, filters: Record<string, string[]>, query: string) => {
+      const brandNeedle = brandFilter.trim().toLowerCase()
+
       if (tempsFortFilter) {
         if (!content.tempsFortSlugs?.includes(tempsFortFilter)) return false
       }
 
-      // Filtre prioritaire par marque (lorsque ?brand= est present)
       if (brandNeedle) {
         const brandMatch =
           (content.brand || '').toLowerCase().includes(brandNeedle) ||
@@ -490,28 +592,28 @@ export default function DashboardPage() {
         if (!brandMatch) return false
       }
 
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase()
+      const q = query.trim().toLowerCase()
+      if (q) {
         const matchesSearch =
-          content.title.toLowerCase().includes(query) ||
-          content.description?.toLowerCase().includes(query) ||
-          content.brand?.toLowerCase().includes(query) ||
-          content.agency?.toLowerCase().includes(query) ||
-          content.sector?.toLowerCase().includes(query) ||
-          content.platform?.toLowerCase().includes(query) ||
-          content.country?.toLowerCase().includes(query) ||
-          content.tags?.some(tag => tag.toLowerCase().includes(query)) ||
-          content.axe?.some(a => a.toLowerCase().includes(query))
+          content.title.toLowerCase().includes(q) ||
+          content.description?.toLowerCase().includes(q) ||
+          content.brand?.toLowerCase().includes(q) ||
+          content.agency?.toLowerCase().includes(q) ||
+          content.sector?.toLowerCase().includes(q) ||
+          content.platform?.toLowerCase().includes(q) ||
+          content.country?.toLowerCase().includes(q) ||
+          content.tags?.some(tag => tag.toLowerCase().includes(q)) ||
+          content.axe?.some(a => a.toLowerCase().includes(q))
         if (!matchesSearch) return false
       }
 
-      const countryFilter = selectedFilters["Pays"] || []
-      const sectorFilter = selectedFilters["Secteur"] || []
-      const formatFilter = selectedFilters["Format"] || []
-      const platformFilter = selectedFilters["Plateforme"] || []
-      const tagsFilter = selectedFilters["Tags"] || []
-      const axeFilter = selectedFilters["Axe créatif"] || []
-      const yearFilter = selectedFilters["Année"] || []
+      const countryFilter = filters["Pays"] || []
+      const sectorFilter = filters["Secteur"] || []
+      const formatFilter = filters["Format"] || []
+      const platformFilter = filters["Plateforme"] || []
+      const tagsFilter = filters["Tags"] || []
+      const axeFilter = filters["Axe créatif"] || []
+      const yearFilter = filters["Année"] || []
 
       if (countryFilter.length > 0 && !countryFilter.includes(normalizeCountry(content.country))) return false
       if (sectorFilter.length > 0 && !sectorFilter.includes(content.sector)) return false
@@ -522,8 +624,21 @@ export default function DashboardPage() {
       if (yearFilter.length > 0 && content.year && !yearFilter.includes(String(content.year))) return false
 
       return true
-    })
-  }, [selectedFilters, campaigns, searchQuery, brandFilter, tempsFortFilter])
+    },
+    [brandFilter, tempsFortFilter]
+  )
+
+  // Compte le nombre de campagnes correspondant à un jeu de filtres + une requête.
+  // Utilisé pour décider si on doit comptabiliser ou non la recherche dans le quota.
+  const countMatching = useCallback(
+    (filters: Record<string, string[]>, query: string) =>
+      campaigns.reduce((n, c) => (matchesFiltersAndQuery(c, filters, query) ? n + 1 : n), 0),
+    [campaigns, matchesFiltersAndQuery]
+  )
+
+  const filteredContent = useMemo(() => {
+    return campaigns.filter((content) => matchesFiltersAndQuery(content, selectedFilters, searchQuery))
+  }, [selectedFilters, campaigns, searchQuery, matchesFiltersAndQuery])
 
   // Appliquer les mêmes filtres aux campagnes de la semaine
   const filteredWeeklyCampaigns = useMemo(() => {
@@ -618,7 +733,26 @@ export default function DashboardPage() {
       if (added) newlyAddedCategories.push(category)
     }
 
-    for (const category of newlyAddedCategories) {
+    // Règle métier : si la nouvelle combinaison de filtres ne donne aucun résultat,
+    // on applique les filtres mais on ne comptabilise PAS les recherches
+    // (l'utilisateur voit « Aucune campagne trouvée » — cela ne doit pas consommer son quota).
+    const wouldReturnResults = countMatching(filters, searchQuery) > 0
+
+    // Pre-block local : si la limite est déjà atteinte pour une catégorie ajoutée
+    // ET que la recherche aurait donné des résultats, on affiche le popup d'upgrade
+    // sans appeler l'API (UX immédiate).
+    if (wouldReturnResults && searchQuota.limit !== null) {
+      for (const category of newlyAddedCategories) {
+        const used = searchQuota.counts[category] || 0
+        if (used >= searchQuota.limit) {
+          showUpgrade('searches-filters')
+          return
+        }
+      }
+    }
+
+    if (wouldReturnResults) {
+      for (const category of newlyAddedCategories) {
       try {
         const res = await fetch('/api/track-search', {
           method: 'POST',
@@ -626,12 +760,32 @@ export default function DashboardPage() {
           body: JSON.stringify({ filterId: category }),
         })
         if (res.status === 403) {
-          showUpgrade('searches')
+          // Synchroniser le quota coté client pour bloquer les futurs essais
+          try {
+            const data = await res.json()
+            if (data?.counts) {
+              setSearchQuota((q) => ({ ...q, counts: data.counts, limit: data.limit ?? q.limit }))
+            }
+          } catch { /* ignore */ }
+          showUpgrade('searches-filters')
           return
+        }
+        if (res.ok) {
+          try {
+            const data = await res.json()
+            if (data?.counts) {
+              setSearchQuota({
+                counts: data.counts,
+                limit: data.limit ?? null,
+                tier: data.tier ?? 'free',
+              })
+            }
+          } catch { /* ignore */ }
         }
       } catch {
         // Erreur reseau : on laisse passer pour ne pas bloquer l'UX.
       }
+    }
     }
 
     setSelectedFilters(filters)
@@ -653,6 +807,7 @@ export default function DashboardPage() {
           monthlyClickLimit={MONTHLY_CLICK_LIMIT}
           isFreeUser={isFreeUser}
           monthlyExplored={monthlyExplored}
+          searchSuggestions={searchSuggestions}
         />
 
         <TempsFortsBanner />
@@ -759,6 +914,7 @@ export default function DashboardPage() {
               dynamicOptions={dynamicFilterOptions}
               isFreeUser={isFreeUser}
               onLockedFilterClick={() => showUpgrade("filters")}
+              searchQuota={searchQuota}
             />
 
             {/* Mobile Filters */}
@@ -778,6 +934,7 @@ export default function DashboardPage() {
                     dynamicOptions={dynamicFilterOptions}
                     isFreeUser={isFreeUser}
                     onLockedFilterClick={() => { setShowMobileFilters(false); showUpgrade("filters") }}
+                    searchQuota={searchQuota}
                   />
                 </div>
               </div>

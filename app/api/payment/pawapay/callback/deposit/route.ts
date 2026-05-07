@@ -175,10 +175,32 @@ async function activateUserSubscription(payment: {
       metadata.subscription_end_date ||
       new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
 
+    // Plan strict — pas de fallback silencieux vers Pro.
+    // Si la métadonnée est absente/invalide, on log et on n'active pas (sécurité).
+    const rawPlan = String(metadata.plan || '').toLowerCase().trim()
+    let planName: 'Basic' | 'Pro'
+    if (rawPlan === 'basic') {
+      planName = 'Basic'
+    } else if (rawPlan === 'pro') {
+      planName = 'Pro'
+    } else {
+      console.error(
+        '[pawapay/deposit] Plan invalide ou manquant dans metadata, activation annul\u00e9e',
+        { paymentId: payment.id, rawPlan, metadata }
+      )
+      return
+    }
+
+    console.log('[pawapay/deposit] Activation abonnement', {
+      userId: metadata.userId,
+      plan: planName,
+      end,
+    })
+
     await (supabaseAdmin as any)
       .from('users')
       .update({
-        plan: 'Pro',
+        plan: planName,
         subscription_status: 'active',
         subscription_start_date: new Date().toISOString(),
         subscription_end_date: end,
@@ -186,7 +208,16 @@ async function activateUserSubscription(payment: {
       })
       .eq('id', metadata.userId)
 
-    console.log('✅ Subscription activated (pawapay) for user:', metadata.userId)
+    // Marquer le code promo LAVEIYE comme consommé (idempotent)
+    if (metadata.promo_code) {
+      await (supabaseAdmin as any)
+        .from('keynote_registrations')
+        .update({ promo_redeemed_at: new Date().toISOString() })
+        .eq('promo_code', metadata.promo_code)
+        .is('promo_redeemed_at', null)
+    }
+
+    console.log('✅ Subscription activated (pawapay) for user:', metadata.userId, '— plan:', planName)
   } catch (e) {
     console.error('Error activating subscription from pawapay callback:', e)
   }

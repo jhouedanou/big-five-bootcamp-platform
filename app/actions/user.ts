@@ -128,7 +128,11 @@ export async function endSubscription(userId: string) {
     }
 }
 
-export async function resetSubscription(userId: string, days: number = 30) {
+export async function resetSubscription(
+    userId: string,
+    days: number = 30,
+    plan: 'Basic' | 'Pro' = 'Pro'
+) {
     try {
         const supabase = getSupabaseAdmin()
         const now = new Date()
@@ -137,7 +141,7 @@ export async function resetSubscription(userId: string, days: number = 30) {
         const { error } = await supabase
             .from('users')
             .update({
-                plan: 'Pro',
+                plan,
                 subscription_status: 'active',
                 subscription_start_date: now.toISOString(),
                 subscription_end_date: endDate.toISOString(),

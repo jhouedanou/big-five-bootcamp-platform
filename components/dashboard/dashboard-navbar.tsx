@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
-import { Menu, X, Search, User, LogOut, Settings, CreditCard, Crown, Sparkles, Clock, Users, Heart, MousePointer, Building2, FolderOpen } from "lucide-react"
+import { useState, useEffect } from "react"
+import { useRouter, usePathname } from "next/navigation"
+import { Menu, X, Search, User, LogOut, Settings, CreditCard, Crown, Sparkles, Clock, Users, Heart, MousePointer, Building2, FolderOpen, SlidersHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { useAuthContext } from "@/components/auth-provider"
@@ -22,6 +23,8 @@ export function DashboardNavbar({
   monthlyClickLimit,
   isFreeUser: externalIsFreeUser,
   monthlyExplored: externalMonthlyExplored,
+  searchSuggestions,
+  searchQuota: externalSearchQuota,
 }: {
   searchQuery?: string;
   onSearchChange?: (query: string) => void
@@ -30,14 +33,25 @@ export function DashboardNavbar({
   monthlyClickLimit?: number
   isFreeUser?: boolean
   monthlyExplored?: number
+  searchSuggestions?: string[]
+  searchQuota?: {
+    counts: Record<string, number>
+    limit: number | null
+    tier: 'free' | 'basic' | 'pro'
+  } | null
 } = {}) {
+  const router = useRouter()
+  const pathname = usePathname()
+  const isOnDashboard = pathname === '/dashboard'
   const [isOpen, setIsOpen] = useState(false)
   const [internalSearchQuery, setInternalSearchQuery] = useState("")
+  const [showSuggestions, setShowSuggestions] = useState(false)
 
   // Lire tout depuis le contexte centralisé — AUCUN appel getUser() ni requête DB
   const {
     user,
     userProfile,
+    loading: authLoading,
     userPlan: contextUserPlan,
     isFreeUser: contextIsFreeUser,
     isPremium: contextIsPremium,
@@ -45,6 +59,12 @@ export function DashboardNavbar({
     monthlyExplored: contextMonthlyExplored,
     signOut,
   } = useAuthContext()
+
+  // Le profil est considéré "prêt" quand l'auth est résolue ET qu'on a reçu
+  // les données DB (ou que l'utilisateur n'est pas connecté).
+  // Tant que ce n'est pas le cas, on n'affiche AUCUN badge plan/quota —
+  // ça évite le flash "Pro" puis "Free" (et inversement).
+  const profileReady = !authLoading && (!user || userProfile !== null)
 
   const userName = userProfile?.name || ""
   const userEmail = user?.email || ""
@@ -93,6 +113,50 @@ export function DashboardNavbar({
 
   const subInfo = getSubscriptionInfo()
 
+  // Si une page parente nous fournit le quota (le dashboard, en temps réel), on l'utilise.
+  // Sinon (ex: page de détail), on fetche nous-mêmes toutes les 15s.
+  const [internalSearchQuota, setInternalSearchQuota] = useState<{
+    counts: Record<string, number>
+    limit: number | null
+    tier: 'free' | 'basic' | 'pro'
+  } | null>(null)
+  const searchQuota = externalSearchQuota !== undefined ? externalSearchQuota : internalSearchQuota
+
+  useEffect(() => {
+    if (externalSearchQuota !== undefined) return
+    if (!profileReady || !user) return
+    let cancelled = false
+    const load = async () => {
+      try {
+        const r = await fetch('/api/track-search')
+        if (!r.ok || cancelled) return
+        const data = await r.json()
+        setInternalSearchQuota({
+          counts: data.counts || {},
+          limit: data.limit ?? null,
+          tier: data.tier ?? 'free',
+        })
+      } catch { /* silencieux */ }
+    }
+    load()
+    // Polling régulier pour les pages qui ne nous fournissent pas le quota en temps réel.
+    const id = setInterval(load, 15000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [profileReady, user, externalSearchQuota])
+
+  // Pic d'utilisation par catégorie : on sépare la barre de recherche ("Recherche")
+  // des filtres latréraux (Pays, Secteur, Format, ...) pour afficher deux pills distinctes.
+  const searchBarUsed = searchQuota?.counts['Recherche'] ?? 0
+  const filtersPeak = searchQuota
+    ? Object.entries(searchQuota.counts)
+        .filter(([k]) => k !== 'Recherche')
+        .reduce((m, [, v]) => Math.max(m, v), 0)
+    : 0
+  const searchLimit = searchQuota?.limit ?? null
+  const showQuotaBadges = profileReady && !!user && searchLimit !== null
+  const searchBarReached = showQuotaBadges && searchBarUsed >= (searchLimit as number)
+  const filtersReached = showQuotaBadges && filtersPeak >= (searchLimit as number)
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#F5F5F5] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -138,12 +202,6 @@ export function DashboardNavbar({
               Temps forts
             </Link>
             <Link
-              href="/profile"
-              className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F]"
-            >
-              Profil
-            </Link>
-            <Link
               href="/favorites"
               className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1"
             >
@@ -175,7 +233,18 @@ export function DashboardNavbar({
           <div className="relative w-full max-w-xl group">
             {/* Glow gradient de fond */}
             <div className="absolute -inset-1.5 bg-[#F2B33D]/30 rounded-2xl blur-lg opacity-60 group-focus-within:opacity-100 group-hover:opacity-80 transition-opacity duration-300" />
-            <div className="relative flex items-center">
+            <form
+              className="relative flex items-center"
+              onSubmit={(e) => {
+                e.preventDefault()
+                const q = searchQuery.trim()
+                if (!q) return
+                if (!isOnDashboard) {
+                  router.push(`/dashboard?search=${encodeURIComponent(q)}`)
+                }
+                setShowSuggestions(false)
+              }}
+            >
               <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center h-7 w-7 rounded-full bg-[#F2B33D] group-focus-within:bg-[#F2B33D] transition-colors">
                 <Search className="h-4 w-4 text-white" />
               </div>
@@ -183,7 +252,9 @@ export function DashboardNavbar({
                 type="text"
                 placeholder="Rechercher par mots-clés, marque, secteur, pays..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true) }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
                 className="h-13 w-full rounded-2xl border-2 border-[#F2B33D]/40 bg-gradient-to-r from-[#F5F5F5]/40 to-white pl-14 pr-4 text-sm font-semibold text-[#0F0F0F] shadow-lg shadow-[#F2B33D]/15 outline-none transition-all placeholder:text-[#0F0F0F]/45 placeholder:font-medium focus:border-[#F2B33D] focus:ring-4 focus:ring-[#F2B33D]/20 focus:shadow-xl focus:shadow-[#F2B33D]/20 focus:bg-white hover:border-[#F2B33D]/60 hover:shadow-xl hover:shadow-[#F2B33D]/15"
               />
               {searchQuery && (
@@ -196,33 +267,124 @@ export function DashboardNavbar({
                   <X className="h-4 w-4" />
                 </button>
               )}
-            </div>
+            </form>
+
+            {/* Suggestions d'autocompl\u00e9tion */}
+            {showSuggestions && searchQuery.trim().length >= 1 && (() => {
+              const q = searchQuery.trim().toLowerCase()
+              const all = searchSuggestions || []
+              const seen = new Set<string>()
+              const filtered: string[] = []
+              for (const s of all) {
+                if (!s) continue
+                const key = s.toLowerCase()
+                if (key === q) continue
+                if (!key.includes(q)) continue
+                if (seen.has(key)) continue
+                seen.add(key)
+                filtered.push(s)
+                if (filtered.length >= 8) break
+              }
+              if (filtered.length === 0) return null
+              return (
+                <div className="absolute left-0 right-0 top-full mt-2 z-50 rounded-2xl border-2 border-[#F2B33D]/30 bg-white shadow-2xl overflow-hidden">
+                  <ul className="py-1 max-h-72 overflow-y-auto">
+                    {filtered.map((s) => (
+                      <li key={s}>
+                        <button
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault()
+                            if (isOnDashboard) {
+                              setSearchQuery(s)
+                            } else {
+                              router.push(`/dashboard?search=${encodeURIComponent(s)}`)
+                            }
+                            setShowSuggestions(false)
+                          }}
+                          className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-[#0F0F0F] hover:bg-[#F2B33D]/10"
+                        >
+                          <Search className="h-3.5 w-3.5 text-[#F2B33D]" />
+                          <span className="truncate">{s}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )
+            })()}
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Skeleton tant que le profil n'est pas chargé — évite le flash de plan */}
+          {!profileReady && user && (
+            <div className="hidden md:flex items-center gap-2" aria-hidden>
+              <div className="h-8 w-32 rounded-full bg-[#F5F5F5] animate-pulse" />
+              <div className="h-8 w-24 rounded-full bg-[#F5F5F5] animate-pulse" />
+            </div>
+          )}
+
           {/* Compteur de clics quotidien (Free) */}
-          {effectiveIsFreeUser && (
+          {profileReady && effectiveIsFreeUser && (
             <div className="hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 bg-[#F5F5F5] text-[#0F0F0F] text-xs font-semibold">
               <MousePointer className="h-3.5 w-3.5" />
               {effectiveMonthlyClicks}/{monthlyClickLimit || 3} aujourd'hui
             </div>
           )}
           {/* Compteur d'usage du jour (Pro/Agency payant) */}
-          {!effectiveIsFreeUser && isPremium && effectiveMonthlyExplored > 0 && (
+          {profileReady && !effectiveIsFreeUser && isPremium && effectiveMonthlyExplored > 0 && (
             <div className="hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 bg-[#10B981]/10 text-[#10B981] text-xs font-semibold">
               <Sparkles className="h-3.5 w-3.5" />
               {effectiveMonthlyExplored} explorée{effectiveMonthlyExplored > 1 ? 's' : ''} ce jour
             </div>
           )}
-          {!effectiveIsFreeUser && isPremium && effectiveMonthlyExplored === 0 && (
+          {profileReady && !effectiveIsFreeUser && isPremium && effectiveMonthlyExplored === 0 && (
             <div className="hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 bg-[#10B981]/10 text-[#10B981] text-xs font-semibold">
               <Sparkles className="h-3.5 w-3.5" />
               0 explorée ce jour
             </div>
           )}
+
+          {/* Quota "Recherche" (barre de recherche textuelle) — caché pour Pro */}
+          {showQuotaBadges && (
+            <div
+              className={`hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 text-xs font-semibold ${
+                searchBarReached
+                  ? "bg-red-100 text-red-700"
+                  : "bg-[#F2B33D]/10 text-[#0F0F0F]"
+              }`}
+              title={
+                searchBarReached
+                  ? `Limite atteinte : ${searchBarUsed}/${searchLimit} recherches textuelles aujourd'hui`
+                  : `${searchBarUsed}/${searchLimit} recherches textuelles aujourd'hui`
+              }
+            >
+              <Search className="h-3.5 w-3.5" />
+              {searchBarUsed}/{searchLimit} recherches
+            </div>
+          )}
+
+          {/* Quota "Filtres" (sidebar) — pic sur la catégorie la plus utilisée */}
+          {showQuotaBadges && (
+            <div
+              className={`hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 text-xs font-semibold ${
+                filtersReached
+                  ? "bg-red-100 text-red-700"
+                  : "bg-[#F2B33D]/10 text-[#0F0F0F]"
+              }`}
+              title={
+                filtersReached
+                  ? `Limite atteinte : ${filtersPeak}/${searchLimit} filtres sur une même catégorie aujourd'hui`
+                  : `${filtersPeak}/${searchLimit} filtres utilisés sur la catégorie la plus sollicitée aujourd'hui`
+              }
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              {filtersPeak}/{searchLimit} filtres
+            </div>
+          )}
           {/* Bouton d'abonnement : durée restante ou incitatif */}
-          {isPremium && subInfo.active && !subInfo.expiringSoon ? (
+          {profileReady && isPremium && subInfo.active && !subInfo.expiringSoon ? (
             /* Plan payant actif, pas d'expiration proche → bouton doré */
             <div className="hidden md:flex">
               <div className="flex items-center gap-1.5 rounded-full px-3 h-8 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 text-xs font-bold shadow-sm">
@@ -230,7 +392,7 @@ export function DashboardNavbar({
                 {effectivePlan} · {subInfo.label}
               </div>
             </div>
-          ) : isPremium && subInfo.active && subInfo.expiringSoon ? (
+          ) : profileReady && isPremium && subInfo.active && subInfo.expiringSoon ? (
             /* Premium actif mais expire dans ≤ 7 jours → bouton "Renouveler" */
             <Link href="/subscribe" className="hidden md:flex">
               <Button
@@ -242,7 +404,7 @@ export function DashboardNavbar({
                 Renouveler · {subInfo.label}
               </Button>
             </Link>
-          ) : isPremium && subInfo.expired ? (
+          ) : profileReady && isPremium && subInfo.expired ? (
             /* Abonnement expiré → bouton rouge "Renouveler" */
             <Link href="/subscribe" className="hidden md:flex">
               <Button
@@ -254,7 +416,7 @@ export function DashboardNavbar({
                 Renouveler
               </Button>
             </Link>
-          ) : (
+          ) : profileReady ? (
             /* Pas de plan payant → bouton Tarifs */
             <Link href="/pricing" className="hidden md:flex">
               <Button
@@ -265,7 +427,7 @@ export function DashboardNavbar({
                 Tarifs
               </Button>
             </Link>
-          )}
+          ) : null}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -389,13 +551,6 @@ export function DashboardNavbar({
             >
               <Sparkles className="h-4 w-4 text-[#F2B33D]" />
               Temps forts
-            </Link>
-            <Link
-              href="/profile"
-              className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F]"
-              onClick={() => setIsOpen(false)}
-            >
-              Profil
             </Link>
             <Link
               href="/favorites"

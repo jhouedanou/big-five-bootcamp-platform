@@ -15,6 +15,8 @@ import {
   Users,
   Tag,
   Copy,
+  Trash2,
+  ShieldAlert,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,6 +46,8 @@ export default function KeynoteAdminPage() {
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchData = useCallback(async (q?: string) => {
     setIsLoading(true);
@@ -80,10 +84,23 @@ export default function KeynoteAdminPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erreur sync");
-      toast.success(`${data.synced} / ${data.total} synchronisés`);
+      if ((data.total || 0) === 0) {
+        toast.info("Aucun inscrit à synchroniser");
+      } else {
+        toast.success(`${data.synced} / ${data.total} synchronisés`);
+      }
+      if (data.usingMainAudience) {
+        toast.warning(
+          "Audience Keynote non configurée — utilisation de l'audience principale Mailchimp"
+        );
+      }
       if (data.errors?.length) {
         console.warn("Sync errors:", data.errors);
-        toast.warning(`${data.errors.length} erreur(s) — voir console`);
+        const first = data.errors[0];
+        toast.error(
+          `${data.errors.length} erreur(s). Ex : ${first.email} → ${first.error}`,
+          { duration: 8000 }
+        );
       }
       fetchData(search);
     } catch (err: any) {
@@ -95,6 +112,76 @@ export default function KeynoteAdminPage() {
 
   const exportCsv = () => {
     window.location.href = "/api/admin/keynote/export";
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === rows.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(rows.map((r) => r.id)));
+    }
+  };
+
+  const deleteByIds = async (ids: string[]) => {
+    if (!ids.length) return;
+    if (!confirm(`Supprimer ${ids.length} inscription(s) ? Cette action est irr\u00e9versible.`)) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch("/api/admin/keynote/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erreur suppression");
+      toast.success(`${data.deleted} inscription(s) supprim\u00e9e(s)`);
+      setSelectedIds(new Set());
+      fetchData(search);
+    } catch (err: any) {
+      toast.error(err.message || "Erreur de suppression");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const deleteFakes = async () => {
+    if (
+      !confirm(
+        "D\u00e9tecter et supprimer tous les emails jetables / fake / test ? Action irr\u00e9versible."
+      )
+    )
+      return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch("/api/admin/keynote/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ onlyFakes: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erreur suppression");
+      if (data.deleted === 0) {
+        toast.info("Aucun email fake d\u00e9tect\u00e9");
+      } else {
+        toast.success(`${data.deleted} email(s) fake supprim\u00e9(s)`);
+        if (data.emails?.length) console.log("Fakes supprim\u00e9s:", data.emails);
+      }
+      setSelectedIds(new Set());
+      fetchData(search);
+    } catch (err: any) {
+      toast.error(err.message || "Erreur de suppression");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const copyCode = async (code: string) => {
@@ -140,6 +227,19 @@ export default function KeynoteAdminPage() {
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={exportCsv} disabled={isLoading}>
             <Download className="h-4 w-4 mr-2" /> Exporter CSV
+          </Button>
+          <Button
+            variant="outline"
+            onClick={deleteFakes}
+            disabled={isDeleting || isLoading}
+            className="text-red-700 hover:bg-red-50 border-red-200"
+          >
+            {isDeleting ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <ShieldAlert className="h-4 w-4 mr-2" />
+            )}
+            Supprimer fakes
           </Button>
           <Button variant="outline" onClick={() => sync(true)} disabled={isSyncing}>
             {isSyncing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
@@ -212,6 +312,39 @@ export default function KeynoteAdminPage() {
         </CardContent>
       </Card>
 
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between gap-3 bg-amber-50 border border-amber-200 rounded-md px-4 py-3">
+          <span className="text-sm font-medium text-amber-900">
+            {selectedIds.size} inscription(s) sélectionnée(s)
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedIds(new Set())}
+              disabled={isDeleting}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => deleteByIds(Array.from(selectedIds))}
+              disabled={isDeleting}
+              className="text-red-700 hover:bg-red-50 border-red-200"
+            >
+              {isDeleting ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4 mr-2" />
+              )}
+              Supprimer la sélection
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Table */}
       <Card>
         <CardContent className="p-0 overflow-x-auto">
@@ -225,6 +358,14 @@ export default function KeynoteAdminPage() {
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500">
                 <tr>
+                  <th className="px-3 py-3 w-10">
+                    <input
+                      type="checkbox"
+                      checked={rows.length > 0 && selectedIds.size === rows.length}
+                      onChange={toggleSelectAll}
+                      aria-label="Tout sélectionner"
+                    />
+                  </th>
                   <th className="text-left font-semibold px-4 py-3">Date</th>
                   <th className="text-left font-semibold px-4 py-3">Inscrit</th>
                   <th className="text-left font-semibold px-4 py-3">Email</th>
@@ -232,11 +373,20 @@ export default function KeynoteAdminPage() {
                   <th className="text-left font-semibold px-4 py-3">Code promo</th>
                   <th className="text-left font-semibold px-4 py-3">Mailchimp</th>
                   <th className="text-left font-semibold px-4 py-3">Utilisé</th>
+                  <th className="text-left font-semibold px-4 py-3 w-10"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {rows.map((r) => (
                   <tr key={r.id} className="hover:bg-slate-50">
+                    <td className="px-3 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(r.id)}
+                        onChange={() => toggleSelect(r.id)}
+                        aria-label={`Sélectionner ${r.email}`}
+                      />
+                    </td>
                     <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
                       {new Date(r.created_at).toLocaleDateString("fr-FR", {
                         day: "2-digit",
@@ -274,6 +424,17 @@ export default function KeynoteAdminPage() {
                       {r.promo_redeemed_at
                         ? new Date(r.promo_redeemed_at).toLocaleDateString("fr-FR")
                         : "—"}
+                    </td>
+                    <td className="px-3 py-3">
+                      <button
+                        onClick={() => deleteByIds([r.id])}
+                        disabled={isDeleting}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded transition-colors"
+                        title="Supprimer"
+                        aria-label={`Supprimer ${r.email}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}

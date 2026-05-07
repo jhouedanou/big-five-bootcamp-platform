@@ -40,6 +40,16 @@ interface FiltersSidebarProps {
   dynamicOptions?: DynamicFilterOptions
   isFreeUser?: boolean
   onLockedFilterClick?: () => void
+  /**
+   * Quota courant des recherches par filtre / jour.
+   * counts: nombre de recherches déjà déclenchées par catégorie aujourd'hui
+   * limit : quota maximum par catégorie (null = illimité)
+   */
+  searchQuota?: {
+    counts: Record<string, number>
+    limit: number | null
+    tier: 'free' | 'basic' | 'pro'
+  }
 }
 
 // Filtres verrouillés pour le plan gratuit
@@ -52,6 +62,7 @@ export function FiltersSidebar({
   dynamicOptions,
   isFreeUser = false,
   onLockedFilterClick,
+  searchQuota,
 }: FiltersSidebarProps) {
   const [expandedGroups, setExpandedGroups] = useState<string[]>(["Pays", "Secteur", "Plateforme", "Tags"])
 
@@ -167,6 +178,11 @@ export function FiltersSidebar({
         <div className="space-y-2">
           {filterGroups.map((group) => {
             const isLocked = group.locked && LOCKED_FILTER_NAMES.includes(group.name)
+            // Quota par catégorie : utilisé / limite (n'affiche rien si illimité ou Pro)
+            const quotaUsed = searchQuota?.counts?.[group.name] ?? 0
+            const quotaLimit = searchQuota?.limit ?? null
+            const showQuota = !isLocked && quotaLimit !== null
+            const quotaReached = showQuota && quotaUsed >= quotaLimit
             return (
               <div
                 key={group.name}
@@ -202,6 +218,22 @@ export function FiltersSidebar({
                     <span className="text-sm font-medium text-[#0F0F0F]/50">
                       ({group.options.length})
                     </span>
+                    {showQuota && (
+                      <span
+                        className={`text-[11px] font-semibold rounded-full px-2 py-0.5 ${
+                          quotaReached
+                            ? "bg-red-100 text-red-600"
+                            : "bg-[#F5F5F5] text-[#0F0F0F]/70"
+                        }`}
+                        title={
+                          quotaReached
+                            ? `Limite atteinte : ${quotaUsed}/${quotaLimit} recherches aujourd'hui`
+                            : `${quotaUsed}/${quotaLimit} recherches utilisées aujourd'hui`
+                        }
+                      >
+                        {quotaUsed}/{quotaLimit}
+                      </span>
+                    )}
                   </span>
                   {isLocked ? (
                     <span className="text-xs font-medium text-[#FFFFFF] bg-[#F2B33D] px-2 py-0.5 rounded-full">

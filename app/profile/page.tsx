@@ -263,7 +263,7 @@ export default function ProfilePage() {
           <section className="mt-6 rounded-xl border border-[#F2B33D]/20 bg-gradient-to-br from-[#F2B33D]/5 to-[#a855f7]/5 p-6">
             <h2 className="font-[family-name:var(--font-heading)] text-lg font-semibold text-[#0F0F0F] flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-[#F2B33D]" />
-              Votre activité ce mois
+              Votre activité du jour
             </h2>
             <div className="mt-6 flex items-end gap-3">
               <span className="font-[family-name:var(--font-heading)] text-6xl font-extrabold text-[#F2B33D]">
@@ -271,7 +271,7 @@ export default function ProfilePage() {
               </span>
               <div className="mb-2">
                 <p className="text-base font-semibold text-[#0F0F0F]">campagnes explorées</p>
-                <p className="text-sm text-[#0F0F0F]/60">ce mois-ci · réinitialise le 1er</p>
+                <p className="text-sm text-[#0F0F0F]/60">· réinitialise chaque jour</p>
               </div>
             </div>
             <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#F2B33D]/20">
@@ -281,7 +281,7 @@ export default function ProfilePage() {
               />
             </div>
             <p className="mt-2 text-xs text-[#0F0F0F]/50">
-              Ce compteur suit vos consultations de campagnes du mois en cours.
+              Ce compteur suit vos consultations de campagnes du jour en cours.
             </p>
           </section>
         )}

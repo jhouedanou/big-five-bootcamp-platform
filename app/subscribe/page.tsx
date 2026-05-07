@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, Check, Lock, Sparkles, Loader2, Calendar, Star, Zap, Phone } from "lucide-react"
+import { ArrowLeft, Check, Lock, Sparkles, Loader2, Calendar, Star, Zap, Phone, Tag, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -80,7 +80,7 @@ const PLANS = {
       "Filtres avancés (Secteur, Pays, Format...)",
       "Collections personnalisées",
       "Téléchargement des vidéos",
-      "Compteur d'usage mensuel",
+      "Compteur d'usage quotidien",
     ],
   },
   pro: {
@@ -115,6 +115,21 @@ export default function SubscribePage() {
   const [phoneNumber, setPhoneNumber] = useState("")
   const [country, setCountry] = useState<CountryCode>("CIV")
   const [provider, setProvider] = useState<string>("ORANGE_CIV")
+
+  // Code promo LAVEIYE (3 mois Basic à 10 000 FCFA)
+  const [promoInput, setPromoInput] = useState("")
+  const [isCheckingPromo, setIsCheckingPromo] = useState(false)
+  const [promoError, setPromoError] = useState<string | null>(null)
+  const [appliedPromo, setAppliedPromo] = useState<{
+    code: string
+    plan: "basic" | "pro"
+    planLabel: string
+    price: number
+    originalPrice: number
+    durationDays: number
+    durationLabel: string
+    billing: string
+  } | null>(null)
 
   const countryConfig = COUNTRIES[country]
   const providersForCountry = PAWAPAY_PROVIDERS.filter(p => p.country === country)
@@ -156,6 +171,66 @@ export default function SubscribePage() {
 
   const currentPlan = PLANS[selectedPlan]
 
+  /** Valide un code promo auprès de l'API et applique l'offre. */
+  const handleApplyPromo = async () => {
+    const code = promoInput.trim().toUpperCase()
+    if (!code) {
+      setPromoError("Saisissez un code")
+      return
+    }
+    setIsCheckingPromo(true)
+    setPromoError(null)
+    try {
+      const res = await fetch("/api/promo/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.valid) {
+        setPromoError(data.error || "Code promo invalide")
+        setAppliedPromo(null)
+        return
+      }
+      setAppliedPromo({
+        code,
+        plan: data.offer.plan,
+        planLabel: data.offer.planLabel,
+        price: data.offer.price,
+        originalPrice: data.offer.originalPrice,
+        durationDays: data.offer.durationDays,
+        durationLabel: data.offer.durationLabel,
+        billing: data.offer.billing || 'promo3m',
+      })
+      // Forcer la sélection du plan correspondant à l'offre promo
+      setSelectedPlan(data.offer.plan)
+      setIsAnnual(false)
+    } catch {
+      setPromoError("Impossible de vérifier le code pour le moment")
+    } finally {
+      setIsCheckingPromo(false)
+    }
+  }
+
+  const handleRemovePromo = () => {
+    setAppliedPromo(null)
+    setPromoInput("")
+    setPromoError(null)
+  }
+
+  /** Montant à payer (override si code promo appliqué). */
+  const finalAmount = appliedPromo
+    ? appliedPromo.price
+    : isAnnual
+      ? selectedPlan === "basic" ? 49000 : 99000
+      : selectedPlan === "basic" ? 4900 : 9900
+
+  const finalAmountFormatted = new Intl.NumberFormat("fr-FR").format(finalAmount)
+  const finalDurationDays = appliedPromo ? appliedPromo.durationDays : (isAnnual ? 365 : 30)
+  const finalDurationLabel = appliedPromo
+    ? appliedPromo.durationLabel
+    : (isAnnual ? "1 an" : "1 mois")
+
   const handlePayment = async () => {
     if (!user?.email) {
       alert("Vous devez être connecté pour effectuer un paiement")
@@ -184,9 +259,10 @@ export default function SubscribePage() {
           userEmail: user.email,
           userName: userProfile?.name || user.user_metadata?.name,
           plan: selectedPlan,
-          billing: isAnnual ? 'annual' : 'monthly',
+          billing: appliedPromo ? appliedPromo.billing : (isAnnual ? 'annual' : 'monthly'),
           phoneNumber: cleanedPhone,
           provider,
+          promoCode: appliedPromo?.code,
         }),
       })
 
@@ -507,6 +583,81 @@ export default function SubscribePage() {
           </div>
         </div>
 
+        {/* Code promo LAVEIYE */}
+        <div className="mt-6 rounded-xl border border-[#F2B33D]/30 bg-[#F2B33D]/5 p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <Tag className="h-4 w-4 text-[#F2B33D]" />
+            <h3 className="text-sm font-semibold text-[#0F0F0F]">
+              Vous avez un code promo LAVEIYE&nbsp;?
+            </h3>
+          </div>
+          <p className="text-xs text-[#0F0F0F]/60 mb-3">
+            Code reçu lors de l'inscription au keynote. Donne droit à 3 mois d'accès Basic pour 10 000 FCFA TTC (au lieu de 14 700 FCFA).
+          </p>
+
+          {appliedPromo ? (
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-[#10B981]/30 bg-[#10B981]/5 px-3 py-2.5">
+              <div className="flex items-center gap-2 min-w-0">
+                <Check className="h-4 w-4 text-[#10B981] shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-[#0F0F0F] truncate">
+                    {appliedPromo.code} appliqué
+                  </p>
+                  <p className="text-xs text-[#0F0F0F]/60">
+                    {appliedPromo.planLabel} — {appliedPromo.durationLabel} pour{" "}
+                    {new Intl.NumberFormat("fr-FR").format(appliedPromo.price)} FCFA
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleRemovePromo}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[#0F0F0F]/60 hover:bg-[#0F0F0F]/5 hover:text-[#0F0F0F]"
+                aria-label="Retirer le code promo"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  value={promoInput}
+                  onChange={(e) => {
+                    setPromoInput(e.target.value.toUpperCase())
+                    setPromoError(null)
+                  }}
+                  placeholder="LAVEIYE-XXXX"
+                  className="uppercase tracking-wider"
+                  disabled={isCheckingPromo}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault()
+                      handleApplyPromo()
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  onClick={handleApplyPromo}
+                  disabled={isCheckingPromo || !promoInput.trim()}
+                  variant="outline"
+                  className="border-[#F2B33D] text-[#F2B33D] hover:bg-[#F2B33D]/10"
+                >
+                  {isCheckingPromo ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Appliquer"
+                  )}
+                </Button>
+              </div>
+              {promoError && (
+                <p className="text-xs text-[#E11D48]">{promoError}</p>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Terms */}
         <div className="mt-6 flex items-start gap-2">
           <input
@@ -546,7 +697,7 @@ export default function SubscribePage() {
           ) : (
             <>
               <Lock className="mr-2 h-4 w-4" />
-              {isActive ? "Renouveler" : "Payer"} — {isAnnual ? (selectedPlan === 'basic' ? '49 000' : '99 000') : plan.priceFormatted} XOF
+              {isActive ? "Renouveler" : "Payer"} — {finalAmountFormatted} XOF
             </>
           )}
         </Button>
@@ -556,16 +707,25 @@ export default function SubscribePage() {
           <div className="space-y-2 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-[#0F0F0F]/60">
-                {isActive ? "Renouvellement" : "Abonnement"} Laveiye —{" "}
-                {plan.name} ({isAnnual ? 'Annuel' : 'Mensuel'})
+                {appliedPromo
+                  ? `Offre LAVEIYE — ${appliedPromo.planLabel} (${appliedPromo.durationLabel})`
+                  : `${isActive ? "Renouvellement" : "Abonnement"} Laveiye — ${plan.name} (${isAnnual ? 'Annuel' : 'Mensuel'})`}
               </span>
               <span className="font-medium text-[#0F0F0F]">
-                {isAnnual ? (selectedPlan === 'basic' ? '49 000' : '99 000') : plan.priceFormatted} XOF
+                {finalAmountFormatted} XOF
               </span>
             </div>
+            {appliedPromo && (
+              <div className="flex items-center justify-between text-[#10B981]">
+                <span>Réduction code promo</span>
+                <span className="font-medium">
+                  −{new Intl.NumberFormat("fr-FR").format(appliedPromo.originalPrice - appliedPromo.price)} XOF
+                </span>
+              </div>
+            )}
             <div className="flex items-center justify-between">
               <span className="text-[#0F0F0F]/60">Durée ajoutée</span>
-              <span className="text-[#0F0F0F]">+{isAnnual ? '365' : '30'} jours ({isAnnual ? '1 an' : '1 mois'})</span>
+              <span className="text-[#0F0F0F]">+{finalDurationDays} jours ({finalDurationLabel})</span>
             </div>
             {isActive && (
               <div className="flex items-center justify-between">
@@ -575,7 +735,7 @@ export default function SubscribePage() {
                 <span className="text-[#0F0F0F] font-medium">
                   {new Date(
                     subscriptionEndDate!.getTime() +
-                      (isAnnual ? 365 : 30) * 24 * 60 * 60 * 1000
+                      finalDurationDays * 24 * 60 * 60 * 1000
                   ).toLocaleDateString("fr-FR", {
                     day: "numeric",
                     month: "short",
@@ -584,7 +744,7 @@ export default function SubscribePage() {
                 </span>
               </div>
             )}
-            {isAnnual && (
+            {isAnnual && !appliedPromo && (
               <div className="flex items-center justify-between text-[#10B981]">
                 <span>Économie par rapport au mensuel</span>
                 <span className="font-medium">
@@ -595,7 +755,7 @@ export default function SubscribePage() {
             <div className="border-t border-[#F5F5F5] pt-2 flex items-center justify-between">
               <span className="font-semibold text-[#0F0F0F]">Total</span>
               <span className="font-bold text-[#F2B33D]">
-                {isAnnual ? (selectedPlan === 'basic' ? '49 000' : '99 000') : plan.priceFormatted} XOF
+                {finalAmountFormatted} XOF
               </span>
             </div>
           </div>

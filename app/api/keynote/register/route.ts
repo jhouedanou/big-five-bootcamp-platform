@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-server'
 import { getMailchimpService } from '@/lib/mailchimp'
 import { generatePromoCode } from '@/lib/promo-codes'
+import { isBlockedEmail } from '@/lib/disposable-emails'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -52,6 +53,12 @@ export async function POST(request: NextRequest) {
   if (!email || !EMAIL_RE.test(email)) {
     return NextResponse.json({ error: 'Adresse email invalide' }, { status: 400 })
   }
+  if (isBlockedEmail(email)) {
+    return NextResponse.json(
+      { error: 'Veuillez utiliser une adresse email professionnelle valide.' },
+      { status: 400 }
+    )
+  }
   if (!firstName || !lastName) {
     return NextResponse.json({ error: 'Prénom et nom requis' }, { status: 400 })
   }
@@ -61,63 +68,68 @@ export async function POST(request: NextRequest) {
 
   const supabase = getSupabaseAdmin()
 
-  // Si l'email existe déjà → on retourne le code existant (idempotent)
+  // Bloquer toute ré-inscription avec le même email
   const { data: existing } = await supabase
     .from('keynote_registrations')
-    .select('promo_code')
+    .select('id, promo_code')
     .eq('email', email)
     .maybeSingle()
 
-  let promoCode: string
-  let isNew = false
+  if (existing?.id) {
+    return NextResponse.json(
+      {
+        error:
+          "Cette adresse email est déjà inscrite à la keynote. Vérifiez votre boîte mail (et vos spams) pour retrouver votre code promo.",
+      },
+      { status: 409 }
+    )
+  }
 
-  if (existing?.promo_code) {
-    promoCode = existing.promo_code
-  } else {
-    isNew = true
-    // Générer un code unique (jusqu'à 5 essais)
+  let promoCode: string = generatePromoCode()
+  const isNew = true
+
+  // Générer un code unique (jusqu'à 5 essais)
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const { data: clash } = await supabase
+      .from('keynote_registrations')
+      .select('id')
+      .eq('promo_code', promoCode)
+      .maybeSingle()
+    if (!clash) break
     promoCode = generatePromoCode()
-    for (let attempt = 0; attempt < 5; attempt++) {
-      const { data: clash } = await supabase
-        .from('keynote_registrations')
-        .select('id')
-        .eq('promo_code', promoCode)
-        .maybeSingle()
-      if (!clash) break
-      promoCode = generatePromoCode()
+  }
+
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    null
+  const userAgent = request.headers.get('user-agent') || null
+
+  const { error: insertErr } = await supabase.from('keynote_registrations').insert({
+    email,
+    first_name: firstName,
+    last_name: lastName,
+    country,
+    promo_code: promoCode,
+    ip,
+    user_agent: userAgent,
+    source: 'keynote-page',
+  })
+
+  if (insertErr) {
+    // Doublon de course : email déjà pris entre les deux requêtes
+    const code = (insertErr as { code?: string }).code
+    if (code === '23505') {
+      return NextResponse.json(
+        {
+          error:
+            "Cette adresse email est déjà inscrite à la keynote.",
+        },
+        { status: 409 }
+      )
     }
-
-    const ip =
-      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      request.headers.get('x-real-ip') ||
-      null
-    const userAgent = request.headers.get('user-agent') || null
-
-    const { error: insertErr } = await supabase.from('keynote_registrations').insert({
-      email,
-      first_name: firstName,
-      last_name: lastName,
-      country,
-      promo_code: promoCode,
-      ip,
-      user_agent: userAgent,
-      source: 'keynote-page',
-    })
-
-    if (insertErr) {
-      // En cas de doublon de course, on relit
-      const { data: again } = await supabase
-        .from('keynote_registrations')
-        .select('promo_code')
-        .eq('email', email)
-        .maybeSingle()
-      if (again?.promo_code) {
-        promoCode = again.promo_code
-      } else {
-        console.error('keynote insert error:', insertErr)
-        return NextResponse.json({ error: 'Impossible d\'enregistrer l\'inscription' }, { status: 500 })
-      }
-    }
+    console.error('keynote insert error:', insertErr)
+    return NextResponse.json({ error: "Impossible d'enregistrer l'inscription" }, { status: 500 })
   }
 
   // Sync Mailchimp (best-effort, n'échoue pas l'inscription)

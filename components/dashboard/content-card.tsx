@@ -277,7 +277,7 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
                 <Lock className="h-5 w-5 text-amber-600" />
               </div>
               <span className="text-[11px] font-bold uppercase tracking-wider text-white drop-shadow-md">
-                Réservé au Pro
+                Réservé aux abonnés
               </span>
             </div>
           )}

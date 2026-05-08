@@ -1,4 +1,4 @@
-"use client"
+﻿﻿"use client"
 
 import { useState, useMemo, useEffect, useCallback, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -1189,7 +1189,7 @@ export default function DashboardPage() {
                             </span>
                             {renewalDate && (
                               <span>
-                                {group.autoRenew === false ? 'Suivi actif jusqu’au' : 'Renouvellement le'}{' '}
+                                {group.autoRenew === false ? 'Marque suivie jusqu’au' : 'Renouvellement le'}{' '}
                                 <strong>{renewalDate}</strong>
                               </span>
                             )}

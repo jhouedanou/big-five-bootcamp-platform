@@ -142,6 +142,8 @@ export default function BrandRequestsPage() {
   // Liste des marques déjà présentes dans les campagnes du backend.
   // Alimente l'autocomplétion du champ "Nom de la marque" et prévient les doublons.
   const [knownBrands, setKnownBrands] = useState<string[]>([])
+  // Mapping brand → secteurs déduits depuis les campagnes (ex: { "MTN": ["Télécom"] })
+  const [brandSectors, setBrandSectors] = useState<Record<string, string[]>>({})
   // Pays et secteurs extraits du système (champs fermés, pas de saisie libre)
   const [knownCountries, setKnownCountries] = useState<string[]>([])
   const [knownSectors, setKnownSectors] = useState<string[]>([])
@@ -186,6 +188,15 @@ export default function BrandRequestsPage() {
     const lower = trimmed.toLowerCase()
     if (selectedBrands.some((b) => b.toLowerCase() === lower)) return
     setSelectedBrands((prev) => [...prev, trimmed])
+    // Pré-cocher les secteurs associés à cette marque dans les campagnes
+    const canonical = Object.keys(brandSectors).find((k) => k.toLowerCase() === lower)
+    if (canonical && brandSectors[canonical]?.length) {
+      setSelectedSectors((prev) => {
+        const existing = new Set(prev.map((s) => s.toLowerCase()))
+        const toAdd = brandSectors[canonical].filter((s) => !existing.has(s.toLowerCase()))
+        return toAdd.length ? [...prev, ...toAdd] : prev
+      })
+    }
     setBrandQuery("")
     setBrandDropdownOpen(false)
   }
@@ -422,6 +433,9 @@ export default function BrandRequestsPage() {
         if (brandsRes.ok) {
           const data = await brandsRes.json()
           setKnownBrands(Array.isArray(data.brands) ? data.brands : [])
+          if (data.brandSectors && typeof data.brandSectors === 'object') {
+            setBrandSectors(data.brandSectors)
+          }
         }
         if (suggestionsRes.ok) {
           const data = await suggestionsRes.json()
@@ -797,21 +811,29 @@ export default function BrandRequestsPage() {
                             </div>
                           </div>
 
-                          {/* Lien unique : visible UNIQUEMENT lorsque la marque a au
-                              moins une demande acceptée (status='completed' ou legacy
-                              'accepted'). Le RSS est désormais sur le dashboard. */}
                           {((b.statuses['completed'] || 0) + (b.statuses['accepted'] || 0)) > 0 && (() => {
                             const deepLink = buildBrandDeepLink(b.name, socials as SocialCode[])
                             const key = `brand-${b.name.toLowerCase()}`
                             const copied = copiedKey === key
+                            const rssUrl = `/api/rss/brand/${encodeURIComponent(b.name)}`
                             return (
                               <div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-[#F2B33D]/20 bg-[#F2B33D]/5 px-3 py-2">
                                 <span className="text-[11px] font-semibold text-[#0F0F0F]/60 uppercase tracking-wide shrink-0">
-                                  Lien unique
+                                  Marque suivie
                                 </span>
                                 <code className="flex-1 min-w-0 truncate text-xs text-[#0F0F0F]/80 font-mono">
                                   {deepLink}
                                 </code>
+                                <a
+                                  href={rssUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  title={`Flux RSS — ${b.name}`}
+                                  className="inline-flex items-center gap-1 h-7 rounded-md border border-orange-300 bg-white px-2.5 text-xs font-semibold text-orange-700 hover:bg-orange-50"
+                                >
+                                  <Rss className="h-3 w-3" />
+                                  RSS
+                                </a>
                                 <Link href={deepLink}>
                                   <Button size="sm" className="h-7 bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-xs">
                                     <ArrowRight className="h-3 w-3 mr-1" />
@@ -1443,7 +1465,7 @@ export default function BrandRequestsPage() {
                                 <p className="text-xs text-blue-900 flex-1 min-w-0">
                                   {req.auto_renew === false ? (
                                     <>
-                                      Renouvellement <strong>résilié</strong>. Suivi actif jusqu'au{' '}
+                                      Renouvellement <strong>résilié</strong>. Marque suivie jusqu'au{' '}
                                       <strong>{new Date(req.next_renewal_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>.
                                     </>
                                   ) : (

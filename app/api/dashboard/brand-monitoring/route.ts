@@ -72,13 +72,15 @@ export async function GET(request: NextRequest) {
     const admin = getSupabaseAdmin()
 
     // 1. Demandes approuvées + payées de l'utilisateur
+    // On inclut les statuts 'completed' ET 'accepted'/'in_progress' (legacy) pour
+    // ne pas masquer les marques approuvées avant la migration des statuts.
     const { data: requests, error: reqErr } = await admin
       .from('brand_requests')
       .select(
         'id, brand_name, status, paid_at, countries, sectors, country, sector, social_networks, next_renewal_at, auto_renew, created_at'
       )
       .eq('user_id', user.id)
-      .eq('status', 'completed')
+      .in('status', ['completed', 'accepted', 'in_progress'])
       .not('paid_at', 'is', null)
       .order('created_at', { ascending: false })
 

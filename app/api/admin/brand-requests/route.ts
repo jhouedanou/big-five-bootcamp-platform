@@ -58,21 +58,28 @@ export async function GET() {
     if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
 
     const admin = getSupabaseAdmin()
-    const { data, error } = await admin
-      .from('brand_requests')
-      .select('*, user:users!user_id(id, name, email, plan)')
-      .order('created_at', { ascending: false })
 
-    if (error) {
-      const { data: fallback, error: fallbackError } = await admin
-        .from('brand_requests')
-        .select('*')
-        .order('created_at', { ascending: false })
-      if (fallbackError) return NextResponse.json({ error: fallbackError.message }, { status: 500 })
-      return NextResponse.json({ requests: fallback || [] })
+    // Deux requêtes séparées pour éviter la dépendance sur une FK PostgREST
+    // entre brand_requests et public.users (la FK réelle pointe sur auth.users).
+    const [{ data: rawRequests, error: reqError }, { data: allUsers, error: usersError }] =
+      await Promise.all([
+        admin.from('brand_requests').select('*').order('created_at', { ascending: false }),
+        admin.from('users').select('id, name, email, plan'),
+      ])
+
+    if (reqError) return NextResponse.json({ error: reqError.message }, { status: 500 })
+
+    const userMap = new Map<string, { id: string; name: string; email: string; plan: string }>()
+    for (const u of allUsers || []) {
+      userMap.set((u as any).id, u as any)
     }
 
-    return NextResponse.json({ requests: data || [] })
+    const requests = (rawRequests || []).map((r: any) => ({
+      ...r,
+      user: r.user_id ? (userMap.get(r.user_id) ?? null) : null,
+    }))
+
+    return NextResponse.json({ requests })
   } catch (e: any) {
     console.error('[admin/brand-requests GET]', e)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

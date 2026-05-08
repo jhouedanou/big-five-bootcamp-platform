@@ -45,10 +45,12 @@ interface BrandRequest {
   brand_url: string | null   // legacy
   social_networks: SocialCode[] | null
   notes: string | null
+  // Multi-valeurs (canoniques)
   countries: string[] | null
   sectors: string[] | null
-  country: string | null   // legacy (premier pays)
-  sector: string | null    // legacy (premier secteur)
+  // Legacy single-value (compat ascendante avec d'anciens enregistrements)
+  country: string | null
+  sector: string | null
   objective: string | null
   status: string
   admin_notes: string | null
@@ -127,8 +129,9 @@ export default function BrandRequestsPage() {
   const [selectedBrands, setSelectedBrands] = useState<string[]>([])
   const [selectedSocials, setSelectedSocials] = useState<Set<SocialCode>>(new Set())
   const [linksText, setLinksText] = useState("") // un lien par ligne (optionnel)
-  const [country, setCountry] = useState("")
-  const [sector, setSector] = useState("")
+  // Multi-sélection pays / secteurs (whitelistés depuis les campagnes publiées)
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([])
+  const [selectedSectors, setSelectedSectors] = useState<string[]>([])
   const [objective, setObjective] = useState("")
   const [notes, setNotes] = useState("")
   const [legalConsent, setLegalConsent] = useState(false)
@@ -446,12 +449,32 @@ export default function BrandRequestsPage() {
     setSelectedBrands([])
     setSelectedSocials(new Set())
     setLinksText("")
-    setCountry("")
-    setSector("")
+    setSelectedCountries([])
+    setSelectedSectors([])
     setObjective("")
     setNotes("")
     setLegalConsent(false)
     setSubmitError(null)
+  }
+
+  // Toggle helpers pour les multi-select pays/secteurs (insensibles à la casse)
+  const toggleCountry = (value: string) => {
+    if (!value) return
+    const lower = value.toLowerCase()
+    setSelectedCountries((prev) =>
+      prev.some((c) => c.toLowerCase() === lower)
+        ? prev.filter((c) => c.toLowerCase() !== lower)
+        : [...prev, value]
+    )
+  }
+  const toggleSector = (value: string) => {
+    if (!value) return
+    const lower = value.toLowerCase()
+    setSelectedSectors((prev) =>
+      prev.some((s) => s.toLowerCase() === lower)
+        ? prev.filter((s) => s.toLowerCase() !== lower)
+        : [...prev, value]
+    )
   }
 
   // Étape 1 : validation des champs et ouverture du pop-up explicatif.
@@ -544,8 +567,8 @@ export default function BrandRequestsPage() {
               socialNetworks: Array.from(selectedSocials),
               brandUrls,
               notes: notes.trim() || undefined,
-              country: country.trim() || undefined,
-              sector: sector.trim() || undefined,
+              countries: selectedCountries,
+              sectors: selectedSectors,
               objective: objective.trim() || undefined,
             }),
           })
@@ -774,10 +797,11 @@ export default function BrandRequestsPage() {
                             </div>
                           </div>
 
-                          {/* Lien unique vers le dashboard filtre */}
-                          {(() => {
+                          {/* Lien unique : visible UNIQUEMENT lorsque la marque a au
+                              moins une demande acceptée (status='completed' ou legacy
+                              'accepted'). Le RSS est désormais sur le dashboard. */}
+                          {((b.statuses['completed'] || 0) + (b.statuses['accepted'] || 0)) > 0 && (() => {
                             const deepLink = buildBrandDeepLink(b.name, socials as SocialCode[])
-                            const rssLink = `/api/rss/brand/${encodeURIComponent(b.name)}`
                             const key = `brand-${b.name.toLowerCase()}`
                             const copied = copiedKey === key
                             return (
@@ -804,21 +828,6 @@ export default function BrandRequestsPage() {
                                   <Copy className="h-3 w-3 mr-1" />
                                   {copied ? 'Copié !' : 'Copier'}
                                 </Button>
-                                <a
-                                  href={rssLink}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  title="Flux RSS des campagnes de cette marque"
-                                >
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-7 text-xs border-orange-300 text-orange-700 hover:bg-orange-50"
-                                  >
-                                    <Rss className="h-3 w-3 mr-1" />
-                                    RSS
-                                  </Button>
-                                </a>
                               </div>
                             )
                           })()}
@@ -1063,47 +1072,77 @@ export default function BrandRequestsPage() {
                     </div>
                   )}
 
-                  {/* Pays / Secteur / Objectif (spec parcours utilisateur) */}
-                  <div className="mb-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Pays / Secteur — multi-sélection (chips toggle) */}
+                  <div className="mb-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label htmlFor="country" className="block text-sm font-medium text-[#0F0F0F]/80 mb-1.5">
-                        Pays ou marché concerné <span className="text-[#0F0F0F]/40 font-normal">(optionnel)</span>
+                      <label className="block text-sm font-medium text-[#0F0F0F]/80 mb-1.5">
+                        Pays ou marchés concernés <span className="text-[#0F0F0F]/40 font-normal">(optionnel, multi-sélection)</span>
                       </label>
-                      <select
-                        id="country"
-                        value={country}
-                        onChange={(e) => setCountry(e.target.value)}
-                        className="w-full rounded-lg border border-[#F5F5F5] bg-white px-3 py-2 text-sm text-[#0F0F0F] outline-none focus:border-[#F2B33D] focus:ring-2 focus:ring-[#F2B33D]/20"
-                      >
-                        <option value="">— Sélectionnez un pays —</option>
-                        {knownCountries.map((c) => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
-                      </select>
-                      {knownCountries.length === 0 && (
-                        <p className="mt-1 text-xs text-[#0F0F0F]/50">
+                      {knownCountries.length === 0 ? (
+                        <p className="text-xs text-[#0F0F0F]/50">
                           Aucun pays répertorié pour le moment.
+                        </p>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5 rounded-lg border border-[#F5F5F5] bg-white p-2 max-h-44 overflow-y-auto">
+                          {knownCountries.map((c) => {
+                            const checked = selectedCountries.some((s) => s.toLowerCase() === c.toLowerCase())
+                            return (
+                              <button
+                                key={c}
+                                type="button"
+                                onClick={() => toggleCountry(c)}
+                                className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+                                  checked
+                                    ? 'bg-[#F2B33D] border-[#F2B33D] text-white'
+                                    : 'bg-white border-[#F5F5F5] text-[#0F0F0F]/70 hover:bg-[#F4F8FB]'
+                                }`}
+                              >
+                                {checked && <Check className="h-3 w-3" />}
+                                {c}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
+                      {selectedCountries.length > 0 && (
+                        <p className="mt-1 text-xs text-[#0F0F0F]/50">
+                          {selectedCountries.length} pays sélectionné{selectedCountries.length > 1 ? 's' : ''}
                         </p>
                       )}
                     </div>
                     <div>
-                      <label htmlFor="sector" className="block text-sm font-medium text-[#0F0F0F]/80 mb-1.5">
-                        Secteur d’activité <span className="text-[#0F0F0F]/40 font-normal">(optionnel)</span>
+                      <label className="block text-sm font-medium text-[#0F0F0F]/80 mb-1.5">
+                        Secteurs d'activité <span className="text-[#0F0F0F]/40 font-normal">(optionnel, multi-sélection)</span>
                       </label>
-                      <select
-                        id="sector"
-                        value={sector}
-                        onChange={(e) => setSector(e.target.value)}
-                        className="w-full rounded-lg border border-[#F5F5F5] bg-white px-3 py-2 text-sm text-[#0F0F0F] outline-none focus:border-[#F2B33D] focus:ring-2 focus:ring-[#F2B33D]/20"
-                      >
-                        <option value="">— Sélectionnez un secteur —</option>
-                        {knownSectors.map((s) => (
-                          <option key={s} value={s}>{s}</option>
-                        ))}
-                      </select>
-                      {knownSectors.length === 0 && (
-                        <p className="mt-1 text-xs text-[#0F0F0F]/50">
+                      {knownSectors.length === 0 ? (
+                        <p className="text-xs text-[#0F0F0F]/50">
                           Aucun secteur répertorié pour le moment.
+                        </p>
+                      ) : (
+                        <div className="flex flex-wrap gap-1.5 rounded-lg border border-[#F5F5F5] bg-white p-2 max-h-44 overflow-y-auto">
+                          {knownSectors.map((s) => {
+                            const checked = selectedSectors.some((x) => x.toLowerCase() === s.toLowerCase())
+                            return (
+                              <button
+                                key={s}
+                                type="button"
+                                onClick={() => toggleSector(s)}
+                                className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium border transition-colors ${
+                                  checked
+                                    ? 'bg-[#F2B33D] border-[#F2B33D] text-white'
+                                    : 'bg-white border-[#F5F5F5] text-[#0F0F0F]/70 hover:bg-[#F4F8FB]'
+                                }`}
+                              >
+                                {checked && <Check className="h-3 w-3" />}
+                                {s}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
+                      {selectedSectors.length > 0 && (
+                        <p className="mt-1 text-xs text-[#0F0F0F]/50">
+                          {selectedSectors.length} secteur{selectedSectors.length > 1 ? 's' : ''} sélectionné{selectedSectors.length > 1 ? 's' : ''}
                         </p>
                       )}
                     </div>

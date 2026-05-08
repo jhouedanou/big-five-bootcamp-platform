@@ -163,37 +163,48 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Champs de contexte — pays et secteurs multiples (tirés des campagnes publiées)
-    const toStringArray = (v: unknown): string[] =>
-      Array.isArray(v)
-        ? v.map((s) => (typeof s === ‘string’ ? s.trim() : ‘’)).filter(Boolean)
-        : typeof v === ‘string’ && v.trim()
-          ? [v.trim()]
-          : []
+    // Champs de contexte — pays et secteurs multiples (whitelistés campagnes publiées)
+    const toStringArray = (v: unknown): string[] => {
+      if (Array.isArray(v)) {
+        const seen = new Set<string>()
+        const out: string[] = []
+        for (const raw of v) {
+          const s = typeof raw === 'string' ? raw.trim() : ''
+          if (!s) continue
+          const key = s.toLowerCase()
+          if (seen.has(key)) continue
+          seen.add(key)
+          out.push(s)
+        }
+        return out
+      }
+      if (typeof v === 'string' && v.trim()) return [v.trim()]
+      return []
+    }
 
     const countriesRaw = toStringArray(countries)
-    const sectorsRaw   = toStringArray(sectors)
+    const sectorsRaw = toStringArray(sectors)
     const objectiveClean =
-      typeof objective === ‘string’ && objective.trim() ? objective.trim() : null
+      typeof objective === 'string' && objective.trim() ? objective.trim() : null
 
     // Whitelist serveur : pays / secteurs doivent provenir des campagnes publiées
     if (countriesRaw.length > 0 || sectorsRaw.length > 0) {
       const [countriesRes, categoriesRes] = await Promise.all([
         countriesRaw.length > 0
-          ? admin.from(‘campaigns’).select(‘country’).eq(‘status’, ‘Publié’).not(‘country’, ‘is’, null)
+          ? admin.from('campaigns').select('country').eq('status', 'Publié').not('country', 'is', null)
           : Promise.resolve({ data: [] as any[] }),
         sectorsRaw.length > 0
-          ? admin.from(‘campaigns’).select(‘category’).eq(‘status’, ‘Publié’).not(‘category’, ‘is’, null)
+          ? admin.from('campaigns').select('category').eq('status', 'Publié').not('category', 'is', null)
           : Promise.resolve({ data: [] as any[] }),
       ])
       const allowedCountries = new Set(
         ((countriesRes as any).data || [])
-          .map((r: any) => String(r.country || ‘’).trim().toLowerCase())
+          .map((r: any) => String(r.country || '').trim().toLowerCase())
           .filter(Boolean)
       )
       const allowedSectors = new Set(
         ((categoriesRes as any).data || [])
-          .map((r: any) => String(r.category || ‘’).trim().toLowerCase())
+          .map((r: any) => String(r.category || '').trim().toLowerCase())
           .filter(Boolean)
       )
       const badCountry = countriesRaw.find((c) => !allowedCountries.has(c.toLowerCase()))
@@ -208,20 +219,21 @@ export async function POST(request: NextRequest) {
 
     if (!objectiveClean) {
       return NextResponse.json(
-        { error: ‘L’objectif de la demande est requis.’ },
+        { error: "L'objectif de la demande est requis." },
         { status: 400 }
       )
     }
 
     const { data, error } = await supabase
-      .from(‘brand_requests’)
+      .from('brand_requests')
       .insert({
         user_id: user.id,
         brand_name: brandName.trim(),
         social_networks: socials,
         brand_urls: urlsRaw,
+        // Compat avec l'ancienne colonne single-URL (première entrée)
         brand_url: urlsRaw[0] ?? null,
-        notes: typeof notes === ‘string’ ? notes.trim() || null : null,
+        notes: typeof notes === 'string' ? notes.trim() || null : null,
         // Nouvelles colonnes multi-valeurs
         countries: countriesRaw,
         sectors: sectorsRaw,

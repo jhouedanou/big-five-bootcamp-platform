@@ -104,6 +104,10 @@ export async function PATCH(request: NextRequest) {
       autoRenew,
       paymentReference,
       paymentMethod,
+      // Bouton "Approuver" : force status=completed + paid_at=now()
+      // + payment_method='admin_override'. Distingue les approbations manuelles
+      // des paiements PawaPay (payment_method LIKE 'pawapay/%') côté SQL.
+      forceApprove,
     } = body
 
     if (!id) return NextResponse.json({ error: 'ID requis' }, { status: 400 })
@@ -125,17 +129,18 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Garde-fou commercial : ne pas autoriser la mise à dispo des contenus
-    // (« completed » = « Disponible ») sans paiement confirmé.
+    // (« completed » = « Disponible ») sans paiement confirmé — sauf si on
+    // pose paid_at dans la même requête (paymentReference ou forceApprove).
     if (
       status === 'completed' &&
       !(current as any).paid_at &&
-      // sauf si on définit le paiement dans la même requête
-      paymentReference === undefined
+      paymentReference === undefined &&
+      !forceApprove
     ) {
       return NextResponse.json(
         {
           error:
-            'Impossible de marquer la demande Disponible : aucun paiement confirmé (paid_at vide). Passez d’abord par « En cours de traitement ».',
+            'Impossible de marquer la demande Disponible : aucun paiement confirmé (paid_at vide). Utilisez « Approuver » ou passez par le flow PawaPay.',
         },
         { status: 400 }
       )
@@ -153,6 +158,26 @@ export async function PATCH(request: NextRequest) {
     if (autoRenew !== undefined) updateData.auto_renew = autoRenew
     if (paymentReference !== undefined) updateData.payment_reference = paymentReference
     if (paymentMethod !== undefined) updateData.payment_method = paymentMethod
+
+    // Bouton "Approuver" — approbation manuelle admin
+    if (forceApprove) {
+      updateData.status = 'completed'
+      if (!(current as any).paid_at) {
+        updateData.paid_at = now
+      }
+      if (paymentMethod === undefined) {
+        updateData.payment_method = 'admin_override'
+      }
+      // Renouvellement par défaut : +1 mois si non défini
+      if (!(current as any).next_renewal_at && nextRenewalAt === undefined) {
+        const d = new Date(now)
+        d.setMonth(d.getMonth() + 1)
+        updateData.next_renewal_at = d.toISOString()
+      }
+      if ((current as any).auto_renew === null || (current as any).auto_renew === undefined) {
+        updateData.auto_renew = true
+      }
+    }
 
     // Marqueurs automatiques par transition de statut
     if (status === 'quote_sent' && current.status !== 'quote_sent') {
@@ -177,9 +202,11 @@ export async function PATCH(request: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    // Email + notification suivant le nouveau statut
-    if (status && status !== current.status && current.user_id) {
-      const kind = STATUS_TO_EMAIL[status]
+    // Email + notification suivant le nouveau statut. On considère aussi
+    // les changements implicites (ex : forceApprove → status='completed').
+    const effectiveStatus = (updateData.status as string | undefined) || status
+    if (effectiveStatus && effectiveStatus !== current.status && current.user_id) {
+      const kind = STATUS_TO_EMAIL[effectiveStatus]
       if (kind) {
         const userId = current.user_id
         const brandName = current.brand_name
@@ -197,7 +224,14 @@ export async function PATCH(request: NextRequest) {
         ]).catch((e) => console.error('[admin/brand-requests] notify failed:', e))
 
         // Si paiement validé (in_production), envoyer aussi le mail "payment_confirmed"
-        if (status === 'in_production') {
+        if (effectiveStatus === 'in_production') {
+          Promise.all([
+            createBrandRequestNotification({ userId, brandRequestId: id, brandName, kind: 'payment_confirmed' }),
+            sendBrandRequestEmail({ userId, kind: 'payment_confirmed', brandName, context: ctx }),
+          ]).catch(() => { /* ignore */ })
+        }
+        // Approbation manuelle admin → envoyer aussi "payment_confirmed"
+        if (forceApprove && effectiveStatus === 'completed') {
           Promise.all([
             createBrandRequestNotification({ userId, brandRequestId: id, brandName, kind: 'payment_confirmed' }),
             sendBrandRequestEmail({ userId, kind: 'payment_confirmed', brandName, context: ctx }),

@@ -39,7 +39,10 @@ async function ensureBucketExists(supabaseAdmin: any) {
     const { error } = await supabaseAdmin.storage.createBucket(BUCKET_NAME, {
       public: true,
       fileSizeLimit: 10 * 1024 * 1024, // 10 MB
-      allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'],
+      allowedMimeTypes: [
+        'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml',
+        'application/pdf',
+      ],
     })
     if (error && !error.message.includes('already exists')) {
       console.error('Error creating bucket:', error)
@@ -70,11 +73,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Aucun fichier fourni' }, { status: 400 })
     }
 
-    // Vérifier le type MIME
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml']
+    // Vérifier le type MIME (images + PDF)
+    const allowedTypes = [
+      'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml',
+      'application/pdf',
+    ]
     if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ 
-        error: `Type de fichier non supporté: ${file.type}. Types acceptés: JPG, PNG, WebP, GIF, SVG` 
+      return NextResponse.json({
+        error: `Type de fichier non supporté: ${file.type}. Types acceptés: JPG, PNG, WebP, GIF, SVG, PDF`
       }, { status: 400 })
     }
 
@@ -94,11 +100,13 @@ export async function POST(request: NextRequest) {
     await ensureBucketExists(supabaseAdmin)
 
     // Générer un nom de fichier unique
-    const ext = file.name.split('.').pop() || 'jpg'
+    const isPdf = file.type === 'application/pdf'
+    const ext = file.name.split('.').pop() || (isPdf ? 'pdf' : 'jpg')
     const timestamp = Date.now()
     const randomSuffix = Math.random().toString(36).substring(2, 8)
     const fileName = `${timestamp}-${randomSuffix}.${ext}`
-    const filePath = `thumbnails/${fileName}`
+    // PDFs vont dans documents/, images dans thumbnails/
+    const filePath = isPdf ? `documents/${fileName}` : `thumbnails/${fileName}`
 
     // Convertir le fichier en buffer
     const arrayBuffer = await file.arrayBuffer()

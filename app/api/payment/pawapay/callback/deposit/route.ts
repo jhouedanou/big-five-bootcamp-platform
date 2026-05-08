@@ -230,12 +230,12 @@ async function activateUserSubscription(payment: {
 
 /**
  * Active une demande de suivi de marque payée :
- *  - status → in_production
+ *  - status → completed (« Disponible » : auto-approbation sur paiement OK)
  *  - paid_at = now
  *  - payment_reference = depositId
  *  - payment_method = "pawapay/<provider>"
  *  - next_renewal_at = paid_at + 1 mois (si non déjà défini)
- *  - envoie l'email "payment_confirmed" puis "in_production"
+ *  - envoie l'email "payment_confirmed" puis "completed"
  */
 async function activateBrandRequest(
   payment: { id: string; metadata?: any; ref_command?: string },
@@ -276,7 +276,9 @@ async function activateBrandRequest(
     const { error: updateError } = await (supabaseAdmin as any)
       .from('brand_requests')
       .update({
-        status: 'in_production',
+        // Paiement OK = approbation automatique : la demande devient "Disponible"
+        // immédiatement, ce qui débloque l'affichage des contenus côté dashboard.
+        status: 'completed',
         paid_at: now.toISOString(),
         payment_reference: depositId,
         payment_method: `pawapay/${provider}`,
@@ -304,9 +306,9 @@ async function activateBrandRequest(
       if (full) {
         await Promise.allSettled([
           sendBrandRequestEmail('payment_confirmed', full),
-          sendBrandRequestEmail('in_production', full),
+          sendBrandRequestEmail('completed', full),
           createBrandRequestNotification('payment_confirmed', full),
-          createBrandRequestNotification('in_production', full),
+          createBrandRequestNotification('completed', full),
         ])
       }
     } catch (e) {

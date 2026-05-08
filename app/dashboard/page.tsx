@@ -14,7 +14,7 @@ import { UpgradePopup, useUpgradePopup } from "@/components/upgrade-popup"
 import { createClient } from "@/lib/supabase"
 import { useAuthContext } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
-import { Filter, Grid3X3, LayoutList, ChevronLeft, ChevronRight, CalendarDays, TrendingUp, ChevronRight as ArrowRight, Sparkles } from "lucide-react"
+import { Filter, Grid3X3, LayoutList, ChevronLeft, ChevronRight, CalendarDays, TrendingUp, ChevronRight as ArrowRight, Sparkles, Rss } from "lucide-react"
 import { format, parseISO, startOfWeek, subDays } from "date-fns"
 import { fr } from "date-fns/locale"
 import { isPaidPlan, canAccessPremiumContent } from "@/lib/pricing"
@@ -67,6 +67,40 @@ function shuffleArray<T>(array: T[]): T[] {
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
   }
   return shuffled
+}
+
+// Mapping campagne brute (Supabase) → ContentItem (UI). Centralisé pour que
+// le bloc "Suivi de marques" puisse réutiliser le même format que la liste
+// principale, sans dépendre du chargement préalable du state `campaigns`.
+function mapCampaignToContentItem(campaign: any): ContentItem {
+  return {
+    id: campaign.id,
+    title: fixBrokenEncoding(campaign.title),
+    summary: fixBrokenEncoding(campaign.summary),
+    description: fixBrokenEncoding(campaign.description),
+    imageUrl: campaign.thumbnail || '',
+    platform: campaign.platforms?.[0] || 'Facebook',
+    country: normalizeCountry(campaign.country),
+    sector: fixBrokenEncoding(campaign.category) || '',
+    format: campaign.format || '',
+    tags: campaign.tags || [],
+    date: new Date(campaign.created_at).toISOString().split('T')[0],
+    isVideo: !!campaign.video_url,
+    images: campaign.images || [],
+    videoUrl: campaign.video_url || undefined,
+    brand: fixBrokenEncoding(campaign.brand) || '',
+    agency: fixBrokenEncoding(campaign.agency) || '',
+    year: campaign.year || undefined,
+    axe: campaign.axe || [],
+    analyse: fixBrokenEncoding(campaign.analyse) || undefined,
+    howToUse: fixBrokenEncoding(campaign.how_to_use) || undefined,
+    status: campaign.status,
+    accessLevel: campaign.access_level || 'free',
+    createdAt: campaign.created_at,
+    featured: campaign.featured || false,
+    publicationUrl: campaign.publication_url || '',
+    tempsFortSlugs: campaign.temps_fort_slugs || [],
+  }
 }
 
 function PaginationPageButton({ page, isActive, onClick }: { page: number; isActive: boolean; onClick: () => void }) {
@@ -216,12 +250,21 @@ export default function DashboardPage() {
 
   const [campaigns, setCampaigns] = useState<ContentItem[]>([])
   const [weeklyCampaigns, setWeeklyCampaigns] = useState<ContentItem[]>([])
-  const [trackedBrands, setTrackedBrands] = useState<Array<{
-    id: string
-    name: string
-    socials: string[]
-    next_renewal_at: string | null
-    auto_renew: boolean | null
+  // Bloc "À explorer pour votre suivi de marques" — un sous-bloc par demande approuvée+payée.
+  // Source : /api/dashboard/brand-monitoring (filtrage serveur : marque + pays + secteurs + canaux).
+  // On garde à la fois les IDs (résolus contre `campaigns` déjà formaté quand possible)
+  // et les payloads bruts en fallback — utile si une campagne renvoyée par l'API admin
+  // n'est pas dans le state local (course de chargement, ou RLS divergent).
+  const [brandMonitoringGroups, setBrandMonitoringGroups] = useState<Array<{
+    requestId: string
+    brandName: string
+    countries: string[]
+    sectors: string[]
+    channels: string[]
+    nextRenewalAt: string | null
+    autoRenew: boolean | null
+    contentIds: string[]
+    rawContents: any[]
   }>>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({})
@@ -255,6 +298,44 @@ export default function DashboardPage() {
     // comme "déjà comptée" pour que le débounce de tracking l'ignore.
     lastCountedSearchRef.current = next.trim()
   }, [brandFilter, initialSearch])
+
+  // Hydrate les filtres depuis l'URL (?country=A,B&sector=X,Y&platform=Z).
+  // Utilisé par les deeplinks "Voir tout" du bloc Suivi de marques pour pré-cocher
+  // les filtres existants du dashboard sans dupliquer la logique.
+  const urlCountries = searchParams.get('country') ?? ''
+  const urlSectors = searchParams.get('sector') ?? ''
+  const urlPlatforms = searchParams.get('platform') ?? ''
+  useEffect(() => {
+    const splitCsv = (s: string) =>
+      s.split(',').map((v) => v.trim()).filter(Boolean)
+    const countryArr = splitCsv(urlCountries)
+    const sectorArr = splitCsv(urlSectors)
+    // L'URL utilise les codes courts (facebook, instagram…) ; les filtres dashboard
+    // attendent les libellés ("Facebook", "Instagram", …).
+    const platformLabel: Record<string, string> = {
+      facebook: 'Facebook',
+      instagram: 'Instagram',
+      linkedin: 'LinkedIn',
+      x: 'Twitter/X',
+      tiktok: 'TikTok',
+      youtube: 'YouTube',
+    }
+    const platformArr = splitCsv(urlPlatforms).map(
+      (p) => platformLabel[p.toLowerCase()] ?? p
+    )
+
+    setSelectedFilters((prev) => {
+      const next = { ...prev }
+      if (countryArr.length > 0) next['Pays'] = countryArr
+      else delete next['Pays']
+      if (sectorArr.length > 0) next['Secteur'] = sectorArr
+      else delete next['Secteur']
+      if (platformArr.length > 0) next['Plateforme'] = platformArr
+      else delete next['Plateforme']
+      return next
+    })
+    setCurrentPage(1)
+  }, [urlCountries, urlSectors, urlPlatforms])
 
   const clearBrandFilter = useCallback(() => {
     setSearchQuery("")
@@ -352,34 +433,7 @@ export default function DashboardPage() {
           return
         }
 
-        const formattedCampaigns: ContentItem[] = (data || []).map((campaign: any) => ({
-          id: campaign.id,
-          title: fixBrokenEncoding(campaign.title),
-          summary: fixBrokenEncoding(campaign.summary),
-          description: fixBrokenEncoding(campaign.description),
-          imageUrl: campaign.thumbnail || '',
-          platform: campaign.platforms?.[0] || 'Facebook',
-          country: normalizeCountry(campaign.country),
-          sector: fixBrokenEncoding(campaign.category) || '',
-          format: campaign.format || '',
-          tags: campaign.tags || [],
-          date: new Date(campaign.created_at).toISOString().split('T')[0],
-          isVideo: !!campaign.video_url,
-          images: campaign.images || [],
-          videoUrl: campaign.video_url || undefined,
-          brand: fixBrokenEncoding(campaign.brand) || '',
-          agency: fixBrokenEncoding(campaign.agency) || '',
-          year: campaign.year || undefined,
-          axe: campaign.axe || [],
-          analyse: fixBrokenEncoding(campaign.analyse) || undefined,
-          howToUse: fixBrokenEncoding(campaign.how_to_use) || undefined,
-          status: campaign.status,
-          accessLevel: campaign.access_level || 'free',
-          createdAt: campaign.created_at,
-          featured: campaign.featured || false,
-          publicationUrl: campaign.publication_url || '',
-          tempsFortSlugs: campaign.temps_fort_slugs || [],
-        }))
+        const formattedCampaigns: ContentItem[] = (data || []).map(mapCampaignToContentItem)
 
         // Mélanger aléatoirement les campagnes pour varier l'affichage
         setCampaigns(shuffleArray(formattedCampaigns))
@@ -407,47 +461,30 @@ export default function DashboardPage() {
     loadCampaigns()
   }, [])
 
-  // Charger les marques suivies (demandes au statut "completed" → marques approuvées)
+  // Charger les groupes "Suivi de marques" : un sous-bloc par demande approuvée+payée.
+  // Le serveur applique les filtres marque/pays/secteur/canaux ; on stocke uniquement
+  // les IDs côté client pour réutiliser le mapping ContentItem du state `campaigns`.
   useEffect(() => {
     let cancelled = false
-    fetch('/api/brand-requests')
+    fetch('/api/dashboard/brand-monitoring?limit=12')
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (cancelled || !data?.requests) return
-        const approved: Array<{
-          id: string
-          name: string
-          socials: string[]
-          next_renewal_at: string | null
-          auto_renew: boolean | null
-        }> = []
-        const seen = new Set<string>()
-        for (const r of data.requests as Array<{
-          id?: string
-          brand_name?: string
-          status?: string
-          social_networks?: string[] | null
-          next_renewal_at?: string | null
-          auto_renew?: boolean | null
-          paid_at?: string | null
-        }>) {
-          // Garde-fou commercial : status='completed' + paiement confirmé.
-          if (r.status !== 'completed') continue
-          if (!r.paid_at) continue
-          const name = (r.brand_name || '').trim()
-          if (!name || !r.id) continue
-          const key = name.toLowerCase()
-          if (seen.has(key)) continue
-          seen.add(key)
-          approved.push({
-            id: r.id,
-            name,
-            socials: r.social_networks || [],
-            next_renewal_at: r.next_renewal_at || null,
-            auto_renew: r.auto_renew ?? null,
-          })
-        }
-        setTrackedBrands(approved)
+        if (cancelled || !data?.groups) return
+        const groups = (data.groups as Array<any>).map((g) => {
+          const rawContents = Array.isArray(g.contents) ? g.contents : []
+          return {
+            requestId: String(g.requestId),
+            brandName: String(g.brandName || ''),
+            countries: Array.isArray(g.countries) ? g.countries : [],
+            sectors: Array.isArray(g.sectors) ? g.sectors : [],
+            channels: Array.isArray(g.channels) ? g.channels : [],
+            nextRenewalAt: g.nextRenewalAt || null,
+            autoRenew: g.autoRenew ?? null,
+            contentIds: rawContents.map((c: any) => String(c.id)).filter(Boolean),
+            rawContents,
+          }
+        })
+        setBrandMonitoringGroups(groups)
       })
       .catch(() => { /* silencieux : feature optionnelle */ })
     return () => { cancelled = true }
@@ -708,16 +745,53 @@ export default function DashboardPage() {
     return weeklyCampaigns.filter(c => filteredIds.has(c.id))
   }, [weeklyCampaigns, filteredContent])
 
-  // Suivi de marques : campagnes des marques approuvées, regroupées par marque
-  const trackedBrandsContentByBrand = useMemo(() => {
-    if (!trackedBrands.length) return {} as Record<string, ContentItem[]>
-    const map: Record<string, ContentItem[]> = {}
-    for (const b of trackedBrands) {
-      const lower = b.name.toLowerCase()
-      map[lower] = campaigns.filter((c) => (c.brand || '').toLowerCase() === lower)
-    }
-    return map
-  }, [campaigns, trackedBrands])
+  // Index ContentItem par id pour résoudre les `contentIds` renvoyés par l'API
+  // brand-monitoring sans ré-implémenter le mapping campaigns→ContentItem.
+  const campaignById = useMemo(() => {
+    const m = new Map<string, ContentItem>()
+    for (const c of campaigns) m.set(String(c.id), c)
+    return m
+  }, [campaigns])
+
+  // Groupes brand-monitoring résolus en ContentItem prêts à afficher.
+  // Pour chaque ID renvoyé par l'API, on tente d'abord le state local
+  // (campagnes formatées et mélangées) ; à défaut, on mappe le payload brut
+  // de l'API. Cela évite que le bloc reste invisible si `campaigns` n'est pas
+  // encore chargé ou si une RLS divergente cache une campagne côté client.
+  const resolvedBrandMonitoringGroups = useMemo(() => {
+    if (brandMonitoringGroups.length === 0) return []
+    return brandMonitoringGroups
+      .map((g) => {
+        const rawById = new Map<string, any>()
+        for (const c of g.rawContents) {
+          if (c?.id) rawById.set(String(c.id), c)
+        }
+        const contents = g.contentIds
+          .map((id) => {
+            const local = campaignById.get(id)
+            if (local) return local
+            const raw = rawById.get(id)
+            return raw ? mapCampaignToContentItem(raw) : undefined
+          })
+          .filter((c): c is ContentItem => Boolean(c))
+        return { ...g, contents }
+      })
+      .filter((g) => g.contents.length > 0)
+  }, [brandMonitoringGroups, campaignById])
+
+  // Construit le deeplink "Voir tout" : /dashboard?brand=X&country=Y&sector=Z&platform=W
+  // Réutilise les params déjà compris par le filtre principal du dashboard.
+  const buildBrandMonitoringDeepLink = useCallback(
+    (g: { brandName: string; countries: string[]; sectors: string[]; channels: string[] }) => {
+      const params = new URLSearchParams()
+      params.set('brand', g.brandName)
+      if (g.countries.length > 0) params.set('country', g.countries.join(','))
+      if (g.sectors.length > 0) params.set('sector', g.sectors.join(','))
+      if (g.channels.length > 0) params.set('platform', g.channels.join(','))
+      return `/dashboard?${params.toString()}`
+    },
+    [],
+  )
 
   const handleContentClick = useCallback(async (_content: ContentItem): Promise<boolean> => {
     // Gate Premium : les campagnes "premium" sont réservées aux abonnés Pro.
@@ -1061,8 +1135,9 @@ export default function DashboardPage() {
             </section>
           )}
 
-          {/* Section "Suivi de marques" — un bloc dédié par marque approuvée */}
-          {trackedBrands.length > 0 && (
+          {/* Section "À explorer pour votre suivi de marques" — un sous-bloc par demande
+              approuvée+payée, filtrée par marque + pays + secteurs + canaux. */}
+          {resolvedBrandMonitoringGroups.length > 0 && (
             <section className="mb-10 space-y-6">
               <div className="flex items-center gap-3 mb-2">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#10B981] to-[#059669] shadow-lg shadow-[#10B981]/25">
@@ -1073,15 +1148,14 @@ export default function DashboardPage() {
                     À explorer pour votre suivi de marques
                   </h2>
                   <p className="text-sm font-medium text-[#0F0F0F]/60">
-                    {trackedBrands.length} marque{trackedBrands.length > 1 ? 's' : ''} suivie{trackedBrands.length > 1 ? 's' : ''}
+                    {resolvedBrandMonitoringGroups.length} marque{resolvedBrandMonitoringGroups.length > 1 ? 's' : ''} suivie{resolvedBrandMonitoringGroups.length > 1 ? 's' : ''}
                   </p>
                 </div>
               </div>
-              {trackedBrands.map((brand) => {
-                const lower = brand.name.toLowerCase()
-                const brandCampaigns = trackedBrandsContentByBrand[lower] || []
-                const renewalDate = brand.next_renewal_at
-                  ? new Date(brand.next_renewal_at).toLocaleDateString('fr-FR', {
+
+              {resolvedBrandMonitoringGroups.map((group) => {
+                const renewalDate = group.nextRenewalAt
+                  ? new Date(group.nextRenewalAt).toLocaleDateString('fr-FR', {
                       day: 'numeric',
                       month: 'long',
                       year: 'numeric',
@@ -1094,76 +1168,104 @@ export default function DashboardPage() {
                   x: 'X',
                   tiktok: 'TikTok',
                 }
+                const deepLink = buildBrandMonitoringDeepLink(group)
                 return (
                   <div
-                    key={`brand-block-${brand.id}`}
+                    key={`brand-block-${group.requestId}`}
                     className="rounded-2xl bg-gradient-to-r from-[#10B981]/5 to-white border border-[#10B981]/20 p-6 overflow-hidden"
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#10B981] to-[#059669] shadow-lg shadow-[#10B981]/25 shrink-0">
                           <Sparkles className="h-5 w-5 text-white" />
                         </div>
                         <div className="min-w-0">
-                          <h2 className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#0F0F0F] truncate">
-                            Votre suivi — {brand.name}
-                          </h2>
+                          <h3 className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#0F0F0F] truncate">
+                            Votre suivi — {group.brandName}
+                          </h3>
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#0F0F0F]/60 mt-0.5">
-                            {brand.socials.length > 0 && (
-                              <span className="inline-flex flex-wrap items-center gap-1">
-                                {brand.socials.map((s) => (
-                                  <span
-                                    key={s}
-                                    className="inline-flex items-center rounded-full bg-[#10B981]/10 px-2 py-0.5 text-[10px] font-semibold text-[#059669]"
-                                  >
-                                    {socialLabels[s] || s}
-                                  </span>
-                                ))}
-                              </span>
-                            )}
                             <span>
-                              {brandCampaigns.length} campagne{brandCampaigns.length > 1 ? 's' : ''}
+                              {group.contents.length} campagne{group.contents.length > 1 ? 's' : ''}
                             </span>
                             {renewalDate && (
                               <span>
-                                {brand.auto_renew === false ? 'Suivi actif jusqu’au' : 'Renouvellement le'}{' '}
+                                {group.autoRenew === false ? 'Suivi actif jusqu’au' : 'Renouvellement le'}{' '}
                                 <strong>{renewalDate}</strong>
                               </span>
                             )}
                           </div>
                         </div>
                       </div>
-                      <Link
-                        href="/dashboard/brand-requests"
-                        className="text-xs font-semibold text-[#10B981] hover:underline shrink-0"
-                      >
-                        Gérer →
-                      </Link>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <a
+                          href={`/api/rss/brand/${encodeURIComponent(group.brandName)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`Flux RSS — ${group.brandName}`}
+                          className="inline-flex items-center gap-1 rounded-lg border border-orange-300 bg-white px-3 py-1.5 text-xs font-semibold text-orange-700 hover:bg-orange-50"
+                        >
+                          <Rss className="h-3 w-3" />
+                          RSS
+                        </a>
+                        <Link
+                          href={deepLink}
+                          className="inline-flex items-center gap-1 rounded-lg bg-[#10B981] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#059669]"
+                        >
+                          Voir tout
+                          <ArrowRight className="h-3 w-3" />
+                        </Link>
+                      </div>
                     </div>
 
-                    {brandCampaigns.length > 0 ? (
-                      <SwipeableCarousel
-                        showArrows={true}
-                        showIndicators={true}
-                        slidesPerView={{ mobile: 1, tablet: 2, desktop: 3 }}
-                      >
-                        {brandCampaigns.slice(0, 12).map((campaign) => (
-                          <div key={`tracked-${brand.id}-${campaign.id}`} className="flex flex-1 flex-col px-1">
-                            <ContentCard
-                              content={campaign}
-                              onBeforeNavigate={(c) => handleContentClick(c)}
-                            />
-                          </div>
+                    {/* Chips : pays / secteurs / canaux de la demande */}
+                    {(group.countries.length > 0 ||
+                      group.sectors.length > 0 ||
+                      group.channels.length > 0) && (
+                      <div className="mb-4 flex flex-wrap items-center gap-1.5">
+                        {group.countries.map((c) => (
+                          <span
+                            key={`c-${c}`}
+                            className="inline-flex items-center rounded-full bg-white border border-[#10B981]/30 px-2.5 py-0.5 text-[11px] font-medium text-[#0F0F0F]/80"
+                          >
+                            {c}
+                          </span>
                         ))}
-                      </SwipeableCarousel>
-                    ) : (
-                      <div className="rounded-xl bg-white/60 border border-dashed border-[#10B981]/30 p-6 text-center">
-                        <p className="text-sm text-[#0F0F0F]/70">
-                          Aucune campagne disponible pour <strong>{brand.name}</strong> pour le moment.
-                          Notre équipe enrichit la bibliothèque dès que possible.
-                        </p>
+                        {group.sectors.map((s) => (
+                          <span
+                            key={`s-${s}`}
+                            className="inline-flex items-center rounded-full bg-white border border-[#10B981]/30 px-2.5 py-0.5 text-[11px] font-medium text-[#0F0F0F]/80"
+                          >
+                            {s}
+                          </span>
+                        ))}
+                        {group.channels.map((ch) => (
+                          <span
+                            key={`ch-${ch}`}
+                            className="inline-flex items-center rounded-full bg-[#10B981]/10 px-2.5 py-0.5 text-[11px] font-semibold text-[#059669]"
+                          >
+                            {socialLabels[ch] || ch}
+                          </span>
+                        ))}
                       </div>
                     )}
+
+                    <SwipeableCarousel
+                      showArrows={true}
+                      showIndicators={true}
+                      slidesPerView={{ mobile: 1, tablet: 2, desktop: 3 }}
+                    >
+                      {group.contents.slice(0, 12).map((campaign) => (
+                        <div
+                          key={`tracked-${group.requestId}-${campaign.id}`}
+                          className="flex flex-1 flex-col px-1"
+                        >
+                          <ContentCard
+                            content={campaign}
+                            onBeforeNavigate={(c) => handleContentClick(c)}
+                          />
+                        </div>
+                      ))}
+                    </SwipeableCarousel>
                   </div>
                 )
               })}

@@ -107,7 +107,12 @@ export async function POST(request: NextRequest) {
 
     // 4. Side-effects métier lorsque le paiement est complété
     if (payload.status === 'COMPLETED') {
-      await activateUserSubscription(payment)
+      const metadata = (payment.metadata || {}) as any
+      if (metadata.type === 'brand_request') {
+        await activateBrandRequest(payment, payload)
+      } else {
+        await activateUserSubscription(payment)
+      }
     }
 
     return new NextResponse('OK', { status: 200 })
@@ -220,5 +225,96 @@ async function activateUserSubscription(payment: {
     console.log('✅ Subscription activated (pawapay) for user:', metadata.userId, '— plan:', planName)
   } catch (e) {
     console.error('Error activating subscription from pawapay callback:', e)
+  }
+}
+
+/**
+ * Active une demande de suivi de marque payée :
+ *  - status → in_production
+ *  - paid_at = now
+ *  - payment_reference = depositId
+ *  - payment_method = "pawapay/<provider>"
+ *  - next_renewal_at = paid_at + 1 mois (si non déjà défini)
+ *  - envoie l'email "payment_confirmed" puis "in_production"
+ */
+async function activateBrandRequest(
+  payment: { id: string; metadata?: any; ref_command?: string },
+  payload: PawaPayDepositCallback,
+) {
+  try {
+    const metadata = payment.metadata || {}
+    const brandRequestId: string | undefined = metadata.brand_request_id
+    if (!brandRequestId) {
+      console.warn('[pawapay/deposit] brand_request payment sans brand_request_id', metadata)
+      return
+    }
+
+    // Charger la demande pour décider next_renewal_at
+    const { data: req } = await (supabaseAdmin as any)
+      .from('brand_requests')
+      .select('id, status, paid_at, next_renewal_at, devis_amount')
+      .eq('id', brandRequestId)
+      .maybeSingle()
+
+    if (!req) {
+      console.warn('[pawapay/deposit] brand_request introuvable', brandRequestId)
+      return
+    }
+
+    // Idempotence : déjà payée
+    if (req.paid_at && (req.status === 'in_production' || req.status === 'completed')) {
+      console.log('[pawapay/deposit] brand_request déjà active, callback ignoré', brandRequestId)
+      return
+    }
+
+    const now = new Date()
+    const nextRenewal =
+      req.next_renewal_at || new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    const provider = payload.payer?.accountDetails?.provider || 'pawapay'
+    const depositId = (payment as any).ref_command || payload.depositId
+
+    const { error: updateError } = await (supabaseAdmin as any)
+      .from('brand_requests')
+      .update({
+        status: 'in_production',
+        paid_at: now.toISOString(),
+        payment_reference: depositId,
+        payment_method: `pawapay/${provider}`,
+        next_renewal_at: nextRenewal,
+        auto_renew: true,
+        updated_at: now.toISOString(),
+      })
+      .eq('id', brandRequestId)
+
+    if (updateError) {
+      console.error('[pawapay/deposit] update brand_request failed', updateError)
+      return
+    }
+
+    // Envoi des emails / notifications (non bloquant)
+    try {
+      const { sendBrandRequestEmail, createBrandRequestNotification } = await import(
+        '@/lib/brand-request-emails'
+      )
+      const { data: full } = await (supabaseAdmin as any)
+        .from('brand_requests')
+        .select('*')
+        .eq('id', brandRequestId)
+        .maybeSingle()
+      if (full) {
+        await Promise.allSettled([
+          sendBrandRequestEmail('payment_confirmed', full),
+          sendBrandRequestEmail('in_production', full),
+          createBrandRequestNotification('payment_confirmed', full),
+          createBrandRequestNotification('in_production', full),
+        ])
+      }
+    } catch (e) {
+      console.error('[pawapay/deposit] notif/email brand_request failed', e)
+    }
+
+    console.log('✅ brand_request activée (pawapay):', brandRequestId)
+  } catch (e) {
+    console.error('Error activating brand_request from pawapay callback:', e)
   }
 }

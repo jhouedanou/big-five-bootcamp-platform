@@ -9,28 +9,39 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { Resend } from 'resend'
 import { getSupabaseAdmin } from '@/lib/supabase-server'
 import { checkAdmin } from '@/lib/admin-auth'
+import {
+  sendBrandRequestEmail,
+  createBrandRequestNotification,
+  type BrandEmailKind,
+} from '@/lib/brand-request-emails'
 
 export const dynamic = 'force-dynamic'
 
-const DEFAULT_FROM_EMAIL =
-  process.env.CONTACT_FROM_EMAIL || 'Laveiye <onboarding@resend.dev>'
+const ALLOWED_STATUSES = [
+  'pending',
+  'quote_in_preparation',
+  'quote_sent',
+  'quote_accepted',
+  'in_payment',
+  'in_production',
+  'completed',
+  'rejected',
+  'cancelled',
+  // Statuts legacy conservés pour compat ascendante
+  'accepted',
+  'in_progress',
+] as const
 
-async function getFromEmail(): Promise<string> {
-  try {
-    const admin = getSupabaseAdmin()
-    const { data } = await admin
-      .from('site_settings')
-      .select('key, value')
-      .eq('key', 'contact_from_email')
-      .single()
-    const value = (data as any)?.value
-    return value || DEFAULT_FROM_EMAIL
-  } catch {
-    return DEFAULT_FROM_EMAIL
-  }
+const STATUS_TO_EMAIL: Partial<Record<string, BrandEmailKind>> = {
+  quote_sent:        'quote_sent',
+  quote_accepted:    'quote_accepted',
+  in_payment:        'quote_accepted',
+  in_production:     'in_production',
+  completed:         'completed',
+  rejected:          'rejected',
+  cancelled:         'cancelled',
 }
 
 export async function GET() {
@@ -82,21 +93,80 @@ export async function PATCH(request: NextRequest) {
     if (!adminUser) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
 
     const body = await request.json()
-    const { id, status, adminNotes } = body
+    const {
+      id,
+      status,
+      adminNotes,
+      devisAmount,
+      devisCurrency,
+      devisUrl,
+      nextRenewalAt,
+      autoRenew,
+      paymentReference,
+      paymentMethod,
+    } = body
 
     if (!id) return NextResponse.json({ error: 'ID requis' }, { status: 400 })
+
+    if (status && !ALLOWED_STATUSES.includes(status)) {
+      return NextResponse.json({ error: `Statut invalide : ${status}` }, { status: 400 })
+    }
 
     const admin = getSupabaseAdmin()
 
     const { data: current } = await admin
       .from('brand_requests')
-      .select('status, brand_name, user_id')
+      .select('*')
       .eq('id', id)
       .single()
 
-    const updateData: Record<string, unknown> = { updated_at: new Date().toISOString() }
+    if (!current) {
+      return NextResponse.json({ error: 'Demande introuvable' }, { status: 404 })
+    }
+
+    // Garde-fou commercial : ne pas autoriser la mise à dispo des contenus
+    // (« completed » = « Disponible ») sans paiement confirmé.
+    if (
+      status === 'completed' &&
+      !(current as any).paid_at &&
+      // sauf si on définit le paiement dans la même requête
+      paymentReference === undefined
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            'Impossible de marquer la demande Disponible : aucun paiement confirmé (paid_at vide). Passez d’abord par « En cours de traitement ».',
+        },
+        { status: 400 }
+      )
+    }
+
+    const now = new Date().toISOString()
+    const updateData: Record<string, unknown> = { updated_at: now }
+
     if (status) updateData.status = status
     if (adminNotes !== undefined) updateData.admin_notes = adminNotes
+    if (devisAmount !== undefined) updateData.devis_amount = devisAmount
+    if (devisCurrency !== undefined) updateData.devis_currency = devisCurrency
+    if (devisUrl !== undefined) updateData.devis_url = devisUrl
+    if (nextRenewalAt !== undefined) updateData.next_renewal_at = nextRenewalAt
+    if (autoRenew !== undefined) updateData.auto_renew = autoRenew
+    if (paymentReference !== undefined) updateData.payment_reference = paymentReference
+    if (paymentMethod !== undefined) updateData.payment_method = paymentMethod
+
+    // Marqueurs automatiques par transition de statut
+    if (status === 'quote_sent' && current.status !== 'quote_sent') {
+      updateData.devis_sent_at = updateData.devis_sent_at || now
+    }
+    if (status === 'in_production' && !current.paid_at) {
+      updateData.paid_at = now
+      // Première date de renouvellement : 1 mois après paiement si pas déjà fixée
+      if (!current.next_renewal_at && updateData.next_renewal_at === undefined) {
+        const d = new Date(now)
+        d.setMonth(d.getMonth() + 1)
+        updateData.next_renewal_at = d.toISOString()
+      }
+    }
 
     const { data, error } = await admin
       .from('brand_requests')
@@ -107,17 +177,33 @@ export async function PATCH(request: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    const isNewlyCompleted =
-      status === 'completed' && current?.status !== 'completed' && current?.user_id
+    // Email + notification suivant le nouveau statut
+    if (status && status !== current.status && current.user_id) {
+      const kind = STATUS_TO_EMAIL[status]
+      if (kind) {
+        const userId = current.user_id
+        const brandName = current.brand_name
+        const ctx = {
+          adminNotes: typeof adminNotes === 'string' ? adminNotes : current.admin_notes,
+          devisAmount: (data as any).devis_amount ?? null,
+          devisCurrency: (data as any).devis_currency ?? null,
+          devisUrl: (data as any).devis_url ?? null,
+          nextRenewalAt: (data as any).next_renewal_at ?? null,
+          paymentReference: (data as any).payment_reference ?? null,
+        }
+        Promise.all([
+          createBrandRequestNotification({ userId, brandRequestId: id, brandName, kind }),
+          sendBrandRequestEmail({ userId, kind, brandName, context: ctx }),
+        ]).catch((e) => console.error('[admin/brand-requests] notify failed:', e))
 
-    if (isNewlyCompleted) {
-      // Non-bloquant : on ne fait pas attendre la réponse sur Resend
-      notifyCompletion({
-        requestId: id,
-        userId: current.user_id,
-        brandName: current.brand_name,
-        adminNotes: typeof adminNotes === 'string' ? adminNotes : null,
-      }).catch((e) => console.error('[brand-requests] notifyCompletion error:', e))
+        // Si paiement validé (in_production), envoyer aussi le mail "payment_confirmed"
+        if (status === 'in_production') {
+          Promise.all([
+            createBrandRequestNotification({ userId, brandRequestId: id, brandName, kind: 'payment_confirmed' }),
+            sendBrandRequestEmail({ userId, kind: 'payment_confirmed', brandName, context: ctx }),
+          ]).catch(() => { /* ignore */ })
+        }
+      }
     }
 
     return NextResponse.json({ request: data })
@@ -127,138 +213,43 @@ export async function PATCH(request: NextRequest) {
   }
 }
 
-// ─── Notifications (in-app + email) ────────────────────────────────────────
-
-async function notifyCompletion(params: {
-  requestId: string
-  userId: string
-  brandName: string
-  adminNotes: string | null
-}) {
-  const { requestId, userId, brandName, adminNotes } = params
-  const admin = getSupabaseAdmin()
-
-  const appUrl = (
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    'https://laveiye.com'
-  ).replace(/\/$/, '')
-  const brandQuery = encodeURIComponent(brandName)
-  const actionUrl = `/dashboard?brand=${brandQuery}`
-  const fullDashboardUrl = `${appUrl}${actionUrl}`
-
-  // 1) Notification in-app
+export async function DELETE(request: NextRequest) {
   try {
-    await admin.from('notifications').insert({
-      user_id: userId,
-      type: 'brand_request_completed',
-      title: `Suivi de marque prêt : ${brandName}`,
-      message: `Votre demande de suivi pour ${brandName} est terminée. Consultez les campagnes associées.`,
-      read: false,
-      action_url: actionUrl,
-      metadata: { brand_request_id: requestId, brand_name: brandName },
-    } as any)
-  } catch (e) {
-    console.error('[brand-requests] notification insert failed:', e)
-  }
-
-  // 2) Email Resend — uniquement si clé présente et user non désabonné
-  if (!process.env.RESEND_API_KEY) {
-    console.warn('[brand-requests] RESEND_API_KEY absent, email completion non envoyé.')
-    return
-  }
-
-  try {
-    const { data: userRow } = await admin
-      .from('users')
-      .select('email, name, email_unsubscribed')
-      .eq('id', userId)
-      .single()
-
-    const email = (userRow as any)?.email
-    if (!email) {
-      console.warn('[brand-requests] user email introuvable, skip email.')
-      return
-    }
-    if ((userRow as any)?.email_unsubscribed) {
-      console.info('[brand-requests] user désabonné, skip email.')
-      return
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('[admin/brand-requests DELETE] missing SUPABASE_SERVICE_ROLE_KEY')
+      return NextResponse.json(
+        { error: 'Server misconfiguration: SUPABASE_SERVICE_ROLE_KEY not set' },
+        { status: 500 }
+      )
     }
 
-    const resend = new Resend(process.env.RESEND_API_KEY)
-    const from = await getFromEmail()
-    await resend.emails.send({
-      from,
-      to: email,
-      subject: `Votre suivi de marque "${brandName.replace(/[\r\n]/g, ' ')}" est prêt`,
-      html: buildCompletedEmailHtml({
-        userName: (userRow as any)?.name || '',
-        brandName,
-        dashboardUrl: fullDashboardUrl,
-        adminNotes,
-      }),
-    })
-  } catch (e) {
-    console.error('[brand-requests] email send failed:', e)
+    const adminUser = await checkAdmin()
+    if (!adminUser) return NextResponse.json({ error: 'Non autorisé' }, { status: 403 })
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+    if (!id) return NextResponse.json({ error: 'ID requis' }, { status: 400 })
+
+    const admin = getSupabaseAdmin()
+
+    // On supprime aussi les notifications liées (FK douce via metadata.brand_request_id),
+    // sinon l'utilisateur garde des notifs orphelines pointant sur une demande disparue.
+    await admin
+      .from('notifications')
+      .delete()
+      .like('type', 'brand_request_%')
+      .contains('metadata', { brand_request_id: id })
+
+    const { error } = await admin
+      .from('brand_requests')
+      .delete()
+      .eq('id', id)
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    return NextResponse.json({ ok: true, id })
+  } catch (e: any) {
+    console.error('[admin/brand-requests DELETE]', e)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
-}
-
-function escapeHtml(input: string): string {
-  return input
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
-
-function escapeHtmlAttr(input: string): string {
-  return escapeHtml(input)
-}
-
-function buildCompletedEmailHtml(params: {
-  userName: string
-  brandName: string
-  dashboardUrl: string
-  adminNotes: string | null
-}): string {
-  const { userName, brandName, dashboardUrl, adminNotes } = params
-  const safeName = escapeHtml(userName || 'Bonjour')
-  const safeBrand = escapeHtml(brandName)
-  const safeHref = escapeHtmlAttr(dashboardUrl)
-  const notesBlock = adminNotes
-    ? `<div style="margin-top:16px;padding:16px;background:#fff7e6;border:1px solid #F2B33D33;border-radius:12px;">
-         <p style="margin:0 0 4px;font-size:12px;font-weight:600;color:#b45309;">Note de l'équipe Laveiye</p>
-         <p style="margin:0;color:#0F0F0F;white-space:pre-line;">${escapeHtml(adminNotes)}</p>
-       </div>`
-    : ''
-
-  return `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-      <div style="background:#F2B33D;padding:24px;border-radius:12px 12px 0 0;text-align:center;">
-        <h1 style="color:white;margin:0;font-size:24px;">Laveiye</h1>
-        <p style="color:rgba(255,255,255,0.9);margin:8px 0 0;">Votre suivi de marque est prêt</p>
-      </div>
-      <div style="background:#fff;padding:24px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">
-        <h2 style="color:#0F0F0F;margin:0 0 12px;font-size:20px;">${safeName},</h2>
-        <p style="color:#374151;line-height:1.6;margin:0 0 16px;">
-          Bonne nouvelle : votre demande de suivi pour la marque
-          <strong style="color:#F2B33D;">${safeBrand}</strong> est terminée.
-        </p>
-        <p style="color:#374151;line-height:1.6;margin:0 0 20px;">
-          Les campagnes correspondantes sont disponibles dans votre tableau de bord.
-        </p>
-        <div style="text-align:center;margin:28px 0;">
-          <a href="${safeHref}"
-             style="display:inline-block;background:#F2B33D;color:#fff;text-decoration:none;padding:14px 28px;border-radius:10px;font-weight:700;">
-            Voir les campagnes
-          </a>
-        </div>
-        ${notesBlock}
-        <p style="color:#9ca3af;font-size:12px;margin-top:24px;text-align:center;">
-          Cet email a été envoyé automatiquement suite au traitement de votre demande.
-        </p>
-      </div>
-    </div>
-  `
 }

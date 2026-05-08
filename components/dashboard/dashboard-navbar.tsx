@@ -326,12 +326,27 @@ export function DashboardNavbar({
           )}
 
           {/* Compteur de clics quotidien (Free) */}
-          {profileReady && effectiveIsFreeUser && (
-            <div className="hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 bg-[#F5F5F5] text-[#0F0F0F] text-xs font-semibold">
-              <MousePointer className="h-3.5 w-3.5" />
-              {effectiveMonthlyClicks}/{monthlyClickLimit || 3} aujourd'hui
-            </div>
-          )}
+          {profileReady && effectiveIsFreeUser && (() => {
+            const clickLimit = monthlyClickLimit || 3
+            const clicksReached = effectiveMonthlyClicks >= clickLimit
+            return (
+              <div
+                className={`hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 text-xs font-semibold ${
+                  clicksReached
+                    ? "bg-red-100 text-red-700"
+                    : "bg-[#F5F5F5] text-[#0F0F0F]"
+                }`}
+                title={
+                  clicksReached
+                    ? `Limite atteinte : ${effectiveMonthlyClicks}/${clickLimit} campagnes consultées aujourd'hui`
+                    : `${effectiveMonthlyClicks}/${clickLimit} campagnes consultées aujourd'hui`
+                }
+              >
+                <MousePointer className="h-3.5 w-3.5" />
+                {effectiveMonthlyClicks}/{clickLimit} aujourd'hui
+              </div>
+            )
+          })()}
           {/* Compteur d'usage du jour (Pro/Agency payant) */}
           {profileReady && !effectiveIsFreeUser && isPremium && effectiveMonthlyExplored > 0 && (
             <div className="hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 bg-[#10B981]/10 text-[#10B981] text-xs font-semibold">

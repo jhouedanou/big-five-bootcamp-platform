@@ -45,8 +45,23 @@ interface BrandRequest {
   brand_url: string | null   // legacy
   social_networks: SocialCode[] | null
   notes: string | null
+  countries: string[] | null
+  sectors: string[] | null
+  country: string | null   // legacy (premier pays)
+  sector: string | null    // legacy (premier secteur)
+  objective: string | null
   status: string
   admin_notes: string | null
+  devis_amount: number | null
+  devis_currency: string | null
+  devis_url: string | null
+  devis_sent_at: string | null
+  devis_accepted_at: string | null
+  paid_at: string | null
+  payment_reference: string | null
+  next_renewal_at: string | null
+  auto_renew: boolean | null
+  cancelled_at: string | null
   created_at: string
 }
 
@@ -71,11 +86,18 @@ const SOCIAL_NETWORKS: { code: SocialCode; label: string; Icon: React.FC<{ class
 ]
 
 const statusLabels: Record<string, { label: string; color: string; icon: any }> = {
-  pending:     { label: 'En attente',  color: 'bg-yellow-100 text-yellow-800',  icon: Clock },
-  accepted:    { label: 'Acceptée',    color: 'bg-blue-100 text-blue-800',      icon: CheckCircle2 },
-  in_progress: { label: 'En cours',    color: 'bg-[#F5F5F5] text-[#0F0F0F]',  icon: Loader2 },
-  completed:   { label: 'Terminée',    color: 'bg-green-100 text-green-800',    icon: CheckCircle2 },
-  rejected:    { label: 'Refusée',     color: 'bg-red-100 text-red-800',        icon: XCircle },
+  pending:              { label: 'En attente d’analyse',     color: 'bg-yellow-100 text-yellow-800',   icon: Clock },
+  quote_in_preparation: { label: 'Devis en préparation',     color: 'bg-orange-100 text-orange-800',   icon: FileText },
+  quote_sent:           { label: 'Devis envoyé',             color: 'bg-indigo-100 text-indigo-800',   icon: FileText },
+  quote_accepted:       { label: 'En attente de paiement',   color: 'bg-purple-100 text-purple-800',   icon: CheckCircle2 },
+  in_payment:           { label: 'En attente de paiement',   color: 'bg-amber-100 text-amber-800',     icon: Loader2 },
+  in_production:        { label: 'En cours de traitement',   color: 'bg-blue-100 text-blue-800',       icon: Loader2 },
+  completed:            { label: 'Disponible',               color: 'bg-green-100 text-green-800',     icon: CheckCircle2 },
+  rejected:             { label: 'Refusée',                  color: 'bg-red-100 text-red-800',         icon: XCircle },
+  cancelled:            { label: 'Résiliée',                 color: 'bg-gray-200 text-gray-700',       icon: XCircle },
+  // Legacy
+  accepted:             { label: 'Acceptée',                 color: 'bg-blue-100 text-blue-800',       icon: CheckCircle2 },
+  in_progress:          { label: 'En cours',                 color: 'bg-[#F5F5F5] text-[#0F0F0F]',     icon: Loader2 },
 }
 
 const ALLOWED_PLANS = ['free', 'basic', 'pro']
@@ -105,6 +127,9 @@ export default function BrandRequestsPage() {
   const [selectedBrands, setSelectedBrands] = useState<string[]>([])
   const [selectedSocials, setSelectedSocials] = useState<Set<SocialCode>>(new Set())
   const [linksText, setLinksText] = useState("") // un lien par ligne (optionnel)
+  const [country, setCountry] = useState("")
+  const [sector, setSector] = useState("")
+  const [objective, setObjective] = useState("")
   const [notes, setNotes] = useState("")
   const [legalConsent, setLegalConsent] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -114,6 +139,9 @@ export default function BrandRequestsPage() {
   // Liste des marques déjà présentes dans les campagnes du backend.
   // Alimente l'autocomplétion du champ "Nom de la marque" et prévient les doublons.
   const [knownBrands, setKnownBrands] = useState<string[]>([])
+  // Pays et secteurs extraits du système (champs fermés, pas de saisie libre)
+  const [knownCountries, setKnownCountries] = useState<string[]>([])
+  const [knownSectors, setKnownSectors] = useState<string[]>([])
   const [brandDropdownOpen, setBrandDropdownOpen] = useState(false)
   const brandInputRef = useRef<HTMLDivElement>(null)
 
@@ -184,6 +212,117 @@ export default function BrandRequestsPage() {
       setCopiedKey(key)
       setTimeout(() => setCopiedKey(null), 2000)
     } catch { /* ignore */ }
+  }
+
+  // Action handler — accepter / refuser un devis, résilier / réactiver le renouvellement
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
+  // Paiement Mobile Money du devis
+  const [payOpen, setPayOpen] = useState(false)
+  const [payRequest, setPayRequest] = useState<BrandRequest | null>(null)
+  const [payPhone, setPayPhone] = useState('')
+  const [payProvider, setPayProvider] = useState('ORANGE_CIV')
+  const [payLoading, setPayLoading] = useState(false)
+  const [payError, setPayError] = useState<string | null>(null)
+
+  const PAWAPAY_PROVIDERS = [
+    { value: 'MTN_MOMO_CIV', label: 'MTN Mobile Money — Côte d’Ivoire' },
+    { value: 'ORANGE_CIV', label: 'Orange Money — Côte d’Ivoire' },
+    { value: 'MOOV_CIV', label: 'Moov Money — Côte d’Ivoire' },
+    { value: 'WAVE_CIV', label: 'Wave — Côte d’Ivoire' },
+    { value: 'WAVE_SEN', label: 'Wave — Sénégal' },
+    { value: 'ORANGE_SEN', label: 'Orange Money — Sénégal' },
+    { value: 'FREE_SEN', label: 'Free Money — Sénégal' },
+    { value: 'ORANGE_BFA', label: 'Orange Money — Burkina Faso' },
+    { value: 'MOOV_BFA', label: 'Moov Money — Burkina Faso' },
+    { value: 'MTN_MOMO_BEN', label: 'MTN Mobile Money — Bénin' },
+    { value: 'MOOV_BEN', label: 'Moov Money — Bénin' },
+  ]
+
+  const openPayment = (req: BrandRequest) => {
+    setPayRequest(req)
+    setPayPhone('')
+    setPayError(null)
+    setPayOpen(true)
+  }
+  const submitPayment = async () => {
+    if (!payRequest) return
+    const cleaned = payPhone.replace(/\D/g, '')
+    if (cleaned.length < 9) {
+      setPayError('Numéro de téléphone invalide.')
+      return
+    }
+    setPayLoading(true)
+    setPayError(null)
+    try {
+      const res = await fetch('/api/payment/brand-request/initiate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brandRequestId: payRequest.id,
+          phoneNumber: cleaned,
+          provider: payProvider,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || data.error) {
+        setPayError(data.error || 'Erreur lors de l’initiation du paiement.')
+        setPayLoading(false)
+        return
+      }
+      // Wave : redirection
+      if (data.authorizationUrl) {
+        window.location.href = data.authorizationUrl
+        return
+      }
+      // PIN flow : page de pending
+      window.location.href = `/payment/pending?ref_command=${encodeURIComponent(data.ref_command)}`
+    } catch (e: any) {
+      setPayError(e?.message || 'Erreur réseau.')
+      setPayLoading(false)
+    }
+  }
+
+  const patchRequest = async (
+    id: string,
+    action: 'accept_quote' | 'refuse_quote' | 'cancel_renewal' | 'enable_renewal',
+    notes?: string,
+  ) => {
+    setActionLoadingId(id)
+    try {
+      const res = await fetch(`/api/brand-requests/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, notes }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.request) {
+          setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, ...data.request } : r)))
+        }
+      }
+    } catch { /* ignore */ } finally {
+      setActionLoadingId(null)
+    }
+  }
+  const handleAcceptQuote = (id: string) => {
+    if (!confirm('Confirmez-vous l’acceptation du devis ? Vous serez ensuite invité au paiement.')) return
+    patchRequest(id, 'accept_quote').then(() => {
+      // Ouvre la modale de paiement directement après acceptation
+      const updated = requests.find((r) => r.id === id)
+      if (updated) openPayment({ ...updated, status: 'quote_accepted' })
+    })
+  }
+  const handleRefuseQuote = (id: string) => {
+    const reason = prompt('Souhaitez-vous indiquer une raison ou demander une modification ? (optionnel)')
+    if (reason === null) return
+    patchRequest(id, 'refuse_quote', reason || undefined)
+  }
+  const handleCancelRenewal = (id: string) => {
+    if (!confirm('Voulez-vous vraiment résilier le renouvellement automatique ? Le suivi restera actif jusqu’à la date de renouvellement prévue.')) return
+    patchRequest(id, 'cancel_renewal')
+  }
+  const handleEnableRenewal = (id: string) => {
+    patchRequest(id, 'enable_renewal')
   }
 
   const supabase = createClient()
@@ -267,9 +406,10 @@ export default function BrandRequestsPage() {
           setUserRole((profile as any).role || 'user')
         }
 
-        const [reqRes, brandsRes] = await Promise.all([
+        const [reqRes, brandsRes, suggestionsRes] = await Promise.all([
           fetch('/api/brand-requests'),
           fetch('/api/brands'),
+          fetch('/api/campaigns/suggestions'),
         ])
         if (!mounted) return
         if (reqRes.ok) {
@@ -279,6 +419,11 @@ export default function BrandRequestsPage() {
         if (brandsRes.ok) {
           const data = await brandsRes.json()
           setKnownBrands(Array.isArray(data.brands) ? data.brands : [])
+        }
+        if (suggestionsRes.ok) {
+          const data = await suggestionsRes.json()
+          setKnownCountries(Array.isArray(data.countries) ? data.countries : [])
+          setKnownSectors(Array.isArray(data.categories) ? data.categories : [])
         }
       } catch { /* ignore */ }
       finally { if (mounted) setLoading(false) }
@@ -301,6 +446,9 @@ export default function BrandRequestsPage() {
     setSelectedBrands([])
     setSelectedSocials(new Set())
     setLinksText("")
+    setCountry("")
+    setSector("")
+    setObjective("")
     setNotes("")
     setLegalConsent(false)
     setSubmitError(null)
@@ -356,6 +504,10 @@ export default function BrandRequestsPage() {
       setSubmitError("Vous devez accepter d'être contacté par LAVEIYE pour soumettre votre demande.")
       return
     }
+    if (!objective.trim()) {
+      setSubmitError("L’objectif de votre demande est requis.")
+      return
+    }
 
     // Synchroniser l'état (au cas où le free-text a été ajouté à la volée)
     setSelectedBrands(brandsToSubmit)
@@ -392,6 +544,9 @@ export default function BrandRequestsPage() {
               socialNetworks: Array.from(selectedSocials),
               brandUrls,
               notes: notes.trim() || undefined,
+              country: country.trim() || undefined,
+              sector: sector.trim() || undefined,
+              objective: objective.trim() || undefined,
             }),
           })
           const data = await res.json().catch(() => ({} as any))
@@ -908,6 +1063,67 @@ export default function BrandRequestsPage() {
                     </div>
                   )}
 
+                  {/* Pays / Secteur / Objectif (spec parcours utilisateur) */}
+                  <div className="mb-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label htmlFor="country" className="block text-sm font-medium text-[#0F0F0F]/80 mb-1.5">
+                        Pays ou marché concerné <span className="text-[#0F0F0F]/40 font-normal">(optionnel)</span>
+                      </label>
+                      <select
+                        id="country"
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
+                        className="w-full rounded-lg border border-[#F5F5F5] bg-white px-3 py-2 text-sm text-[#0F0F0F] outline-none focus:border-[#F2B33D] focus:ring-2 focus:ring-[#F2B33D]/20"
+                      >
+                        <option value="">— Sélectionnez un pays —</option>
+                        {knownCountries.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                      {knownCountries.length === 0 && (
+                        <p className="mt-1 text-xs text-[#0F0F0F]/50">
+                          Aucun pays répertorié pour le moment.
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label htmlFor="sector" className="block text-sm font-medium text-[#0F0F0F]/80 mb-1.5">
+                        Secteur d’activité <span className="text-[#0F0F0F]/40 font-normal">(optionnel)</span>
+                      </label>
+                      <select
+                        id="sector"
+                        value={sector}
+                        onChange={(e) => setSector(e.target.value)}
+                        className="w-full rounded-lg border border-[#F5F5F5] bg-white px-3 py-2 text-sm text-[#0F0F0F] outline-none focus:border-[#F2B33D] focus:ring-2 focus:ring-[#F2B33D]/20"
+                      >
+                        <option value="">— Sélectionnez un secteur —</option>
+                        {knownSectors.map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                      {knownSectors.length === 0 && (
+                        <p className="mt-1 text-xs text-[#0F0F0F]/50">
+                          Aucun secteur répertorié pour le moment.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mb-5">
+                    <label htmlFor="objective" className="block text-sm font-medium text-[#0F0F0F]/80 mb-1.5">
+                      Objectif de la demande <span className="text-red-500">*</span>
+                    </label>
+                    <textarea
+                      id="objective"
+                      value={objective}
+                      onChange={(e) => setObjective(e.target.value)}
+                      rows={2}
+                      required
+                      placeholder="Que cherchez-vous à analyser ? (benchmark, veille concurrentielle, étude de campagne…)"
+                      className="w-full rounded-lg border border-[#F5F5F5] px-3 py-2 text-sm text-[#0F0F0F] outline-none focus:border-[#F2B33D] focus:ring-2 focus:ring-[#F2B33D]/20 resize-none"
+                    />
+                  </div>
+
                   {/* Notes optionnelles */}
                   <div className="mb-5">
                     <label htmlFor="notes" className="block text-sm font-medium text-[#0F0F0F]/80 mb-1.5">
@@ -1069,12 +1285,159 @@ export default function BrandRequestsPage() {
                             {req.notes && (
                               <p className="mt-2 text-sm text-[#0F0F0F]/70">{req.notes}</p>
                             )}
+                            {(req.country || req.sector || req.objective) && (
+                              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1 text-xs text-[#0F0F0F]/70">
+                                {req.country && (
+                                  <p><span className="font-semibold text-[#0F0F0F]/60">Pays :</span> {req.country}</p>
+                                )}
+                                {req.sector && (
+                                  <p><span className="font-semibold text-[#0F0F0F]/60">Secteur :</span> {req.sector}</p>
+                                )}
+                                {req.objective && (
+                                  <p className="sm:col-span-2"><span className="font-semibold text-[#0F0F0F]/60">Objectif :</span> {req.objective}</p>
+                                )}
+                              </div>
+                            )}
                             {req.admin_notes && (
                               <div className="mt-2 rounded-lg bg-[#F5F5F5]/30 p-3">
                                 <p className="text-xs font-semibold text-[#0F0F0F]/60 mb-1">
                                   Réponse de l'équipe :
                                 </p>
                                 <p className="text-sm text-[#0F0F0F]">{req.admin_notes}</p>
+                              </div>
+                            )}
+
+                            {/* Statut "Devis en préparation" : message d'attente */}
+                            {req.status === 'quote_in_preparation' && (
+                              <div className="mt-3 rounded-lg border border-orange-200 bg-orange-50 p-3 flex items-start gap-2">
+                                <FileText className="h-4 w-4 text-orange-700 shrink-0 mt-0.5" />
+                                <p className="text-xs text-orange-900">
+                                  Votre demande est faisable. L’équipe LAVEIYE prépare actuellement votre devis.
+                                  Vous recevrez une notification dès qu’il sera disponible.
+                                </p>
+                              </div>
+                            )}
+
+                            {/* Bloc Devis — visible dès qu'un devis est envoyé */}
+                            {(req.status === 'quote_sent' || req.status === 'quote_accepted' || req.status === 'in_payment') && req.devis_amount != null && (
+                              <div className="mt-3 rounded-lg border border-indigo-200 bg-indigo-50 p-3">
+                                <div className="flex items-center gap-2 mb-1.5">
+                                  <FileText className="h-4 w-4 text-indigo-700 shrink-0" />
+                                  <p className="text-sm font-bold text-indigo-900">
+                                    Devis : {new Intl.NumberFormat('fr-FR').format(req.devis_amount)} {req.devis_currency || 'XOF'}
+                                  </p>
+                                </div>
+                                {req.devis_url && (
+                                  <a
+                                    href={req.devis_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-xs text-indigo-800 hover:underline mb-2"
+                                  >
+                                    <ExternalLink className="h-3 w-3" />
+                                    Consulter le PDF
+                                  </a>
+                                )}
+                                {req.status === 'quote_sent' && (
+                                  <div className="flex flex-wrap gap-2 mt-2">
+                                    <Button
+                                      size="sm"
+                                      disabled={actionLoadingId === req.id}
+                                      onClick={() => handleAcceptQuote(req.id)}
+                                      className="bg-green-600 hover:bg-green-700 text-white text-xs h-8"
+                                    >
+                                      {actionLoadingId === req.id ? (
+                                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                      ) : (
+                                        <Check className="h-3 w-3 mr-1" />
+                                      )}
+                                      Accepter le devis
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      disabled={actionLoadingId === req.id}
+                                      onClick={() => handleRefuseQuote(req.id)}
+                                      className="text-xs h-8 border-red-200 text-red-700 hover:bg-red-50"
+                                    >
+                                      <X className="h-3 w-3 mr-1" />
+                                      Refuser ou demander une modification
+                                    </Button>
+                                  </div>
+                                )}
+                                {req.status === 'quote_accepted' && (
+                                  <div className="mt-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => openPayment(req)}
+                                      className="bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-white text-xs h-8"
+                                    >
+                                      Payer le devis maintenant
+                                    </Button>
+                                    <p className="text-[11px] text-indigo-800 mt-1">
+                                      Paiement sécurisé par Mobile Money (PawaPay).
+                                    </p>
+                                  </div>
+                                )}
+                                {req.status === 'in_payment' && (
+                                  <div className="mt-2">
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => openPayment(req)}
+                                      className="text-xs h-8 border-amber-300 text-amber-800 hover:bg-amber-100"
+                                    >
+                                      Reprendre le paiement
+                                    </Button>
+                                    <p className="text-[11px] text-amber-800 mt-1">
+                                      En attente du règlement.
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Bloc Renouvellement — visible quand la demande est approuvée */}
+                            {req.status === 'completed' && req.next_renewal_at && (
+                              <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3 flex flex-wrap items-center gap-2">
+                                <Clock className="h-4 w-4 text-blue-700 shrink-0" />
+                                <p className="text-xs text-blue-900 flex-1 min-w-0">
+                                  {req.auto_renew === false ? (
+                                    <>
+                                      Renouvellement <strong>résilié</strong>. Suivi actif jusqu'au{' '}
+                                      <strong>{new Date(req.next_renewal_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>.
+                                    </>
+                                  ) : (
+                                    <>
+                                      Prochain renouvellement le{' '}
+                                      <strong>{new Date(req.next_renewal_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>.
+                                    </>
+                                  )}
+                                </p>
+                                {req.auto_renew === false ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={actionLoadingId === req.id}
+                                    onClick={() => handleEnableRenewal(req.id)}
+                                    className="text-xs h-7 border-blue-200 text-blue-700 hover:bg-blue-100"
+                                  >
+                                    Réactiver
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={actionLoadingId === req.id}
+                                    onClick={() => handleCancelRenewal(req.id)}
+                                    className="text-xs h-7 border-red-200 text-red-700 hover:bg-red-50"
+                                  >
+                                    {actionLoadingId === req.id ? (
+                                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                                    ) : null}
+                                    Résilier
+                                  </Button>
+                                )}
                               </div>
                             )}
 
@@ -1212,6 +1575,103 @@ export default function BrandRequestsPage() {
                 ) : (
                   "Confirmer ma demande"
                 )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modale de paiement Mobile Money pour le devis */}
+      {payOpen && payRequest && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50"
+          onClick={(e) => { if (e.target === e.currentTarget && !payLoading) setPayOpen(false) }}
+        >
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-[#0F0F0F]">Paiement du devis</h3>
+                <p className="text-xs text-[#0F0F0F]/60 mt-0.5">
+                  {payRequest.brand_name} —{' '}
+                  <strong>
+                    {payRequest.devis_amount != null
+                      ? new Intl.NumberFormat('fr-FR').format(payRequest.devis_amount)
+                      : ''}{' '}
+                    {payRequest.devis_currency || 'XOF'}
+                  </strong>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !payLoading && setPayOpen(false)}
+                className="text-[#0F0F0F]/40 hover:text-[#0F0F0F] p-1"
+                aria-label="Fermer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label htmlFor="pay-provider" className="block text-xs font-semibold text-[#0F0F0F] mb-1">
+                  Opérateur Mobile Money
+                </label>
+                <select
+                  id="pay-provider"
+                  value={payProvider}
+                  onChange={(e) => setPayProvider(e.target.value)}
+                  disabled={payLoading}
+                  className="w-full rounded-lg border border-[#F5F5F5] px-3 py-2 text-sm outline-none focus:border-[#F2B33D] disabled:opacity-50"
+                >
+                  {PAWAPAY_PROVIDERS.map((p) => (
+                    <option key={p.value} value={p.value}>{p.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="pay-phone" className="block text-xs font-semibold text-[#0F0F0F] mb-1">
+                  Numéro de téléphone
+                </label>
+                <input
+                  id="pay-phone"
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="ex. 2250707123456"
+                  value={payPhone}
+                  onChange={(e) => setPayPhone(e.target.value)}
+                  disabled={payLoading}
+                  className="w-full rounded-lg border border-[#F5F5F5] px-3 py-2 text-sm outline-none focus:border-[#F2B33D] disabled:opacity-50"
+                />
+                <p className="text-[11px] text-[#0F0F0F]/50 mt-1">
+                  Format international, sans le « + », avec l’indicatif pays.
+                </p>
+              </div>
+
+              {payError && (
+                <div className="rounded-lg bg-red-50 border border-red-200 p-2 text-xs text-red-700">
+                  {payError}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-5 flex justify-end gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setPayOpen(false)}
+                disabled={payLoading}
+              >
+                Annuler
+              </Button>
+              <Button
+                size="sm"
+                onClick={submitPayment}
+                disabled={payLoading}
+                className="bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-white"
+              >
+                {payLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+                Payer
               </Button>
             </div>
           </div>

@@ -68,10 +68,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const supabase = useMemo(() => createClient(), [])
 
-  // Fetch user profile from DB (une seule fois par user ID)
-  const fetchUserProfile = useCallback(async (authUser: User) => {
-    // Éviter les doubles appels pour le même user
-    if (profileFetchedForId.current === authUser.id && userProfile) return
+  // Fetch user profile from DB (une seule fois par user ID, sauf force=true)
+  const fetchUserProfile = useCallback(async (authUser: User, force = false) => {
+    // Éviter les doubles appels pour le même user, sauf si on force la revalidation
+    // (changement de plan, retour sur l'onglet, broadcast inter-onglets…).
+    if (!force && profileFetchedForId.current === authUser.id && userProfile) return
 
     profileFetchedForId.current = authUser.id
 
@@ -156,9 +157,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Forcer le rechargement du profil (par ex. après un paiement)
   const refreshProfile = useCallback(async () => {
     if (user) {
-      profileFetchedForId.current = null
-      await fetchUserProfile(user)
+      await fetchUserProfile(user, true)
       await refreshClickCounters()
+      // Notifie les autres onglets ouverts du même browser (cross-tab sync).
+      // Sans ça, un upgrade dans l'onglet B laisse l'onglet A figé sur Free.
+      try {
+        if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+          const ch = new BroadcastChannel("auth-profile")
+          ch.postMessage({ type: "profile-changed", userId: user.id })
+          ch.close()
+        }
+      } catch {
+        /* navigateur sans BroadcastChannel : ignoré */
+      }
     }
   }, [user, fetchUserProfile, refreshClickCounters])
 
@@ -237,6 +248,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription.unsubscribe()
     }
   }, [supabase, fetchUserProfile, refreshClickCounters])
+
+  // Synchro inter-onglets + revalidation au retour de visibilité.
+  // Corrige le cas : tab A ouverte sur Free, tab B fait l'upgrade Pro,
+  // tab A doit voir Pro sans reload manuel.
+  useEffect(() => {
+    if (!user) return
+
+    const revalidate = async () => {
+      try {
+        const { data: { user: fresh } } = await supabase.auth.getUser()
+        if (!fresh) return
+        await fetchUserProfile(fresh, true)
+        await refreshClickCounters()
+      } catch {
+        /* silencieux */
+      }
+    }
+
+    const onVisible = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        revalidate()
+      }
+    }
+
+    let channel: BroadcastChannel | null = null
+    try {
+      if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+        channel = new BroadcastChannel("auth-profile")
+        channel.onmessage = (ev) => {
+          if (ev.data?.type === "profile-changed" && ev.data.userId === user.id) {
+            revalidate()
+          }
+        }
+      }
+    } catch {
+      channel = null
+    }
+
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisible)
+      window.addEventListener("focus", onVisible)
+    }
+
+    return () => {
+      if (channel) channel.close()
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisible)
+        window.removeEventListener("focus", onVisible)
+      }
+    }
+  }, [user, supabase, fetchUserProfile, refreshClickCounters])
 
   // Actions
   const signIn = useCallback(async (email: string, password: string) => {

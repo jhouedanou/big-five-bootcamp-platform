@@ -231,13 +231,14 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              <div className="flex items-start gap-2">
+              <div className="flex items-start gap-2.5">
                 <Checkbox
                   id="terms"
                   checked={acceptTerms}
                   onCheckedChange={(checked) => setAcceptTerms(checked as boolean)}
+                  className="mt-0.5 size-5 border-2 border-primary/70 bg-white shadow-sm data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                 />
-                <Label htmlFor="terms" className="text-xs leading-relaxed text-muted-foreground">
+                <Label htmlFor="terms" className="text-sm leading-relaxed text-foreground/80 cursor-pointer">
                   {"J'accepte les"}{" "}
                   <LegalModal
                     trigger={

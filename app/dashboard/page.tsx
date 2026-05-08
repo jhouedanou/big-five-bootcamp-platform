@@ -216,6 +216,13 @@ export default function DashboardPage() {
 
   const [campaigns, setCampaigns] = useState<ContentItem[]>([])
   const [weeklyCampaigns, setWeeklyCampaigns] = useState<ContentItem[]>([])
+  const [trackedBrands, setTrackedBrands] = useState<Array<{
+    id: string
+    name: string
+    socials: string[]
+    next_renewal_at: string | null
+    auto_renew: boolean | null
+  }>>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedFilters, setSelectedFilters] = useState<Record<string, string[]>>({})
   const [showMobileFilters, setShowMobileFilters] = useState(false)
@@ -234,9 +241,19 @@ export default function DashboardPage() {
     tier: 'free' | 'basic' | 'pro'
   }>({ counts: {}, limit: null, tier: 'free' })
 
+  // Mémorise la dernière recherche déjà comptabilisée pour éviter de la recompter.
+  // Initialisée avec la valeur d'URL pour qu'un arrivée via ?search=…/?brand=…
+  // ne consomme pas un quota.
+  const lastCountedSearchRef = useRef<string>((brandFilter || initialSearch).trim())
+
   useEffect(() => {
-    setSearchQuery(brandFilter || initialSearch)
+    const next = brandFilter || initialSearch
+    setSearchQuery(next)
     setCurrentPage(1)
+    // Une recherche arrivée via URL (?search=… ou ?brand=…) ne doit PAS
+    // être comptabilisée dans le quota quotidien : on pré-marque la valeur
+    // comme "déjà comptée" pour que le débounce de tracking l'ignore.
+    lastCountedSearchRef.current = next.trim()
   }, [brandFilter, initialSearch])
 
   const clearBrandFilter = useCallback(() => {
@@ -390,6 +407,52 @@ export default function DashboardPage() {
     loadCampaigns()
   }, [])
 
+  // Charger les marques suivies (demandes au statut "completed" → marques approuvées)
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/brand-requests')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.requests) return
+        const approved: Array<{
+          id: string
+          name: string
+          socials: string[]
+          next_renewal_at: string | null
+          auto_renew: boolean | null
+        }> = []
+        const seen = new Set<string>()
+        for (const r of data.requests as Array<{
+          id?: string
+          brand_name?: string
+          status?: string
+          social_networks?: string[] | null
+          next_renewal_at?: string | null
+          auto_renew?: boolean | null
+          paid_at?: string | null
+        }>) {
+          // Garde-fou commercial : status='completed' + paiement confirmé.
+          if (r.status !== 'completed') continue
+          if (!r.paid_at) continue
+          const name = (r.brand_name || '').trim()
+          if (!name || !r.id) continue
+          const key = name.toLowerCase()
+          if (seen.has(key)) continue
+          seen.add(key)
+          approved.push({
+            id: r.id,
+            name,
+            socials: r.social_networks || [],
+            next_renewal_at: r.next_renewal_at || null,
+            auto_renew: r.auto_renew ?? null,
+          })
+        }
+        setTrackedBrands(approved)
+      })
+      .catch(() => { /* silencieux : feature optionnelle */ })
+    return () => { cancelled = true }
+  }, [])
+
   // Charger l'\u00e9tat initial du quota de recherches par filtre / jour
   useEffect(() => {
     let cancelled = false
@@ -407,10 +470,9 @@ export default function DashboardPage() {
     return () => { cancelled = true }
   }, [])
 
-  // Comptabiliser la barre de recherche textuelle comme un \"filtre\" (cat\u00e9gorie \"Recherche\").
-  // D\u00e9bounce de 800ms : on ne compte qu'une fois la frappe stabilis\u00e9e, et seulement
-  // si la requ\u00eate a chang\u00e9 par rapport \u00e0 la derni\u00e8re comptabilis\u00e9e.
-  const lastCountedSearchRef = useRef<string>("")
+  // Comptabiliser la barre de recherche textuelle comme un "filtre" (catégorie "Recherche").
+  // Débounce de 800ms : on ne compte qu'une fois la frappe stabilisée, et seulement
+  // si la requête a changé par rapport à la dernière comptabilisée.
   useEffect(() => {
     const q = searchQuery.trim()
     if (!q) return
@@ -645,6 +707,17 @@ export default function DashboardPage() {
     const filteredIds = new Set(filteredContent.map(c => c.id))
     return weeklyCampaigns.filter(c => filteredIds.has(c.id))
   }, [weeklyCampaigns, filteredContent])
+
+  // Suivi de marques : campagnes des marques approuvées, regroupées par marque
+  const trackedBrandsContentByBrand = useMemo(() => {
+    if (!trackedBrands.length) return {} as Record<string, ContentItem[]>
+    const map: Record<string, ContentItem[]> = {}
+    for (const b of trackedBrands) {
+      const lower = b.name.toLowerCase()
+      map[lower] = campaigns.filter((c) => (c.brand || '').toLowerCase() === lower)
+    }
+    return map
+  }, [campaigns, trackedBrands])
 
   const handleContentClick = useCallback(async (_content: ContentItem): Promise<boolean> => {
     // Gate Premium : les campagnes "premium" sont réservées aux abonnés Pro.
@@ -985,6 +1058,115 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </SwipeableCarousel>
+            </section>
+          )}
+
+          {/* Section "Suivi de marques" — un bloc dédié par marque approuvée */}
+          {trackedBrands.length > 0 && (
+            <section className="mb-10 space-y-6">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#10B981] to-[#059669] shadow-lg shadow-[#10B981]/25">
+                  <Sparkles className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="font-[family-name:var(--font-heading)] text-xl font-bold text-[#0F0F0F]">
+                    À explorer pour votre suivi de marques
+                  </h2>
+                  <p className="text-sm font-medium text-[#0F0F0F]/60">
+                    {trackedBrands.length} marque{trackedBrands.length > 1 ? 's' : ''} suivie{trackedBrands.length > 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+              {trackedBrands.map((brand) => {
+                const lower = brand.name.toLowerCase()
+                const brandCampaigns = trackedBrandsContentByBrand[lower] || []
+                const renewalDate = brand.next_renewal_at
+                  ? new Date(brand.next_renewal_at).toLocaleDateString('fr-FR', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })
+                  : null
+                const socialLabels: Record<string, string> = {
+                  facebook: 'Facebook',
+                  instagram: 'Instagram',
+                  linkedin: 'LinkedIn',
+                  x: 'X',
+                  tiktok: 'TikTok',
+                }
+                return (
+                  <div
+                    key={`brand-block-${brand.id}`}
+                    className="rounded-2xl bg-gradient-to-r from-[#10B981]/5 to-white border border-[#10B981]/20 p-6 overflow-hidden"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#10B981] to-[#059669] shadow-lg shadow-[#10B981]/25 shrink-0">
+                          <Sparkles className="h-5 w-5 text-white" />
+                        </div>
+                        <div className="min-w-0">
+                          <h2 className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#0F0F0F] truncate">
+                            Votre suivi — {brand.name}
+                          </h2>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#0F0F0F]/60 mt-0.5">
+                            {brand.socials.length > 0 && (
+                              <span className="inline-flex flex-wrap items-center gap-1">
+                                {brand.socials.map((s) => (
+                                  <span
+                                    key={s}
+                                    className="inline-flex items-center rounded-full bg-[#10B981]/10 px-2 py-0.5 text-[10px] font-semibold text-[#059669]"
+                                  >
+                                    {socialLabels[s] || s}
+                                  </span>
+                                ))}
+                              </span>
+                            )}
+                            <span>
+                              {brandCampaigns.length} campagne{brandCampaigns.length > 1 ? 's' : ''}
+                            </span>
+                            {renewalDate && (
+                              <span>
+                                {brand.auto_renew === false ? 'Suivi actif jusqu’au' : 'Renouvellement le'}{' '}
+                                <strong>{renewalDate}</strong>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <Link
+                        href="/dashboard/brand-requests"
+                        className="text-xs font-semibold text-[#10B981] hover:underline shrink-0"
+                      >
+                        Gérer →
+                      </Link>
+                    </div>
+
+                    {brandCampaigns.length > 0 ? (
+                      <SwipeableCarousel
+                        showArrows={true}
+                        showIndicators={true}
+                        slidesPerView={{ mobile: 1, tablet: 2, desktop: 3 }}
+                      >
+                        {brandCampaigns.slice(0, 12).map((campaign) => (
+                          <div key={`tracked-${brand.id}-${campaign.id}`} className="flex flex-1 flex-col px-1">
+                            <ContentCard
+                              content={campaign}
+                              onBeforeNavigate={(c) => handleContentClick(c)}
+                            />
+                          </div>
+                        ))}
+                      </SwipeableCarousel>
+                    ) : (
+                      <div className="rounded-xl bg-white/60 border border-dashed border-[#10B981]/30 p-6 text-center">
+                        <p className="text-sm text-[#0F0F0F]/70">
+                          Aucune campagne disponible pour <strong>{brand.name}</strong> pour le moment.
+                          Notre équipe enrichit la bibliothèque dès que possible.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </section>
           )}
               {isLoading ? (

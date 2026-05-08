@@ -9,6 +9,10 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase-server'
+import {
+  sendBrandRequestEmail,
+  createBrandRequestNotification,
+} from '@/lib/brand-request-emails'
 
 export const dynamic = 'force-dynamic'
 
@@ -97,11 +101,14 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { brandName, socialNetworks, brandUrls, notes } = body as {
+    const { brandName, socialNetworks, brandUrls, notes, countries, sectors, objective } = body as {
       brandName?: string
       socialNetworks?: unknown
       brandUrls?: unknown
       notes?: string
+      countries?: unknown
+      sectors?: unknown
+      objective?: string
     }
 
     // 1) Nom de la marque
@@ -156,22 +163,95 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Champs de contexte — pays et secteurs multiples (tirés des campagnes publiées)
+    const toStringArray = (v: unknown): string[] =>
+      Array.isArray(v)
+        ? v.map((s) => (typeof s === ‘string’ ? s.trim() : ‘’)).filter(Boolean)
+        : typeof v === ‘string’ && v.trim()
+          ? [v.trim()]
+          : []
+
+    const countriesRaw = toStringArray(countries)
+    const sectorsRaw   = toStringArray(sectors)
+    const objectiveClean =
+      typeof objective === ‘string’ && objective.trim() ? objective.trim() : null
+
+    // Whitelist serveur : pays / secteurs doivent provenir des campagnes publiées
+    if (countriesRaw.length > 0 || sectorsRaw.length > 0) {
+      const [countriesRes, categoriesRes] = await Promise.all([
+        countriesRaw.length > 0
+          ? admin.from(‘campaigns’).select(‘country’).eq(‘status’, ‘Publié’).not(‘country’, ‘is’, null)
+          : Promise.resolve({ data: [] as any[] }),
+        sectorsRaw.length > 0
+          ? admin.from(‘campaigns’).select(‘category’).eq(‘status’, ‘Publié’).not(‘category’, ‘is’, null)
+          : Promise.resolve({ data: [] as any[] }),
+      ])
+      const allowedCountries = new Set(
+        ((countriesRes as any).data || [])
+          .map((r: any) => String(r.country || ‘’).trim().toLowerCase())
+          .filter(Boolean)
+      )
+      const allowedSectors = new Set(
+        ((categoriesRes as any).data || [])
+          .map((r: any) => String(r.category || ‘’).trim().toLowerCase())
+          .filter(Boolean)
+      )
+      const badCountry = countriesRaw.find((c) => !allowedCountries.has(c.toLowerCase()))
+      if (badCountry) {
+        return NextResponse.json({ error: `Pays invalide : ${badCountry}` }, { status: 400 })
+      }
+      const badSector = sectorsRaw.find((s) => !allowedSectors.has(s.toLowerCase()))
+      if (badSector) {
+        return NextResponse.json({ error: `Secteur invalide : ${badSector}` }, { status: 400 })
+      }
+    }
+
+    if (!objectiveClean) {
+      return NextResponse.json(
+        { error: ‘L’objectif de la demande est requis.’ },
+        { status: 400 }
+      )
+    }
+
     const { data, error } = await supabase
-      .from('brand_requests')
+      .from(‘brand_requests’)
       .insert({
         user_id: user.id,
         brand_name: brandName.trim(),
         social_networks: socials,
         brand_urls: urlsRaw,
-        // Compat avec l'ancienne colonne single-URL (première entrée)
         brand_url: urlsRaw[0] ?? null,
-        notes: typeof notes === 'string' ? notes.trim() || null : null,
+        notes: typeof notes === ‘string’ ? notes.trim() || null : null,
+        // Nouvelles colonnes multi-valeurs
+        countries: countriesRaw,
+        sectors: sectorsRaw,
+        // Compat legacy (première valeur pour les anciens SELECT)
+        country: countriesRaw[0] ?? null,
+        sector: sectorsRaw[0] ?? null,
+        objective: objectiveClean,
       })
       .select()
       .single()
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    // Notification + email de confirmation (non bloquant)
+    if (data?.id) {
+      Promise.all([
+        createBrandRequestNotification({
+          userId: user.id,
+          brandRequestId: data.id,
+          brandName: data.brand_name,
+          kind: 'submission_received',
+        }),
+        sendBrandRequestEmail({
+          userId: user.id,
+          kind: 'submission_received',
+          brandName: data.brand_name,
+        }),
+      ]).catch((e) => console.error('[brand-requests] post-submit notify failed:', e))
     }
 
     return NextResponse.json({ request: data })

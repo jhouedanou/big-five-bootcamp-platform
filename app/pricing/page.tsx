@@ -111,9 +111,7 @@ export default function PricingPage() {
                                         <p className="text-[#0F0F0F]/60 text-sm">{plan.description}</p>
                                     </div>
                                     <div className="mb-2">
-                                        {plan.monthlyPrice === 0 ? (
-                                            <span className="text-4xl sm:text-5xl font-extrabold text-[#C89B4A] font-[family-name:var(--font-heading)]">{pricingContent.priceLabels.free}</span>
-                                        ) : plan.monthlyPrice === -1 ? (
+                                        {plan.monthlyPrice === -1 ? (
                                             <span className="text-2xl sm:text-3xl font-bold text-[#0F0F0F]">{pricingContent.priceLabels.custom}</span>
                                         ) : (
                                             <>

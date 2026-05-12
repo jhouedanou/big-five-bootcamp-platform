@@ -15,13 +15,13 @@ export function UpgradePopup({ open, onClose, reason }: UpgradePopupProps) {
   if (!open) return null
 
   const messages: Record<string, string> = {
-    clicks: "Vous avez atteint votre limite quotidienne de 3 campagnes consultées.",
-    filters: "Les filtres pays, secteur et tags sont réservés aux plans payants.",
-    searches: "Vous avez atteint votre limite de recherches du jour.",
-    "searches-bar": "Vous avez atteint votre limite de recherches textuelles du jour. Passez à un plan supérieur pour explorer sans limite.",
-    "searches-filters": "Vous avez atteint votre limite de filtrage du jour sur cette catégorie. Passez à un plan supérieur pour filtrer sans limite.",
+    clicks: "Vous avez atteint votre limite de 10 campagnes consultables ce mois.",
+    filters: "Les filtres pays, secteur et tags sont réservés aux plans Basic et Pro.",
+    searches: "Vous avez atteint votre limite de 5 recherches ou filtres ce mois.",
+    "searches-bar": "Vous avez atteint votre limite mensuelle de recherches. Passez à un plan supérieur pour explorer sans limite.",
+    "searches-filters": "Vous avez atteint votre limite mensuelle de 5 recherches ou filtres. Passez à un plan supérieur pour filtrer sans limite.",
     content: "Cliquez sur une campagne pour voir son détail complet.",
-    premium: "Cette campagne Premium est réservée aux abonnés. Passez à un plan payant pour la débloquer.",
+    premium: "Cette campagne Premium est réservée aux abonnés Basic et Pro. Passez à un plan supérieur pour la débloquer.",
   }
 
   const subtitle = reason ? messages[reason] : "Passez à un plan payant pour débloquer toutes les fonctionnalités."

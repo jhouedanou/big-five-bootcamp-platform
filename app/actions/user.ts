@@ -186,20 +186,23 @@ export async function setUserRole(userId: string, role: 'admin' | 'user') {
 }
 
 /**
- * Réinitialise les compteurs de consultations/vues d'un utilisateur précis.
- * Remet à zéro daily_click_count, monthly_campaigns_explored et les compteurs legacy.
+ * Réinitialise les compteurs mensuels (consultations + recherches/filtres)
+ * d'un utilisateur précis.
  */
 export async function resetUserViews(userId: string) {
     try {
         const supabase = getSupabaseAdmin()
         const now = new Date()
-        const today = now.toISOString().split('T')[0] // YYYY-MM-DD
+        // Premier du mois courant — format DATE valide (les colonnes sont de type DATE).
+        const monthFirstDay = now.toISOString().slice(0, 7) + '-01'
 
         const { error } = await supabase
             .from('users')
             .update({
                 daily_click_count: 0,
-                daily_click_reset: today,
+                daily_click_reset: monthFirstDay,
+                daily_search_count: {},
+                daily_search_reset: monthFirstDay,
                 monthly_campaigns_explored: 0,
                 monthly_click_count: 0,
                 monthly_click_reset: now.toISOString(),

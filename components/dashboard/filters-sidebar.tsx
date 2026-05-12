@@ -41,9 +41,9 @@ interface FiltersSidebarProps {
   isFreeUser?: boolean
   onLockedFilterClick?: () => void
   /**
-   * Quota courant des recherches par filtre / jour.
-   * counts: nombre de recherches déjà déclenchées par catégorie aujourd'hui
-   * limit : quota maximum par catégorie (null = illimité)
+   * Quota courant des recherches+filtres du mois (compteur partage).
+   * counts: map JSONB stocke en DB (cle _shared = total mensuel)
+   * limit : quota mensuel maximum (null = illimite)
    */
   searchQuota?: {
     counts: Record<string, number>
@@ -52,7 +52,7 @@ interface FiltersSidebarProps {
   }
 }
 
-// Filtres verrouillés pour le plan gratuit
+// Filtres verrouillés pour le plan Découverte
 const LOCKED_FILTER_NAMES = ["Pays", "Secteur", "Tags"]
 
 export function FiltersSidebar({
@@ -178,8 +178,8 @@ export function FiltersSidebar({
         <div className="space-y-2">
           {filterGroups.map((group) => {
             const isLocked = group.locked && LOCKED_FILTER_NAMES.includes(group.name)
-            // Quota par catégorie : utilisé / limite (n'affiche rien si illimité ou Pro)
-            const quotaUsed = searchQuota?.counts?.[group.name] ?? 0
+            // Quota partage mensuel : on affiche le compteur global (_shared) pour chaque groupe
+            const quotaUsed = searchQuota?.counts?.['_shared'] ?? 0
             const quotaLimit = searchQuota?.limit ?? null
             const showQuota = !isLocked && quotaLimit !== null
             const quotaReached = showQuota && quotaUsed >= quotaLimit
@@ -227,8 +227,8 @@ export function FiltersSidebar({
                         }`}
                         title={
                           quotaReached
-                            ? `Limite atteinte : ${quotaUsed}/${quotaLimit} recherches aujourd'hui`
-                            : `${quotaUsed}/${quotaLimit} recherches utilisées aujourd'hui`
+                            ? `Limite atteinte : ${quotaUsed}/${quotaLimit} recherches ou filtres ce mois`
+                            : `${quotaUsed}/${quotaLimit} recherches ou filtres utilisés ce mois`
                         }
                       >
                         {quotaUsed}/{quotaLimit}

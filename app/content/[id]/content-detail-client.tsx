@@ -49,7 +49,7 @@ import dynamic from "next/dynamic";
 
 const SwipeableCarousel = dynamic(() => import("@/components/ui/swipeable-carousel").then(m => m.SwipeableCarousel), { ssr: false });
 
-const MONTHLY_CLICK_LIMIT = 3;
+const MONTHLY_CLICK_LIMIT = 10;
 
 interface Campaign {
   id: string;
@@ -380,7 +380,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
           <Card>
             <CardContent className="p-8 text-center">
               <p className="text-muted-foreground">
-                Vous avez atteint votre limite de {MONTHLY_CLICK_LIMIT} campagnes consultées aujourd'hui.
+                Vous avez atteint votre limite de {MONTHLY_CLICK_LIMIT} campagnes consultables ce mois.
               </p>
               <Button
                 className="mt-4 bg-[#F2B33D] hover:bg-[#d99a2a] text-white"

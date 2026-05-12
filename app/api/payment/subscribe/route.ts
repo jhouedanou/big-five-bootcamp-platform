@@ -30,9 +30,10 @@ import {
   normalizePromoCode,
 } from '@/lib/promo-codes';
 
-const PLAN_PRICES: Record<string, { price: number; annualPrice: number; label: string }> = {
-  basic: { price: 4900, annualPrice: 49000, label: 'Basic' },
-  pro: { price: 9900, annualPrice: 99000, label: 'Pro' },
+const PLAN_PRICES: Record<string, { price: number; annualPrice: number; label: string; dbKey: string }> = {
+  discovery: { price: 1000, annualPrice: 10000, label: 'Découverte', dbKey: 'Free' },
+  basic: { price: 4900, annualPrice: 49000, label: 'Basic', dbKey: 'Basic' },
+  pro: { price: 9900, annualPrice: 99000, label: 'Pro', dbKey: 'Pro' },
 };
 
 const SUBSCRIPTION_DURATION_DAYS = 30;
@@ -63,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     if (!planConfig) {
       return NextResponse.json(
-        { error: 'Plan invalide. Choisissez "basic" ou "pro".' },
+        { error: 'Plan invalide. Choisissez "discovery", "basic" ou "pro".' },
         { status: 400 }
       );
     }

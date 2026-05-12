@@ -18,7 +18,7 @@ import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
 import { LegalModal } from "@/components/legal-modal"
 import { getOperatorLogo } from "@/lib/operator-logos"
 
-type PlanChoice = "basic" | "pro"
+type PlanChoice = "basic" | "pro" | "discovery"
 
 /** Configuration par pays : indicatif, longueur locale attendue, masque d'affichage. */
 type CountryCode = 'CIV' | 'SEN' | 'BFA' | 'BEN'
@@ -67,6 +67,21 @@ function formatPhoneMask(digits: string, mask: number[]): string {
 }
 
 const PLANS = {
+  discovery: {
+    name: "Découverte",
+    price: 1000,
+    priceFormatted: "1 000",
+    annualPrice: "12 000",
+    dailyCost: "~33",
+    description: "Pour explorer la plateforme",
+    color: "#0F0F0F",
+    features: [
+      "Accès limité à la bibliothèque",
+      "10 campagnes consultables / mois",
+      "5 recherches ou filtres / mois",
+      "Alertes email hebdo",
+    ],
+  },
   basic: {
     name: "Basic",
     price: 4900,
@@ -79,8 +94,8 @@ const PLANS = {
       "Accès illimité à toute la bibliothèque",
       "Filtres avancés (Secteur, Pays, Format...)",
       "Collections personnalisées",
-      "Téléchargement des vidéos",
-      "Compteur d'usage quotidien",
+      "Téléchargement des visuels",
+      "30 recherches ou filtres / mois",
     ],
   },
   pro: {
@@ -93,8 +108,8 @@ const PLANS = {
     color: "#F2B33D",
     features: [
       "Tout du plan Basic",
-      "Recherches illimitées",
-      "Suivi de marques",
+      "Recherches ou filtres illimités",
+      "Sessions expert Big Five Décrypté",
       "Support prioritaire",
     ],
   },
@@ -104,9 +119,11 @@ export default function SubscribePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, userProfile, loading } = useSupabaseAuth()
-  const [selectedPlan, setSelectedPlan] = useState<PlanChoice>(
-    (searchParams.get("plan") as PlanChoice) || "pro"
-  )
+  const rawPlanParam = searchParams.get("plan") || "pro"
+  const validPlan: PlanChoice = ["basic", "pro", "discovery"].includes(rawPlanParam)
+    ? (rawPlanParam as PlanChoice)
+    : "pro"
+  const [selectedPlan, setSelectedPlan] = useState<PlanChoice>(validPlan)
   const [isAnnual, setIsAnnual] = useState(
     searchParams.get("billing") === "annual"
   )
@@ -218,12 +235,18 @@ export default function SubscribePage() {
     setPromoError(null)
   }
 
+  const PLAN_PRICES_MAP: Record<PlanChoice, { monthly: number; annual: number }> = {
+    discovery: { monthly: 1000, annual: 10000 },
+    basic: { monthly: 4900, annual: 49000 },
+    pro: { monthly: 9900, annual: 99000 },
+  }
+
   /** Montant à payer (override si code promo appliqué). */
   const finalAmount = appliedPromo
     ? appliedPromo.price
     : isAnnual
-      ? selectedPlan === "basic" ? 49000 : 99000
-      : selectedPlan === "basic" ? 4900 : 9900
+      ? PLAN_PRICES_MAP[selectedPlan].annual
+      : PLAN_PRICES_MAP[selectedPlan].monthly
 
   const finalAmountFormatted = new Intl.NumberFormat("fr-FR").format(finalAmount)
   const finalDurationDays = appliedPromo ? appliedPromo.durationDays : (isAnnual ? 365 : 30)
@@ -390,6 +413,51 @@ export default function SubscribePage() {
 
         {/* Plan Selection Cards */}
         <div className="mt-6 grid grid-cols-2 gap-4">
+          {/* Découverte Card */}
+          <button
+            type="button"
+            onClick={() => setSelectedPlan("discovery")}
+            className={`rounded-xl border-2 p-5 text-left transition-all col-span-2 ${
+              selectedPlan === "discovery"
+                ? "border-[#0F0F0F] bg-[#0F0F0F]/5 shadow-lg"
+                : "border-[#F5F5F5] bg-white hover:border-[#0F0F0F]/30"
+            }`}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-bold text-lg text-[#0F0F0F]">Découverte</h3>
+              {selectedPlan === "discovery" && (
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#0F0F0F]">
+                  <Check className="h-3.5 w-3.5 text-white" />
+                </div>
+              )}
+            </div>
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl font-bold text-[#0F0F0F]">
+                {isAnnual ? '10 000' : '1 000'}
+              </span>
+              <span className="text-sm text-[#0F0F0F]/60">{isAnnual ? 'XOF/an' : 'XOF/mois'}</span>
+            </div>
+            {isAnnual ? (
+              <p className="mt-1 text-xs text-[#10B981] font-medium">2 mois offerts — soit ~833 XOF/mois</p>
+            ) : (
+              <p className="mt-1 text-xs text-[#0F0F0F]/50">ou 10 000 XOF/an (2 mois offerts)</p>
+            )}
+            <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
+              <li className="flex items-center gap-2 text-xs text-[#0F0F0F]/70">
+                <Check className="h-3.5 w-3.5 text-[#10B981] shrink-0" />
+                10 campagnes / mois
+              </li>
+              <li className="flex items-center gap-2 text-xs text-[#0F0F0F]/70">
+                <Check className="h-3.5 w-3.5 text-[#10B981] shrink-0" />
+                5 recherches ou filtres / mois
+              </li>
+              <li className="flex items-center gap-2 text-xs text-[#0F0F0F]/70">
+                <Check className="h-3.5 w-3.5 text-[#10B981] shrink-0" />
+                Alertes email hebdo
+              </li>
+            </ul>
+          </button>
+
           {/* Basic Card */}
           <button
             type="button"
@@ -478,7 +546,7 @@ export default function SubscribePage() {
               </li>
               <li className="flex items-center gap-2 text-xs text-[#0F0F0F]/70">
                 <Check className="h-3.5 w-3.5 text-[#10B981] shrink-0" />
-                Suivi de marques
+                Veille concurrentielle
               </li>
             </ul>
           </button>

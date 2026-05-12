@@ -215,15 +215,13 @@ export function DashboardNavbar({
                 Collections
               </Link>
             )}
-            {isPremium && (
-              <Link
-                href="/dashboard/brand-requests"
-                className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1"
-              >
-                <Building2 className="h-3.5 w-3.5" />
-                Marques
-              </Link>
-            )}
+            <Link
+              href="/dashboard/brand-requests"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1"
+            >
+              <Building2 className="h-3.5 w-3.5" />
+              Veille
+            </Link>
           </nav>
         </div>
 
@@ -472,14 +470,12 @@ export function DashboardNavbar({
                   </Link>
                 </DropdownMenuItem>
               )}
-              {isPremium && (
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/brand-requests" className="flex items-center gap-2 text-[#0F0F0F]">
-                    <Building2 className="h-4 w-4" />
-                    Veille concurrentielle
-                  </Link>
-                </DropdownMenuItem>
-              )}
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/brand-requests" className="flex items-center gap-2 text-[#0F0F0F]">
+                  <Building2 className="h-4 w-4" />
+                  Veille concurrentielle
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/settings" className="flex items-center gap-2 text-[#0F0F0F]">
                   <Settings className="h-4 w-4" />

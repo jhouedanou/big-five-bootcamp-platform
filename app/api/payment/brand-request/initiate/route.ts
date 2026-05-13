@@ -10,7 +10,7 @@
  * {
  *   brandRequestId: string  // UUID de la brand_request
  *   phoneNumber: string     // MSISDN complet, ex. "22507xxxxxxxx"
- *   provider: string        // ex. "ORANGE_CIV", "WAVE_CIV", "MTN_MOMO_BEN"
+ *   provider: string        // ex. "ORANGE_CIV", "MTN_MOMO_BEN", "FREE_SEN" (Wave non supporté par PawaPay)
  * }
  *
  * Retour : { depositId, status, nextStep, authorizationUrl?, ref_command }

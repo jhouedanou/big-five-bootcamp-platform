@@ -3,10 +3,12 @@
 import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Image from "next/image";
-import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Download } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Download, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getGoogleDriveImageUrl } from "@/lib/utils";
 import { ReactionButtons } from "@/components/ui/reaction-buttons";
+import { useAuthContext } from "@/components/auth-provider";
+import { UpgradePopup } from "@/components/upgrade-popup";
 
 interface LightboxProps {
   images: string[];
@@ -24,6 +26,9 @@ export function Lightbox({ images: rawImages, initialIndex = 0, isOpen, onClose,
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isZoomed, setIsZoomed] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const { isPremium } = useAuthContext();
 
   useEffect(() => {
     setMounted(true);
@@ -85,12 +90,39 @@ export function Lightbox({ images: rawImages, initialIndex = 0, isOpen, onClose,
     setIsZoomed(!isZoomed);
   };
 
-  const handleDownload = () => {
-    const link = document.createElement("a");
-    link.href = images[currentIndex];
-    link.download = `image-${currentIndex + 1}`;
-    link.target = "_blank";
-    link.click();
+  const handleDownload = async () => {
+    if (!isPremium) {
+      setShowUpgrade(true);
+      return;
+    }
+    if (isDownloading) return;
+    setIsDownloading(true);
+    const src = images[currentIndex];
+    const fallbackName = `campagne-${campaignId || "visuel"}-${currentIndex + 1}`;
+    try {
+      const res = await fetch(src, { mode: "cors" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const ext = (blob.type.split("/")[1] || "jpg").split(";")[0];
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${fallbackName}.${ext}`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      // Fallback : ouverture dans un nouvel onglet si le fetch CORS échoue
+      const link = document.createElement("a");
+      link.href = src;
+      link.download = fallbackName;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.click();
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const lightboxContent = (
@@ -124,10 +156,16 @@ export function Lightbox({ images: rawImages, initialIndex = 0, isOpen, onClose,
               e.stopPropagation();
               handleDownload();
             }}
-            className="text-white hover:bg-white/20"
-            title="Télécharger"
+            className={`text-white hover:bg-white/20 ${!isPremium ? "relative" : ""}`}
+            title={isPremium ? "Télécharger" : "Téléchargement réservé aux plans Basic et Pro"}
+            disabled={isDownloading}
           >
-            <Download className="h-5 w-5" />
+            <Download className={`h-5 w-5 ${!isPremium ? "opacity-60" : ""}`} />
+            {!isPremium && (
+              <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#F2B33D] text-[#0F0F0F]">
+                <Lock className="h-2 w-2" />
+              </span>
+            )}
           </Button>
           <Button
             variant="ghost"
@@ -235,6 +273,7 @@ export function Lightbox({ images: rawImages, initialIndex = 0, isOpen, onClose,
           </div>
         </div>
       )}
+      <UpgradePopup open={showUpgrade} onClose={() => setShowUpgrade(false)} reason="download" />
     </div>
   );
 

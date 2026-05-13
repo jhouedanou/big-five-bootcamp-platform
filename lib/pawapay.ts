@@ -113,7 +113,7 @@ export interface PawaPayMmoAccount {
   type: 'MMO'
   accountDetails: {
     phoneNumber: string
-    provider: string // ex. MTN_MOMO_BEN, WAVE_SEN, ORANGE_CIV...
+    provider: string // ex. MTN_MOMO_BEN, ORANGE_CIV, FREE_SEN... (Wave NON supporté par PawaPay)
   }
 }
 

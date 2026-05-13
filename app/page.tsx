@@ -1,6 +1,7 @@
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { HeroSection, FeaturesSection, PreviewSection, PricingTeaser } from "@/components/landing/hero-section"
+import { RgpdBottomSheet } from "@/components/rgpd-bottom-sheet"
 
 export default function HomePage() {
   return (
@@ -17,6 +18,7 @@ export default function HomePage() {
         </section>
       </main>
       <Footer />
+      <RgpdBottomSheet />
     </div>
   )
 }

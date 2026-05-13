@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 interface UpgradePopupProps {
   open: boolean
   onClose: () => void
-  reason?: "clicks" | "filters" | "searches" | "searches-bar" | "searches-filters" | "content" | "premium"
+  reason?: "clicks" | "filters" | "searches" | "searches-bar" | "searches-filters" | "content" | "premium" | "download"
 }
 
 export function UpgradePopup({ open, onClose, reason }: UpgradePopupProps) {
@@ -22,6 +22,7 @@ export function UpgradePopup({ open, onClose, reason }: UpgradePopupProps) {
     "searches-filters": "Vous avez atteint votre limite mensuelle de 5 recherches ou filtres. Passez à un plan supérieur pour filtrer sans limite.",
     content: "Cliquez sur une campagne pour voir son détail complet.",
     premium: "Cette campagne Premium est réservée aux abonnés Basic et Pro. Passez à un plan supérieur pour la débloquer.",
+    download: "Le téléchargement des visuels est réservé aux abonnés Basic et Pro. Passez à un plan supérieur pour télécharger.",
   }
 
   const subtitle = reason ? messages[reason] : "Passez à un plan payant pour débloquer toutes les fonctionnalités."

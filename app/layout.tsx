@@ -33,6 +33,15 @@ export default function RootLayout({
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Karla:ital,wght@0,200..800;1,200..800&family=Outfit:wght@300;400;500;600;700;800&display=swap"
         />
+        {/* Préchargement des icônes du menu utilisateur pour éviter le flash au survol/ouverture */}
+        <link rel="preload" as="image" href="/icons/Bibliotheque.svg" />
+        <link rel="preload" as="image" href="/icons/Temps_forts.svg" />
+        <link rel="preload" as="image" href="/icons/Favoris.svg" />
+        <link rel="preload" as="image" href="/icons/Collections.svg" />
+        <link rel="preload" as="image" href="/icons/Veille.svg" />
+        <link rel="preload" as="image" href="/icons/Profil.svg" />
+        <link rel="preload" as="image" href="/icons/Tarifs.svg" />
+        <link rel="preload" as="image" href="/icons/default-avatar.svg" />
       </head>
       <body className="font-sans antialiased">
         <Providers>

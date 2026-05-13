@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Non authentifie' }, { status: 401 })
     }
 
-    let body: { filterId?: string } = {}
+    let body: { filterId?: string; query?: string; filters?: Record<string, unknown>; source?: string } = {}
     try {
       body = await request.json()
     } catch {
@@ -99,6 +99,18 @@ export async function POST(request: NextRequest) {
     }
 
     const newCount = nextData['_shared'] || 0
+
+    // Journalisation détaillée (best-effort — silencieux si la table n'existe pas encore)
+    try {
+      await (admin as any).from('search_logs').insert({
+        user_id: user.id,
+        query: typeof body.query === 'string' ? body.query.trim().slice(0, 500) : null,
+        filters: body.filters && typeof body.filters === 'object' ? body.filters : { filterId: body.filterId ?? null },
+        source: body.source || (body.filterId ? 'filter' : 'bar'),
+      })
+    } catch {
+      // ignore — la fonctionnalité history est optionnelle
+    }
 
     return NextResponse.json({
       allowed: true,

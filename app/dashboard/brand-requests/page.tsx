@@ -31,6 +31,8 @@ import {
   X,
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
+import { PAWAPAY_PROVIDERS as PAWAPAY_PROVIDERS_FULL } from "@/lib/pawapay-providers"
 
 // ---------------------------------------------------------------------------
 // Types & constants
@@ -117,6 +119,8 @@ export default function BrandRequestsPage() {
   const [loading, setLoading] = useState(true)
   const [userPlan, setUserPlan] = useState<string>("Free")
   const [userRole, setUserRole] = useState<string>("user")
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [authPromptOpen, setAuthPromptOpen] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -241,19 +245,10 @@ export default function BrandRequestsPage() {
   const [payLoading, setPayLoading] = useState(false)
   const [payError, setPayError] = useState<string | null>(null)
 
-  const PAWAPAY_PROVIDERS = [
-    { value: 'MTN_MOMO_CIV', label: 'MTN Mobile Money — Côte d’Ivoire' },
-    { value: 'ORANGE_CIV', label: 'Orange Money — Côte d’Ivoire' },
-    { value: 'MOOV_CIV', label: 'Moov Money — Côte d’Ivoire' },
-    { value: 'WAVE_CIV', label: 'Wave — Côte d’Ivoire' },
-    { value: 'WAVE_SEN', label: 'Wave — Sénégal' },
-    { value: 'ORANGE_SEN', label: 'Orange Money — Sénégal' },
-    { value: 'FREE_SEN', label: 'Free Money — Sénégal' },
-    { value: 'ORANGE_BFA', label: 'Orange Money — Burkina Faso' },
-    { value: 'MOOV_BFA', label: 'Moov Money — Burkina Faso' },
-    { value: 'MTN_MOMO_BEN', label: 'MTN Mobile Money — Bénin' },
-    { value: 'MOOV_BEN', label: 'Moov Money — Bénin' },
-  ]
+  const PAWAPAY_PROVIDERS = PAWAPAY_PROVIDERS_FULL.map((p) => ({
+    value: p.value,
+    label: p.label,
+  }))
 
   const openPayment = (req: BrandRequest) => {
     setPayRequest(req)
@@ -343,6 +338,7 @@ export default function BrandRequestsPage() {
   }
 
   const supabase = createClient()
+  const router = useRouter()
   const isAllowed =
     userRole.toLowerCase() === 'admin' ||
     ALLOWED_PLANS.includes(userPlan.toLowerCase())
@@ -409,30 +405,40 @@ export default function BrandRequestsPage() {
     const loadData = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser()
-        if (!mounted || !user) return
-
-        const { data: profile } = await supabase
-          .from('users')
-          .select('plan, subscription_status, role')
-          .eq('id', user.id)
-          .single()
-
         if (!mounted) return
-        if (profile) {
-          setUserPlan(profile.plan || 'Free')
-          setUserRole((profile as any).role || 'user')
+        setIsAuthenticated(!!user)
+
+        if (user) {
+          const { data: profile } = await supabase
+            .from('users')
+            .select('plan, subscription_status, role')
+            .eq('id', user.id)
+            .single()
+
+          if (!mounted) return
+          if (profile) {
+            setUserPlan(profile.plan || 'Free')
+            setUserRole((profile as any).role || 'user')
+          }
         }
 
-        const [reqRes, brandsRes, suggestionsRes] = await Promise.all([
-          fetch('/api/brand-requests'),
+        const fetches: Promise<Response>[] = [
           fetch('/api/brands'),
           fetch('/api/campaigns/suggestions'),
-        ])
+        ]
+        if (user) fetches.unshift(fetch('/api/brand-requests'))
+        const responses = await Promise.all(fetches)
         if (!mounted) return
-        if (reqRes.ok) {
-          const data = await reqRes.json()
-          setRequests(data.requests || [])
+
+        let idx = 0
+        if (user) {
+          const reqRes = responses[idx++]
+          if (reqRes.ok) {
+            const data = await reqRes.json()
+            setRequests(data.requests || [])
+          }
         }
+        const brandsRes = responses[idx++]
         if (brandsRes.ok) {
           const data = await brandsRes.json()
           setKnownBrands(Array.isArray(data.brands) ? data.brands : [])
@@ -440,6 +446,7 @@ export default function BrandRequestsPage() {
             setBrandSectors(data.brandSectors)
           }
         }
+        const suggestionsRes = responses[idx++]
         if (suggestionsRes.ok) {
           const data = await suggestionsRes.json()
           setKnownCountries(Array.isArray(data.countries) ? data.countries : [])
@@ -451,6 +458,54 @@ export default function BrandRequestsPage() {
     loadData()
     return () => { mounted = false }
   }, [])
+
+  // Reprise automatique du brouillon après création de compte / login.
+  // Le flux : utilisateur anonyme remplit → clique "Confirmer" → on stocke en
+  // sessionStorage → redirection /register?redirect=/dashboard/brand-requests?resume=1
+  // → retour ici authentifié → on restaure l'état et on rouvre la popup de
+  // confirmation pour qu'il valide une dernière fois l'envoi.
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    if (loading) return
+    if (!isAuthenticated) return
+    if (searchParams.get('resume') !== '1') return
+    let draft: any = null
+    try {
+      const raw = sessionStorage.getItem('brand-request-draft-v1')
+      if (raw) draft = JSON.parse(raw)
+    } catch { /* ignore */ }
+    if (!draft) return
+    setShowForm(true)
+    setSelectedBrands(Array.isArray(draft.selectedBrands) ? draft.selectedBrands : [])
+    setSelectedSocials(new Set(Array.isArray(draft.selectedSocials) ? draft.selectedSocials : []))
+    setLinksText(typeof draft.linksText === 'string' ? draft.linksText : '')
+    setSelectedCountries(Array.isArray(draft.selectedCountries) ? draft.selectedCountries : [])
+    setSelectedSectors(Array.isArray(draft.selectedSectors) ? draft.selectedSectors : [])
+    setObjective(typeof draft.objective === 'string' ? draft.objective : '')
+    setNotes(typeof draft.notes === 'string' ? draft.notes : '')
+    setLegalConsent(!!draft.legalConsent)
+    setConfirmOpen(true)
+    try { sessionStorage.removeItem('brand-request-draft-v1') } catch { /* ignore */ }
+    // Nettoie l'URL pour éviter de re-déclencher la reprise.
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('resume')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [loading, isAuthenticated, searchParams])
+
+  // Auto-ouverture du formulaire quand on arrive depuis la page Tarifs
+  // (CTA « Demander un devis » → /dashboard/brand-requests?new=1).
+  useEffect(() => {
+    if (loading) return
+    if (searchParams.get('new') !== '1') return
+    setShowForm(true)
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('new')
+      window.history.replaceState({}, '', url.toString())
+    }
+  }, [loading, searchParams])
 
   const toggleSocial = (code: SocialCode) => {
     setSelectedSocials((prev) => {
@@ -584,6 +639,30 @@ export default function BrandRequestsPage() {
   // On crée une demande par marque sélectionnée (mêmes réseaux / liens / notes).
   const performSubmit = async () => {
     setSubmitError(null)
+
+    // Auth gate : si l'utilisateur n'est pas connecté, on sauvegarde le brouillon
+    // et on l'invite à créer un compte / se connecter avant de finaliser.
+    if (!isAuthenticated) {
+      try {
+        sessionStorage.setItem(
+          'brand-request-draft-v1',
+          JSON.stringify({
+            selectedBrands,
+            selectedSocials: Array.from(selectedSocials),
+            linksText,
+            selectedCountries,
+            selectedSectors,
+            objective,
+            notes,
+            legalConsent,
+          })
+        )
+      } catch { /* ignore */ }
+      setConfirmOpen(false)
+      setAuthPromptOpen(true)
+      return
+    }
+
     const brandUrls = linksText
       .split(/[\n,]+/)
       .map((l) => l.trim())
@@ -1871,6 +1950,67 @@ export default function BrandRequestsPage() {
               >
                 {payLoading ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
                 Payer
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Auth prompt — l'utilisateur a paramétré sa demande mais n'est pas connecté.
+          Sa saisie est sauvegardée en sessionStorage et restaurée après authentification. */}
+      {authPromptOpen && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="brand-auth-title"
+        >
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setAuthPromptOpen(false)}
+            aria-label="Fermer"
+          />
+          <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl p-6 sm:p-8 z-10">
+            <button
+              type="button"
+              onClick={() => setAuthPromptOpen(false)}
+              className="absolute right-4 top-4 rounded-full p-1.5 text-[#0F0F0F]/40 hover:bg-[#F5F5F5] hover:text-[#0F0F0F] transition-colors"
+              aria-label="Fermer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#F2B33D]/15">
+              <Lock className="h-6 w-6 text-[#F2B33D]" />
+            </div>
+
+            <h2 id="brand-auth-title" className="text-center text-xl font-bold text-[#0F0F0F] mb-2">
+              Dernière étape : créez votre compte
+            </h2>
+            <p className="text-center text-sm text-[#0F0F0F]/70 mb-6">
+              Votre demande est prête. Pour la finaliser et suivre son traitement,
+              créez un compte ou connectez-vous. Vos informations sont conservées
+              et la demande sera envoyée automatiquement après authentification.
+            </p>
+
+            <div className="space-y-3">
+              <Button
+                asChild
+                className="w-full h-12 text-base font-bold bg-[#F2B33D] hover:bg-[#e0a330] text-[#0F0F0F]"
+              >
+                <Link href={`/register?redirect=${encodeURIComponent('/dashboard/brand-requests?resume=1')}`}>
+                  Créer un compte
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="w-full h-12 text-base font-semibold"
+              >
+                <Link href={`/login?redirect=${encodeURIComponent('/dashboard/brand-requests?resume=1')}`}>
+                  J'ai déjà un compte
+                </Link>
               </Button>
             </div>
           </div>

@@ -130,7 +130,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
   const [bottomSheetRemaining, setBottomSheetRemaining] = useState(0);
   const trackedRef = useRef(false);
   const isFreeUser = !isPaidPlan(userPlan);
-  // Gate Premium : seuls les abonnés Pro (ou admins) peuvent voir une campagne premium.
+  // Gate Premium : seuls les abonnés Basic ou Pro (ou admins) peuvent voir une campagne premium.
   const isPremiumContent = (content?.access_level || '').toLowerCase() === 'premium';
   const canViewPremium = isAdmin || canAccessPremiumContent(contextUserPlan);
   const isPremiumLocked = isPremiumContent && !canViewPremium;
@@ -432,7 +432,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
     );
   }
 
-  // Gate Premium : campagne réservée aux abonnés Pro.
+  // Gate Premium : campagne réservée aux abonnés Basic ou Pro.
   // Free et Basic sont bloqués avec un écran d'upsell.
   if (isPremiumLocked) {
     return (
@@ -465,20 +465,20 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 Campagne Premium
               </Badge>
               <h1 className="font-[family-name:var(--font-heading)] text-2xl sm:text-3xl font-bold text-[#0F0F0F] mb-3">
-                Cette campagne est réservée aux abonnés Pro
+                Cette campagne est réservée aux abonnés Basic ou Pro
               </h1>
               <p className="text-[#0F0F0F]/70 text-sm sm:text-base mb-6 max-w-md mx-auto">
                 Les campagnes Premium font partie de notre sélection exclusive.
-                Passez au plan Pro pour débloquer l'accès complet, l'analyse stratégique
+                Passez en Basic ou Pro pour débloquer l'accès complet, l'analyse stratégique
                 et tous les contenus réservés.
               </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Button
                   className="h-11 px-6 bg-[#F2B33D] hover:bg-[#d99a2a] text-white font-semibold"
-                  onClick={() => router.push('/subscribe')}
+                  onClick={() => router.push('/subscribe?plan=basic')}
                 >
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Passer au Pro
+                  Passer en Basic
                 </Button>
                 <Button
                   variant="outline"

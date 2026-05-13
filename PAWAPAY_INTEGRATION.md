@@ -116,7 +116,7 @@ const res = await fetch('/api/payment/pawapay/deposit', {
     amount: 5000,
     currency: 'XOF',
     phoneNumber: '2250707123456',   // MSISDN complet
-    provider: 'ORANGE_CIV',         // ou 'WAVE_CIV', 'MTN_MOMO_CIV'...
+    provider: 'ORANGE_CIV',         // ou 'MTN_MOMO_CIV', 'MOOV_CIV', 'FREE_SEN'...
     customerMessage: 'Abo Premium', // max 22 chars
     userEmail: user.email,
     metadata: {
@@ -130,7 +130,9 @@ const res = await fetch('/api/payment/pawapay/deposit', {
 const { depositId, status, nextStep, authorizationUrl } = await res.json()
 
 if (nextStep === 'REDIRECT_TO_AUTH_URL' && authorizationUrl) {
-  // Wave Senegal/CIV — rediriger le client
+  // Cas réservé aux providers à redirection (non utilisé aujourd'hui).
+  // ℹ️  Wave n'est PAS supporté par PawaPay : pour proposer Wave, utiliser
+  //    la passerelle PayTech (cf. lib/paytech.ts).
   window.location.href = authorizationUrl
 } else {
   // Flow PIN prompt — afficher un écran "Tapez votre code PIN..."

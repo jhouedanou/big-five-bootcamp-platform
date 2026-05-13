@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
-import { Check, X, Minus } from "lucide-react"
+import { Check, X, Minus, Search, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import content from "@/lib/homepage-content.json"
@@ -174,6 +174,73 @@ export default function PricingPage() {
                                     </ul>
                                 </div>
                             ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* Bloc Veille concurrentielle / Devis */}
+                <section className="py-12 sm:py-20">
+                    <div className="container mx-auto px-4">
+                        <div className="max-w-5xl mx-auto rounded-3xl overflow-hidden bg-gradient-to-br from-[#0F0F0F] to-[#1F1F1F] text-white shadow-xl">
+                            <div className="grid md:grid-cols-2 gap-0">
+                                <div className="p-8 sm:p-12 flex flex-col justify-center">
+                                    <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#F2B33D]/15 px-3 py-1 text-xs font-semibold text-[#F2B33D] mb-4">
+                                        <Search className="h-3.5 w-3.5" />
+                                        Service sur-mesure
+                                    </div>
+                                    <h2 className="font-[family-name:var(--font-heading)] text-2xl sm:text-3xl lg:text-4xl font-bold mb-4">
+                                        Veille concurrentielle <span className="text-[#F2B33D]">personnalisée</span>
+                                    </h2>
+                                    <p className="text-white/70 text-sm sm:text-base mb-6">
+                                        Recevez une veille créative dédiée à votre marque et à vos concurrents : suivi des campagnes, alertes ciblées, rapports périodiques. Tarification adaptée à votre périmètre.
+                                    </p>
+                                    <ul className="space-y-2.5 mb-8 text-sm">
+                                        <li className="flex items-center gap-2.5">
+                                            <Check className="h-4 w-4 text-[#F2B33D] shrink-0" />
+                                            <span className="text-white/80">Brief personnalisé : marques, secteurs, pays</span>
+                                        </li>
+                                        <li className="flex items-center gap-2.5">
+                                            <Check className="h-4 w-4 text-[#F2B33D] shrink-0" />
+                                            <span className="text-white/80">Rapports créatifs réguliers</span>
+                                        </li>
+                                        <li className="flex items-center gap-2.5">
+                                            <Check className="h-4 w-4 text-[#F2B33D] shrink-0" />
+                                            <span className="text-white/80">Alertes proactives sur nouveautés</span>
+                                        </li>
+                                    </ul>
+                                    <Button
+                                        asChild
+                                        className="h-12 w-fit bg-[#F2B33D] hover:bg-[#e0a330] text-[#0F0F0F] font-bold rounded-xl shadow-md group"
+                                    >
+                                        <Link href="/dashboard/brand-requests?new=1">
+                                            Demander un devis
+                                            <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                                        </Link>
+                                    </Button>
+                                </div>
+                                <div className="relative hidden md:flex items-center justify-center bg-gradient-to-br from-[#F2B33D]/20 to-transparent p-12">
+                                    <div className="relative w-full max-w-sm aspect-square rounded-2xl bg-white/5 backdrop-blur border border-white/10 p-8 flex flex-col justify-between">
+                                        <div className="space-y-3">
+                                            <div className="h-2 w-24 rounded-full bg-[#F2B33D]/60" />
+                                            <div className="h-2 w-32 rounded-full bg-white/20" />
+                                            <div className="h-2 w-20 rounded-full bg-white/20" />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="aspect-square rounded-xl bg-[#F2B33D]/30" />
+                                            <div className="aspect-square rounded-xl bg-white/10" />
+                                            <div className="aspect-square rounded-xl bg-white/10" />
+                                            <div className="aspect-square rounded-xl bg-[#F2B33D]/30" />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-8 w-8 rounded-full bg-[#F2B33D]/60" />
+                                            <div className="flex-1 space-y-1.5">
+                                                <div className="h-1.5 w-full rounded-full bg-white/20" />
+                                                <div className="h-1.5 w-2/3 rounded-full bg-white/15" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>

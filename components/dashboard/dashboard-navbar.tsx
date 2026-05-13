@@ -3,10 +3,12 @@
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { Menu, X, Search, User, LogOut, Settings, CreditCard, Crown, Sparkles, Clock, Users, Heart, MousePointer, Building2, FolderOpen, SlidersHorizontal } from "lucide-react"
+import { Menu, X, Search, User, LogOut, Settings, CreditCard, Crown, Sparkles, Clock, Users, Heart, MousePointer, Building2, FolderOpen, SlidersHorizontal, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { useAuthContext } from "@/components/auth-provider"
+import { getQuotaUpsell, quotaBadgeClass, quotaProgressFillClass, levelFromUsage } from "@/lib/upsell"
+import { resolveTier, UNLIMITED } from "@/lib/quotas"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -90,6 +92,16 @@ export function DashboardNavbar({
   const effectiveMonthlyClicks = externalMonthlyClicks !== undefined ? externalMonthlyClicks : contextMonthlyClicks
   const effectiveMonthlyExplored = externalMonthlyExplored !== undefined ? externalMonthlyExplored : contextMonthlyExplored
   const initials = userName ? userName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "?"
+  const avatarUrl = (userProfile as any)?.avatar_url || user?.user_metadata?.avatar_url || ""
+
+  // Couleur du badge plan : Découverte = bleu, Basic = vert, Pro = gold.
+  const planKeyLower = (effectivePlan || "").toLowerCase()
+  const planDropdownBadgeClass =
+    planKeyLower === "pro"
+      ? "border-[#F2B33D] bg-[#F2B33D]/10 text-[#a17320]"
+      : planKeyLower === "basic"
+        ? "border-[#10B981] bg-[#10B981]/10 text-[#10B981]"
+        : "border-[#2364d7] bg-[#2364d7]/10 text-[#2364d7]"
 
   // Calcul de la durée restante de l'abonnement
   const getSubscriptionInfo = () => {
@@ -155,6 +167,17 @@ export function DashboardNavbar({
   const filtersPeak = sharedSearchUsed
   const filtersReached = sharedSearchReached
 
+  // —— Upsell progressif (paliers 70/90/100%) ——
+  // Résout le tier effectif pour adapter le message (Free → Basic, Basic → Pro).
+  const upsellTier = resolveTier(effectivePlan, subscriptionStatus)
+  const clickLimitForUpsell = monthlyClickLimit || 10
+  const clicksUpsell = (effectiveIsFreeUser && profileReady)
+    ? getQuotaUpsell(effectiveMonthlyClicks, clickLimitForUpsell, upsellTier, "clicks")
+    : null
+  const searchUpsell = (showQuotaBadges && searchLimit !== null && searchLimit !== UNLIMITED)
+    ? getQuotaUpsell(sharedSearchUsed, searchLimit as number, upsellTier, "searches")
+    : null
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#F5F5F5] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -183,35 +206,55 @@ export function DashboardNavbar({
               href="/dashboard"
               className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F] transition-colors hover:bg-[#F5F5F5]/50 flex items-center gap-1"
             >
-              <Image
-                src="/icon_bibliotheque.png"
-                alt="Icône bibliothèque"
-                width={14}
-                height={14}
+              <img
+                src="/icons/Bibliotheque.svg"
+                alt=""
+                width="14"
+                height="14"
                 className="h-3.5 w-3.5"
-              />
+               loading="eager" />
               Bibliothèque
             </Link>
             <Link
               href="/temps-forts"
               className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1"
             >
-              <Sparkles className="h-3.5 w-3.5" />
+              <img
+                src="/icons/Temps_forts.svg"
+                alt=""
+                width="14"
+                height="14"
+                className="h-3.5 w-3.5"
+               loading="eager" />
               Temps forts
             </Link>
-            <Link
-              href="/favorites"
-              className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1"
-            >
-              <Heart className="h-3.5 w-3.5" />
-              Favoris
-            </Link>
+            {isPremium && (
+              <Link
+                href="/favorites"
+                className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1"
+              >
+                <img
+                  src="/icons/Favoris.svg"
+                  alt=""
+                  width="14"
+                  height="14"
+                  className="h-3.5 w-3.5"
+                 loading="eager" />
+                Favoris
+              </Link>
+            )}
             {isPremium && (
               <Link
                 href="/favorites?tab=collections"
                 className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1"
               >
-                <FolderOpen className="h-3.5 w-3.5" />
+                <img
+                  src="/icons/Collections.svg"
+                  alt=""
+                  width="14"
+                  height="14"
+                  className="h-3.5 w-3.5"
+                 loading="eager" />
                 Collections
               </Link>
             )}
@@ -219,7 +262,13 @@ export function DashboardNavbar({
               href="/dashboard/brand-requests"
               className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1"
             >
-              <Building2 className="h-3.5 w-3.5" />
+              <img
+                src="/icons/Veille.svg"
+                alt=""
+                width="14"
+                height="14"
+                className="h-3.5 w-3.5"
+               loading="eager" />
               Veille
             </Link>
           </nav>
@@ -321,72 +370,139 @@ export function DashboardNavbar({
             </div>
           )}
 
-          {/* Compteur mensuel de consultations (Découverte) */}
+          {/* Compteur mensuel de consultations (Découverte) — upsell progressif 70/90/100% */}
           {profileReady && effectiveIsFreeUser && (() => {
-            const clickLimit = monthlyClickLimit || 10
-            const clicksReached = effectiveMonthlyClicks >= clickLimit
+            const clickLimit = clickLimitForUpsell
+            const upsell = clicksUpsell
+            const colorClass = upsell
+              ? quotaBadgeClass(upsell.level)
+              : "bg-[#F5F5F5] text-[#0F0F0F]"
+            const title = upsell
+              ? upsell.fullMessage
+              : `${effectiveMonthlyClicks}/${clickLimit} campagnes consultables ce mois`
+            const isClickable = !!upsell && upsell.ctaPlan !== null
+            const Wrapper: any = isClickable ? Link : "div"
+            const wrapperProps = isClickable ? { href: upsell!.ctaHref } : {}
+            // Barre de progression : niveau & pourcentage (fallback "safe" si pas d'upsell)
+            const level = upsell?.level ?? levelFromUsage(effectiveMonthlyClicks, clickLimit)
+            const pct = Math.min(100, Math.max(0, (effectiveMonthlyClicks / Math.max(1, clickLimit)) * 100))
+            const fillClass = quotaProgressFillClass(level)
             return (
-              <div
-                className={`hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 text-xs font-semibold ${
-                  clicksReached
-                    ? "bg-red-100 text-red-700"
-                    : "bg-[#F5F5F5] text-[#0F0F0F]"
-                }`}
-                title={
-                  clicksReached
-                    ? `Limite atteinte : ${effectiveMonthlyClicks}/${clickLimit} campagnes consultées ce mois`
-                    : `${effectiveMonthlyClicks}/${clickLimit} campagnes consultables ce mois`
-                }
+              <Wrapper
+                {...wrapperProps}
+                className={`relative hidden md:flex items-center gap-1.5 rounded-full pl-3 pr-3 pt-1 pb-2 text-xs font-semibold overflow-hidden transition-all ${colorClass} ${isClickable ? "cursor-pointer hover:scale-105 hover:shadow-sm" : ""}`}
+                title={title}
               >
                 <MousePointer className="h-3.5 w-3.5" />
-                {effectiveMonthlyClicks}/{clickLimit} ce mois
-              </div>
+                <span>{effectiveMonthlyClicks}/{clickLimit} ce mois</span>
+                {upsell && upsell.level !== "safe" && (
+                  <ArrowRight className="h-3 w-3 opacity-70" />
+                )}
+                {/* Barre de progression intégrée */}
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute bottom-0 left-0 h-1 bg-black/5 w-full"
+                />
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none absolute bottom-0 left-0 h-1 ${fillClass} transition-[width] duration-500`}
+                  style={{ width: `${pct}%` }}
+                />
+              </Wrapper>
             )
           })()}
-          {/* Compteur d'usage du jour (Pro/Agency payant) */}
-          {profileReady && !effectiveIsFreeUser && isPremium && effectiveMonthlyExplored > 0 && (
+          {/* Compteur d'usage mensuel (Pro/Basic payant) */}
+          {profileReady && !effectiveIsFreeUser && isPremium && (
             <div className="hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 bg-[#10B981]/10 text-[#10B981] text-xs font-semibold">
               <Sparkles className="h-3.5 w-3.5" />
-              {effectiveMonthlyExplored} explorée{effectiveMonthlyExplored > 1 ? 's' : ''} ce jour
-            </div>
-          )}
-          {profileReady && !effectiveIsFreeUser && isPremium && effectiveMonthlyExplored === 0 && (
-            <div className="hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 bg-[#10B981]/10 text-[#10B981] text-xs font-semibold">
-              <Sparkles className="h-3.5 w-3.5" />
-              0 explorée ce jour
+              {effectiveMonthlyExplored} explorée{effectiveMonthlyExplored > 1 ? 's' : ''} ce mois
             </div>
           )}
 
-          {/* Quota mensuel partage recherches+filtres — caché pour Pro */}
-          {showQuotaBadges && (
-            <div
-              className={`hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 text-xs font-semibold ${
-                sharedSearchReached
-                  ? "bg-red-100 text-red-700"
-                  : "bg-[#F2B33D]/10 text-[#0F0F0F]"
-              }`}
-              title={
-                sharedSearchReached
-                  ? `Limite atteinte : ${sharedSearchUsed}/${searchLimit} recherches ou filtres ce mois`
-                  : `${sharedSearchUsed}/${searchLimit} recherches ou filtres ce mois`
-              }
-            >
-              <Search className="h-3.5 w-3.5" />
-              {sharedSearchUsed}/{searchLimit} rech. ou filtres
-            </div>
-          )}
+          {/* Quota mensuel partage recherches+filtres — upsell progressif 70/90/100% (caché pour Pro) */}
+          {showQuotaBadges && (() => {
+            const upsell = searchUpsell
+            const colorClass = upsell
+              ? quotaBadgeClass(upsell.level)
+              : sharedSearchReached
+                ? "bg-red-100 text-red-700"
+                : "bg-[#F2B33D]/10 text-[#0F0F0F]"
+            const title = upsell
+              ? upsell.fullMessage
+              : sharedSearchReached
+                ? `Limite atteinte : ${sharedSearchUsed}/${searchLimit} recherches ou filtres ce mois`
+                : `${sharedSearchUsed}/${searchLimit} recherches ou filtres ce mois`
+            const isClickable = !!upsell && upsell.ctaPlan !== null
+            const Wrapper: any = isClickable ? Link : "div"
+            const wrapperProps = isClickable ? { href: upsell!.ctaHref } : {}
+            const limitNum = (searchLimit as number) || 0
+            const level = upsell?.level ?? levelFromUsage(sharedSearchUsed, limitNum)
+            const pct = limitNum > 0 ? Math.min(100, Math.max(0, (sharedSearchUsed / limitNum) * 100)) : 0
+            const fillClass = quotaProgressFillClass(level)
+            return (
+              <Wrapper
+                {...wrapperProps}
+                className={`relative hidden md:flex items-center gap-1.5 rounded-full pl-3 pr-3 pt-1 pb-2 text-xs font-semibold overflow-hidden transition-all ${colorClass} ${isClickable ? "cursor-pointer hover:scale-105 hover:shadow-sm" : ""}`}
+                title={title}
+              >
+                <Search className="h-3.5 w-3.5" />
+                <span>{sharedSearchUsed}/{searchLimit} rech. ou filtres</span>
+                {upsell && upsell.level !== "safe" && (
+                  <ArrowRight className="h-3 w-3 opacity-70" />
+                )}
+                {/* Barre de progression intégrée */}
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute bottom-0 left-0 h-1 bg-black/5 w-full"
+                />
+                <span
+                  aria-hidden="true"
+                  className={`pointer-events-none absolute bottom-0 left-0 h-1 ${fillClass} transition-[width] duration-500`}
+                  style={{ width: `${pct}%` }}
+                />
+              </Wrapper>
+            )
+          })()}
           {/* Bouton d'abonnement : durée restante ou incitatif */}
           {profileReady && isPremium && subInfo.active && !subInfo.expiringSoon ? (
-            /* Plan payant actif, pas d'expiration proche → bouton doré */
-            <div className="hidden md:flex">
-              <div className="flex items-center gap-1.5 rounded-full px-3 h-8 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 text-xs font-bold shadow-sm">
-                <Crown className="h-3.5 w-3.5" />
-                {effectivePlan} · {subInfo.label}
-              </div>
-            </div>
+            /* Plan payant actif, pas d'expiration proche → badge plan (Basic = upsell vers Pro, Pro = pas d'upsell) */
+            (() => {
+              const isPro = planKeyLower === "pro"
+              const planLabel = isPro ? "Pro" : "Basic"
+              const pillClass =
+                "group/planpill relative hidden md:inline-flex items-center gap-1.5 rounded-full px-3 h-8 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 text-xs font-bold shadow-sm transition-all"
+              if (isPro) {
+                return (
+                  <div
+                    className={pillClass}
+                    title="Vous êtes au plan maximum"
+                  >
+                    <Crown className="h-3.5 w-3.5" />
+                    {planLabel} · {subInfo.label}
+                  </div>
+                )
+              }
+              return (
+                <Link
+                  href="/subscribe?plan=pro"
+                  className={`${pillClass} cursor-pointer hover:scale-105 hover:shadow-md`}
+                  title="Passer en Pro ↑"
+                  aria-label="Plan Basic actif. Passer en Pro"
+                >
+                  <Crown className="h-3.5 w-3.5 transition-opacity group-hover/planpill:opacity-0" />
+                  <span className="transition-opacity group-hover/planpill:opacity-0">
+                    {planLabel} · {subInfo.label}
+                  </span>
+                  <span className="pointer-events-none absolute inset-0 flex items-center justify-center gap-1.5 opacity-0 transition-opacity group-hover/planpill:opacity-100">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Passer Pro
+                  </span>
+                </Link>
+              )
+            })()
           ) : profileReady && isPremium && subInfo.active && subInfo.expiringSoon ? (
-            /* Premium actif mais expire dans ≤ 7 jours → bouton "Renouveler" */
-            <Link href="/subscribe" className="hidden md:flex">
+            /* Premium actif mais expire dans ≤ 7 jours → bouton "Renouveler" sur le plan courant */
+            <Link href={`/subscribe?plan=${planKeyLower === "pro" ? "pro" : "basic"}`} className="hidden md:flex">
               <Button
                 variant="ghost"
                 size="sm"
@@ -397,8 +513,8 @@ export function DashboardNavbar({
               </Button>
             </Link>
           ) : profileReady && isPremium && subInfo.expired ? (
-            /* Abonnement expiré → bouton rouge "Renouveler" */
-            <Link href="/subscribe" className="hidden md:flex">
+            /* Abonnement expiré → bouton rouge "Renouveler" sur le plan courant */
+            <Link href={`/subscribe?plan=${planKeyLower === "pro" ? "pro" : "basic"}`} className="hidden md:flex">
               <Button
                 variant="ghost"
                 size="sm"
@@ -409,24 +525,42 @@ export function DashboardNavbar({
               </Button>
             </Link>
           ) : profileReady ? (
-            /* Pas de plan payant → bouton Tarifs */
-            <Link href="/pricing" className="hidden md:flex">
-              <Button
-                size="sm"
-                className="gap-1.5 text-xs font-semibold rounded-full px-3 h-8 bg-[#F2B33D] text-black hover:bg-[#F2B33D]/90"
-              >
+            /* Plan Découverte (Free) → badge "Découverte" cliquable avec upsell vers Basic */
+            <Link
+              href="/subscribe?plan=basic"
+              className="group/planpill relative hidden md:inline-flex items-center gap-1.5 rounded-full px-3 h-8 bg-gradient-to-r from-amber-400 to-yellow-400 text-amber-900 text-xs font-bold shadow-sm transition-all cursor-pointer hover:scale-105 hover:shadow-md"
+              title="Passer en Basic ↑"
+              aria-label="Plan Découverte actif. Passer en Basic"
+            >
+              <Sparkles className="h-3.5 w-3.5 transition-opacity group-hover/planpill:opacity-0" />
+              <span className="transition-opacity group-hover/planpill:opacity-0">
+                Découverte
+              </span>
+              <span className="pointer-events-none absolute inset-0 flex items-center justify-center gap-1.5 opacity-0 transition-opacity group-hover/planpill:opacity-100">
                 <Sparkles className="h-3.5 w-3.5" />
-                Tarifs
-              </Button>
+                Passer Basic
+              </span>
             </Link>
           ) : null}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F2B33D] text-sm font-medium text-white">
-                  {initials}
-                </div>
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={avatarUrl}
+                    alt={userName || "avatar"}
+                    className="h-8 w-8 rounded-full object-cover"
+                  />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src="/icons/default-avatar.svg"
+                    alt={userName || "avatar"}
+                    className="h-8 w-8 rounded-full bg-[#F5F5F5]"
+                  />
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 bg-white border-[#F5F5F5]">
@@ -434,11 +568,7 @@ export function DashboardNavbar({
                 <p className="text-sm font-medium text-[#0F0F0F]">{userName || "Utilisateur"}</p>
                 <p className="text-xs text-[#0F0F0F]/60">{userEmail}</p>
                 <div className="mt-2 flex items-center gap-1.5">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    isPremium
-                      ? "bg-[#F2B33D]/10 text-[#F2B33D]"
-                      : "bg-[#10B981]/10 text-[#10B981]"
-                  }`}>
+                  <span className={`rounded-full px-3 py-1 text-sm font-medium border transition-all ${planDropdownBadgeClass}`}>
                     {effectivePlan || "Découverte"}
                   </span>
                 </div>
@@ -446,33 +576,35 @@ export function DashboardNavbar({
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/profile" className="flex items-center gap-2 text-[#0F0F0F]">
-                  <User className="h-4 w-4" />
+                  <img src="/icons/Profil.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
                   Profil
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/subscribe" className="flex items-center gap-2 text-[#0F0F0F]">
-                  <CreditCard className="h-4 w-4" />
+                  <img src="/icons/Tarifs.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
                   Abonnement
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/favorites" className="flex items-center gap-2 text-[#0F0F0F]">
-                  <Heart className="h-4 w-4" />
-                  Mes Favoris
                 </Link>
               </DropdownMenuItem>
               {isPremium && (
                 <DropdownMenuItem asChild>
+                  <Link href="/favorites" className="flex items-center gap-2 text-[#0F0F0F]">
+                    <img src="/icons/Favoris.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
+                    Mes Favoris
+                  </Link>
+                </DropdownMenuItem>
+              )}
+              {isPremium && (
+                <DropdownMenuItem asChild>
                   <Link href="/favorites?tab=collections" className="flex items-center gap-2 text-[#0F0F0F]">
-                    <FolderOpen className="h-4 w-4" />
+                    <img src="/icons/Collections.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
                     Collections
                   </Link>
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/brand-requests" className="flex items-center gap-2 text-[#0F0F0F]">
-                  <Building2 className="h-4 w-4" />
+                  <img src="/icons/Veille.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
                   Veille concurrentielle
                 </Link>
               </DropdownMenuItem>
@@ -486,7 +618,7 @@ export function DashboardNavbar({
               <DropdownMenuItem
                 onClick={async () => {
                   await signOut()
-                  window.location.href = "/login"
+                  window.location.href = "/"
                 }}
                 className="flex items-center gap-2 text-red-600 cursor-pointer"
               >
@@ -525,13 +657,13 @@ export function DashboardNavbar({
               className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F] transition-colors hover:bg-[#F5F5F5]/50 flex items-center gap-1.5"
               onClick={() => setIsOpen(false)}
             >
-              <Image
-                src="/icon_bibliotheque.png"
-                alt="Icône bibliothèque"
-                width={16}
-                height={16}
+              <img
+                src="/icons/Bibliotheque.svg"
+                alt=""
+                width="16"
+                height="16"
                 className="h-4 w-4"
-              />
+               loading="eager" />
               Bibliothèque
             </Link>
             <Link
@@ -539,24 +671,26 @@ export function DashboardNavbar({
               className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1.5"
               onClick={() => setIsOpen(false)}
             >
-              <Sparkles className="h-4 w-4 text-[#F2B33D]" />
+              <img src="/icons/Temps_forts.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
               Temps forts
             </Link>
-            <Link
-              href="/favorites"
-              className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1.5"
-              onClick={() => setIsOpen(false)}
-            >
-              <Heart className="h-4 w-4 text-red-500" />
-              Mes Favoris
-            </Link>
+            {isPremium && (
+              <Link
+                href="/favorites"
+                className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1.5"
+                onClick={() => setIsOpen(false)}
+              >
+                <img src="/icons/Favoris.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
+                Mes Favoris
+              </Link>
+            )}
             {isPremium && (
               <Link
                 href="/favorites?tab=collections"
                 className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1.5"
                 onClick={() => setIsOpen(false)}
               >
-                <FolderOpen className="h-4 w-4 text-[#F2B33D]" />
+                <img src="/icons/Collections.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
                 Collections
               </Link>
             )}
@@ -609,7 +743,7 @@ export function DashboardNavbar({
                 onClick={async () => {
                   setIsOpen(false)
                   await signOut()
-                  window.location.href = "/login"
+                  window.location.href = "/"
                 }}
                 className="w-full rounded-md px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 flex items-center gap-2"
               >

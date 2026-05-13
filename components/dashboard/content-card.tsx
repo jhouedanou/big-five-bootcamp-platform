@@ -77,11 +77,11 @@ function formatDateFr(dateString: string): string {
 
 export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBlocked }: ContentCardProps) {
   const platform = platformConfig[content.platform] || { bg: "bg-gray-500", icon: <span className="text-xs font-bold text-white">?</span> }
-  const sectorColor = "bg-[#F5F5F5]/60 text-[#0F0F0F]/80 font-medium"
+  const sectorColor = "text-[#FFFFFF] bg-[#F2B33D] font-medium text-shadow-lg"
   const isPremium = content.accessLevel === 'premium'
   const { isAdmin } = useAuth()
   const { userPlan } = useAuthContext()
-  // Verrou Premium : seuls les abonnés Pro (ou admins) peuvent ouvrir une campagne premium.
+  // Verrou Premium : seuls les abonnés Basic ou Pro (ou admins) peuvent ouvrir une campagne premium.
   // Free et Basic voient l'image floutée et la navigation est bloquée côté carte.
   const isPremiumLocked = isPremium && !isAdmin && !canAccessPremiumContent(userPlan)
   const { isFavorite, toggleFavorite, isAuthenticated, loading: favLoading } = useFavorites()
@@ -276,8 +276,8 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/95 shadow-xl">
                 <Lock className="h-5 w-5 text-amber-600" />
               </div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-white drop-shadow-md">
-                Réservé aux abonnés
+              <span className="block display-flex items-center justify-center p-[1em] text-center text-[11px] font-bold uppercase tracking-wider text-white drop-shadow-md">
+                  Campagne premium - Abonnement basic ou pro requis
               </span>
             </div>
           )}

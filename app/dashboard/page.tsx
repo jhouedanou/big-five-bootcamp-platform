@@ -11,6 +11,7 @@ import type { DynamicFilterOptions } from "@/components/dashboard/filters-sideba
 import { ContentCard, ContentItem } from "@/components/dashboard/content-card"
 import { ContentGridSkeleton } from "@/components/dashboard/content-card-skeleton"
 import { UpgradePopup, useUpgradePopup } from "@/components/upgrade-popup"
+import { BasicToProBanner } from "@/components/basic-to-pro-banner"
 import { createClient } from "@/lib/supabase"
 import { useAuthContext } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
@@ -538,7 +539,12 @@ export default function DashboardPage() {
         const res = await fetch('/api/track-search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filterId: 'Recherche' }),
+          body: JSON.stringify({
+            filterId: 'Recherche',
+            query: q,
+            filters: selectedFilters,
+            source: 'bar',
+          }),
         })
         if (res.status === 403) {
           try {
@@ -801,8 +807,8 @@ export default function DashboardPage() {
   )
 
   const handleContentClick = useCallback(async (_content: ContentItem): Promise<boolean> => {
-    // Gate Premium : les campagnes "premium" sont réservées aux abonnés Pro.
-    // Les comptes Free et Basic doivent passer au Pro pour y accéder.
+    // Gate Premium : les campagnes "premium" sont réservées aux abonnés Basic ou Pro.
+    // Les comptes Découverte (Free) doivent passer en Basic ou Pro pour y accéder.
     if (_content.accessLevel === 'premium' && !canAccessPremiumContent(userPlan)) {
       showUpgrade("premium")
       return false
@@ -913,7 +919,12 @@ export default function DashboardPage() {
         const res = await fetch('/api/track-search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filterId: category }),
+          body: JSON.stringify({
+            filterId: category,
+            query: searchQuery,
+            filters: filters,
+            source: 'filter',
+          }),
         })
         if (res.status === 403) {
           try {
@@ -969,6 +980,25 @@ export default function DashboardPage() {
         <TempsFortsPopup />
 
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+
+          {/* Upsell Basic → Pro : utilisateur Basic à fort usage de recherches */}
+          {(() => {
+            const isBasicTier = userPlan === 'Basic' && searchQuota.limit !== null && searchQuota.limit !== Infinity
+            if (!isBasicTier) return null
+            const used = searchQuota.counts['_shared'] || 0
+            const limit = searchQuota.limit as number
+            const pct = limit > 0 ? (used / limit) * 100 : 0
+            if (pct < 70) return null
+            return (
+              <div className="mb-6">
+                <BasicToProBanner
+                  trigger="searches-heavy"
+                  usagePercent={pct}
+                  dismissKey="basic-searches-heavy"
+                />
+              </div>
+            )
+          })()}
 
           {/* Banniere contextuelle — suivi de marque active via ?brand= */}
           {brandFilter && (

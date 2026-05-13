@@ -28,12 +28,48 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [stats, setStats] = useState({ users: 0, campaigns: 0, brands: 0, countries: 0 })
+  const [featuredCampaigns, setFeaturedCampaigns] = useState<Array<{
+    id: string
+    title?: string
+    brand?: string
+    thumbnail?: string
+    imageUrl?: string
+  }>>([])
+
+  // Si la session est déjà active, on redirige immédiatement vers la destination
+  // — évite de rester "bloqué" sur /login?redirect=/dashboard après une déconnexion
+  // partielle (cookie SSR encore valide).
+  useEffect(() => {
+    let cancelled = false
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!cancelled && user) {
+        window.location.href = redirectTo
+      }
+    })
+    return () => { cancelled = true }
+  }, [redirectTo])
 
   useEffect(() => {
     fetch("/api/stats")
       .then((res) => res.json())
       .then((data) => setStats(data))
       .catch(() => setStats({ users: 0, campaigns: 0, brands: 0, countries: 0 }))
+  }, [])
+
+  // Récupère 3 campagnes aléatoires depuis /api/contents pour la colonne droite
+  useEffect(() => {
+    let cancelled = false
+    fetch("/api/contents?limit=24&page=1")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.contents) return
+        const list: any[] = data.contents
+        const shuffled = [...list].sort(() => Math.random() - 0.5)
+        setFeaturedCampaigns(shuffled.slice(0, 3))
+      })
+      .catch(() => { /* silencieux : fallback gradient */ })
+    return () => { cancelled = true }
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -202,15 +238,42 @@ export default function LoginPage() {
                 Des milliers de campagnes social media pour inspirer vos prochaines créations.
               </p>
               <div className="mt-10 grid grid-cols-3 gap-4">
-                {[
-                  { gradient: "from-[#FFCC00] to-[#FF9500]" },
-                  { gradient: "from-[#F2B33D] to-[#0F0F0F]" },
-                  { gradient: "from-[#1DA1F2] to-[#0D8ECF]" },
-                ].map((item, i) => (
-                  <div key={i} className="aspect-square overflow-hidden rounded-xl bg-white/80 border border-[#F5F5F5] shadow-lg hover-lift">
-                    <div className={`h-full w-full bg-gradient-to-br ${item.gradient} opacity-80`} />
-                  </div>
-                ))}
+                {[0, 1, 2].map((i) => {
+                  const campaign = featuredCampaigns[i]
+                  const fallbackGradients = [
+                    "from-[#FFCC00] to-[#FF9500]",
+                    "from-[#F2B33D] to-[#0F0F0F]",
+                    "from-[#1DA1F2] to-[#0D8ECF]",
+                  ]
+                  const img = campaign?.thumbnail || campaign?.imageUrl
+                  return (
+                    <Link
+                      key={campaign?.id || i}
+                      href={campaign?.id ? `/content/${campaign.id}` : "/dashboard"}
+                      className="aspect-square overflow-hidden rounded-xl bg-white/80 border border-[#F5F5F5] shadow-lg hover-lift relative group"
+                      title={campaign?.title || ""}
+                    >
+                      {img ? (
+                        <>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={img}
+                            alt={campaign?.title || "Campagne"}
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            loading="lazy"
+                          />
+                          {campaign?.brand && (
+                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-2">
+                              <p className="text-[10px] font-semibold text-white truncate">{campaign.brand}</p>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className={`h-full w-full bg-gradient-to-br ${fallbackGradients[i]} opacity-80`} />
+                      )}
+                    </Link>
+                  )
+                })}
               </div>
 
               {/* Stats */}

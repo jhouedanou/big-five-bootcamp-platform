@@ -11,7 +11,7 @@
  * - plan        : "basic" | "pro"
  * - billing     : "monthly" | "annual"
  * - phoneNumber : MSISDN du client (ex. "2250707123456")
- * - provider    : Code provider PawaPay (ex. "ORANGE_CIV", "WAVE_CIV", "MTN_MOMO_CIV")
+ * - provider    : Code provider PawaPay (ex. "ORANGE_CIV", "MTN_MOMO_CIV", "MOOV_CIV" — Wave non supporté)
  * - currency?   : Devise (defaut "XOF")
  */
 
@@ -38,6 +38,22 @@ const PLAN_PRICES: Record<string, { price: number; annualPrice: number; label: s
 
 const SUBSCRIPTION_DURATION_DAYS = 30;
 const ANNUAL_SUBSCRIPTION_DURATION_DAYS = 365;
+
+/**
+ * Rang d'un plan pour interdire les downgrades quand l'abonnement
+ * est encore actif. Free < Découverte < Basic < Pro.
+ */
+const PLAN_RANK: Record<string, number> = {
+  free: 0,
+  discovery: 1,
+  basic: 2,
+  pro: 3,
+};
+
+function planRank(dbKeyOrSlug: string | null | undefined): number {
+  if (!dbKeyOrSlug) return 0;
+  return PLAN_RANK[String(dbKeyOrSlug).toLowerCase()] ?? 0;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -101,6 +117,22 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
+
+      // Empêcher l'utilisation concurrente : refuser si un paiement
+      // est déjà en attente (pending/processing) avec le même code.
+      const { data: pendingPayments } = await supabaseAdmin
+        .from('payments')
+        .select('id, status, created_at')
+        .eq('promo_code', normalizedPromo)
+        .in('status', ['pending', 'processing']);
+
+      if (pendingPayments && pendingPayments.length > 0) {
+        return NextResponse.json(
+          { error: 'Ce code est en cours d\'utilisation par un autre paiement. Réessayez dans quelques minutes.' },
+          { status: 409 }
+        );
+      }
+
       promoApplied = { code: normalizedPromo, registrationId: (regRow as any).id };
     }
 
@@ -165,6 +197,24 @@ export async function POST(request: NextRequest) {
     const isCurrentlyActive = (existingUser as any).subscription_status === 'active'
       && currentEndDate
       && currentEndDate > now;
+
+    // ——————————————————————————————————————————————————
+    // Anti-downgrade : si l'abonnement est encore actif,
+    // l'utilisateur ne peut souscrire qu'au même plan (renouvellement)
+    // ou à un plan supérieur (upgrade). Pas de downgrade payant.
+    // ——————————————————————————————————————————————————
+    if (isCurrentlyActive) {
+      const currentRank = planRank((existingUser as any).plan);
+      const targetRank = planRank(planConfig.dbKey);
+      if (targetRank < currentRank) {
+        return NextResponse.json(
+          {
+            error: `Vous êtes déjà abonné à un plan supérieur (${(existingUser as any).plan}). Le downgrade vers ${planConfig.label} n'est pas autorisé tant que votre abonnement actuel est actif (expire le ${currentEndDate!.toLocaleDateString('fr-FR')}).`,
+          },
+          { status: 403 }
+        );
+      }
+    }
 
     const baseDate = isCurrentlyActive ? currentEndDate : now;
     const subscriptionEndDate = new Date(baseDate!);

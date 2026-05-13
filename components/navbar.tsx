@@ -7,9 +7,60 @@ import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { createClient } from "@/lib/supabase"
 
+type PlanLabel = "Découverte" | "Basic" | "Pro"
+
+function PlanBadge({ plan }: { plan: string }) {
+  const normalized = (plan || "Free").toLowerCase()
+  const label: PlanLabel =
+    normalized === "pro" ? "Pro" : normalized === "basic" ? "Basic" : "Découverte"
+
+  const isMax = label === "Pro"
+  const nextPlan = label === "Découverte" ? "basic" : "pro"
+  const nextLabel = label === "Découverte" ? "Basic" : "Pro"
+
+  const palette =
+    label === "Pro"
+      ? "bg-[#F2B33D]/15 text-[#8a6418] border-[#F2B33D]/40"
+      : label === "Basic"
+      ? "bg-[#10B981]/12 text-[#0a6b51] border-[#10B981]/40"
+      : "bg-[#0F0F0F]/8 text-[#0F0F0F]/80 border-[#0F0F0F]/15"
+
+  const baseClass = `inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${palette}`
+
+  if (isMax) {
+    return (
+      <span
+        className={baseClass}
+        aria-label="Votre plan actuel"
+        title="Vous êtes au plan maximum"
+      >
+        {label}
+      </span>
+    )
+  }
+
+  return (
+    <Link
+      href={`/subscribe?plan=${nextPlan}`}
+      aria-label={`Plan actuel ${label}. Passer en ${nextLabel}`}
+      title={`Passer en ${nextLabel} ↑`}
+      className={`${baseClass} group/badge relative cursor-pointer transition-all hover:scale-105 hover:shadow-sm`}
+    >
+      <span className="transition-opacity group-hover/badge:opacity-0">{label}</span>
+      <span className="pointer-events-none absolute inset-0 flex items-center justify-center gap-1 opacity-0 transition-opacity group-hover/badge:opacity-100">
+        Passer {nextLabel}
+        <ArrowRight className="h-3 w-3" />
+      </span>
+    </Link>
+  )
+}
+
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState<string>("")
+  const [userName, setUserName] = useState<string>("")
+  const [userPlan, setUserPlan] = useState<string>("Free")
   const [logoUrl, setLogoUrl] = useState("/niggaz/normalGlogo.png")
   const initialCheckDone = useRef(false)
 
@@ -26,9 +77,27 @@ export function Navbar() {
         if (data?.value) setLogoUrl(data.value)
       })
 
+    const loadProfile = async (userId: string, fallbackName: string, fallbackAvatar: string) => {
+      const { data } = await supabase
+        .from("users")
+        .select("avatar_url, full_name, name, plan")
+        .eq("id", userId)
+        .single()
+      setAvatarUrl(data?.avatar_url || fallbackAvatar || "")
+      setUserName(data?.full_name || data?.name || fallbackName || "")
+      setUserPlan((data?.plan as string) || "Free")
+    }
+
     // Vérifier l'utilisateur via getUser() (valide le token côté serveur)
     supabase.auth.getUser().then(({ data: { user } }) => {
       setIsAuthenticated(!!user)
+      if (user) {
+        loadProfile(
+          user.id,
+          user.user_metadata?.name || user.email?.split("@")[0] || "",
+          user.user_metadata?.avatar_url || ""
+        )
+      }
       initialCheckDone.current = true
     })
 
@@ -38,10 +107,23 @@ export function Navbar() {
     } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
       if (!initialCheckDone.current) return
       setIsAuthenticated(!!session?.user)
+      if (session?.user) {
+        loadProfile(
+          session.user.id,
+          session.user.user_metadata?.name || session.user.email?.split("@")[0] || "",
+          session.user.user_metadata?.avatar_url || ""
+        )
+      } else {
+        setAvatarUrl("")
+        setUserName("")
+        setUserPlan("Free")
+      }
     })
 
     return () => subscription.unsubscribe()
   }, [])
+
+  const initials = userName ? userName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "?"
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#F5F5F5] bg-white/95 backdrop-blur-xl">
@@ -124,12 +206,28 @@ export function Navbar() {
 
         <div className="hidden items-center gap-3 md:flex">
           {isAuthenticated ? (
-            <Button asChild className="font-semibold shadow-lg shadow-[#F2B33D]/25 transition-all duration-300 hover:shadow-xl hover:shadow-[#F2B33D]/30 hover:scale-105 bg-[#F2B33D] hover:bg-[#F2B33D]/90">
-              <Link href="/dashboard">
-                Mon espace
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+            <>
+              <PlanBadge plan={userPlan} />
+              <Link
+                href="/profile"
+                aria-label="Mon profil"
+                className="flex h-9 w-9 items-center justify-center rounded-full overflow-hidden border-2 border-[#F2B33D]/40 hover:border-[#F2B33D] transition-colors"
+              >
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarUrl} alt={userName || "avatar"} className="h-full w-full object-cover" />
+                ) : (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src="/icons/default-avatar.svg" alt={userName || "avatar"} className="h-full w-full bg-[#F5F5F5]" />
+                )}
               </Link>
-            </Button>
+              <Button asChild className="font-semibold shadow-lg shadow-[#F2B33D]/25 transition-all duration-300 hover:shadow-xl hover:shadow-[#F2B33D]/30 hover:scale-105 bg-[#F2B33D] hover:bg-[#F2B33D]/90">
+                <Link href="/dashboard">
+                  Mon espace
+                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Link>
+              </Button>
+            </>
           ) : (
             <>
               <Button variant="ghost" asChild className="font-medium text-[#0F0F0F] hover:bg-[#F5F5F5]/50">
@@ -158,6 +256,9 @@ export function Navbar() {
           <nav className="flex flex-col gap-1 px-4 py-4">
             {isAuthenticated && (
               <>
+                <div className="px-4 py-2">
+                  <PlanBadge plan={userPlan} />
+                </div>
                 <Link
                   href="/library"
                   className="rounded-xl px-4 py-3 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] hover:translate-x-1 flex items-center gap-2"

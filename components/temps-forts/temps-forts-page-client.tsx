@@ -6,6 +6,8 @@ import Link from "next/link"
 import { Calendar, ChevronRight, Filter, RotateCcw, Sparkles, X } from "lucide-react"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { Button } from "@/components/ui/button"
+import { BasicToProBanner } from "@/components/basic-to-pro-banner"
+import { useAuthContext } from "@/components/auth-provider"
 import { getTempsFortStatus, getTodayISO } from "@/lib/temps-forts"
 import type { TempsFort } from "@/types/temps-fort"
 import { useTempsForts } from "./use-temps-forts"
@@ -17,6 +19,7 @@ type TagOption = {
 
 export function TempsFortsPageClient() {
   const { tempsForts, loading } = useTempsForts()
+  const { userPlan } = useAuthContext()
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [showMobileFilters, setShowMobileFilters] = useState(false)
@@ -135,6 +138,15 @@ export function TempsFortsPageClient() {
           )}
 
           <main className="min-w-0 flex-1">
+            {userPlan === 'Basic' && (
+              <div className="mb-6">
+                <BasicToProBanner
+                  trigger="temps-forts"
+                  customMessage="Pro vous donne accès à l'analyse stratégique détaillée de chaque temps fort, les enseignements à retenir et l'export PDF."
+                  dismissKey="temps-forts-basic-upsell"
+                />
+              </div>
+            )}
             <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div>
                 <h1 className="font-[family-name:var(--font-heading)] text-4xl font-extrabold tracking-tight text-[#0F0F0F]">

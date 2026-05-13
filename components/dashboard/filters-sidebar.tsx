@@ -109,12 +109,6 @@ export function FiltersSidebar({
         : [],
       hasIcons: true,
     },
-    {
-      name: "Année",
-      options: dynamicOptions?.years?.length
-        ? dynamicOptions.years.sort((a, b) => b - a).map(String)
-        : [],
-    },
   // Filtrer les groupes sans options (ne pas afficher les catégories vides)
   ].filter(group => group.options.length > 0)
 
@@ -178,11 +172,6 @@ export function FiltersSidebar({
         <div className="space-y-2">
           {filterGroups.map((group) => {
             const isLocked = group.locked && LOCKED_FILTER_NAMES.includes(group.name)
-            // Quota partage mensuel : on affiche le compteur global (_shared) pour chaque groupe
-            const quotaUsed = searchQuota?.counts?.['_shared'] ?? 0
-            const quotaLimit = searchQuota?.limit ?? null
-            const showQuota = !isLocked && quotaLimit !== null
-            const quotaReached = showQuota && quotaUsed >= quotaLimit
             return (
               <div
                 key={group.name}
@@ -218,22 +207,6 @@ export function FiltersSidebar({
                     <span className="text-sm font-medium text-[#0F0F0F]/50">
                       ({group.options.length})
                     </span>
-                    {showQuota && (
-                      <span
-                        className={`text-[11px] font-semibold rounded-full px-2 py-0.5 ${
-                          quotaReached
-                            ? "bg-red-100 text-red-600"
-                            : "bg-[#F5F5F5] text-[#0F0F0F]/70"
-                        }`}
-                        title={
-                          quotaReached
-                            ? `Limite atteinte : ${quotaUsed}/${quotaLimit} recherches ou filtres ce mois`
-                            : `${quotaUsed}/${quotaLimit} recherches ou filtres utilisés ce mois`
-                        }
-                      >
-                        {quotaUsed}/{quotaLimit}
-                      </span>
-                    )}
                   </span>
                   {isLocked ? (
                     <span className="text-xs font-medium text-[#FFFFFF] bg-[#F2B33D] px-2 py-0.5 rounded-full">

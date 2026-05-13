@@ -117,14 +117,13 @@
           "Filtres basiques",
           "10 campagnes consultables / mois",
           "Alertes email hebdo",
-          "5 recherches ou filtres / mois",
-          "Veille concurrentielle personnalisée — Sur devis"
+          "5 recherches ou filtres / mois"
         ],
         "excluded": [
           "Favoris",
           "Collections personnalisées",
           "Téléchargement de visuels",
-          "Sessions expert Big Five Décrypté"
+          "Sessions expert #BigFiveDécrypte"
         ]
       },
       {
@@ -136,9 +135,9 @@
         "cta": "Choisir Basic",
         "ctaLink": "/subscribe?plan=basic",
         "ctaVariant": "default",
-        "highlighted": false,
-        "badge": null,
-        "color": "#0F0F0F",
+        "highlighted": true,
+        "badge": "Populaire",
+        "color": "#10B981",
         "features": [
           "Accès illimité à la bibliothèque",
           "Filtres avancés (Secteur, Pays...)",
@@ -147,11 +146,10 @@
           "Collections personnalisées",
           "Téléchargement de visuels",
           "Alertes email hebdo",
-          "30 recherches ou filtres / mois",
-          "Veille concurrentielle personnalisée — Sur devis"
+          "30 recherches ou filtres / mois"
         ],
         "excluded": [
-          "Sessions expert Big Five Décrypté"
+          "Sessions expert #BigFiveDécrypte"
         ]
       },
       {
@@ -163,8 +161,8 @@
         "cta": "Choisir Pro",
         "ctaLink": "/subscribe?plan=pro",
         "ctaVariant": "default",
-        "highlighted": true,
-        "badge": "Populaire",
+        "highlighted": false,
+        "badge": null,
         "color": "#F2B33D",
         "features": [
           "Accès illimité à la bibliothèque",
@@ -175,12 +173,11 @@
           "Téléchargement de visuels",
           "Alertes email hebdo",
           "Recherches ou filtres illimités",
-          "Sessions expert Big Five Décrypté",
-          "Veille concurrentielle personnalisée — Sur devis"
+          "Sessions expert #BigFiveDécrypte"
         ],
         "boldFeatures": [
           "Recherches ou filtres illimités",
-          "Sessions expert Big Five Décrypté"
+          "Sessions expert #BigFiveDécrypte"
         ],
         "excluded": []
       }
@@ -199,8 +196,7 @@
         { "name": "Téléchargement de visuels", "free": false, "basic": true, "pro": true },
         { "name": "Alertes email hebdo", "free": true, "basic": true, "pro": true },
         { "name": "Recherches ou filtres / mois", "free": "5 par mois", "basic": "30 par mois", "pro": "Illimité" },
-        { "name": "Veille concurrentielle personnalisée", "free": "Sur devis", "basic": "Sur devis", "pro": "Sur devis" },
-        { "name": "Sessions expert Big Five Décrypté", "free": false, "basic": false, "pro": true }
+        { "name": "Sessions expert #BigFiveDécrypte", "free": false, "basic": false, "pro": true }
       ]
     }
   }

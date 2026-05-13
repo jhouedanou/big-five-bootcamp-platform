@@ -8,7 +8,7 @@
  *   amount: number,            // ex. 100
  *   currency: string,          // ex. "XOF"
  *   phoneNumber: string,       // MSISDN complet, ex. "22507xxxxxxxx"
- *   provider: string,          // ex. "ORANGE_CIV", "WAVE_CIV", "MTN_MOMO_BEN"
+ *   provider: string,          // ex. "ORANGE_CIV", "MTN_MOMO_BEN", "FREE_SEN" (Wave non supporté par PawaPay)
  *   customerMessage?: string,  // max 22 chars, affiché au client
  *   metadata?: {               // stocké dans la table payments
  *     type: "subscription" | "bootcamp",
@@ -112,7 +112,8 @@ export async function POST(request: NextRequest) {
         },
       },
       customerMessage: customerMessage?.slice(0, 22),
-      // Pour les providers avec flow de redirection (WAVE_SEN, WAVE_CIV)
+      // Pour les providers avec flow de redirection éventuel (non utilisé
+      // aujourd'hui — Wave n'est pas supporté par PawaPay).
       successfulUrl:
         successfulUrl || `${PUBLIC_BASE_URL}/payment/success?ref=${depositId}`,
       failedUrl:

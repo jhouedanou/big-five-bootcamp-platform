@@ -104,11 +104,11 @@ export function ConsultationBottomSheet({
 
                 {remainingConsultations <= 1 && (
                   <Link
-                    href="/pricing"
+                    href="/subscribe?plan=basic"
                     onClick={handleClose}
                     className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#F2B33D] px-4 py-2 text-xs font-bold text-white shadow-lg shadow-[#F2B33D]/25 hover:bg-[#F2B33D]/90 transition-colors"
                   >
-                    Passer au plan Pro
+                    Passer en Basic
                     <ArrowRight className="h-3.5 w-3.5" />
                   </Link>
                 )}

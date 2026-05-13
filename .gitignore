@@ -31,3 +31,7 @@ yarn-error.log*
 next-env.d.ts
 nul
 .claude/worktrees/upbeat-murdock/
+
+# RGPD browser verification temp files
+.tmp-chrome-rgpd*
+tmp-chrome-rgpd*

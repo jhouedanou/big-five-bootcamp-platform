@@ -331,7 +331,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase])
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut({ scope: "local" })
+    // scope: "global" → révoque la session côté serveur et supprime les cookies
+    // émet SIGNED_OUT pour tous les onglets. Évite de rester "connecté côté cookie"
+    // après un signOut local, symptôme qui bloquait l'utilisateur sur /login.
+    try {
+      await supabase.auth.signOut({ scope: "global" })
+    } catch {
+      // En cas d'échec réseau, on tente quand même le nettoyage local.
+      try { await supabase.auth.signOut({ scope: "local" }) } catch { /* ignore */ }
+    }
     setUser(null)
     setSession(null)
     setUserProfile(null)

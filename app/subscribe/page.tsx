@@ -17,41 +17,18 @@ import {
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
 import { LegalModal } from "@/components/legal-modal"
 import { getOperatorLogo } from "@/lib/operator-logos"
+import {
+  PAWAPAY_COUNTRIES,
+  PAWAPAY_PROVIDERS,
+  type PawaPayCountryCode,
+} from "@/lib/pawapay-providers"
 
 type PlanChoice = "basic" | "pro" | "discovery"
 
 /** Configuration par pays : indicatif, longueur locale attendue, masque d'affichage. */
-type CountryCode = 'CIV' | 'SEN' | 'BFA' | 'BEN'
+type CountryCode = PawaPayCountryCode
 
-const COUNTRIES: Record<CountryCode, {
-  name: string
-  flag: string
-  dialCode: string // sans le +
-  localLength: number // nombre de chiffres après l'indicatif
-  // groupes pour le masque d'affichage (ex. [2,2,2,2,2] → "XX XX XX XX XX")
-  mask: number[]
-  placeholder: string
-}> = {
-  CIV: { name: "Côte d’Ivoire", flag: "🇨🇮", dialCode: "225", localLength: 10, mask: [2, 2, 2, 2, 2], placeholder: "07 07 12 34 56" },
-  SEN: { name: "Sénégal",      flag: "🇸🇳", dialCode: "221", localLength: 9,  mask: [2, 3, 2, 2],    placeholder: "77 123 45 67" },
-  BFA: { name: "Burkina Faso",  flag: "🇧🇫", dialCode: "226", localLength: 8,  mask: [2, 2, 2, 2],    placeholder: "70 12 34 56" },
-  BEN: { name: "Bénin",         flag: "🇧🇯", dialCode: "229", localLength: 10, mask: [2, 2, 2, 2, 2], placeholder: "01 90 12 34 56" },
-}
-
-/** Providers PawaPay supportés pour l'abonnement. */
-const PAWAPAY_PROVIDERS: { value: string; label: string; country: CountryCode }[] = [
-  { value: 'MTN_MOMO_CIV', label: 'MTN Mobile Money — Côte d’Ivoire',  country: 'CIV' },
-  { value: 'ORANGE_CIV',   label: 'Orange Money — Côte d’Ivoire',       country: 'CIV' },
-  { value: 'MOOV_CIV',     label: 'Moov Money — Côte d’Ivoire',         country: 'CIV' },
-  { value: 'WAVE_CIV',     label: 'Wave — Côte d’Ivoire',               country: 'CIV' },
-  { value: 'WAVE_SEN',     label: 'Wave — Sénégal',                     country: 'SEN' },
-  { value: 'ORANGE_SEN',   label: 'Orange Money — Sénégal',              country: 'SEN' },
-  { value: 'FREE_SEN',     label: 'Free Money — Sénégal',                country: 'SEN' },
-  { value: 'ORANGE_BFA',   label: 'Orange Money — Burkina Faso',         country: 'BFA' },
-  { value: 'MOOV_BFA',     label: 'Moov Money — Burkina Faso',           country: 'BFA' },
-  { value: 'MTN_MOMO_BEN', label: 'MTN Mobile Money — Bénin',           country: 'BEN' },
-  { value: 'MOOV_BEN',     label: 'Moov Money — Bénin',                 country: 'BEN' },
-]
+const COUNTRIES = PAWAPAY_COUNTRIES
 
 /** Formate des chiffres bruts selon un masque (groupes séparés par espaces). */
 function formatPhoneMask(digits: string, mask: number[]): string {
@@ -109,7 +86,7 @@ const PLANS = {
     features: [
       "Tout du plan Basic",
       "Recherches ou filtres illimités",
-      "Sessions expert Big Five Décrypté",
+      "Sessions expert #BigFiveDécrypte",
       "Support prioritaire",
     ],
   },
@@ -169,9 +146,13 @@ export default function SubscribePage() {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push("/login?redirect=/subscribe")
+      // Préserver le plan/billing sélectionnés dans l'URL après login,
+      // sinon l'utilisateur retombe sur le plan par défaut (Pro) au retour.
+      const qs = searchParams.toString()
+      const redirect = qs ? `/subscribe?${qs}` : '/subscribe'
+      router.push(`/login?redirect=${encodeURIComponent(redirect)}`)
     }
-  }, [user, loading, router])
+  }, [user, loading, router, searchParams])
 
   const subscriptionEndDate = userProfile?.subscription_end_date
     ? new Date(userProfile.subscription_end_date)
@@ -187,6 +168,37 @@ export default function SubscribePage() {
     : 0
 
   const currentPlan = PLANS[selectedPlan]
+
+  // Rang des plans pour interdire les downgrades quand l'abonnement
+  // est encore actif. Doit rester aligné avec le check serveur dans
+  // /api/payment/subscribe (PLAN_RANK).
+  const PLAN_RANKS: Record<PlanChoice, number> = {
+    discovery: 1,
+    basic: 2,
+    pro: 3,
+  }
+  const currentPlanKey = (userProfile?.plan || 'Free').toLowerCase()
+  const currentPlanRank: number =
+    currentPlanKey === 'pro' ? 3
+    : currentPlanKey === 'basic' ? 2
+    : currentPlanKey === 'discovery' ? 1
+    : 0
+  /** Un plan est verrouillé si l'abonnement est actif ET de rang strictement supérieur. */
+  const isPlanLocked = (key: PlanChoice) =>
+    !!isActive && PLAN_RANKS[key] < currentPlanRank
+
+  // Si le plan présélectionné via ?plan=... est inférieur au plan actif,
+  // basculer sur le plan actif pour éviter d'afficher une carte "downgrade".
+  useEffect(() => {
+    if (isActive && isPlanLocked(selectedPlan)) {
+      const fallback: PlanChoice =
+        currentPlanRank === 3 ? 'pro'
+        : currentPlanRank === 2 ? 'basic'
+        : 'discovery'
+      setSelectedPlan(fallback)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, currentPlanRank])
 
   /** Valide un code promo auprès de l'API et applique l'offre. */
   const handleApplyPromo = async () => {
@@ -285,6 +297,7 @@ export default function SubscribePage() {
           billing: appliedPromo ? appliedPromo.billing : (isAnnual ? 'annual' : 'monthly'),
           phoneNumber: cleanedPhone,
           provider,
+          currency: countryConfig.currency,
           promoCode: appliedPromo?.code,
         }),
       })
@@ -416,15 +429,25 @@ export default function SubscribePage() {
           {/* Découverte Card */}
           <button
             type="button"
+            disabled={isPlanLocked("discovery")}
             onClick={() => setSelectedPlan("discovery")}
             className={`rounded-xl border-2 p-5 text-left transition-all col-span-2 ${
-              selectedPlan === "discovery"
+              isPlanLocked("discovery")
+                ? "border-[#F5F5F5] bg-[#F5F5F5]/40 opacity-60 cursor-not-allowed"
+                : selectedPlan === "discovery"
                 ? "border-[#0F0F0F] bg-[#0F0F0F]/5 shadow-lg"
                 : "border-[#F5F5F5] bg-white hover:border-[#0F0F0F]/30"
             }`}
           >
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-lg text-[#0F0F0F]">Découverte</h3>
+              <h3 className="font-bold text-lg text-[#0F0F0F]">
+                Découverte
+                {isPlanLocked("discovery") && (
+                  <span className="ml-2 inline-block rounded-full bg-[#0F0F0F]/10 px-2 py-0.5 text-[10px] font-bold text-[#0F0F0F]/60 align-middle">
+                    Downgrade indisponible
+                  </span>
+                )}
+              </h3>
               {selectedPlan === "discovery" && (
                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#0F0F0F]">
                   <Check className="h-3.5 w-3.5 text-white" />
@@ -461,17 +484,23 @@ export default function SubscribePage() {
           {/* Basic Card */}
           <button
             type="button"
+            disabled={isPlanLocked("basic")}
             onClick={() => setSelectedPlan("basic")}
-            className={`rounded-xl border-2 p-5 text-left transition-all ${
-              selectedPlan === "basic"
-                ? "border-[#0F0F0F] bg-[#0F0F0F]/5 shadow-lg"
-                : "border-[#F5F5F5] bg-white hover:border-[#0F0F0F]/30"
+            className={`rounded-xl border-2 p-5 text-left transition-all relative ${
+              isPlanLocked("basic")
+                ? "border-[#F5F5F5] bg-[#F5F5F5]/40 opacity-60 cursor-not-allowed"
+                : selectedPlan === "basic"
+                ? "border-[#10B981] bg-[#10B981]/5 shadow-lg shadow-[#10B981]/10"
+                : "border-[#F5F5F5] bg-white hover:border-[#10B981]/30"
             }`}
           >
+            <div className="absolute -top-3 right-3 bg-[#10B981] text-white px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+              {isPlanLocked("basic") ? "Indisponible" : "Populaire"}
+            </div>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-lg text-[#0F0F0F]">Basic</h3>
+              <h3 className="font-bold text-lg text-[#10B981]">Basic</h3>
               {selectedPlan === "basic" && (
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#0F0F0F]">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[#10B981]">
                   <Check className="h-3.5 w-3.5 text-white" />
                 </div>
               )}
@@ -514,7 +543,7 @@ export default function SubscribePage() {
             }`}
           >
             <div className="absolute -top-3 right-3 bg-[#F2B33D] text-[#0F0F0F] px-2.5 py-0.5 rounded-full text-[10px] font-bold">
-              Recommandé
+              Premium
             </div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-bold text-lg text-[#F2B33D]">Pro</h3>
@@ -546,7 +575,7 @@ export default function SubscribePage() {
               </li>
               <li className="flex items-center gap-2 text-xs text-[#0F0F0F]/70">
                 <Check className="h-3.5 w-3.5 text-[#10B981] shrink-0" />
-                Veille concurrentielle
+                Sessions expert #BigFiveDécrypte
               </li>
             </ul>
           </button>
@@ -816,7 +845,14 @@ export default function SubscribePage() {
               <div className="flex items-center justify-between text-[#10B981]">
                 <span>Économie par rapport au mensuel</span>
                 <span className="font-medium">
-                  {selectedPlan === 'basic' ? '9 800' : '19 800'} XOF
+                  {new Intl.NumberFormat('fr-FR').format(
+                    Math.max(
+                      0,
+                      PLAN_PRICES_MAP[selectedPlan].monthly * 12 -
+                        PLAN_PRICES_MAP[selectedPlan].annual
+                    )
+                  )}{' '}
+                  XOF
                 </span>
               </div>
             )}

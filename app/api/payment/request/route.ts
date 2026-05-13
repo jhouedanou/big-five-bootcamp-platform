@@ -7,7 +7,7 @@
  * - sessionId   : UUID de la session
  * - userEmail   : Email de l'utilisateur
  * - phoneNumber : MSISDN du client (ex. "2250707123456")
- * - provider    : Code provider PawaPay (ex. "ORANGE_CIV", "WAVE_CIV", "MTN_MOMO_CIV")
+ * - provider    : Code provider PawaPay (ex. "ORANGE_CIV", "MTN_MOMO_CIV", "MOOV_CIV" — Wave non supporté)
  * - currency?   : defaut "XOF"
  */
 

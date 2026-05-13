@@ -57,8 +57,20 @@ export async function updateSession(request: NextRequest) {
 
     const pathname = request.nextUrl.pathname
 
+    // Routes accessibles aux visiteurs anonymes même sous /dashboard.
+    // Permet de remplir une demande de veille concurrentielle (ou de souscrire)
+    // sans compte ; la page elle-même demande l'authentification uniquement
+    // au moment de la validation finale (cf. app/dashboard/brand-requests/page.tsx
+    // — gate `authPromptOpen` + brouillon en sessionStorage).
+    const PUBLIC_DASHBOARD_PATHS = [
+        '/dashboard/brand-requests',
+    ]
+    const isPublicDashboardPath = PUBLIC_DASHBOARD_PATHS.some(
+        (p) => pathname === p || pathname.startsWith(`${p}/`)
+    )
+
     // Protected routes - require authentication
-    if (pathname.startsWith('/dashboard') ||
+    if ((pathname.startsWith('/dashboard') && !isPublicDashboardPath) ||
         pathname.startsWith('/favorites') ||
         pathname.startsWith('/profile') ||
         pathname.startsWith('/subscribe')) {

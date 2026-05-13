@@ -379,6 +379,110 @@ function FavoritesPageContent() {
       )
     }
 
+    // Favoris verrouillés pour le plan Découverte — teaser concret + aperçu d'usage
+    if (!isPaid) {
+      const sampleCollections = [
+        { name: "Pitch client BNI Bank", emoji: "💼", count: 7, hue: "from-amber-100 to-orange-100", ring: "ring-amber-200" },
+        { name: "Inspiration packshots", emoji: "📦", count: 12, hue: "from-emerald-100 to-teal-100", ring: "ring-emerald-200" },
+        { name: "Campagnes télécom CI", emoji: "📱", count: 5, hue: "from-indigo-100 to-blue-100", ring: "ring-indigo-200" },
+      ]
+      return (
+        <div className="space-y-6">
+          {/* Bandeau d'incitation */}
+          <div className="rounded-2xl border border-[#F2B33D]/30 bg-gradient-to-br from-[#FFFBEC] via-white to-[#FFF6E5] p-6 md:p-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#F2B33D]/15">
+                  <Heart className="h-6 w-6 text-[#F2B33D]" />
+                </div>
+                <div>
+                  <h3 className="text-lg md:text-xl font-bold text-[#0F0F0F]">
+                    Sauvegardez cette campagne dans une collection client
+                  </h3>
+                  <p className="mt-1.5 text-sm text-[#0F0F0F]/70 max-w-xl">
+                    Créez des collections (pitch client, inspiration packshot, veille télécom…)
+                    pour retrouver vos campagnes en un clic. Disponible avec <strong>Basic ou Pro</strong>.
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                <Link href="/subscribe?plan=basic">
+                  <Button className="w-full sm:w-auto bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-black font-semibold">
+                    <Sparkles className="h-4 w-4 mr-2" />Passer en Basic
+                  </Button>
+                </Link>
+                <Link href="/pricing">
+                  <Button variant="outline" className="w-full sm:w-auto border-[#0F0F0F]/15">
+                    Comparer Basic & Pro
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Aperçu : 3 collections fictives, désactivées */}
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <h4 className="text-sm font-bold text-[#0F0F0F]/70 uppercase tracking-wide">
+                Aperçu — exemples de collections
+              </h4>
+              <span className="text-xs text-[#0F0F0F]/40 inline-flex items-center gap-1">
+                <Lock className="h-3 w-3" /> Verrouillé
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {sampleCollections.map((c) => (
+                <div
+                  key={c.name}
+                  aria-disabled="true"
+                  className={`relative overflow-hidden rounded-2xl border bg-gradient-to-br ${c.hue} ring-1 ${c.ring} p-5 transition-all hover:scale-[1.02] cursor-not-allowed`}
+                >
+                  <div className="absolute top-3 right-3">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/80 backdrop-blur-sm">
+                      <Lock className="h-3.5 w-3.5 text-[#0F0F0F]/60" />
+                    </div>
+                  </div>
+                  <div className="text-3xl mb-3" aria-hidden>{c.emoji}</div>
+                  <div className="font-bold text-[#0F0F0F]">{c.name}</div>
+                  <div className="mt-1 text-xs text-[#0F0F0F]/60">{c.count} campagnes sauvegardées</div>
+                  <div className="mt-4 flex -space-x-2">
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="h-7 w-7 rounded-md bg-white/70 ring-2 ring-white/80 backdrop-blur-sm" />
+                    ))}
+                    <div className="h-7 w-7 rounded-md bg-white/40 ring-2 ring-white/80 flex items-center justify-center text-[10px] font-bold text-[#0F0F0F]/60">
+                      +{Math.max(0, c.count - 3)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Liste des avantages concrets */}
+          <div className="rounded-2xl border border-[#F5F5F5] bg-white p-6">
+            <h4 className="text-sm font-bold text-[#0F0F0F]/80 uppercase tracking-wide mb-4">
+              Ce que vous débloquez
+            </h4>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              {[
+                "Sauvegarde illimitée de campagnes",
+                "Collections nommées par client / projet",
+                "Partage de collections par lien",
+                "Filtres avancés Pays / Secteur / Tags",
+                "Téléchargement des visuels HD",
+                "Accès aux campagnes Premium",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <Check className="h-4 w-4 text-[#10B981] mt-0.5 shrink-0" />
+                  <span className="text-[#0F0F0F]/80">{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )
+    }
+
     if (error) {
       return (
         <div className="flex min-h-[400px] flex-col items-center justify-center rounded-2xl border border-dashed border-red-200 bg-red-50 p-8 text-center">

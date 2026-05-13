@@ -1,17 +1,17 @@
 /**
  * API Route: /api/track-search
  *
- * POST { filterId: string } : incremente le compteur de recherches pour ce filtre.
- *   - Decouverte : 3 / filtre / jour
- *   - Basic      : 15 / filtre / jour
+ * POST { filterId?: string } : incremente le compteur partage recherches+filtres du mois.
+ *   - Decouverte : 5 recherches ou filtres / mois (compteur unique)
+ *   - Basic      : 30 recherches ou filtres / mois
  *   - Pro        : illimite
  *
- * GET : retourne l'etat courant du compteur pour tous les filtres.
+ * GET : retourne l'etat courant du compteur mensuel partage.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase-server'
-import { QUOTAS, resolveTier, todayKey, bumpSearchCount, UNLIMITED } from '@/lib/quotas'
+import { QUOTAS, resolveTier, monthKey, isSameMonth, bumpSharedCount, UNLIMITED } from '@/lib/quotas'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,12 +47,7 @@ export async function POST(request: NextRequest) {
     try {
       body = await request.json()
     } catch {
-      // body optionnel : on refusera en dessous si filterId manquant
-    }
-
-    const filterId = (body.filterId || '').trim()
-    if (!filterId) {
-      return NextResponse.json({ error: 'filterId requis' }, { status: 400 })
+      // body optionnel
     }
 
     const admin = getSupabaseAdmin()
@@ -62,37 +57,38 @@ export async function POST(request: NextRequest) {
     }
 
     const tier = resolveTier(profile.plan, profile.subscription_status)
-    const limit = QUOTAS[tier].dailySearchPerFilter
-    const today = todayKey()
+    const limit = QUOTAS[tier].monthlySearchLimit
+    const currentMonth = monthKey()
 
-    // Reset quotidien
-    const searchCount =
-      profile.daily_search_reset === today ? (profile.daily_search_count || {}) : {}
+    // Reset mensuel
+    const searchData = isSameMonth(profile.daily_search_reset)
+      ? (profile.daily_search_count || {})
+      : {}
 
-    const currentForFilter = searchCount[filterId] || 0
+    const sharedCount = searchData['_shared'] || 0
 
-    if (limit !== UNLIMITED && currentForFilter >= limit) {
+    if (limit !== UNLIMITED && sharedCount >= limit) {
       return NextResponse.json(
         {
           allowed: false,
-          filterId,
-          count: currentForFilter,
+          filterId: body.filterId,
+          count: sharedCount,
           limit,
           remaining: 0,
           tier,
-          message: `Limite de ${limit} recherches atteinte pour ce filtre aujourd'hui.`,
+          message: `Limite de ${limit} recherches ou filtres atteinte ce mois.`,
         },
         { status: 403 }
       )
     }
 
-    const nextCount = bumpSearchCount(searchCount, filterId)
+    const nextData = bumpSharedCount(searchData)
 
     const { error: updateError } = await (admin as any)
       .from('users')
       .update({
-        daily_search_count: nextCount,
-        daily_search_reset: today,
+        daily_search_count: nextData,
+        daily_search_reset: currentMonth,
         updated_at: new Date().toISOString(),
       })
       .eq('id', user.id)
@@ -102,15 +98,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Erreur mise a jour' }, { status: 500 })
     }
 
+    const newCount = nextData['_shared'] || 0
+
     return NextResponse.json({
       allowed: true,
-      filterId,
-      count: nextCount[filterId],
+      filterId: body.filterId,
+      count: newCount,
       limit: limit === UNLIMITED ? null : limit,
-      remaining: limit === UNLIMITED ? null : Math.max(0, limit - nextCount[filterId]),
+      remaining: limit === UNLIMITED ? null : Math.max(0, limit - newCount),
       tier,
-      // Map complete pour que le client puisse afficher tous les compteurs
-      counts: nextCount,
+      counts: nextData,
     })
   } catch (error) {
     console.error('Erreur track-search:', error)
@@ -134,21 +131,25 @@ export async function GET(_request: NextRequest) {
     }
 
     const tier = resolveTier(profile.plan, profile.subscription_status)
-    const limit = QUOTAS[tier].dailySearchPerFilter
-    const today = todayKey()
+    const limit = QUOTAS[tier].monthlySearchLimit
+    const currentMonth = monthKey()
 
     let counts = profile.daily_search_count || {}
-    if (profile.daily_search_reset !== today) {
+    if (!isSameMonth(profile.daily_search_reset)) {
       counts = {}
       await (admin as any)
         .from('users')
-        .update({ daily_search_count: {}, daily_search_reset: today })
+        .update({ daily_search_count: {}, daily_search_reset: currentMonth })
         .eq('id', user.id)
     }
 
+    const sharedCount = counts['_shared'] || 0
+
     return NextResponse.json({
+      count: sharedCount,
       counts,
       limit: limit === UNLIMITED ? null : limit,
+      remaining: limit === UNLIMITED ? null : Math.max(0, limit - sharedCount),
       tier,
     })
   } catch (error) {

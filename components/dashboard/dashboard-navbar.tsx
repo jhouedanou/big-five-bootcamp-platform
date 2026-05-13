@@ -144,18 +144,16 @@ export function DashboardNavbar({
     return () => { cancelled = true; clearInterval(id) }
   }, [profileReady, user, externalSearchQuota])
 
-  // Pic d'utilisation par catégorie : on sépare la barre de recherche ("Recherche")
-  // des filtres latréraux (Pays, Secteur, Format, ...) pour afficher deux pills distinctes.
-  const searchBarUsed = searchQuota?.counts['Recherche'] ?? 0
-  const filtersPeak = searchQuota
-    ? Object.entries(searchQuota.counts)
-        .filter(([k]) => k !== 'Recherche')
-        .reduce((m, [, v]) => Math.max(m, v), 0)
-    : 0
+  // Compteur partage recherches+filtres (cle _shared dans le JSONB mensuel).
+  const sharedSearchUsed = searchQuota?.counts['_shared'] ?? 0
   const searchLimit = searchQuota?.limit ?? null
   const showQuotaBadges = profileReady && !!user && searchLimit !== null
-  const searchBarReached = showQuotaBadges && searchBarUsed >= (searchLimit as number)
-  const filtersReached = showQuotaBadges && filtersPeak >= (searchLimit as number)
+  const sharedSearchReached = showQuotaBadges && sharedSearchUsed >= (searchLimit as number)
+  // Legacy aliases (utilises dans les pills ci-dessous)
+  const searchBarUsed = sharedSearchUsed
+  const searchBarReached = sharedSearchReached
+  const filtersPeak = sharedSearchUsed
+  const filtersReached = sharedSearchReached
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#F5F5F5] bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
@@ -217,15 +215,13 @@ export function DashboardNavbar({
                 Collections
               </Link>
             )}
-            {isPremium && (
-              <Link
-                href="/dashboard/brand-requests"
-                className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1"
-              >
-                <Building2 className="h-3.5 w-3.5" />
-                Marques
-              </Link>
-            )}
+            <Link
+              href="/dashboard/brand-requests"
+              className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1"
+            >
+              <Building2 className="h-3.5 w-3.5" />
+              Veille
+            </Link>
           </nav>
         </div>
 
@@ -325,9 +321,9 @@ export function DashboardNavbar({
             </div>
           )}
 
-          {/* Compteur de clics quotidien (Free) */}
+          {/* Compteur mensuel de consultations (Découverte) */}
           {profileReady && effectiveIsFreeUser && (() => {
-            const clickLimit = monthlyClickLimit || 3
+            const clickLimit = monthlyClickLimit || 10
             const clicksReached = effectiveMonthlyClicks >= clickLimit
             return (
               <div
@@ -338,12 +334,12 @@ export function DashboardNavbar({
                 }`}
                 title={
                   clicksReached
-                    ? `Limite atteinte : ${effectiveMonthlyClicks}/${clickLimit} campagnes consultées aujourd'hui`
-                    : `${effectiveMonthlyClicks}/${clickLimit} campagnes consultées aujourd'hui`
+                    ? `Limite atteinte : ${effectiveMonthlyClicks}/${clickLimit} campagnes consultées ce mois`
+                    : `${effectiveMonthlyClicks}/${clickLimit} campagnes consultables ce mois`
                 }
               >
                 <MousePointer className="h-3.5 w-3.5" />
-                {effectiveMonthlyClicks}/{clickLimit} aujourd'hui
+                {effectiveMonthlyClicks}/{clickLimit} ce mois
               </div>
             )
           })()}
@@ -361,41 +357,22 @@ export function DashboardNavbar({
             </div>
           )}
 
-          {/* Quota "Recherche" (barre de recherche textuelle) — caché pour Pro */}
+          {/* Quota mensuel partage recherches+filtres — caché pour Pro */}
           {showQuotaBadges && (
             <div
               className={`hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 text-xs font-semibold ${
-                searchBarReached
+                sharedSearchReached
                   ? "bg-red-100 text-red-700"
                   : "bg-[#F2B33D]/10 text-[#0F0F0F]"
               }`}
               title={
-                searchBarReached
-                  ? `Limite atteinte : ${searchBarUsed}/${searchLimit} recherches textuelles aujourd'hui`
-                  : `${searchBarUsed}/${searchLimit} recherches textuelles aujourd'hui`
+                sharedSearchReached
+                  ? `Limite atteinte : ${sharedSearchUsed}/${searchLimit} recherches ou filtres ce mois`
+                  : `${sharedSearchUsed}/${searchLimit} recherches ou filtres ce mois`
               }
             >
               <Search className="h-3.5 w-3.5" />
-              {searchBarUsed}/{searchLimit} recherches
-            </div>
-          )}
-
-          {/* Quota "Filtres" (sidebar) — pic sur la catégorie la plus utilisée */}
-          {showQuotaBadges && (
-            <div
-              className={`hidden md:flex items-center gap-1.5 rounded-full px-3 h-8 text-xs font-semibold ${
-                filtersReached
-                  ? "bg-red-100 text-red-700"
-                  : "bg-[#F2B33D]/10 text-[#0F0F0F]"
-              }`}
-              title={
-                filtersReached
-                  ? `Limite atteinte : ${filtersPeak}/${searchLimit} filtres sur une même catégorie aujourd'hui`
-                  : `${filtersPeak}/${searchLimit} filtres utilisés sur la catégorie la plus sollicitée aujourd'hui`
-              }
-            >
-              <SlidersHorizontal className="h-3.5 w-3.5" />
-              {filtersPeak}/{searchLimit} filtres
+              {sharedSearchUsed}/{searchLimit} rech. ou filtres
             </div>
           )}
           {/* Bouton d'abonnement : durée restante ou incitatif */}
@@ -462,7 +439,7 @@ export function DashboardNavbar({
                       ? "bg-[#F2B33D]/10 text-[#F2B33D]"
                       : "bg-[#10B981]/10 text-[#10B981]"
                   }`}>
-                    {effectivePlan || "Gratuit"}
+                    {effectivePlan || "Découverte"}
                   </span>
                 </div>
               </div>
@@ -493,14 +470,12 @@ export function DashboardNavbar({
                   </Link>
                 </DropdownMenuItem>
               )}
-              {isPremium && (
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/brand-requests" className="flex items-center gap-2 text-[#0F0F0F]">
-                    <Building2 className="h-4 w-4" />
-                    Suivi de marques
-                  </Link>
-                </DropdownMenuItem>
-              )}
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/brand-requests" className="flex items-center gap-2 text-[#0F0F0F]">
+                  <Building2 className="h-4 w-4" />
+                  Veille concurrentielle
+                </Link>
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/settings" className="flex items-center gap-2 text-[#0F0F0F]">
                   <Settings className="h-4 w-4" />

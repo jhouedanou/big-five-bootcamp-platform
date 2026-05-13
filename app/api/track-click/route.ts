@@ -1,21 +1,20 @@
 /**
  * API Route: /api/track-click
  *
- * POST : incremente le compteur de consultations du jour.
- *        Bloque les free users a DAILY_CLICK_LIMIT consultations / jour.
+ * POST : incremente le compteur de consultations du mois.
+ *        Bloque les utilisateurs Decouverte a MONTHLY_CLICK_LIMIT consultations / mois.
  * GET  : retourne l'etat courant du compteur (remaining, limit, etc.)
  *
- * Reset automatique a minuit (UTC) via comparaison `daily_click_reset = today`.
+ * Reset automatique au debut de chaque mois (UTC) via comparaison `daily_click_reset = YYYY-MM`.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase-server'
-import { QUOTAS, resolveTier, todayKey, UNLIMITED } from '@/lib/quotas'
+import { QUOTAS, resolveTier, monthKey, isSameMonth, UNLIMITED } from '@/lib/quotas'
 
 export const dynamic = 'force-dynamic'
 
-/** Conserve pour compat avec l'UI existante. */
-const DAILY_CLICK_LIMIT = QUOTAS.free.dailyClickLimit
+const MONTHLY_CLICK_LIMIT = QUOTAS.free.monthlyClickLimit
 
 type UserProfile = {
   id: string
@@ -56,11 +55,11 @@ export async function POST(_request: NextRequest) {
 
     const tier = resolveTier(profile.plan, profile.subscription_status)
     const isFree = tier === 'free'
-    const limit = QUOTAS[tier].dailyClickLimit
-    const today = todayKey()
+    const limit = QUOTAS[tier].monthlyClickLimit
+    const currentMonth = monthKey()
 
     let currentClicks = profile.daily_click_count || 0
-    if (profile.daily_click_reset !== today) {
+    if (!isSameMonth(profile.daily_click_reset)) {
       currentClicks = 0
     }
 
@@ -73,7 +72,7 @@ export async function POST(_request: NextRequest) {
           remaining: 0,
           isFree,
           tier,
-          message: 'Limite quotidienne atteinte',
+          message: 'Limite mensuelle atteinte',
         },
         { status: 403 }
       )
@@ -84,7 +83,7 @@ export async function POST(_request: NextRequest) {
 
     const updateData: Record<string, unknown> = {
       monthly_campaigns_explored: newExplored,
-      daily_click_reset: today,
+      daily_click_reset: currentMonth,
       updated_at: new Date().toISOString(),
     }
     if (isFree) {
@@ -137,15 +136,15 @@ export async function GET(_request: NextRequest) {
 
     const tier = resolveTier(profile.plan, profile.subscription_status)
     const isFree = tier === 'free'
-    const limit = QUOTAS[tier].dailyClickLimit
-    const today = todayKey()
+    const limit = QUOTAS[tier].monthlyClickLimit
+    const currentMonth = monthKey()
 
     let clicks = profile.daily_click_count || 0
-    if (profile.daily_click_reset !== today) {
+    if (!isSameMonth(profile.daily_click_reset)) {
       clicks = 0
       await (admin as any)
         .from('users')
-        .update({ daily_click_count: 0, daily_click_reset: today })
+        .update({ daily_click_count: 0, daily_click_reset: currentMonth })
         .eq('id', user.id)
     }
 
@@ -163,4 +162,4 @@ export async function GET(_request: NextRequest) {
   }
 }
 
-export { DAILY_CLICK_LIMIT }
+export { MONTHLY_CLICK_LIMIT }

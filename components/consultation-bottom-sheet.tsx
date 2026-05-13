@@ -78,13 +78,13 @@ export function ConsultationBottomSheet({
                       <span className="font-bold text-[#F2B33D]">
                         {remainingConsultations} consultation{remainingConsultations > 1 ? "s" : ""}
                       </span>{" "}
-                      gratuite{remainingConsultations > 1 ? "s" : ""} .
+                      ce mois.
                     </>
                   ) : (
                     <>
-                      Vous avez utilisé vos{" "}
+                      Vous avez atteint votre limite de{" "}
                       <span className="font-bold text-[#F2B33D]">{totalLimit} consultations</span>{" "}
-                      gratuites.
+                      ce mois.
                     </>
                   )}
                 </p>

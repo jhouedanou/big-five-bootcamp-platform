@@ -665,7 +665,7 @@ export default function BrandRequestsPage() {
                 <Building2 className="h-5 w-5 text-white" />
               </div>
               <h1 className="text-3xl font-bold tracking-tight text-[#0F0F0F]">
-                Suivi de marques
+                Veille concurrentielle
               </h1>
             </div>
             <p className="text-[#0F0F0F]/60">

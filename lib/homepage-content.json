@@ -2,9 +2,9 @@
   "hero": {
     "badge": "La plus grande bibliothèque créative africaine",
     "title": {
-      "line1": "L'inspiration",
-      "highlight": " créative ",
-      "line3": "sans limites."
+      "line1": "Observez,",
+      "highlight": "analysez",
+      "line3": "et créez."
     },
     "subtitle": "Accédez à la plus grande bibliothèque de campagnes marketing réelles en Afrique. Analysez, benchmarkez et créez des concepts gagnants en quelques minutes.",
     "cta": {
@@ -93,7 +93,6 @@
       "ariaLabel": "Basculer entre tarif mensuel et annuel"
     },
     "priceLabels": {
-      "free": "Gratuit",
       "custom": "Sur devis",
       "perMonth": "XOF / mois",
       "annualBillingTemplate": "soit {amount} XOF facturés annuellement",
@@ -104,27 +103,28 @@
         "key": "free",
         "name": "Découverte",
         "description": "Pour explorer la plateforme.",
-        "monthlyPrice": 0,
-        "annualPrice": 0,
-        "cta": "Commencer",
-        "ctaLink": "/register",
+        "monthlyPrice": 1000,
+        "annualPrice": 10000,
+        "discount_label": "2 mois offerts",
+        "cta": "Choisir Découverte",
+        "ctaLink": "/subscribe?plan=discovery",
         "ctaVariant": "outline",
         "highlighted": false,
         "badge": null,
         "color": "#0F0F0F",
         "features": [
-          "Accès limité",
-          "Filtres basique",
-          "3 campagnes consultables / jour",
-          "Favoris",
+          "Accès limité à la bibliothèque",
+          "Filtres basiques",
+          "10 campagnes consultables / mois",
           "Alertes email hebdo",
-          "3 recherches par filtre / jour",
-          "Suivi de marques (sur devis)"
+          "5 recherches ou filtres / mois",
+          "Veille concurrentielle personnalisée — Sur devis"
         ],
         "excluded": [
+          "Favoris",
           "Collections personnalisées",
           "Téléchargement de visuels",
-          "Séance de débrief"
+          "Sessions expert Big Five Décrypté"
         ]
       },
       {
@@ -142,16 +142,16 @@
         "features": [
           "Accès illimité à la bibliothèque",
           "Filtres avancés (Secteur, Pays...)",
-          "Campagnes consultables illimitées",
+          "Campagnes consultables en illimité",
           "Favoris",
           "Collections personnalisées",
           "Téléchargement de visuels",
           "Alertes email hebdo",
-          "15 recherches par filtre / jour",
-          "Suivi de marques (sur devis)"
+          "30 recherches ou filtres / mois",
+          "Veille concurrentielle personnalisée — Sur devis"
         ],
         "excluded": [
-          "Séance de débrief avec l'équipe Big Five"
+          "Sessions expert Big Five Décrypté"
         ]
       },
       {
@@ -169,18 +169,18 @@
         "features": [
           "Accès illimité à la bibliothèque",
           "Filtres avancés (Secteur, Pays...)",
-          "Campagnes consultables illimitées",
+          "Campagnes consultables en illimité",
           "Favoris",
           "Collections personnalisées",
           "Téléchargement de visuels",
           "Alertes email hebdo",
-          "Recherche par filtre illimitée",
-          "Suivi de marques",
-          "Séance de débrief avec l'équipe Big Five"
+          "Recherches ou filtres illimités",
+          "Sessions expert Big Five Décrypté",
+          "Veille concurrentielle personnalisée — Sur devis"
         ],
         "boldFeatures": [
-          "Recherche par filtre illimitée",
-          "Séance de débrief avec l'équipe Big Five"
+          "Recherches ou filtres illimités",
+          "Sessions expert Big Five Décrypté"
         ],
         "excluded": []
       }
@@ -190,17 +190,17 @@
       "subtitle": "Trouvez le plan qui correspond à vos besoins.",
       "tableHeader": "Fonctionnalité",
       "features": [
-        { "name": "Accès à la bibliothèque", "free": "Aperçu scroll (clic bloqué)", "basic": "Illimité", "pro": "Illimité" },
+        { "name": "Accès à la bibliothèque", "free": "Accès limité", "basic": "Illimité", "pro": "Illimité" },
         { "name": "Compteur d'usage mensuel", "free": true, "basic": true, "pro": true },
-        { "name": "Favoris", "free": true, "basic": true, "pro": true },
+        { "name": "Favoris", "free": false, "basic": true, "pro": true },
         { "name": "Filtres avancés", "free": false, "basic": true, "pro": true },
-        { "name": "Campagnes consultables", "free": "3 par jour", "basic": "Illimité", "pro": "Illimité" },
+        { "name": "Campagnes consultables", "free": "10 par mois", "basic": "Illimité", "pro": "Illimité" },
         { "name": "Collections personnalisées", "free": false, "basic": true, "pro": true },
         { "name": "Téléchargement de visuels", "free": false, "basic": true, "pro": true },
         { "name": "Alertes email hebdo", "free": true, "basic": true, "pro": true },
-        { "name": "Limite de recherche par filtre", "free": "3 par jour", "basic": "15 par jour", "pro": "Illimité" },
-        { "name": "Suivi de marques", "free": "Sur devis", "basic": "Sur devis", "pro": "Sur devis" },
-        { "name": "Séance de débrief avec l'équipe Big Five", "free": false, "basic": false, "pro": true }
+        { "name": "Recherches ou filtres / mois", "free": "5 par mois", "basic": "30 par mois", "pro": "Illimité" },
+        { "name": "Veille concurrentielle personnalisée", "free": "Sur devis", "basic": "Sur devis", "pro": "Sur devis" },
+        { "name": "Sessions expert Big Five Décrypté", "free": false, "basic": false, "pro": true }
       ]
     }
   }

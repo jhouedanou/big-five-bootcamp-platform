@@ -25,7 +25,7 @@ const FiltersSidebar = dynamic(() => import("@/components/dashboard/filters-side
 const SwipeableCarousel = dynamic(() => import("@/components/ui/swipeable-carousel").then(m => m.SwipeableCarousel), { ssr: false })
 
 // Compteur mensuel de clics (côté serveur via API)
-const MONTHLY_CLICK_LIMIT = 3
+const MONTHLY_CLICK_LIMIT = 10
 
 // Normalisation des noms de pays pour corriger les imports CSV mal encodés
 // Ex: "Cote d'Ivoire" (ASCII) → "Côte d'Ivoire" (UTF-8 canonique)
@@ -277,7 +277,7 @@ export default function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState(() => brandFilter || initialSearch)
   const itemsPerPage = 9
 
-  // Quota de recherches par filtre / jour (Découverte: 3, Basic: 15, Pro: illimité)
+  // Quota de recherches+filtres / mois, compteur partage (Découverte: 5, Basic: 30, Pro: illimité)
   const [searchQuota, setSearchQuota] = useState<{
     counts: Record<string, number>
     limit: number | null
@@ -285,18 +285,20 @@ export default function DashboardPage() {
   }>({ counts: {}, limit: null, tier: 'free' })
 
   // Mémorise la dernière recherche déjà comptabilisée pour éviter de la recompter.
-  // Initialisée avec la valeur d'URL pour qu'un arrivée via ?search=…/?brand=…
-  // ne consomme pas un quota.
-  const lastCountedSearchRef = useRef<string>((brandFilter || initialSearch).trim())
+  // Pré-marquage : SEUL `?brand=…` (deeplink suivi de marques) ne doit pas
+  // consommer de quota. `?search=…` est une recherche utilisateur (depuis
+  // navbar sur page detail, suggestion, etc.) → doit etre comptee.
+  const lastCountedSearchRef = useRef<string>(brandFilter.trim())
 
   useEffect(() => {
     const next = brandFilter || initialSearch
     setSearchQuery(next)
     setCurrentPage(1)
-    // Une recherche arrivée via URL (?search=… ou ?brand=…) ne doit PAS
-    // être comptabilisée dans le quota quotidien : on pré-marque la valeur
-    // comme "déjà comptée" pour que le débounce de tracking l'ignore.
-    lastCountedSearchRef.current = next.trim()
+    // Pré-marquer UNIQUEMENT les arrivees via `?brand=…` (suivi de marques).
+    // Les `?search=…` doivent etre tracees par le debounce.
+    if (brandFilter) {
+      lastCountedSearchRef.current = next.trim()
+    }
   }, [brandFilter, initialSearch])
 
   // Hydrate les filtres depuis l'URL (?country=A,B&sector=X,Y&platform=Z).
@@ -490,7 +492,7 @@ export default function DashboardPage() {
     return () => { cancelled = true }
   }, [])
 
-  // Charger l'\u00e9tat initial du quota de recherches par filtre / jour
+  // Charger l'\u00e9tat initial du quota mensuel partage (recherches+filtres)
   useEffect(() => {
     let cancelled = false
     fetch('/api/track-search')
@@ -516,10 +518,15 @@ export default function DashboardPage() {
     if (q === lastCountedSearchRef.current) return
 
     const handle = setTimeout(async () => {
-      // Pr\u00e9-blocage local : si la limite est d\u00e9j\u00e0 atteinte sur la cat\u00e9gorie \"Recherche\",
-      // on n'envoie m\u00eame pas la requ\u00eate.
+      // Regle metier : recherche sans resultat ne consomme pas de quota.
+      if (countMatching(selectedFilters, q) === 0) {
+        lastCountedSearchRef.current = q
+        return
+      }
+
+      // Pr\u00e9-blocage local : si la limite est d\u00e9j\u00e0 atteinte, on bloque sans hit API.
       if (searchQuota.limit !== null) {
-        const used = searchQuota.counts['Recherche'] || 0
+        const used = searchQuota.counts['_shared'] || 0
         if (used >= searchQuota.limit) {
           showUpgrade('searches-bar')
           setSearchQuery("")
@@ -880,26 +887,28 @@ export default function DashboardPage() {
       if (added) newlyAddedCategories.push(category)
     }
 
-    // Règle métier : si la nouvelle combinaison de filtres ne donne aucun résultat,
-    // on applique les filtres mais on ne comptabilise PAS les recherches
-    // (l'utilisateur voit « Aucune campagne trouvée » — cela ne doit pas consommer son quota).
+    // Regle metier : un filtre qui ne renvoie aucun resultat ne consomme pas
+    // de quota (l'utilisateur voit "Aucune campagne trouvee" — ne doit pas
+    // bruler son compteur mensuel partage).
     const wouldReturnResults = countMatching(filters, searchQuery) > 0
 
-    // Pre-block local : si la limite est déjà atteinte pour une catégorie ajoutée
-    // ET que la recherche aurait donné des résultats, on affiche le popup d'upgrade
-    // sans appeler l'API (UX immédiate).
-    if (wouldReturnResults && searchQuota.limit !== null) {
-      for (const category of newlyAddedCategories) {
-        const used = searchQuota.counts[category] || 0
-        if (used >= searchQuota.limit) {
-          showUpgrade('searches-filters')
-          return
-        }
+    if (!wouldReturnResults) {
+      setSelectedFilters(filters)
+      setActiveQuickFilter("")
+      setCurrentPage(1)
+      return
+    }
+
+    // Pre-block local : si la limite est deja atteinte, popup immediate sans hit API.
+    if (newlyAddedCategories.length > 0 && searchQuota.limit !== null) {
+      const used = searchQuota.counts['_shared'] || 0
+      if (used >= searchQuota.limit) {
+        showUpgrade('searches-filters')
+        return
       }
     }
 
-    if (wouldReturnResults) {
-      for (const category of newlyAddedCategories) {
+    for (const category of newlyAddedCategories) {
       try {
         const res = await fetch('/api/track-search', {
           method: 'POST',
@@ -907,7 +916,6 @@ export default function DashboardPage() {
           body: JSON.stringify({ filterId: category }),
         })
         if (res.status === 403) {
-          // Synchroniser le quota coté client pour bloquer les futurs essais
           try {
             const data = await res.json()
             if (data?.counts) {
@@ -933,7 +941,6 @@ export default function DashboardPage() {
         // Erreur reseau : on laisse passer pour ne pas bloquer l'UX.
       }
     }
-    }
 
     setSelectedFilters(filters)
     setActiveQuickFilter("")
@@ -943,7 +950,7 @@ export default function DashboardPage() {
   const weekLabel = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "d MMMM yyyy", { locale: fr })
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-white via-white to-[#F5F5F5]/20 relative">
+    <div className="min-h-screen overflow-x-clip bg-gradient-to-br from-white via-white to-[#F5F5F5]/20 relative">
       <ParticlesBackground color="#F2B33D" particleCount={40} />
       <div className="relative z-10">
         <DashboardNavbar
@@ -955,6 +962,7 @@ export default function DashboardPage() {
           isFreeUser={isFreeUser}
           monthlyExplored={monthlyExplored}
           searchSuggestions={searchSuggestions}
+          searchQuota={searchQuota}
         />
 
         <TempsFortsBanner />

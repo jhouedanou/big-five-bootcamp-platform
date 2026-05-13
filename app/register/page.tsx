@@ -161,7 +161,7 @@ export default function RegisterPage() {
               Créer ton compte
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Gratuit — Accède à la bibliothèque créative
+              Accède à la bibliothèque créative
             </p>
           </div>
 

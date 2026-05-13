@@ -212,7 +212,7 @@ export default function ProfilePage() {
                   </div>
                   <div>
                     <span className="inline-flex items-center gap-1 rounded-full bg-[#F5F5F5] px-2 py-0.5 text-xs font-medium text-[#0F0F0F]">
-                      Plan Gratuit
+                      Plan Découverte
                     </span>
                     <p className="mt-1 text-sm text-muted-foreground">
                       Passez à un abonnement payant pour débloquer toutes les fonctionnalités.

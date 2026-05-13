@@ -28,6 +28,7 @@ import {
   Receipt,
   FileText
 } from "lucide-react"
+import { getPlanDisplayName } from "@/lib/pricing"
 
 interface UserSubscription {
   plan: string
@@ -480,7 +481,7 @@ export default function SettingsPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     <span className={`text-lg font-bold ${isPremium ? "text-amber-700" : "text-gray-700"}`}>
-                      Plan {subscription.plan}
+                      Plan {getPlanDisplayName(subscription.plan)}
                     </span>
                     <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
                       subscription.status === "active" 
@@ -585,7 +586,7 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* Avantages Premium (pour utilisateurs Free) */}
+          {/* Avantages Premium (pour utilisateurs Découverte) */}
           {!isPremium && (
             <div className="mt-6">
               <h3 className="font-semibold text-[#0F0F0F] mb-4">Avantages Premium</h3>

@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from '@/lib/supabase-server'
 import { encrypt, decrypt, isEncrypted } from '@/lib/encryption'
+import { getPlanDisplayName } from '@/lib/pricing'
 
 /**
  * Configuration Mailchimp stockée en BDD
@@ -286,7 +287,7 @@ export class MailchimpService {
           merge_fields: {
             FNAME: user.name?.split(' ')[0] || '',
             LNAME: user.name?.split(' ').slice(1).join(' ') || '',
-            PLAN: user.plan || 'Free',
+            PLAN: getPlanDisplayName(user.plan),
           },
         }
 

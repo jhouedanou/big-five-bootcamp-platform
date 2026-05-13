@@ -118,7 +118,7 @@ export default function SettingsPage() {
     }
   };
 
-  // Reset vues Free
+  // Reset vues Découverte
   const [isResettingViews, setIsResettingViews] = useState(false);
   const [resetResult, setResetResult] = useState<string | null>(null);
 
@@ -539,7 +539,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Reset vues utilisateurs Free */}
+        {/* Reset vues utilisateurs Découverte */}
         <Card className="bg-white border-gray-200 shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-3">
@@ -547,7 +547,7 @@ export default function SettingsPage() {
                 <RotateCcw className="h-5 w-5 text-red-600" />
               </div>
               <div>
-                <CardTitle className="text-gray-900">Réinitialiser les vues (plan Free)</CardTitle>
+                <CardTitle className="text-gray-900">Réinitialiser les vues (plan Découverte)</CardTitle>
                 <CardDescription className="text-gray-600">
                   Remet à zéro le compteur de consultations de campagnes de tous les utilisateurs en plan gratuit.
                 </CardDescription>
@@ -560,7 +560,7 @@ export default function SettingsPage() {
                 <strong>Attention :</strong> cette action est irréversible. Elle remet à zéro{" "}
                 <code className="rounded bg-amber-100 px-1">daily_click_count</code> et{" "}
                 <code className="rounded bg-amber-100 px-1">monthly_campaigns_explored</code> pour
-                tous les utilisateurs Free.
+                tous les utilisateurs Découverte.
               </p>
             </div>
             {resetResult && (
@@ -579,7 +579,7 @@ export default function SettingsPage() {
               ) : (
                 <>
                   <Users className="h-4 w-4 mr-2" />
-                  Réinitialiser les vues Free
+                  Réinitialiser les vues Découverte
                 </>
               )}
             </Button>

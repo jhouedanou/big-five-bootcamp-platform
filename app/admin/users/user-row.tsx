@@ -16,6 +16,7 @@ import {
 import { UserStatusToggle } from "./user-status-toggle"
 import { ChevronDown, ChevronRight, CreditCard, Calendar, Clock, Heart, XCircle, RotateCcw, Loader2, Mail, Send, ShieldCheck, ShieldOff, Eye } from "lucide-react"
 import { endSubscription, resetSubscription, setUserRole, resetUserViews } from "@/app/actions/user"
+import { getPlanDisplayName } from "@/lib/pricing"
 
 interface Payment {
     id: string
@@ -244,7 +245,7 @@ export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
                             ? 'bg-amber-100 text-amber-800'
                             : 'bg-slate-100 text-slate-600'
                     }`}>
-                        {(user.plan as string) || 'Free'}
+                        {getPlanDisplayName(user.plan as string)}
                     </span>
                 </TableCell>
                 <TableCell>

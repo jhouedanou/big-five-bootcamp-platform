@@ -9,6 +9,7 @@ import Image from "next/image"
 import { useAuthContext } from "@/components/auth-provider"
 import { getQuotaUpsell, quotaBadgeClass, quotaProgressFillClass, levelFromUsage } from "@/lib/upsell"
 import { resolveTier, UNLIMITED } from "@/lib/quotas"
+import { getPlanDisplayName } from "@/lib/pricing"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -569,7 +570,7 @@ export function DashboardNavbar({
                 <p className="text-xs text-[#0F0F0F]/60">{userEmail}</p>
                 <div className="mt-2 flex items-center gap-1.5">
                   <span className={`rounded-full px-3 py-1 text-sm font-medium border transition-all ${planDropdownBadgeClass}`}>
-                    {effectivePlan || "Découverte"}
+                    {getPlanDisplayName(effectivePlan)}
                   </span>
                 </div>
               </div>
@@ -711,7 +712,7 @@ export function DashboardNavbar({
               {isPremium && subInfo.active && !subInfo.expiringSoon ? (
                 <span className="flex items-center gap-2">
                   <Crown className="h-4 w-4" />
-                  {effectivePlan} · {subInfo.label}
+                  {getPlanDisplayName(effectivePlan)} · {subInfo.label}
                 </span>
               ) : isPremium && subInfo.active && subInfo.expiringSoon ? (
                 <span className="flex items-center gap-2">

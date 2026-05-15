@@ -107,25 +107,25 @@ export default function ProfilePage() {
       let status: "subscribed" | "expired" | "none" = "none"
       let subscriptionEndDate = ""
 
-      const completedPayments = paymentsData?.filter((p: PaymentRecord) => p.status === "completed") || []
-
-      let planName = profile?.plan || "Free"
+      let planName = profile?.plan || "Discovery"
       let monthlyUsage = 0
 
       if (profile) {
-        const isPremiumPlan = ["basic", "pro"].includes(profile.plan?.toLowerCase() || "")
-        const isActiveSubscription = profile.subscription_status === "active"
-        const hasCompletedPayment = completedPayments.length > 0
+        const subStatus = String(profile.subscription_status || "").toLowerCase()
+        const endDate = profile.subscription_end_date ? new Date(profile.subscription_end_date) : null
+        const isActive = subStatus === "active" && endDate && endDate.getTime() > Date.now()
 
-        if ((isPremiumPlan && isActiveSubscription) || hasCompletedPayment) {
+        if (isActive) {
           status = "subscribed"
-          if (profile.subscription_end_date) {
-            subscriptionEndDate = format(new Date(profile.subscription_end_date), "d MMMM yyyy", { locale: fr })
-          }
-        } else if (profile.subscription_status === "expired") {
+        } else if (subStatus === "expired" || subStatus === "cancelled" || (endDate && endDate.getTime() <= Date.now())) {
           status = "expired"
         } else {
           status = "none"
+        }
+
+        // La date de fin est toujours affichee si on l'a, peu importe le statut.
+        if (endDate) {
+          subscriptionEndDate = format(endDate, "d MMMM yyyy", { locale: fr })
         }
 
         // Monthly usage from profile if stored
@@ -466,10 +466,12 @@ export default function ProfilePage() {
                     <>Votre abonnement est actif jusqu&apos;au <span className="font-semibold text-foreground">{user.subscriptionEndDate}</span></>
                   ) : user.status === "subscribed" ? (
                     <>Votre abonnement est <span className="font-semibold text-[#10B981]">actif</span>.</>
+                  ) : user.status === "expired" && user.subscriptionEndDate ? (
+                    <>Votre abonnement a expiré le <span className="font-semibold text-red-600">{user.subscriptionEndDate}</span>. <Link href="/subscribe" className="font-semibold text-[#F2B33D] underline">Renouveler</Link>.</>
                   ) : user.status === "expired" ? (
                     <>Votre abonnement a expiré. <Link href="/subscribe" className="font-semibold text-[#F2B33D] underline">Renouveler</Link>.</>
                   ) : (
-                    <>Vous bénéficiez actuellement du plan Découverte.</>
+                    <>Choisissez une formule pour commencer.</>
                   )}
                 </p>
               </div>

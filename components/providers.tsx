@@ -1,6 +1,7 @@
 
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth-provider"
+import { SubscriptionStatusBottomSheet } from "@/components/subscription-status-bottom-sheet"
 import { Toaster } from "sonner"
 
 interface ProvidersProps {
@@ -18,6 +19,7 @@ export function Providers({ children }: ProvidersProps) {
     >
       <AuthProvider>
         {children}
+        <SubscriptionStatusBottomSheet />
       </AuthProvider>
       <Toaster richColors position="top-right" />
     </ThemeProvider>

@@ -45,56 +45,108 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (!expiredUsers || expiredUsers.length === 0) {
+    const hasExpired = !!(expiredUsers && expiredUsers.length)
+    if (!hasExpired) {
       console.log(`Aucun abonnement expiré.`)
-      return NextResponse.json({
-        success: true,
-        message: 'Aucun abonnement expiré.',
-        downgraded: 0,
-        checked_at: now,
-      })
-    }
+    } else {
+      console.log(`⏰ ${expiredUsers.length} abonnement(s) payant(s) expiré(s) trouvé(s)`);
 
-    console.log(`⏰ ${expiredUsers.length} abonnement(s) payant(s) expiré(s) trouvé(s)`);
+      // 2. Downgrader tous les utilisateurs expirés
+      const userIds = expiredUsers.map((u: any) => u.id);
 
-    // 2. Downgrader tous les utilisateurs expirés
-    const userIds = expiredUsers.map((u: any) => u.id);
+      const { error: updateError } = await (supabaseAdmin as any)
+        .from('users')
+        .update({
+          plan: 'Discovery',
+          subscription_status: 'expired',
+          updated_at: now,
+        })
+        .in('id', userIds);
 
-    const { error: updateError } = await (supabaseAdmin as any)
-      .from('users')
-      .update({
-        plan: 'Discovery',
-        subscription_status: 'expired',
-        updated_at: now,
-      })
-      .in('id', userIds);
-
-    if (updateError) {
-      console.error('❌ Erreur downgrade abonnements:', updateError.message);
-      return NextResponse.json(
-        { error: 'Erreur lors du downgrade', details: updateError.message },
-        { status: 500 }
-      );
-    }
-
-    // 3. Créer des notifications d'expiration pour chaque utilisateur
-    for (const user of expiredUsers) {
-      try {
-        await (supabaseAdmin as any)
-          .from('notifications')
-          .insert({
-            user_id: user.id,
-            type: 'subscription_expired',
-            title: '⏰ Votre abonnement a expiré',
-            message: `Votre abonnement ${user.plan || 'Pro'} a expiré. Renouvelez-le pour continuer à accéder à toutes les fonctionnalités.`,
-            metadata: {
-              subscription_end_date: user.subscription_end_date,
-              previous_plan: user.plan,
-            },
-          });
-      } catch (notifError) {
-        console.warn('⚠️ Erreur notification pour', user.email, ':', notifError);
+      if (updateError) {
+        console.error('❌ Erreur downgrade abonnements:', updateError.message);
+        return NextResponse.json(
+          { error: 'Erreur lors du downgrade', details: updateError.message },
+          { status: 500 }
+        );
       }
+
+      // 3. Créer des notifications d'expiration pour chaque utilisateur
+      for (const user of expiredUsers) {
+        try {
+          await (supabaseAdmin as any)
+            .from('notifications')
+            .insert({
+              user_id: user.id,
+              type: 'subscription_expired',
+              title: '⏰ Votre abonnement a expiré',
+              message: `Votre abonnement ${user.plan || 'Discovery'} a expiré. Renouvelez-le pour continuer à accéder à toutes les fonctionnalités.`,
+              metadata: {
+                subscription_end_date: user.subscription_end_date,
+                previous_plan: user.plan,
+              },
+            });
+        } catch (notifError) {
+          console.warn('⚠️ Erreur notification pour', user.email, ':', notifError);
+        }
+      }
+    }
+
+    // 3bis. Rappel J-7 : abonnements ACTIFS dont la fin tombe dans 0..7 jours.
+    // On envoie une notif "subscription_expiring" une seule fois par
+    // (user, subscription_end_date) en s'appuyant sur metadata pour
+    // l'idempotence (pas besoin de nouvelle colonne DB).
+    let expiringRemindersSent = 0
+    try {
+      const sevenDays = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      const { data: expiringUsers } = await (supabaseAdmin as any)
+        .from('users')
+        .select('id, email, name, plan, subscription_end_date')
+        .eq('subscription_status', 'active')
+        .gte('subscription_end_date', now)
+        .lte('subscription_end_date', sevenDays)
+
+      for (const u of (expiringUsers || [])) {
+        // Idempotence : ignorer si une notif a deja ete envoyee pour cette
+        // date de fin specifique.
+        const { data: alreadySent } = await (supabaseAdmin as any)
+          .from('notifications')
+          .select('id')
+          .eq('user_id', u.id)
+          .eq('type', 'subscription_expiring')
+          .contains('metadata', { subscription_end_date: u.subscription_end_date })
+          .limit(1)
+          .maybeSingle()
+        if (alreadySent) continue
+
+        const endDate = new Date(u.subscription_end_date)
+        const daysLeft = Math.max(
+          0,
+          Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        )
+        const planForRenew = String(u.plan || '').toLowerCase() === 'pro' ? 'pro'
+          : String(u.plan || '').toLowerCase() === 'basic' ? 'basic'
+          : 'discovery'
+
+        await (supabaseAdmin as any).from('notifications').insert({
+          user_id: u.id,
+          type: 'subscription_expiring',
+          title: `Votre abonnement expire dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}`,
+          message: `Renouvelez votre abonnement ${u.plan || 'Discovery'} pour conserver l'acces.`,
+          action_url: `/subscribe?plan=${planForRenew}`,
+          metadata: {
+            subscription_end_date: u.subscription_end_date,
+            plan: u.plan,
+            days_left: daysLeft,
+          },
+        })
+        expiringRemindersSent++
+      }
+      if (expiringRemindersSent > 0) {
+        console.log(`Pre-expiry reminders sent: ${expiringRemindersSent}`)
+      }
+    } catch (reminderErr) {
+      console.error('Erreur envoi rappels pre-expiration:', reminderErr)
     }
 
     // 4. Reset mensuel des compteurs de clics (le 1er du mois)
@@ -115,18 +167,25 @@ export async function GET(request: NextRequest) {
     }
 
     // 5. Logger les résultats
-    const downgraded = expiredUsers.map((u: any) => ({
-      email: u.email,
-      name: u.name,
-      expired_at: u.subscription_end_date,
-    }));
+    const downgraded = hasExpired
+      ? expiredUsers.map((u: any) => ({
+          email: u.email,
+          name: u.name,
+          expired_at: u.subscription_end_date,
+        }))
+      : []
 
-    console.log('✅ Abonnements downgradués:', JSON.stringify(downgraded, null, 2));
+    if (hasExpired) {
+      console.log('✅ Abonnements downgradués:', JSON.stringify(downgraded, null, 2));
+    }
 
     return NextResponse.json({
       success: true,
-      message: `${expiredUsers.length} abonnement(s) downgradué(s)`,
-      downgraded: expiredUsers.length,
+      message: hasExpired
+        ? `${expiredUsers.length} abonnement(s) downgradué(s)`
+        : 'Aucun abonnement expiré.',
+      downgraded: hasExpired ? expiredUsers.length : 0,
+      expiring_reminders_sent: expiringRemindersSent,
       users: downgraded,
       checked_at: now,
     });

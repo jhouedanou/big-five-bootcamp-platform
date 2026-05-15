@@ -113,8 +113,11 @@ export async function POST(request: Request) {
     }
 
     // URL de redirection après clic sur le lien de confirmation.
-    // Prend NEXT_PUBLIC_SITE_URL en prod ; fallback sur l'origin de la requête en dev.
+    // Priorité : NEXT_PUBLIC_APP_URL (défini en prod) > NEXT_PUBLIC_SITE_URL (legacy) > origin de la requête (dev).
+    // Important : sur Vercel l'origin de la requête est le domaine de déploiement (`*.vercel.app`)
+    // et pas le domaine canonique → le lien email pointerait vers un host différent et casserait la session.
     const siteUrl =
+      process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
       process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
       new URL(request.url).origin
     const emailRedirectTo = `${siteUrl}/auth/callback?next=/dashboard`

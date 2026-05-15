@@ -1,15 +1,22 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import Image from "next/image"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
-import { Check, X, Minus, Search, ArrowRight } from "lucide-react"
+import { Check, X, Minus, Search, ArrowRight, ZoomIn, ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import content from "@/lib/homepage-content.json"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 
 const pricingContent = content.pricing
+
+const VEILLE_SLIDES = [
+    { src: "/veilleconcurrentielle/screen_1.jpg", alt: "Aperçu rapport de veille concurrentielle — 1" },
+    { src: "/veilleconcurrentielle/screen_2.jpeg", alt: "Aperçu rapport de veille concurrentielle — 2" },
+] as const
 
 const plans = pricingContent.plans.map((plan) => ({
     ...plan,
@@ -29,6 +36,34 @@ function formatPrice(price: number): string {
 
 export default function PricingPage() {
     const [isAnnual, setIsAnnual] = useState(false)
+    const [veilleSlide, setVeilleSlide] = useState(0)
+    const [lightboxOpen, setLightboxOpen] = useState(false)
+    const [lightboxIndex, setLightboxIndex] = useState(0)
+
+    // Rotation auto du carousel veille (toutes les 5s) — pause si lightbox ouvert
+    useEffect(() => {
+        if (lightboxOpen) return
+        const id = setInterval(() => {
+            setVeilleSlide((s) => (s + 1) % VEILLE_SLIDES.length)
+        }, 5000)
+        return () => clearInterval(id)
+    }, [lightboxOpen])
+
+    // Navigation clavier dans lightbox
+    useEffect(() => {
+        if (!lightboxOpen) return
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "ArrowRight") setLightboxIndex((i) => (i + 1) % VEILLE_SLIDES.length)
+            else if (e.key === "ArrowLeft") setLightboxIndex((i) => (i - 1 + VEILLE_SLIDES.length) % VEILLE_SLIDES.length)
+        }
+        window.addEventListener("keydown", onKey)
+        return () => window.removeEventListener("keydown", onKey)
+    }, [lightboxOpen])
+
+    const openLightbox = (i: number) => {
+        setLightboxIndex(i)
+        setLightboxOpen(true)
+    }
 
     return (
         <div className="flex min-h-screen flex-col bg-white">
@@ -218,27 +253,62 @@ export default function PricingPage() {
                                         </Link>
                                     </Button>
                                 </div>
-                                <div className="relative hidden md:flex items-center justify-center bg-gradient-to-br from-[#F2B33D]/20 to-transparent p-12">
-                                    <div className="relative w-full max-w-sm aspect-square rounded-2xl bg-white/5 backdrop-blur border border-white/10 p-8 flex flex-col justify-between">
-                                        <div className="space-y-3">
-                                            <div className="h-2 w-24 rounded-full bg-[#F2B33D]/60" />
-                                            <div className="h-2 w-32 rounded-full bg-white/20" />
-                                            <div className="h-2 w-20 rounded-full bg-white/20" />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="aspect-square rounded-xl bg-[#F2B33D]/30" />
-                                            <div className="aspect-square rounded-xl bg-white/10" />
-                                            <div className="aspect-square rounded-xl bg-white/10" />
-                                            <div className="aspect-square rounded-xl bg-[#F2B33D]/30" />
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <div className="h-8 w-8 rounded-full bg-[#F2B33D]/60" />
-                                            <div className="flex-1 space-y-1.5">
-                                                <div className="h-1.5 w-full rounded-full bg-white/20" />
-                                                <div className="h-1.5 w-2/3 rounded-full bg-white/15" />
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div className="relative hidden md:flex items-center justify-center bg-gradient-to-br from-[#F2B33D]/20 to-transparent p-8">
+                                    <button
+                                        type="button"
+                                        onClick={() => openLightbox(veilleSlide)}
+                                        aria-label="Agrandir le visuel de veille"
+                                        className="group relative w-full max-w-sm aspect-[4/5] rounded-2xl overflow-hidden bg-white/5 backdrop-blur border border-white/10 shadow-2xl cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-[#F2B33D]"
+                                    >
+                                        {VEILLE_SLIDES.map((slide, i) => (
+                                            <Image
+                                                key={slide.src}
+                                                src={slide.src}
+                                                alt={slide.alt}
+                                                fill
+                                                sizes="(min-width: 768px) 24rem, 100vw"
+                                                className={cn(
+                                                    "object-cover transition-opacity duration-700",
+                                                    i === veilleSlide ? "opacity-100" : "opacity-0"
+                                                )}
+                                                priority={i === 0}
+                                            />
+                                        ))}
+                                        {/* Indicateur "cliquer pour agrandir" */}
+                                        <span className="pointer-events-none absolute top-3 right-3 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur transition-opacity group-hover:bg-[#F2B33D] group-hover:text-[#0F0F0F]">
+                                            <ZoomIn className="h-3.5 w-3.5" />
+                                            Cliquer pour agrandir
+                                        </span>
+                                        {/* Dots de navigation */}
+                                        <span
+                                            role="presentation"
+                                            className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1.5 backdrop-blur"
+                                        >
+                                            {VEILLE_SLIDES.map((_, i) => (
+                                                <span
+                                                    key={i}
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        setVeilleSlide(i)
+                                                    }}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === "Enter" || e.key === " ") {
+                                                            e.preventDefault()
+                                                            e.stopPropagation()
+                                                            setVeilleSlide(i)
+                                                        }
+                                                    }}
+                                                    aria-label={`Voir le visuel ${i + 1}`}
+                                                    className={cn(
+                                                        "h-1.5 rounded-full transition-all cursor-pointer",
+                                                        i === veilleSlide ? "w-6 bg-[#F2B33D]" : "w-1.5 bg-white/50 hover:bg-white/80"
+                                                    )}
+                                                />
+                                            ))}
+                                        </span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -322,6 +392,64 @@ export default function PricingPage() {
                 </section>
             </main>
             <Footer />
+
+            {/* Lightbox visuels de veille */}
+            <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
+                <DialogContent className="max-w-5xl w-[95vw] p-0 bg-black/95 border-white/10">
+                    <DialogTitle className="sr-only">
+                        {VEILLE_SLIDES[lightboxIndex]?.alt ?? "Aperçu visuel"}
+                    </DialogTitle>
+                    <div className="relative w-full aspect-[4/5] sm:aspect-[3/4] md:aspect-[16/10]">
+                        <Image
+                            key={VEILLE_SLIDES[lightboxIndex]?.src}
+                            src={VEILLE_SLIDES[lightboxIndex]?.src ?? ""}
+                            alt={VEILLE_SLIDES[lightboxIndex]?.alt ?? ""}
+                            fill
+                            sizes="95vw"
+                            className="object-contain"
+                            priority
+                        />
+                        {VEILLE_SLIDES.length > 1 && (
+                            <>
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setLightboxIndex((i) => (i - 1 + VEILLE_SLIDES.length) % VEILLE_SLIDES.length)
+                                    }
+                                    aria-label="Visuel précédent"
+                                    className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white hover:bg-[#F2B33D] hover:text-[#0F0F0F] transition"
+                                >
+                                    <ChevronLeft className="h-5 w-5" />
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setLightboxIndex((i) => (i + 1) % VEILLE_SLIDES.length)
+                                    }
+                                    aria-label="Visuel suivant"
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white hover:bg-[#F2B33D] hover:text-[#0F0F0F] transition"
+                                >
+                                    <ChevronRight className="h-5 w-5" />
+                                </button>
+                                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-black/60 px-2.5 py-1.5">
+                                    {VEILLE_SLIDES.map((_, i) => (
+                                        <button
+                                            key={i}
+                                            type="button"
+                                            onClick={() => setLightboxIndex(i)}
+                                            aria-label={`Voir le visuel ${i + 1}`}
+                                            className={cn(
+                                                "h-1.5 rounded-full transition-all",
+                                                i === lightboxIndex ? "w-6 bg-[#F2B33D]" : "w-1.5 bg-white/50 hover:bg-white/80"
+                                            )}
+                                        />
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

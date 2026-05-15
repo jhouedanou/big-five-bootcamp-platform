@@ -16,7 +16,7 @@ import { BasicToProBanner } from "@/components/basic-to-pro-banner"
 import { createClient } from "@/lib/supabase"
 import { useAuthContext } from "@/components/auth-provider"
 import { Button } from "@/components/ui/button"
-import { Filter, Grid3X3, LayoutList, ChevronLeft, ChevronRight, CalendarDays, TrendingUp, ChevronRight as ArrowRight, Sparkles, Rss } from "lucide-react"
+import { Filter, Grid3X3, LayoutList, ChevronLeft, ChevronRight, CalendarDays, TrendingUp, ChevronRight as ArrowRight, Sparkles, Rss, CheckCircle2 } from "lucide-react"
 import { format, parseISO, startOfWeek, subDays } from "date-fns"
 import { fr } from "date-fns/locale"
 import { isPaidPlan, canAccessPremiumContent } from "@/lib/pricing"
@@ -1230,24 +1230,37 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={`brand-block-${group.requestId}`}
-                    className="rounded-2xl bg-gradient-to-r from-[#10B981]/5 to-white border border-[#10B981]/20 p-6 overflow-hidden"
+                    className="rounded-2xl bg-white border border-[#F5F5F5] shadow-sm hover:shadow-md transition-shadow overflow-hidden"
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#10B981] to-[#059669] shadow-lg shadow-[#10B981]/25 shrink-0">
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#F5F5F5] bg-gradient-to-r from-[#10B981]/5 to-white p-5">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-[#10B981] to-[#059669] shadow-lg shadow-[#10B981]/25 shrink-0">
                           <Sparkles className="h-5 w-5 text-white" />
                         </div>
-                        <div className="min-w-0">
-                          <h3 className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#0F0F0F] truncate">
-                            Votre suivi — {group.brandName}
-                          </h3>
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#0F0F0F]/60 mt-0.5">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2 mb-0.5">
+                            <h3 className="font-[family-name:var(--font-heading)] text-lg font-bold text-[#0F0F0F] truncate">
+                              {group.brandName}
+                            </h3>
+                            {/* Badge statut style "Suivi de marques" */}
+                            {group.autoRenew === false ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-semibold text-gray-700">
+                                Résilié
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-0.5 text-[11px] font-semibold text-green-800">
+                                <CheckCircle2 className="h-3 w-3" />
+                                Approuvée
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#0F0F0F]/60">
                             <span>
                               {group.contents.length} campagne{group.contents.length > 1 ? 's' : ''}
                             </span>
                             {renewalDate && (
                               <span>
-                                {group.autoRenew === false ? 'Marque suivie jusqu’au' : 'Renouvellement le'}{' '}
+                                {group.autoRenew === false ? 'Suivie jusqu’au' : 'Renouvellement le'}{' '}
                                 <strong>{renewalDate}</strong>
                               </span>
                             )}
@@ -1275,6 +1288,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
+                    <div className="p-5">
                     {/* Chips : pays / secteurs / canaux de la demande */}
                     {(group.countries.length > 0 ||
                       group.sectors.length > 0 ||
@@ -1324,6 +1338,7 @@ export default function DashboardPage() {
                         </div>
                       ))}
                     </SwipeableCarousel>
+                    </div>
                   </div>
                 )
               })}

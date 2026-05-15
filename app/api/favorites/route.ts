@@ -1,4 +1,5 @@
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase-server'
+import { resolveTier } from '@/lib/quotas'
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic';
@@ -148,6 +149,24 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: 'campaignId est requis' },
         { status: 400 }
+      )
+    }
+
+    // Gate plan : Favoris reserves a Basic / Pro. Decouverte = bloque.
+    const admin = getSupabaseAdmin()
+    const { data: profile } = await admin
+      .from('users')
+      .select('plan, subscription_status')
+      .eq('id', user.id)
+      .single<{ plan: string | null; subscription_status: string | null }>()
+    const tier = resolveTier(profile?.plan, profile?.subscription_status)
+    if (tier !== 'basic' && tier !== 'pro') {
+      return NextResponse.json(
+        {
+          error: 'Favoris accessibles avec Basic ou Pro',
+          requiredPlan: 'basic',
+        },
+        { status: 403 }
       )
     }
 

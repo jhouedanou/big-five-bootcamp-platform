@@ -98,7 +98,7 @@ async function ensureUserProfile(user: { id: string; email?: string | null; user
                 email: user.email,
                 name: user.user_metadata?.name || user.email.split('@')[0],
                 role: 'user',
-                plan: 'Free',
+                plan: 'Discovery',
                 status: 'active',
             }, { onConflict: 'id' })
         }

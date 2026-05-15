@@ -144,7 +144,7 @@ export async function POST(request: Request) {
         email,
         name,
         role: 'user',
-        plan: 'Free',
+        plan: 'Discovery',
         status: 'active',
       })
 

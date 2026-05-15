@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
         .from('users')
         .update({
           subscription_status: "cancelled",
-          plan: "Free",
+          plan: "Discovery",
         })
         .eq('id', cancellationRequest.user_id)
 

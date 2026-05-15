@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     const { error: updateError } = await (supabaseAdmin as any)
       .from('users')
       .update({
-        plan: 'Free',
+        plan: 'Discovery',
         subscription_status: 'expired',
         updated_at: now,
       })

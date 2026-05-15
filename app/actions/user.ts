@@ -112,7 +112,7 @@ export async function endSubscription(userId: string) {
         const { error } = await supabase
             .from('users')
             .update({
-                plan: 'Free',
+                plan: 'Discovery',
                 subscription_status: 'expired',
                 subscription_end_date: new Date().toISOString(),
                 updated_at: new Date().toISOString(),

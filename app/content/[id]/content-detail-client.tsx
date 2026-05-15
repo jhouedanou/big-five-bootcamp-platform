@@ -38,6 +38,7 @@ import { useFavorites } from "@/hooks/use-favorites";
 import { cn, getGoogleDriveImageUrl, fixBrokenEncoding } from "@/lib/utils";
 import { detectVideoPlatform, getEmbedUrl, getVideoPlatformLabel, getOriginalVideoUrl } from "@/lib/video-utils";
 import { isPaidPlan, canAccessPremiumContent } from "@/lib/pricing";
+import { useRequireActiveSubscription } from "@/hooks/use-require-active-subscription";
 import { UpgradePopup } from "@/components/upgrade-popup";
 import { ReactionButtons } from "@/components/ui/reaction-buttons";
 import { AddToCollectionModal } from "@/components/collections/add-to-collection-modal";
@@ -107,6 +108,10 @@ function formatDescription(text: string): string {
 }
 
 export default function ContentDetailClient({ id }: { id: string }) {
+  // Force le choix d'un plan : redirige vers /subscribe?required=1
+  // si l'utilisateur n'a pas d'abonnement actif.
+  useRequireActiveSubscription();
+
   const [content, setContent] = useState<Campaign | null>(null);
   const [relatedContent, setRelatedContent] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);

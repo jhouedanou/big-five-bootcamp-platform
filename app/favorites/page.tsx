@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAuthContext } from "@/components/auth-provider"
+import { useRequireActiveSubscription } from "@/hooks/use-require-active-subscription"
 import { createClient } from "@/lib/supabase"
 
 interface Collection {
@@ -90,6 +91,10 @@ function CollectionCover({ thumbnails, name }: { thumbnails: string[]; name: str
 
 
 function FavoritesPageContent() {
+  // Force le choix d'un plan : redirige vers /subscribe?required=1
+  // si l'utilisateur n'a pas d'abonnement actif.
+  useRequireActiveSubscription()
+
   const {
     favoritesWithCampaigns,
     fetchFavoritesWithCampaigns,

@@ -96,6 +96,10 @@ export default function SubscribePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, userProfile, loading } = useSupabaseAuth()
+  // Mode "choix obligatoire" : route appelee par le hook useRequireActiveSubscription
+  // quand l'utilisateur n'a pas encore d'abonnement actif. Affiche un bandeau bloquant
+  // et masque le bouton "Retour au dashboard" tant qu'aucun plan n'est choisi.
+  const planRequired = searchParams.get("required") === "1"
   // Par defaut : Basic (jamais Pro). Pro reste un choix explicite de l'utilisateur.
   const rawPlanParam = searchParams.get("plan") || "basic"
   const validPlan: PlanChoice = ["basic", "pro", "discovery"].includes(rawPlanParam)
@@ -346,13 +350,21 @@ export default function SubscribePage() {
       {/* Header */}
       <header className="border-b border-[#F5F5F5] bg-white">
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 text-sm text-[#0F0F0F]/70 hover:text-[#0F0F0F]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Retour
-          </Link>
+          {planRequired ? (
+            // Mode "choix obligatoire" : pas de retour possible.
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#a17320]">
+              <Lock className="h-4 w-4" />
+              Choix de plan requis
+            </span>
+          ) : (
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 text-sm text-[#0F0F0F]/70 hover:text-[#0F0F0F]"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Retour
+            </Link>
+          )}
           <Link href="/" className="flex items-center gap-2">
             <img src="/logo.png" className="w-30" alt="" />
           </Link>
@@ -361,6 +373,24 @@ export default function SubscribePage() {
       </header>
 
       <div className="mx-auto max-w-2xl px-4 py-8">
+        {planRequired && (
+          <div className="mb-6 rounded-2xl border-2 border-[#F2B33D]/40 bg-gradient-to-r from-[#FFFBEC] to-white p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F2B33D]/20">
+                <Sparkles className="h-4 w-4 text-[#a17320]" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-[#0F0F0F]">
+                  Choisissez un plan pour accéder à Laveiye
+                </p>
+                <p className="mt-1 text-sm text-[#0F0F0F]/70">
+                  L'accès au tableau de bord requiert un abonnement actif :
+                  Découverte, Basic ou Pro.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
         <h1 className="text-center font-[family-name:var(--font-heading)] text-2xl font-bold text-[#0F0F0F]">
           {isActive
             ? "Prolonger ou changer de formule"

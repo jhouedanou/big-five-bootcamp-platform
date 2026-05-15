@@ -11,7 +11,7 @@ import type { DynamicFilterOptions } from "@/components/dashboard/filters-sideba
 import { ContentCard, ContentItem } from "@/components/dashboard/content-card"
 import { ContentGridSkeleton } from "@/components/dashboard/content-card-skeleton"
 import { UpgradePopup, useUpgradePopup } from "@/components/upgrade-popup"
-import { NewUserUpgradeNag } from "@/components/new-user-upgrade-nag"
+import { useRequireActiveSubscription } from "@/hooks/use-require-active-subscription"
 import { BasicToProBanner } from "@/components/basic-to-pro-banner"
 import { createClient } from "@/lib/supabase"
 import { useAuthContext } from "@/components/auth-provider"
@@ -244,6 +244,10 @@ function PaginationBar({ currentPage, totalPages, onPageChange }: { currentPage:
 }
 
 export default function DashboardPage() {
+  // Force le choix d'un plan : redirige vers /subscribe?required=1
+  // si l'utilisateur n'a pas d'abonnement actif (plan Free desactive).
+  useRequireActiveSubscription()
+
   const router = useRouter()
   const searchParams = useSearchParams()
   const brandFilter = searchParams.get("brand") ?? ""
@@ -979,7 +983,6 @@ export default function DashboardPage() {
 
         <TempsFortsBanner />
         <TempsFortsPopup />
-        <NewUserUpgradeNag />
 
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 

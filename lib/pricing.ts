@@ -2,15 +2,16 @@
  * Source de vérité des plans d'abonnement.
  *
  * 3 plans officiels :
- *   - Découverte (DB key: "Free") : entrée de gamme payante, accès limité
- *   - Basic                       : indépendants, accès illimité
- *   - Pro                         : pros, tout débloqué + séances expert
+ *   - Découverte (DB key: "Discovery") : entrée de gamme payante, accès limité
+ *   - Basic                            : indépendants, accès illimité
+ *   - Pro                              : pros, tout débloqué + séances expert
  *
- * L'identifiant technique en base reste "Free" pour éviter les problèmes
- * d'encodage (é) et les cascades de refactoring.
+ * L'identifiant technique en base est "Discovery" (anciennement "Free" — voir
+ * scripts/rename-plan-free-to-discovery.sql). Les lookups acceptent les deux
+ * pour les anciens rows non migrés.
  */
 
-export const PLAN_FREE = {
+export const PLAN_DISCOVERY = {
   name: "Découverte",
   tagline: "Pour explorer la plateforme",
   price: 1000,
@@ -31,6 +32,9 @@ export const PLAN_FREE = {
     multiUsers: 1,
   },
 }
+
+/** Alias retro-compat : ancien export. Sera retire apres la migration complete. */
+export const PLAN_FREE = PLAN_DISCOVERY
 
 export const PLAN_BASIC = {
   name: "Basic",
@@ -77,10 +81,10 @@ export const PLAN_PRO = {
 }
 
 /** Identifiant technique stocké en base. L'accent de "Découverte" reste purement UI. */
-export type PlanKey = "Free" | "Basic" | "Pro"
+export type PlanKey = "Discovery" | "Basic" | "Pro"
 
 export const PLANS = {
-  Free: PLAN_FREE,
+  Discovery: PLAN_DISCOVERY,
   Basic: PLAN_BASIC,
   Pro: PLAN_PRO,
 } as const
@@ -91,8 +95,11 @@ export function getPlanConfig(plan: string | null | undefined) {
       return PLAN_PRO
     case "basic":
       return PLAN_BASIC
+    // 'free' = ancien DB key, traite comme Discovery pour retro-compat.
+    case "free":
+    case "discovery":
     default:
-      return PLAN_FREE
+      return PLAN_DISCOVERY
   }
 }
 
@@ -122,5 +129,6 @@ export function normalizePlan(plan: string | null | undefined): PlanKey {
   const p = (plan || "").toLowerCase()
   if (p === "pro" || p === "premium" || p === "agency" || p === "enterprise") return "Pro"
   if (p === "basic") return "Basic"
-  return "Free"
+  // 'free' (legacy) et 'discovery' (nouveau) -> Discovery
+  return "Discovery"
 }

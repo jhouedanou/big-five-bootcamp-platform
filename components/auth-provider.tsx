@@ -92,7 +92,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: authUser.email!,
             name: authUser.user_metadata?.name || authUser.email!.split("@")[0],
             role: "user",
-            plan: "Free",
+            // Nouveau default : Discovery (plus de plan "Free" libre — choix de
+            // plan obligatoire apres signup, voir hooks/use-require-active-subscription).
+            plan: "Discovery",
             status: "active",
             subscription_status: "none",
           })
@@ -112,8 +114,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           data.subscription_end_date &&
           new Date(data.subscription_end_date) < new Date()
         ) {
-          // Abonnement expiré → forcer Free côté client
-          setUserProfile({ ...data, plan: "Free", subscription_status: "expired" } as UserProfile)
+          // Abonnement expire -> forcer Discovery (DB key 'Discovery') cote client.
+          // L'utilisateur sera redirige vers /subscribe par use-require-active-subscription.
+          setUserProfile({ ...data, plan: "Discovery", subscription_status: "expired" } as UserProfile)
           // Synchroniser la DB côté serveur, puis re-fetch pour refléter l'état officiel.
           fetch("/api/cron/check-subscriptions")
             .then(async () => {
@@ -321,7 +324,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: data.user.email!,
         name: name || data.user.email!.split("@")[0],
         role: "user",
-        plan: "Free",
+        plan: "Discovery",
         status: "active",
         subscription_status: "none",
       })

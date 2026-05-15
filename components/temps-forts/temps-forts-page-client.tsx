@@ -8,6 +8,7 @@ import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { Button } from "@/components/ui/button"
 import { BasicToProBanner } from "@/components/basic-to-pro-banner"
 import { useAuthContext } from "@/components/auth-provider"
+import { useRequireActiveSubscription } from "@/hooks/use-require-active-subscription"
 import { getTempsFortStatus, getTodayISO } from "@/lib/temps-forts"
 import type { TempsFort } from "@/types/temps-fort"
 import { useTempsForts } from "./use-temps-forts"
@@ -18,6 +19,10 @@ type TagOption = {
 }
 
 export function TempsFortsPageClient() {
+  // Force le choix d'un plan : redirige vers /subscribe?required=1
+  // si l'utilisateur n'a pas d'abonnement actif.
+  useRequireActiveSubscription()
+
   const { tempsForts, loading } = useTempsForts()
   const { userPlan } = useAuthContext()
   const [selectedTags, setSelectedTags] = useState<string[]>([])

@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
           email: authUser.email!,
           name: authUser.user_metadata?.name || authUser.email!.split('@')[0],
           role: 'user',
-          plan: 'Free',
+          plan: 'Discovery',
           status: 'active',
         }, { onConflict: 'id' })
         .select('id, email, name, subscription_status, subscription_end_date, plan')

@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
         .from('users')
         .update({
           subscription_status: "cancelled",
-          plan: "Free",
+          plan: null,
         })
         .eq('id', cancellationRequest.user_id)
 
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
           .insert({
             user_id: cancellationRequest.user_id,
             title: "Abonnement annulé",
-            message: "Votre demande d'annulation d'abonnement a été traitée. Votre plan est désormais Free.",
+            message: "Votre demande d'annulation d'abonnement a été traitée. Souscrivez à un plan pour continuer à utiliser la plateforme.",
             type: "subscription",
             read: false,
           })

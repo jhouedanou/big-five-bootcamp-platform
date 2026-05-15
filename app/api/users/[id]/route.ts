@@ -8,7 +8,7 @@ const userUpdateSchema = z.object({
   name: z.string().min(2).optional(),
   email: z.string().email().optional(),
   role: z.enum(["user", "admin"]).optional(),
-  plan: z.enum(["Free", "Basic", "Pro"]).optional(),
+  plan: z.enum(["Discovery", "Basic", "Pro"]).optional(),
   status: z.enum(["active", "inactive"]).optional(),
 })
 

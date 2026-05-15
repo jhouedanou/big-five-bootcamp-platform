@@ -1,16 +1,43 @@
 /**
  * Source de vérité des plans d'abonnement.
  *
- * 3 plans officiels :
- *   - Découverte (DB key: "Free") : entrée de gamme payante, accès limité
- *   - Basic                       : indépendants, accès illimité
- *   - Pro                         : pros, tout débloqué + séances expert
+ * Le tier "Free" est OFFICIELLEMENT DÉPRÉCIÉ. L'accès à la plateforme
+ * exige strictement un abonnement payant actif.
  *
- * L'identifiant technique en base reste "Free" pour éviter les problèmes
- * d'encodage (é) et les cascades de refactoring.
+ * 3 plans payants :
+ *   - Découverte (DB key: "Discovery") : entrée de gamme payante, accès limité
+ *   - Basic                            : indépendants, accès illimité
+ *   - Pro                              : pros, tout débloqué + séances expert
+ *
+ * État verrouillé (PLAN_LOCKED) : compte créé mais aucun abonnement actif
+ * (plan = NULL ou subscription_status !== 'active'). L'utilisateur est
+ * redirigé vers /subscribe par use-require-active-subscription jusqu'à
+ * souscription d'un plan payant.
  */
 
-export const PLAN_FREE = {
+export const PLAN_LOCKED = {
+  name: "Non abonné",
+  tagline: "Compte sans abonnement actif",
+  price: 0,
+  annualPrice: 0,
+  clicksPerMonth: 0,
+  searchesPerMonth: 0,
+  features: {
+    library: "locked" as const,
+    filters: "locked" as const,
+    campaignsPerMonth: 0,
+    favorites: false,
+    brandCollection: false,
+    weeklyEmail: false,
+    brandTracking: false,
+    debriefSession: false,
+    download: false,
+    usageCounter: false,
+    multiUsers: 0,
+  },
+}
+
+export const PLAN_DISCOVERY = {
   name: "Découverte",
   tagline: "Pour explorer la plateforme",
   price: 1000,
@@ -31,6 +58,11 @@ export const PLAN_FREE = {
     multiUsers: 1,
   },
 }
+
+/** @deprecated Alias rétro-compat. À supprimer une fois les imports nettoyés. */
+export const PLAN_FREE_LOCKED = PLAN_LOCKED
+/** @deprecated Alias rétro-compat. */
+export const PLAN_FREE = PLAN_LOCKED
 
 export const PLAN_BASIC = {
   name: "Basic",
@@ -77,10 +109,10 @@ export const PLAN_PRO = {
 }
 
 /** Identifiant technique stocké en base. L'accent de "Découverte" reste purement UI. */
-export type PlanKey = "Free" | "Basic" | "Pro"
+export type PlanKey = "Discovery" | "Basic" | "Pro"
 
 export const PLANS = {
-  Free: PLAN_FREE,
+  Discovery: PLAN_DISCOVERY,
   Basic: PLAN_BASIC,
   Pro: PLAN_PRO,
 } as const
@@ -91,8 +123,11 @@ export function getPlanConfig(plan: string | null | undefined) {
       return PLAN_PRO
     case "basic":
       return PLAN_BASIC
+    case "discovery":
+      return PLAN_DISCOVERY
+    // Aucun plan ou valeur inconnue (legacy "free" inclus) -> état verrouillé.
     default:
-      return PLAN_FREE
+      return PLAN_LOCKED
   }
 }
 
@@ -102,7 +137,7 @@ export function getPlanDisplayName(plan: string | null | undefined): string {
 
 /**
  * Indique si un plan donne accès illimité (Basic ou Pro).
- * Le plan Découverte (DB: "Free") a un accès limité même s'il est payant.
+ * Le plan Découverte a un accès limité même s'il est payant.
  */
 export function isPaidPlan(plan: string | null | undefined): boolean {
   const p = (plan || "").toLowerCase()
@@ -117,10 +152,43 @@ export function canAccessPremiumContent(plan: string | null | undefined): boolea
   return p === "basic" || p === "pro"
 }
 
-/** Normalise vers un PlanKey canonique (les anciens noms sont rétro-compatibles). */
-export function normalizePlan(plan: string | null | undefined): PlanKey {
+/**
+ * Indique si l'utilisateur n'a aucun abonnement actif.
+ * Aucun accès n'est autorisé tant que cette fonction renvoie true —
+ * use-require-active-subscription redirige alors vers /subscribe.
+ *
+ * Verrouille également si la date de fin est passée, même si le cron
+ * /api/cron/check-subscriptions n'a pas encore basculé le status.
+ */
+export function isLockedAccount(
+  plan: string | null | undefined,
+  subscriptionStatus: string | null | undefined,
+  subscriptionEndDate?: string | Date | null,
+): boolean {
+  const status = (subscriptionStatus || "").toLowerCase()
+  if (status !== "active") return true
+  const p = (plan || "").toLowerCase()
+  if (!(p === "discovery" || p === "basic" || p === "pro")) return true
+  // Filet de sécurité coté client : si la fin d'abonnement est dépassée,
+  // on considère le compte verrouillé même si le status DB est encore 'active'.
+  if (subscriptionEndDate) {
+    const end = subscriptionEndDate instanceof Date
+      ? subscriptionEndDate
+      : new Date(subscriptionEndDate)
+    if (!isNaN(end.getTime()) && end.getTime() <= Date.now()) return true
+  }
+  return false
+}
+
+/** @deprecated Utiliser `isLockedAccount`. Conservé pour rétro-compat. */
+export const isLockedFreePlan = isLockedAccount
+
+/** Normalise vers un PlanKey canonique. Renvoie null si aucun plan reconnu. */
+export function normalizePlan(plan: string | null | undefined): PlanKey | null {
   const p = (plan || "").toLowerCase()
   if (p === "pro" || p === "premium" || p === "agency" || p === "enterprise") return "Pro"
   if (p === "basic") return "Basic"
-  return "Free"
+  if (p === "discovery") return "Discovery"
+  // Legacy "Free" ou inconnu -> null (compte verrouillé)
+  return null
 }

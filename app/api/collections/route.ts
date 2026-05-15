@@ -9,7 +9,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { getSupabaseServer } from '@/lib/supabase-server'
+import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase-server'
+import { resolveTier } from '@/lib/quotas'
 
 export const dynamic = 'force-dynamic'
 
@@ -112,6 +113,24 @@ export async function POST(request: NextRequest) {
 
     if (!name?.trim()) {
       return NextResponse.json({ error: 'Nom requis' }, { status: 400 })
+    }
+
+    // Gate plan : Collections reservees a Basic / Pro.
+    const admin = getSupabaseAdmin()
+    const { data: profile } = await admin
+      .from('users')
+      .select('plan, subscription_status')
+      .eq('id', user.id)
+      .single<{ plan: string | null; subscription_status: string | null }>()
+    const tier = resolveTier(profile?.plan, profile?.subscription_status)
+    if (tier !== 'basic' && tier !== 'pro') {
+      return NextResponse.json(
+        {
+          error: 'Collections accessibles avec Basic ou Pro',
+          requiredPlan: 'basic',
+        },
+        { status: 403 }
+      )
     }
 
     // Essayer d'insérer avec description, fallback sans si la colonne n'existe pas

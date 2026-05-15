@@ -100,64 +100,89 @@ export async function POST(request: Request) {
       )
     }
 
-    // Création du compte via l'admin API avec email_confirm: true
-    // → l'utilisateur est immédiatement actif, pas de vérification email
-    const supabaseAdmin = getSupabaseAdmin()
+    // Création via supabase.auth.signUp (client anon).
+    // → Supabase envoie automatiquement l'email de confirmation (si activé dans le projet).
+    // → L'utilisateur n'a PAS de session tant qu'il n'a pas cliqué sur le lien.
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    if (!url || !anonKey) {
+      return NextResponse.json(
+        { error: "Configuration Supabase manquante côté serveur" },
+        { status: 500 }
+      )
+    }
 
-    const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { name },
+    // URL de redirection après clic sur le lien de confirmation.
+    // Prend NEXT_PUBLIC_SITE_URL en prod ; fallback sur l'origin de la requête en dev.
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+      new URL(request.url).origin
+    const emailRedirectTo = `${siteUrl}/auth/callback?next=/dashboard`
+
+    const supabaseAnon = createClient(url, anonKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
     })
 
-    if (createError) {
-      console.error("CreateUser error:", createError.message)
+    const { data: signUpData, error: signUpError } = await supabaseAnon.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name },
+        emailRedirectTo,
+      },
+    })
 
-      if (createError.message.toLowerCase().includes('already') ||
-          createError.message.toLowerCase().includes('exists') ||
-          createError.message.toLowerCase().includes('registered')) {
+    if (signUpError) {
+      console.error("SignUp error:", signUpError.message)
+      const msg = signUpError.message.toLowerCase()
+      if (msg.includes('already') || msg.includes('exists') || msg.includes('registered')) {
         return NextResponse.json(
           { error: "Un compte avec cet email existe déjà" },
           { status: 400 }
         )
       }
-
       return NextResponse.json(
-        { error: createError.message || "Erreur lors de la création du compte" },
+        { error: signUpError.message || "Erreur lors de la création du compte" },
         { status: 500 }
       )
     }
 
-    if (!createData.user) {
+    if (!signUpData.user) {
       return NextResponse.json(
         { error: "Erreur lors de la création du compte" },
         { status: 500 }
       )
     }
 
-    // Créer le profil dans la table users via service role (bypass RLS)
+    // Créer le profil dans la table users via service role (bypass RLS).
+    // Aucun plan par défaut : le choix d'un plan PAYANT (Découverte / Basic / Pro)
+    // est obligatoire pour accéder à la plateforme.
+    const supabaseAdmin = getSupabaseAdmin()
     const { error: profileError } = await supabaseAdmin
       .from('users')
-      .insert({
-        id: createData.user.id,
+      .upsert({
+        id: signUpData.user.id,
         email,
         name,
         role: 'user',
-        plan: 'Free',
+        plan: null,
         status: 'active',
-      })
+        subscription_status: 'none',
+      }, { onConflict: 'id' })
 
     if (profileError) {
       console.error("Profile creation error:", profileError.message)
-      // Non bloquant — le profil sera créé au premier login si nécessaire
+      // Non bloquant — le profil sera créé au premier login si nécessaire (auth/callback)
     }
+
+    // Si email_confirmed_at est null, l'utilisateur doit confirmer son email.
+    const needsEmailConfirmation = !signUpData.user.email_confirmed_at
 
     return NextResponse.json({
       message: "Compte créé avec succès",
-      needsEmailConfirmation: false,
+      needsEmailConfirmation,
       user: {
-        id: createData.user.id,
+        id: signUpData.user.id,
         email,
         name,
       }

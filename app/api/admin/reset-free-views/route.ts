@@ -2,10 +2,10 @@
  * POST /api/admin/reset-free-views
  *
  * Remet à zéro les compteurs mensuels de consultations + recherches/filtres
- * pour les utilisateurs Découverte (DB key "Free").
+ * pour les utilisateurs Découverte (DB key "Discovery").
  *
  * Body (optionnel) : { userId?: string } pour cibler un utilisateur précis.
- * Sans body : reset tous les Free users.
+ * Sans body : reset tous les utilisateurs Découverte.
  *
  * Champs réinitialisés :
  *   - daily_click_count        (compteur mensuel consultations)
@@ -63,11 +63,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ updated: 1, message: `Compteurs reinitialises pour user ${body.userId}` })
   }
 
-  // Reset global : tous les utilisateurs Free
+  // Reset global : tous les utilisateurs Découverte
   const { data: freeUsers, error: selectError } = await admin
     .from('users')
     .select('id')
-    .or('plan.is.null,plan.ilike.free')
+    .ilike('plan', 'discovery')
 
   if (selectError) {
     console.error('reset-free-views: erreur sélection', selectError)
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (!freeUsers || freeUsers.length === 0) {
-    return NextResponse.json({ updated: 0, message: 'Aucun utilisateur Free trouvé' })
+    return NextResponse.json({ updated: 0, message: 'Aucun utilisateur Découverte trouvé' })
   }
 
   const ids = freeUsers.map((u: { id: string }) => u.id)
@@ -92,6 +92,6 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     updated: count ?? ids.length,
-    message: `Compteurs réinitialisés pour ${count ?? ids.length} utilisateur(s) Free`,
+    message: `Compteurs réinitialisés pour ${count ?? ids.length} utilisateur(s) Découverte`,
   })
 }

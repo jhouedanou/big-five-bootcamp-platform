@@ -35,3 +35,11 @@ nul
 # RGPD browser verification temp files
 .tmp-chrome-rgpd*
 tmp-chrome-rgpd*
+
+# Browser verification temp files
+.tmp-chrome-hydration*
+.tmp-edge-hydration*
+
+# Local-only admin scripts (service role usage)
+scripts/force-confirm-user.mjs
+scripts/delete-user.ts

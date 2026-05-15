@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
@@ -10,7 +10,14 @@ import { createClient } from "@/lib/supabase"
 type PlanLabel = "Découverte" | "Basic" | "Pro"
 
 function PlanBadge({ plan }: { plan: string }) {
-  const normalized = (plan || "Free").toLowerCase()
+  const normalized = (plan || "").toLowerCase()
+
+  // Aucun badge tant qu'aucun plan payant n'a été choisi.
+  // Discovery / Basic / Pro sont les SEULS plans affichés.
+  if (normalized !== "discovery" && normalized !== "basic" && normalized !== "pro") {
+    return null
+  }
+
   const label: PlanLabel =
     normalized === "pro" ? "Pro" : normalized === "basic" ? "Basic" : "Découverte"
 
@@ -20,12 +27,12 @@ function PlanBadge({ plan }: { plan: string }) {
 
   const palette =
     label === "Pro"
-      ? "bg-[#F2B33D]/15 text-[#8a6418] border-[#F2B33D]/40"
+      ? "border-[#F2B33D] bg-[#F2B33D]/10 text-[#a17320]"
       : label === "Basic"
-      ? "bg-[#10B981]/12 text-[#0a6b51] border-[#10B981]/40"
-      : "bg-[#0F0F0F]/8 text-[#0F0F0F]/80 border-[#0F0F0F]/15"
+      ? "border-[#10B981] bg-[#10B981]/10 text-[#10B981]"
+      : "border-[#2364d7] bg-[#2364d7]/10 text-[#2364d7]"
 
-  const baseClass = `inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${palette}`
+  const baseClass = `inline-flex min-w-[5.75rem] items-center justify-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${palette}`
 
   if (isMax) {
     return (
@@ -60,7 +67,7 @@ export function Navbar() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState<string>("")
   const [userName, setUserName] = useState<string>("")
-  const [userPlan, setUserPlan] = useState<string>("Free")
+  const [userPlan, setUserPlan] = useState<string>("")
   const [logoUrl, setLogoUrl] = useState("/niggaz/normalGlogo.png")
   const initialCheckDone = useRef(false)
 
@@ -85,7 +92,7 @@ export function Navbar() {
         .single()
       setAvatarUrl(data?.avatar_url || fallbackAvatar || "")
       setUserName(data?.full_name || data?.name || fallbackName || "")
-      setUserPlan((data?.plan as string) || "Free")
+      setUserPlan((data?.plan as string) || "")
     }
 
     // Vérifier l'utilisateur via getUser() (valide le token côté serveur)
@@ -116,7 +123,7 @@ export function Navbar() {
       } else {
         setAvatarUrl("")
         setUserName("")
-        setUserPlan("Free")
+        setUserPlan("")
       }
     })
 
@@ -158,7 +165,7 @@ export function Navbar() {
                 className="relative px-4 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:text-[#0F0F0F] group flex items-center gap-1.5"
               >
                 <Image
-                  src="/icon_bibliotheque.png"
+                  src="/selena/bibliotheque.svg"
                   alt="Icône bibliothèque"
                   width={16}
                   height={16}
@@ -173,6 +180,20 @@ export function Navbar() {
               >
                 <Heart className="h-4 w-4" />
                 Favoris
+                <span className="absolute bottom-0 left-1/2 h-0.5 w-0 bg-[#F2B33D] transition-all duration-300 group-hover:left-4 group-hover:w-[calc(100%-32px)]" />
+              </Link>
+              <Link
+                href="/subscribe"
+                className="relative px-4 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:text-[#0F0F0F] group flex items-center gap-1.5"
+              >
+                <Image
+                  src="/selena/abonnement.svg"
+                  alt="Icône abonnement"
+                  width={16}
+                  height={16}
+                  className="h-4 w-4"
+                />
+                Abonnement
                 <span className="absolute bottom-0 left-1/2 h-0.5 w-0 bg-[#F2B33D] transition-all duration-300 group-hover:left-4 group-hover:w-[calc(100%-32px)]" />
               </Link>
             </>
@@ -265,7 +286,7 @@ export function Navbar() {
                   onClick={() => setIsOpen(false)}
                 >
                   <Image
-                    src="/icon_bibliotheque.png"
+                    src="/selena/bibliotheque.svg"
                     alt="Icône bibliothèque"
                     width={16}
                     height={16}
@@ -280,6 +301,20 @@ export function Navbar() {
                 >
                   <Heart className="h-4 w-4" />
                   Favoris
+                </Link>
+                <Link
+                  href="/subscribe"
+                  className="rounded-xl px-4 py-3 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] hover:translate-x-1 flex items-center gap-2"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <Image
+                    src="/selena/abonnement.svg"
+                    alt="Icône abonnement"
+                    width={16}
+                    height={16}
+                    className="h-4 w-4"
+                  />
+                  Abonnement
                 </Link>
               </>
             )}

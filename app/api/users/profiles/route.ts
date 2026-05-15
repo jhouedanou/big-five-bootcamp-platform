@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
         id: user.id,
         name: user.name || 'Utilisateur',
         initials,
-        plan: user.plan || 'Free',
+        plan: user.plan || null,
         joinedAt: user.created_at,
         favoritesCount: favoriteCounts[user.id] || 0,
       };

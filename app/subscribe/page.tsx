@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select"
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
 import { LegalModal } from "@/components/legal-modal"
+import { SubscribeCampaignsCarousel } from "@/components/subscribe-campaigns-carousel"
 import { getOperatorLogo } from "@/lib/operator-logos"
 import {
   PAWAPAY_COUNTRIES,
@@ -96,10 +97,15 @@ export default function SubscribePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, userProfile, loading } = useSupabaseAuth()
-  const rawPlanParam = searchParams.get("plan") || "pro"
+  // Mode "choix obligatoire" : route appelee par le hook useRequireActiveSubscription
+  // quand l'utilisateur n'a pas encore d'abonnement actif. Affiche un bandeau bloquant
+  // et masque le bouton "Retour au dashboard" tant qu'aucun plan n'est choisi.
+  const planRequired = searchParams.get("required") === "1"
+  // Par defaut : Basic (jamais Pro). Pro reste un choix explicite de l'utilisateur.
+  const rawPlanParam = searchParams.get("plan") || "basic"
   const validPlan: PlanChoice = ["basic", "pro", "discovery"].includes(rawPlanParam)
     ? (rawPlanParam as PlanChoice)
-    : "pro"
+    : "basic"
   const [selectedPlan, setSelectedPlan] = useState<PlanChoice>(validPlan)
   const [isAnnual, setIsAnnual] = useState(
     searchParams.get("billing") === "annual"
@@ -177,15 +183,22 @@ export default function SubscribePage() {
     basic: 2,
     pro: 3,
   }
+  // Fenêtre de renouvellement — alignée avec le serveur (RENEWAL_WINDOW_DAYS).
+  const RENEWAL_WINDOW_DAYS = 7
+  const inRenewalWindow = isActive && daysRemaining <= RENEWAL_WINDOW_DAYS
   const currentPlanKey = (userProfile?.plan || 'Free').toLowerCase()
   const currentPlanRank: number =
     currentPlanKey === 'pro' ? 3
     : currentPlanKey === 'basic' ? 2
     : currentPlanKey === 'discovery' ? 1
     : 0
-  /** Un plan est verrouillé si l'abonnement est actif ET de rang strictement supérieur. */
+  /**
+   * Un plan est verrouillé UNIQUEMENT si l'abonnement est actif, de rang supérieur,
+   * ET qu'on est en dehors de la fenêtre de renouvellement. À l'intérieur de la
+   * fenêtre, l'utilisateur peut downgrader.
+   */
   const isPlanLocked = (key: PlanChoice) =>
-    !!isActive && PLAN_RANKS[key] < currentPlanRank
+    !!isActive && PLAN_RANKS[key] < currentPlanRank && !inRenewalWindow
 
   // Si le plan présélectionné via ?plan=... est inférieur au plan actif,
   // basculer sur le plan actif pour éviter d'afficher une carte "downgrade".
@@ -338,13 +351,21 @@ export default function SubscribePage() {
       {/* Header */}
       <header className="border-b border-[#F5F5F5] bg-white">
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 text-sm text-[#0F0F0F]/70 hover:text-[#0F0F0F]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Retour
-          </Link>
+          {planRequired ? (
+            // Mode "choix obligatoire" : pas de retour possible.
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#a17320]">
+              <Sparkles className="h-4 w-4" />
+              Activez votre accès Laveiye
+            </span>
+          ) : (
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 text-sm text-[#0F0F0F]/70 hover:text-[#0F0F0F]"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Retour
+            </Link>
+          )}
           <Link href="/" className="flex items-center gap-2">
             <img src="/logo.png" className="w-30" alt="" />
           </Link>
@@ -352,13 +373,35 @@ export default function SubscribePage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-2xl px-4 py-8">
-        <h1 className="text-center font-[family-name:var(--font-heading)] text-2xl font-bold text-[#0F0F0F]">
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        {planRequired && (
+          <div className="mb-6 rounded-2xl border-2 border-[#F2B33D]/40 bg-gradient-to-r from-[#FFFBEC] to-white p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F2B33D]/20">
+                <Sparkles className="h-4 w-4 text-[#a17320]" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-[#0F0F0F]">
+                  Débloquez toute la créativité africaine
+                </p>
+                <p className="mt-1 text-sm text-[#0F0F0F]/70">
+                  Choisissez votre formule pour explorer les campagnes,
+                  enregistrer vos favoris et suivre les temps forts du marché.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Layout 2 colonnes : formules à gauche, carrousel vendeur (visuel + perks) à droite (sticky). */}
+        <div className="mt-6 grid gap-8 md:grid-cols-[1.15fr_1fr] md:items-start">
+          {/* === COLONNE GAUCHE : Choix des formules === */}
+          <div>
+        <h1 className="text-center md:text-left font-[family-name:var(--font-heading)] text-2xl font-bold text-[#0F0F0F]">
           {isActive
             ? "Prolonger ou changer de formule"
             : "Choisissez votre formule"}
         </h1>
-        <p className="mt-2 text-center text-[#0F0F0F]/60">
+        <p className="mt-2 text-center md:text-left text-[#0F0F0F]/60">
           {isActive
             ? `${isAnnual ? '365' : '30'} jours supplémentaires seront ajoutés à votre abonnement`
             : "Débloquez l'accès complet à Laveiye"}
@@ -425,13 +468,13 @@ export default function SubscribePage() {
         </div>
 
         {/* Plan Selection Cards */}
-        <div className="mt-6 grid grid-cols-2 gap-4">
+        <div className="mt-6 grid gap-4 grid-cols-1">
           {/* Découverte Card */}
           <button
             type="button"
             disabled={isPlanLocked("discovery")}
             onClick={() => setSelectedPlan("discovery")}
-            className={`rounded-xl border-2 p-5 text-left transition-all col-span-2 ${
+            className={`rounded-xl border-2 p-5 text-left transition-all ${
               isPlanLocked("discovery")
                 ? "border-[#F5F5F5] bg-[#F5F5F5]/40 opacity-60 cursor-not-allowed"
                 : selectedPlan === "discovery"
@@ -596,6 +639,12 @@ export default function SubscribePage() {
               </li>
             ))}
           </ul>
+        </div>
+          </div>
+          {/* === COLONNE DROITE : Carrousel vendeur (visuel + perks dynamiques) === */}
+          <aside className="md:sticky md:top-6 md:self-start">
+            <SubscribeCampaignsCarousel plan={selectedPlan} />
+          </aside>
         </div>
 
         {/* Mobile Money — details de paiement PawaPay */}

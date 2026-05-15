@@ -69,8 +69,11 @@ export default function RegisterPage() {
 
       if (data.needsEmailConfirmation) {
         toast.success("Compte créé ! 📧", {
-          description: "Un email de confirmation a été envoyé à " + email + ". Vérifie ta boîte de réception (et les spams).",
-          duration: 8000,
+          description:
+            "Un email de confirmation a été envoyé à " +
+            email +
+            ". Clique sur le lien pour activer ton compte (vérifie aussi les spams).",
+          duration: 10000,
         })
       } else {
         toast.success("Compte créé avec succès !", {
@@ -88,10 +91,10 @@ export default function RegisterPage() {
   }
 
   const benefits = [
-    "Accès à toute la bibliothèque",
-    "Nouveaux contenus ajoutés quotidiennement",
-    "Filtres et recherche avancés",
-    "Annulation possible à tout moment"
+    "Accès à une vaste bibliothèque de contenus",
+    "Nouveaux contenus ajoutés régulièrement",
+    "Outils de recherche et filtres avancés",
+    "Abonnement mensuel sans engagement"
   ]
 
   return (
@@ -102,10 +105,10 @@ export default function RegisterPage() {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-[#F2B33D]/20 via-transparent to-transparent" />
           <div className="flex h-full flex-col items-center justify-center p-12">
             <div className="max-w-md">
-              <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#F2B33D]/15 px-4 py-1.5 text-sm text-[#F2B33D] font-medium">
+              {/* <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#F2B33D]/15 px-4 py-1.5 text-sm text-[#F2B33D] font-medium">
                 <Shield className="h-4 w-4" />
                 Inscription gratuite
-              </div>
+              </div> */}
               
               <h2 className="font-[family-name:var(--font-heading)] text-3xl font-bold text-[#0F0F0F]">
                 Rejoins des milliers de créatifs africains

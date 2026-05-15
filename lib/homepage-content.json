@@ -8,13 +8,13 @@
     },
     "subtitle": "Accédez à la plus grande bibliothèque de campagnes marketing réelles en Afrique. Analysez, benchmarkez et créez des concepts gagnants en quelques minutes.",
     "cta": {
-      "primary": "S'inscrire gratuitement",
+      "primary": " Accéder à la plateforme",
       "secondary": "Voir la démo"
     },
     "price": {
       "label": "À partir de",
-      "amount": "4 900 XOF/mois",
-      "suffix": "— Accès illimité"
+      "amount": "1000 FCFA/mois",
+      "suffix": "( 2 mois offerts en annuel)"
     },
     "socialProof": {
       "rating": "★★★★★",
@@ -45,8 +45,8 @@
       {
         "icon": "Layers",
         "title": "Bibliothèque actualisée",
-        "descriptionTemplate": "Plus de {count} campagnes archivées et mises à jour quotidiennement par nos équipes.",
-        "descriptionFallback": "Des campagnes archivées et mises à jour quotidiennement par nos équipes.",
+        "descriptionTemplate": "Plus de {count} campagnes disponibles, régulièrement mises à jour par nos équipes.",
+        "descriptionFallback": "Des campagnes archivées et mises à jour par nos équipes.",
         "color": "text-[#0F0F0F]",
         "bg": "bg-[#0F0F0F]/10"
       },
@@ -72,11 +72,11 @@
     "overlayButton": "Voir en action"
   },
   "pricingTeaser": {
-    "badge": "À partir de 4 900 XOF/mois",
+    "badge": "À partir de 1000 FCFA/mois",
     "title": "Commencez à créer des campagnes impactantes.",
     "subtitle": "Rejoignez des centaines de professionnels qui utilisent Laveiye pour élever leur niveau de performance.",
     "cta": {
-      "primary": "S'inscrire gratuitement",
+      "primary": " Accéder à la plateforme",
       "secondary": "Voir les tarifs"
     }
   },
@@ -94,13 +94,13 @@
     },
     "priceLabels": {
       "custom": "Sur devis",
-      "perMonth": "XOF / mois",
-      "annualBillingTemplate": "soit {amount} XOF facturés annuellement",
-      "annualPerYearTemplate": "ou {amount} XOF / an (2 mois offerts)"
+      "perMonth": "FCFA / mois",
+      "annualBillingTemplate": "soit {amount} FCFA facturés annuellement",
+      "annualPerYearTemplate": "ou {amount} FCFA / an (2 mois offerts)"
     },
     "plans": [
       {
-        "key": "free",
+        "key": "discovery",
         "name": "Découverte",
         "description": "Pour explorer la plateforme.",
         "monthlyPrice": 1000,
@@ -187,16 +187,16 @@
       "subtitle": "Trouvez le plan qui correspond à vos besoins.",
       "tableHeader": "Fonctionnalité",
       "features": [
-        { "name": "Accès à la bibliothèque", "free": "Accès limité", "basic": "Illimité", "pro": "Illimité" },
-        { "name": "Compteur d'usage mensuel", "free": true, "basic": true, "pro": true },
-        { "name": "Favoris", "free": false, "basic": true, "pro": true },
-        { "name": "Filtres avancés", "free": false, "basic": true, "pro": true },
-        { "name": "Campagnes consultables", "free": "10 par mois", "basic": "Illimité", "pro": "Illimité" },
-        { "name": "Collections personnalisées", "free": false, "basic": true, "pro": true },
-        { "name": "Téléchargement de visuels", "free": false, "basic": true, "pro": true },
-        { "name": "Alertes email hebdo", "free": true, "basic": true, "pro": true },
-        { "name": "Recherches ou filtres / mois", "free": "5 par mois", "basic": "30 par mois", "pro": "Illimité" },
-        { "name": "Sessions expert #BigFiveDécrypte", "free": false, "basic": false, "pro": true }
+        { "name": "Accès à la bibliothèque", "discovery": "Accès limité", "basic": "Illimité", "pro": "Illimité" },
+        { "name": "Compteur d'usage mensuel", "discovery": true, "basic": true, "pro": true },
+        { "name": "Favoris", "discovery": false, "basic": true, "pro": true },
+        { "name": "Filtres avancés", "discovery": false, "basic": true, "pro": true },
+        { "name": "Campagnes consultables", "discovery": "10 par mois", "basic": "Illimité", "pro": "Illimité" },
+        { "name": "Collections personnalisées", "discovery": false, "basic": true, "pro": true },
+        { "name": "Téléchargement de visuels", "discovery": false, "basic": true, "pro": true },
+        { "name": "Alertes email hebdo", "discovery": true, "basic": true, "pro": true },
+        { "name": "Recherches ou filtres / mois", "discovery": "5 par mois", "basic": "30 par mois", "pro": "Illimité" },
+        { "name": "Sessions expert #BigFiveDécrypte", "discovery": false, "basic": false, "pro": true }
       ]
     }
   }

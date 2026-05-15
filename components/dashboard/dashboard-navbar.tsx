@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import Link from "next/link"
 import { useState, useEffect } from "react"
@@ -40,7 +40,7 @@ export function DashboardNavbar({
   searchQuota?: {
     counts: Record<string, number>
     limit: number | null
-    tier: 'free' | 'basic' | 'pro'
+    tier: 'discovery' | 'basic' | 'pro'
   } | null
 } = {}) {
   const router = useRouter()
@@ -49,6 +49,7 @@ export function DashboardNavbar({
   const [isOpen, setIsOpen] = useState(false)
   const [internalSearchQuery, setInternalSearchQuery] = useState("")
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [isUserMenuMounted, setIsUserMenuMounted] = useState(false)
 
   // Lire tout depuis le contexte centralisé — AUCUN appel getUser() ni requête DB
   const {
@@ -95,6 +96,10 @@ export function DashboardNavbar({
   const initials = userName ? userName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "?"
   const avatarUrl = (userProfile as any)?.avatar_url || user?.user_metadata?.avatar_url || ""
 
+  useEffect(() => {
+    setIsUserMenuMounted(true)
+  }, [])
+
   // Couleur du badge plan : Découverte = bleu, Basic = vert, Pro = gold.
   const planKeyLower = (effectivePlan || "").toLowerCase()
   const planDropdownBadgeClass =
@@ -131,7 +136,7 @@ export function DashboardNavbar({
   const [internalSearchQuota, setInternalSearchQuota] = useState<{
     counts: Record<string, number>
     limit: number | null
-    tier: 'free' | 'basic' | 'pro'
+    tier: 'discovery' | 'basic' | 'pro'
   } | null>(null)
   const searchQuota = externalSearchQuota !== undefined ? externalSearchQuota : internalSearchQuota
 
@@ -147,7 +152,7 @@ export function DashboardNavbar({
         setInternalSearchQuota({
           counts: data.counts || {},
           limit: data.limit ?? null,
-          tier: data.tier ?? 'free',
+          tier: data.tier ?? 'discovery',
         })
       } catch { /* silencieux */ }
     }
@@ -208,7 +213,7 @@ export function DashboardNavbar({
               className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F] transition-colors hover:bg-[#F5F5F5]/50 flex items-center gap-1"
             >
               <img
-                src="/icons/Bibliotheque.svg"
+                src="/selena/bibliotheque.svg"
                 alt=""
                 width="14"
                 height="14"
@@ -221,7 +226,7 @@ export function DashboardNavbar({
               className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1"
             >
               <img
-                src="/icons/Temps_forts.svg"
+                src="/selena/temps-fort.svg"
                 alt=""
                 width="14"
                 height="14"
@@ -235,7 +240,7 @@ export function DashboardNavbar({
                 className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1"
               >
                 <img
-                  src="/icons/Favoris.svg"
+                  src="/selena/favoris.svg"
                   alt=""
                   width="14"
                   height="14"
@@ -250,7 +255,7 @@ export function DashboardNavbar({
                 className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1"
               >
                 <img
-                  src="/icons/Collections.svg"
+                  src="/selena/dossier.svg"
                   alt=""
                   width="14"
                   height="14"
@@ -264,7 +269,7 @@ export function DashboardNavbar({
               className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1"
             >
               <img
-                src="/icons/Veille.svg"
+                src="/selena/veille.svg"
                 alt=""
                 width="14"
                 height="14"
@@ -544,7 +549,8 @@ export function DashboardNavbar({
             </Link>
           ) : null}
 
-          <DropdownMenu>
+          {isUserMenuMounted ? (
+            <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
                 {avatarUrl ? (
@@ -577,20 +583,20 @@ export function DashboardNavbar({
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link href="/profile" className="flex items-center gap-2 text-[#0F0F0F]">
-                  <img src="/icons/Profil.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
+                  <img src="/selena/profil.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
                   Profil
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/subscribe" className="flex items-center gap-2 text-[#0F0F0F]">
-                  <img src="/icons/Tarifs.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
+                  <img src="/selena/abonnement.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
                   Abonnement
                 </Link>
               </DropdownMenuItem>
               {isPremium && (
                 <DropdownMenuItem asChild>
                   <Link href="/favorites" className="flex items-center gap-2 text-[#0F0F0F]">
-                    <img src="/icons/Favoris.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
+                    <img src="/selena/favoris.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
                     Mes Favoris
                   </Link>
                 </DropdownMenuItem>
@@ -598,17 +604,25 @@ export function DashboardNavbar({
               {isPremium && (
                 <DropdownMenuItem asChild>
                   <Link href="/favorites?tab=collections" className="flex items-center gap-2 text-[#0F0F0F]">
-                    <img src="/icons/Collections.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
+                    <img src="/selena/dossier.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
                     Collections
                   </Link>
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem asChild>
                 <Link href="/dashboard/brand-requests" className="flex items-center gap-2 text-[#0F0F0F]">
-                  <img src="/icons/Veille.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
+                  <img src="/selena/veille.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
                   Veille concurrentielle
                 </Link>
               </DropdownMenuItem>
+              {planKeyLower === "pro" && (
+                <DropdownMenuItem asChild>
+                  <Link href="/decrypte" className="flex items-center gap-2 text-[#0F0F0F]">
+                    <Crown className="h-4 w-4 text-[#F2B33D]" />
+                    #BigFiveDécrypte
+                  </Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem asChild>
                 <Link href="/settings" className="flex items-center gap-2 text-[#0F0F0F]">
                   <Settings className="h-4 w-4" />
@@ -627,7 +641,33 @@ export function DashboardNavbar({
                 Déconnexion
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+            </DropdownMenu>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="pointer-events-none rounded-full"
+              type="button"
+              aria-hidden="true"
+              tabIndex={-1}
+            >
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={avatarUrl}
+                  alt=""
+                  className="h-8 w-8 rounded-full object-cover"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src="/icons/default-avatar.svg"
+                  alt=""
+                  className="h-8 w-8 rounded-full bg-[#F5F5F5]"
+                />
+              )}
+            </Button>
+          )}
 
           <button
             type="button"
@@ -659,7 +699,7 @@ export function DashboardNavbar({
               onClick={() => setIsOpen(false)}
             >
               <img
-                src="/icons/Bibliotheque.svg"
+                src="/selena/bibliotheque.svg"
                 alt=""
                 width="16"
                 height="16"
@@ -672,7 +712,7 @@ export function DashboardNavbar({
               className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1.5"
               onClick={() => setIsOpen(false)}
             >
-              <img src="/icons/Temps_forts.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
+              <img src="/selena/temps-fort.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
               Temps forts
             </Link>
             {isPremium && (
@@ -681,7 +721,7 @@ export function DashboardNavbar({
                 className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1.5"
                 onClick={() => setIsOpen(false)}
               >
-                <img src="/icons/Favoris.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
+                <img src="/selena/favoris.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
                 Mes Favoris
               </Link>
             )}
@@ -691,7 +731,7 @@ export function DashboardNavbar({
                 className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-colors hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] flex items-center gap-1.5"
                 onClick={() => setIsOpen(false)}
               >
-                <img src="/icons/Collections.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
+                <img src="/selena/dossier.svg" alt="" width="16" height="16" className="h-4 w-4"  loading="eager" />
                 Collections
               </Link>
             )}

@@ -67,8 +67,8 @@ export default function SettingsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [payments, setPayments] = useState<PaymentRecord[]>([])
   const [subscription, setSubscription] = useState<UserSubscription>({
-    plan: "Free",
-    status: "active"
+    plan: "",
+    status: "none"
   })
 
   // Charger les informations utilisateur
@@ -98,8 +98,8 @@ export default function SettingsPage() {
 
           if (profile) {
             setSubscription({
-              plan: profile.plan || "Free",
-              status: profile.subscription_status || "active",
+              plan: profile.plan || "",
+              status: profile.subscription_status || "none",
               startDate: profile.subscription_start_date || null,
               endDate: profile.subscription_end_date || null,
               paymentMethod: undefined, // récupéré depuis la table payments plus bas

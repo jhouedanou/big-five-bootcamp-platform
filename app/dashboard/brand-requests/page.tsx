@@ -104,7 +104,7 @@ const statusLabels: Record<string, { label: string; color: string; icon: any }> 
   in_progress:          { label: 'En cours',                 color: 'bg-[#F5F5F5] text-[#0F0F0F]',     icon: Loader2 },
 }
 
-const ALLOWED_PLANS = ['free', 'basic', 'pro']
+const ALLOWED_PLANS = ['discovery', 'basic', 'pro']
 
 // Texte légal de la case obligatoire avant envoi.
 const LEGAL_CONSENT_LABEL =
@@ -117,7 +117,7 @@ const LEGAL_CONSENT_LABEL =
 export default function BrandRequestsPage() {
   const [requests, setRequests] = useState<BrandRequest[]>([])
   const [loading, setLoading] = useState(true)
-  const [userPlan, setUserPlan] = useState<string>("Free")
+  const [userPlan, setUserPlan] = useState<string>("")
   const [userRole, setUserRole] = useState<string>("user")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [authPromptOpen, setAuthPromptOpen] = useState(false)
@@ -125,6 +125,8 @@ export default function BrandRequestsPage() {
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  // Filtre par statut (onglets style "Suivi de marques")
+  const [statusFilter, setStatusFilter] = useState<'all' | 'approved' | 'quote_sent' | 'pending' | 'rejected'>('all')
 
   // Form state — strictement les champs demandés
   // Sélection multi-marques : `brandQuery` est le texte saisi (filtre + ajout free-text),
@@ -339,9 +341,9 @@ export default function BrandRequestsPage() {
 
   const supabase = createClient()
   const router = useRouter()
-  const isAllowed =
-    userRole.toLowerCase() === 'admin' ||
-    ALLOWED_PLANS.includes(userPlan.toLowerCase())
+  // Les demandes de devis sont ouvertes à tous les utilisateurs connectés,
+  // même sans abonnement actif (exception explicite à la garde globale).
+  const isAllowed = isAuthenticated
 
   // ---------------------------------------------------------------------
   // Agrégation par marque — pour la section "Récap"
@@ -417,7 +419,7 @@ export default function BrandRequestsPage() {
 
           if (!mounted) return
           if (profile) {
-            setUserPlan(profile.plan || 'Free')
+            setUserPlan(profile.plan || '')
             setUserRole((profile as any).role || 'user')
           }
         }
@@ -1499,8 +1501,89 @@ export default function BrandRequestsPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {requests.map((req) => {
+                <div className="space-y-4">
+                  {/* Barre d'onglets + CTA "Nouvelle demande" — style Suivi de marques */}
+                  {(() => {
+                    const groupOf = (s: string): typeof statusFilter => {
+                      if (['completed', 'quote_accepted', 'in_payment', 'in_production', 'accepted', 'in_progress'].includes(s)) return 'approved'
+                      if (s === 'quote_sent') return 'quote_sent'
+                      if (['rejected', 'cancelled'].includes(s)) return 'rejected'
+                      return 'pending'
+                    }
+                    const counts = {
+                      all: requests.length,
+                      approved: requests.filter((r) => groupOf(r.status) === 'approved').length,
+                      quote_sent: requests.filter((r) => groupOf(r.status) === 'quote_sent').length,
+                      pending: requests.filter((r) => groupOf(r.status) === 'pending').length,
+                      rejected: requests.filter((r) => groupOf(r.status) === 'rejected').length,
+                    }
+                    const tabs: Array<{ key: typeof statusFilter; label: string; tone: string }> = [
+                      { key: 'all',        label: 'Toutes',       tone: 'bg-[#0F0F0F] text-white' },
+                      { key: 'approved',   label: 'Approuvées',   tone: 'bg-green-600 text-white' },
+                      { key: 'quote_sent', label: 'Devis envoyés', tone: 'bg-indigo-600 text-white' },
+                      { key: 'pending',    label: 'En attente',   tone: 'bg-yellow-500 text-white' },
+                      { key: 'rejected',   label: 'Refusées',     tone: 'bg-red-600 text-white' },
+                    ]
+                    return (
+                      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#F5F5F5] bg-white p-3 shadow-sm">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {tabs.map((t) => {
+                            const active = statusFilter === t.key
+                            return (
+                              <button
+                                key={t.key}
+                                type="button"
+                                onClick={() => setStatusFilter(t.key)}
+                                className={`inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all ${
+                                  active
+                                    ? `${t.tone} shadow-sm`
+                                    : 'bg-[#F5F5F5]/60 text-[#0F0F0F]/70 hover:bg-[#F5F5F5]'
+                                }`}
+                              >
+                                {t.label}
+                                <span className={`inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${
+                                  active ? 'bg-white/20 text-white' : 'bg-white text-[#0F0F0F]/60'
+                                }`}>
+                                  {counts[t.key]}
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                        <Button
+                          onClick={() => setShowForm(true)}
+                          size="sm"
+                          className="bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-white font-semibold shadow-sm"
+                        >
+                          <Plus className="h-4 w-4 mr-1.5" />
+                          Nouvelle demande
+                        </Button>
+                      </div>
+                    )
+                  })()}
+
+                  {(() => {
+                    const groupOf = (s: string): typeof statusFilter => {
+                      if (['completed', 'quote_accepted', 'in_payment', 'in_production', 'accepted', 'in_progress'].includes(s)) return 'approved'
+                      if (s === 'quote_sent') return 'quote_sent'
+                      if (['rejected', 'cancelled'].includes(s)) return 'rejected'
+                      return 'pending'
+                    }
+                    const filtered = statusFilter === 'all'
+                      ? requests
+                      : requests.filter((r) => groupOf(r.status) === statusFilter)
+
+                    if (filtered.length === 0) {
+                      return (
+                        <div className="rounded-2xl border border-dashed border-[#F5F5F5] bg-white p-8 text-center text-sm text-[#0F0F0F]/60">
+                          Aucune demande dans cette catégorie.
+                        </div>
+                      )
+                    }
+
+                    return (
+                      <div className="space-y-3">
+                        {filtered.map((req) => {
                     const statusInfo = statusLabels[req.status] || statusLabels.pending
                     const StatusIcon = statusInfo.icon
                     const urls =
@@ -1778,6 +1861,9 @@ export default function BrandRequestsPage() {
                       </div>
                     )
                   })}
+                        </div>
+                      )
+                    })()}
                 </div>
               )}
             </>

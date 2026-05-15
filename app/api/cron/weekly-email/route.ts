@@ -56,11 +56,15 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // 2. Récupérer tous les utilisateurs abonnés aux emails
+    // 2. Recuperer les utilisateurs avec abonnement actif (Discovery/Basic/Pro)
+    //    et qui n'ont pas desactive les emails. Les comptes sans abonnement
+    //    actif ne recoivent pas l'email hebdo (alignement spec : feature
+    //    "Alertes email hebdo" reservee aux trois plans payants).
     const { data: users, error: usersError } = await (supabaseAdmin as any)
       .from('users')
       .select('id, email, name, email_unsubscribed')
       .eq('status', 'active')
+      .eq('subscription_status', 'active')
       .neq('email_unsubscribed', true)
 
     if (usersError) {

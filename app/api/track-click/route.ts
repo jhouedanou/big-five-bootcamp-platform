@@ -14,7 +14,7 @@ import { QUOTAS, resolveTier, monthKey, isSameMonth, UNLIMITED } from '@/lib/quo
 
 export const dynamic = 'force-dynamic'
 
-const MONTHLY_CLICK_LIMIT = QUOTAS.free.monthlyClickLimit
+const MONTHLY_CLICK_LIMIT = QUOTAS.discovery.monthlyClickLimit
 
 type UserProfile = {
   id: string
@@ -54,7 +54,7 @@ export async function POST(_request: NextRequest) {
     }
 
     const tier = resolveTier(profile.plan, profile.subscription_status)
-    const isFree = tier === 'free'
+    const isFree = tier === 'discovery'
     const limit = QUOTAS[tier].monthlyClickLimit
     const currentMonth = monthKey()
 
@@ -135,7 +135,7 @@ export async function GET(_request: NextRequest) {
     }
 
     const tier = resolveTier(profile.plan, profile.subscription_status)
-    const isFree = tier === 'free'
+    const isFree = tier === 'discovery'
     const limit = QUOTAS[tier].monthlyClickLimit
     const currentMonth = monthKey()
 

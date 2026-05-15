@@ -8,6 +8,7 @@ import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { Button } from "@/components/ui/button"
 import { BasicToProBanner } from "@/components/basic-to-pro-banner"
 import { useAuthContext } from "@/components/auth-provider"
+import { useRequireActiveSubscription } from "@/hooks/use-require-active-subscription"
 import { getTempsFortStatus, getTodayISO } from "@/lib/temps-forts"
 import type { TempsFort } from "@/types/temps-fort"
 import { useTempsForts } from "./use-temps-forts"
@@ -18,6 +19,10 @@ type TagOption = {
 }
 
 export function TempsFortsPageClient() {
+  // Force le choix d'un plan : redirige vers /subscribe?required=1
+  // si l'utilisateur n'a pas d'abonnement actif.
+  const { checking: subChecking, locked: subLocked } = useRequireActiveSubscription()
+
   const { tempsForts, loading } = useTempsForts()
   const { userPlan } = useAuthContext()
   const [selectedTags, setSelectedTags] = useState<string[]>([])
@@ -94,6 +99,20 @@ export function TempsFortsPageClient() {
   }
 
   const clearFilters = () => setSelectedTags([])
+
+  // Garde abonnement : pas d'accès aux temps forts tant que l'utilisateur n'a pas de plan actif.
+  if (subChecking || subLocked) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-white via-white to-[#F5F5F5]/40">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#F2B33D] border-t-transparent" />
+          <p className="text-sm text-[#0F0F0F]/70">
+            {subLocked ? "On prépare votre accès Laveiye…" : "Chargement…"}
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-white to-[#F5F5F5]/40">

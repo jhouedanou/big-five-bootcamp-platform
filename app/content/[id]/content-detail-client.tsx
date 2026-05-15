@@ -38,6 +38,7 @@ import { useFavorites } from "@/hooks/use-favorites";
 import { cn, getGoogleDriveImageUrl, fixBrokenEncoding } from "@/lib/utils";
 import { detectVideoPlatform, getEmbedUrl, getVideoPlatformLabel, getOriginalVideoUrl } from "@/lib/video-utils";
 import { isPaidPlan, canAccessPremiumContent } from "@/lib/pricing";
+import { useRequireActiveSubscription } from "@/hooks/use-require-active-subscription";
 import { UpgradePopup } from "@/components/upgrade-popup";
 import { ReactionButtons } from "@/components/ui/reaction-buttons";
 import { AddToCollectionModal } from "@/components/collections/add-to-collection-modal";
@@ -107,6 +108,10 @@ function formatDescription(text: string): string {
 }
 
 export default function ContentDetailClient({ id }: { id: string }) {
+  // Force le choix d'un plan : redirige vers /subscribe?required=1
+  // si l'utilisateur n'a pas d'abonnement actif.
+  const { checking: subChecking, locked: subLocked } = useRequireActiveSubscription();
+
   const [content, setContent] = useState<Campaign | null>(null);
   const [relatedContent, setRelatedContent] = useState<Campaign[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -119,7 +124,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
   const [readProgress, setReadProgress] = useState(0);
   const [activeTab, setActiveTab] = useState<"axe" | "utilisation">("axe");
   const articleRef = useRef<HTMLDivElement>(null);
-  const [userPlan, setUserPlan] = useState("Free");
+  const [userPlan, setUserPlan] = useState("");
   const [monthlyClicks, setMonthlyClicks] = useState(0);
   const [monthlyExplored, setMonthlyExplored] = useState(0);
   const [isBlocked, setIsBlocked] = useState(false);
@@ -465,7 +470,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 Campagne Premium
               </Badge>
               <h1 className="font-[family-name:var(--font-heading)] text-2xl sm:text-3xl font-bold text-[#0F0F0F] mb-3">
-                Cette campagne est réservée aux abonnés Basic ou Pro
+                Accessible avec Basic ou Pro
               </h1>
               <p className="text-[#0F0F0F]/70 text-sm sm:text-base mb-6 max-w-md mx-auto">
                 Les campagnes Premium font partie de notre sélection exclusive.
@@ -605,7 +610,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                     <div className="absolute bottom-4 left-0 right-0 flex justify-center">
                       <div className="flex items-center gap-2 bg-white/95 dark:bg-background/95 backdrop-blur-sm rounded-full px-5 py-2.5 shadow-lg border border-border">
                         <Lock className="h-4 w-4 text-[#F2B33D]" />
-                        <span className="text-sm font-medium text-muted-foreground">Contenu complet réservé aux membres</span>
+                        <span className="text-sm font-medium text-muted-foreground">Contenu complet : Basic ou Pro requis</span>
                       </div>
                     </div>
                   </div>
@@ -796,6 +801,20 @@ export default function ContentDetailClient({ id }: { id: string }) {
         </main>
       </div>
     );
+  }
+
+  // Garde abonnement : pas d'accès au détail tant que l'utilisateur n'a pas de plan actif.
+  if (subChecking || subLocked) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#F2B33D] border-t-transparent" />
+          <p className="text-sm text-muted-foreground">
+            {subLocked ? "On prépare votre accès Laveiye…" : "Chargement…"}
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (

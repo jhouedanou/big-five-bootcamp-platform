@@ -10,7 +10,7 @@ const userCreateSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8).optional(),
   role: z.enum(["user", "admin"]).optional(),
-  plan: z.enum(["Free", "Basic", "Pro"]).optional(),
+  plan: z.enum(["Discovery", "Basic", "Pro"]).optional(),
   status: z.enum(["active", "inactive"]).optional(),
 })
 
@@ -122,7 +122,7 @@ export async function POST(request: Request) {
         email,
         name,
         role: role || 'user',
-        plan: plan || 'Free',
+        plan: plan || null,
         status: status || 'active',
       })
       .select()

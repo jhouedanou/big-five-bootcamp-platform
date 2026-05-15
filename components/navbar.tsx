@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase"
 type PlanLabel = "Découverte" | "Basic" | "Pro"
 
 function PlanBadge({ plan }: { plan: string }) {
-  const normalized = (plan || "Free").toLowerCase()
+  const normalized = (plan || "").toLowerCase()
   const label: PlanLabel =
     normalized === "pro" ? "Pro" : normalized === "basic" ? "Basic" : "Découverte"
 
@@ -20,12 +20,12 @@ function PlanBadge({ plan }: { plan: string }) {
 
   const palette =
     label === "Pro"
-      ? "bg-[#F2B33D]/15 text-[#8a6418] border-[#F2B33D]/40"
+      ? "border-[#F2B33D] bg-[#F2B33D]/10 text-[#a17320]"
       : label === "Basic"
-      ? "bg-[#10B981]/12 text-[#0a6b51] border-[#10B981]/40"
-      : "bg-[#0F0F0F]/8 text-[#0F0F0F]/80 border-[#0F0F0F]/15"
+      ? "border-[#10B981] bg-[#10B981]/10 text-[#10B981]"
+      : "border-[#2364d7] bg-[#2364d7]/10 text-[#2364d7]"
 
-  const baseClass = `inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${palette}`
+  const baseClass = `inline-flex min-w-[5.75rem] items-center justify-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${palette}`
 
   if (isMax) {
     return (
@@ -60,7 +60,7 @@ export function Navbar() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState<string>("")
   const [userName, setUserName] = useState<string>("")
-  const [userPlan, setUserPlan] = useState<string>("Free")
+  const [userPlan, setUserPlan] = useState<string>("")
   const [logoUrl, setLogoUrl] = useState("/niggaz/normalGlogo.png")
   const initialCheckDone = useRef(false)
 
@@ -85,7 +85,7 @@ export function Navbar() {
         .single()
       setAvatarUrl(data?.avatar_url || fallbackAvatar || "")
       setUserName(data?.full_name || data?.name || fallbackName || "")
-      setUserPlan((data?.plan as string) || "Free")
+      setUserPlan((data?.plan as string) || "")
     }
 
     // Vérifier l'utilisateur via getUser() (valide le token côté serveur)
@@ -116,7 +116,7 @@ export function Navbar() {
       } else {
         setAvatarUrl("")
         setUserName("")
-        setUserPlan("Free")
+        setUserPlan("")
       }
     })
 

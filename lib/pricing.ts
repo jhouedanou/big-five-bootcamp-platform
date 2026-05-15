@@ -1,15 +1,41 @@
 /**
  * Source de vérité des plans d'abonnement.
  *
- * 3 plans officiels :
+ * Le tier "Free" est OFFICIELLEMENT DÉPRÉCIÉ. L'accès à la plateforme
+ * exige strictement un abonnement payant actif.
+ *
+ * 3 plans payants :
  *   - Découverte (DB key: "Discovery") : entrée de gamme payante, accès limité
  *   - Basic                            : indépendants, accès illimité
  *   - Pro                              : pros, tout débloqué + séances expert
  *
- * L'identifiant technique en base est "Discovery" (anciennement "Free" — voir
- * scripts/rename-plan-free-to-discovery.sql). Les lookups acceptent les deux
- * pour les anciens rows non migrés.
+ * État verrouillé (PLAN_LOCKED) : compte créé mais aucun abonnement actif
+ * (plan = NULL ou subscription_status !== 'active'). L'utilisateur est
+ * redirigé vers /subscribe par use-require-active-subscription jusqu'à
+ * souscription d'un plan payant.
  */
+
+export const PLAN_LOCKED = {
+  name: "Locked",
+  tagline: "Compte sans abonnement actif",
+  price: 0,
+  annualPrice: 0,
+  clicksPerMonth: 0,
+  searchesPerMonth: 0,
+  features: {
+    library: "locked" as const,
+    filters: "locked" as const,
+    campaignsPerMonth: 0,
+    favorites: false,
+    brandCollection: false,
+    weeklyEmail: false,
+    brandTracking: false,
+    debriefSession: false,
+    download: false,
+    usageCounter: false,
+    multiUsers: 0,
+  },
+}
 
 export const PLAN_DISCOVERY = {
   name: "Découverte",
@@ -33,8 +59,10 @@ export const PLAN_DISCOVERY = {
   },
 }
 
-/** Alias retro-compat : ancien export. Sera retire apres la migration complete. */
-export const PLAN_FREE = PLAN_DISCOVERY
+/** @deprecated Alias rétro-compat. À supprimer une fois les imports nettoyés. */
+export const PLAN_FREE_LOCKED = PLAN_LOCKED
+/** @deprecated Alias rétro-compat. */
+export const PLAN_FREE = PLAN_LOCKED
 
 export const PLAN_BASIC = {
   name: "Basic",
@@ -95,11 +123,11 @@ export function getPlanConfig(plan: string | null | undefined) {
       return PLAN_PRO
     case "basic":
       return PLAN_BASIC
-    // 'free' = ancien DB key, traite comme Discovery pour retro-compat.
-    case "free":
     case "discovery":
-    default:
       return PLAN_DISCOVERY
+    // Aucun plan ou valeur inconnue (legacy "free" inclus) -> état verrouillé.
+    default:
+      return PLAN_LOCKED
   }
 }
 
@@ -109,7 +137,7 @@ export function getPlanDisplayName(plan: string | null | undefined): string {
 
 /**
  * Indique si un plan donne accès illimité (Basic ou Pro).
- * Le plan Découverte (DB: "Free") a un accès limité même s'il est payant.
+ * Le plan Découverte a un accès limité même s'il est payant.
  */
 export function isPaidPlan(plan: string | null | undefined): boolean {
   const p = (plan || "").toLowerCase()
@@ -124,11 +152,30 @@ export function canAccessPremiumContent(plan: string | null | undefined): boolea
   return p === "basic" || p === "pro"
 }
 
-/** Normalise vers un PlanKey canonique (les anciens noms sont rétro-compatibles). */
-export function normalizePlan(plan: string | null | undefined): PlanKey {
+/**
+ * Indique si l'utilisateur n'a aucun abonnement actif.
+ * Aucun accès n'est autorisé tant que cette fonction renvoie true —
+ * use-require-active-subscription redirige alors vers /subscribe.
+ */
+export function isLockedAccount(
+  plan: string | null | undefined,
+  subscriptionStatus: string | null | undefined,
+): boolean {
+  const status = (subscriptionStatus || "").toLowerCase()
+  if (status !== "active") return true
+  const p = (plan || "").toLowerCase()
+  return !(p === "discovery" || p === "basic" || p === "pro")
+}
+
+/** @deprecated Utiliser `isLockedAccount`. Conservé pour rétro-compat. */
+export const isLockedFreePlan = isLockedAccount
+
+/** Normalise vers un PlanKey canonique. Renvoie null si aucun plan reconnu. */
+export function normalizePlan(plan: string | null | undefined): PlanKey | null {
   const p = (plan || "").toLowerCase()
   if (p === "pro" || p === "premium" || p === "agency" || p === "enterprise") return "Pro"
   if (p === "basic") return "Basic"
-  // 'free' (legacy) et 'discovery' (nouveau) -> Discovery
-  return "Discovery"
+  if (p === "discovery") return "Discovery"
+  // Legacy "Free" ou inconnu -> null (compte verrouillé)
+  return null
 }

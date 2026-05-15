@@ -52,7 +52,7 @@ export const authOptions: NextAuthOptions = {
           email: data.user.email!,
           name: profile?.name || data.user.email!,
           role: profile?.role || 'user',
-          plan: profile?.plan || 'Free',
+          plan: profile?.plan || null,
           image: null,
         }
       }

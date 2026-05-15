@@ -93,13 +93,16 @@ async function ensureUserProfile(user: { id: string; email?: string | null; user
             .single()
 
         if (!existing) {
+            // Nouveau compte : aucun plan par defaut. L'utilisateur doit souscrire a
+            // Decouverte / Basic / Pro avant d'acceder a la plateforme.
             await admin.from('users').upsert({
                 id: user.id,
                 email: user.email,
                 name: user.user_metadata?.name || user.email.split('@')[0],
                 role: 'user',
-                plan: 'Discovery',
+                plan: null,
                 status: 'active',
+                subscription_status: 'none',
             }, { onConflict: 'id' })
         }
     } catch (e) {

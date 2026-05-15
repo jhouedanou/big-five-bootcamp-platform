@@ -62,8 +62,12 @@ export async function updateUserPlan(id: string, plan: string) {
         const supabase = getSupabaseAdmin()
         const updateData: Record<string, unknown> = { plan }
 
-        // Si le plan est Free, réinitialiser le statut d'abonnement
-        if (plan === "Free") {
+        // Si l'admin force un plan non payant (null / vide / legacy 'Free'),
+        // marquer l'abonnement comme expiré — le user sera redirigé vers /subscribe.
+        const lower = String(plan || '').toLowerCase()
+        const isPaidPlan = lower === 'discovery' || lower === 'basic' || lower === 'pro'
+        if (!isPaidPlan) {
+            updateData.plan = null
             updateData.subscription_status = "expired"
         } else {
             updateData.subscription_status = "active"
@@ -112,7 +116,7 @@ export async function endSubscription(userId: string) {
         const { error } = await supabase
             .from('users')
             .update({
-                plan: 'Discovery',
+                plan: null,
                 subscription_status: 'expired',
                 subscription_end_date: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
@@ -131,7 +135,7 @@ export async function endSubscription(userId: string) {
 export async function resetSubscription(
     userId: string,
     days: number = 30,
-    plan?: 'Free' | 'Basic' | 'Pro'
+    plan?: 'Discovery' | 'Basic' | 'Pro'
 ) {
     try {
         const supabase = getSupabaseAdmin()
@@ -140,7 +144,7 @@ export async function resetSubscription(
 
         // Pas d'upgrade silencieux vers Pro : si plan non specifie, on reprend
         // le plan actuel de l'utilisateur (par defaut "Basic" si jamais defini).
-        let resolvedPlan: 'Free' | 'Basic' | 'Pro'
+        let resolvedPlan: 'Discovery' | 'Basic' | 'Pro'
         if (plan) {
             resolvedPlan = plan
         } else {
@@ -150,7 +154,11 @@ export async function resetSubscription(
                 .eq('id', userId)
                 .single<{ plan: string | null }>()
             const current = String(existing?.plan || '').toLowerCase()
-            resolvedPlan = current === 'pro' ? 'Pro' : current === 'basic' ? 'Basic' : 'Basic'
+            resolvedPlan =
+                current === 'pro' ? 'Pro'
+                : current === 'basic' ? 'Basic'
+                : current === 'discovery' ? 'Discovery'
+                : 'Basic'
         }
 
         const { error } = await supabase

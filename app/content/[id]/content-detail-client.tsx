@@ -124,7 +124,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
   const [readProgress, setReadProgress] = useState(0);
   const [activeTab, setActiveTab] = useState<"axe" | "utilisation">("axe");
   const articleRef = useRef<HTMLDivElement>(null);
-  const [userPlan, setUserPlan] = useState("Free");
+  const [userPlan, setUserPlan] = useState("");
   const [monthlyClicks, setMonthlyClicks] = useState(0);
   const [monthlyExplored, setMonthlyExplored] = useState(0);
   const [isBlocked, setIsBlocked] = useState(false);
@@ -610,7 +610,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                     <div className="absolute bottom-4 left-0 right-0 flex justify-center">
                       <div className="flex items-center gap-2 bg-white/95 dark:bg-background/95 backdrop-blur-sm rounded-full px-5 py-2.5 shadow-lg border border-border">
                         <Lock className="h-4 w-4 text-[#F2B33D]" />
-                        <span className="text-sm font-medium text-muted-foreground">Contenu complet réservé aux membres</span>
+                        <span className="text-sm font-medium text-muted-foreground">Contenu complet : Basic ou Pro requis</span>
                       </div>
                     </div>
                   </div>

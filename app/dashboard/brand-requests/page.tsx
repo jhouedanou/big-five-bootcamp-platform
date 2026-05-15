@@ -104,7 +104,7 @@ const statusLabels: Record<string, { label: string; color: string; icon: any }> 
   in_progress:          { label: 'En cours',                 color: 'bg-[#F5F5F5] text-[#0F0F0F]',     icon: Loader2 },
 }
 
-const ALLOWED_PLANS = ['free', 'basic', 'pro']
+const ALLOWED_PLANS = ['discovery', 'basic', 'pro']
 
 // Texte légal de la case obligatoire avant envoi.
 const LEGAL_CONSENT_LABEL =
@@ -117,7 +117,7 @@ const LEGAL_CONSENT_LABEL =
 export default function BrandRequestsPage() {
   const [requests, setRequests] = useState<BrandRequest[]>([])
   const [loading, setLoading] = useState(true)
-  const [userPlan, setUserPlan] = useState<string>("Free")
+  const [userPlan, setUserPlan] = useState<string>("")
   const [userRole, setUserRole] = useState<string>("user")
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [authPromptOpen, setAuthPromptOpen] = useState(false)

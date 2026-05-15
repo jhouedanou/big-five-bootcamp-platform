@@ -1,14 +1,14 @@
 /**
  * API Route: GET /api/cron/check-subscriptions
  * 
- * Vérifie les abonnements expirés et les downgrade automatiquement.
+ * Vérifie les abonnements expirés et bascule l'utilisateur en état verrouillé.
  * À appeler via un cron job Vercel (vercel.json) ou manuellement.
  * 
  * Sécurité: Protégé par CRON_SECRET dans les headers
  * 
  * Logique:
  * 1. Trouver les utilisateurs avec subscription_end_date < NOW() et subscription_status = 'active'
- * 2. Mettre subscription_status = 'expired' et plan = 'Free'
+ * 2. Mettre subscription_status = 'expired' et plan = NULL (compte verrouillé)
  * 3. Logger les utilisateurs downgradués
  */
 
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
       const { error: updateError } = await (supabaseAdmin as any)
         .from('users')
         .update({
-          plan: 'Discovery',
+          plan: null,
           subscription_status: 'expired',
           updated_at: now,
         })

@@ -70,7 +70,7 @@ export default function ProfilePage() {
     avatar: "",
     status: "none",
     subscriptionEndDate: "",
-    plan: "Free",
+    plan: "",
     monthlyUsage: 0,
   })
 
@@ -107,7 +107,8 @@ export default function ProfilePage() {
       let status: "subscribed" | "expired" | "none" = "none"
       let subscriptionEndDate = ""
 
-      let planName = profile?.plan || "Discovery"
+      // plan = null => compte verrouille (pas d'abonnement actif). Pas de fallback Decouverte.
+      let planName = profile?.plan || ""
       let monthlyUsage = 0
 
       if (profile) {
@@ -322,7 +323,7 @@ export default function ProfilePage() {
   }
 
   // ─── Présentation du plan : style + libellés ke pour les 3 plans ───────────
-  const planKey = (user.plan || "Free").toLowerCase()
+  const planKey = (user.plan || "").toLowerCase()
   const planConfig = getPlanConfig(user.plan)
   const planName = planConfig.name // "Découverte" | "Basic" | "Pro"
   const monthlyClickLimit: number = Number.isFinite(planConfig.clicksPerMonth)
@@ -482,7 +483,7 @@ export default function ProfilePage() {
               <span className="text-sm font-medium">{planAccessLabel}</span>
             </div>
 
-            {planKey === "free" && (
+            {(!planKey || planKey === "free") && (
               <Button asChild className="mt-4 w-full shadow-lg shadow-primary/25 sm:w-auto bg-[#F2B33D] hover:bg-[#F2B33D]/90">
                 <Link href="/subscribe">
                   Choisir une formule

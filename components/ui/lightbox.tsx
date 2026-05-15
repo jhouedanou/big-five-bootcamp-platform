@@ -157,7 +157,7 @@ export function Lightbox({ images: rawImages, initialIndex = 0, isOpen, onClose,
               handleDownload();
             }}
             className={`text-white hover:bg-white/20 ${!isPremium ? "relative" : ""}`}
-            title={isPremium ? "Télécharger" : "Téléchargement réservé aux plans Basic et Pro"}
+            title={isPremium ? "Télécharger" : "Téléchargement : Basic ou Pro requis"}
             disabled={isDownloading}
           >
             <Download className={`h-5 w-5 ${!isPremium ? "opacity-60" : ""}`} />

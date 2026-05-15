@@ -31,7 +31,7 @@ import {
 } from '@/lib/promo-codes';
 
 const PLAN_PRICES: Record<string, { price: number; annualPrice: number; label: string; dbKey: string }> = {
-  discovery: { price: 1000, annualPrice: 10000, label: 'Découverte', dbKey: 'Free' },
+  discovery: { price: 1000, annualPrice: 10000, label: 'Découverte', dbKey: 'Discovery' },
   basic: { price: 4900, annualPrice: 49000, label: 'Basic', dbKey: 'Basic' },
   pro: { price: 9900, annualPrice: 99000, label: 'Pro', dbKey: 'Pro' },
 };
@@ -49,10 +49,9 @@ const RENEWAL_WINDOW_DAYS = 7;
 
 /**
  * Rang d'un plan pour interdire les downgrades quand l'abonnement
- * est encore actif. Free < Découverte < Basic < Pro.
+ * est encore actif. Le tier "Free" a été déprécié. Découverte < Basic < Pro.
  */
 const PLAN_RANK: Record<string, number> = {
-  free: 0,
   discovery: 1,
   basic: 2,
   pro: 3,

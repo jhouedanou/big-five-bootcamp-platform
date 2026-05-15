@@ -1,19 +1,15 @@
 "use client"
 
 /**
- * Hook : exige qu'un plan ait deja ete choisi (souscrit ou non).
+ * Hook : exige un abonnement payant ACTIF pour acceder a la plateforme.
+ *
+ * Le plan "Free" a ete deprecie. Tout utilisateur sans souscription active
+ * (Decouverte / Basic / Pro) est redirige vers /subscribe?required=1.
  *
  * Cas :
- *   - subscription_status === 'active' : acces normal, aucun redirect.
- *   - subscription_status === 'expired' | 'cancelled' | 'past_due' :
- *     acces limite (tier 'free' via resolveTier), pas de redirect.
- *     Un bottom-sheet de rappel est affiche via <SubscriptionExpiredBottomSheet>.
- *   - subscription_status === 'none' | null | undefined :
- *     jamais souscrit. Redirect bloquant vers /subscribe?required=1.
- *
- * Ce comportement permet aux utilisateurs dont l'abonnement a expire de
- * continuer a naviguer (avec quotas Decouverte) pendant qu'ils renouvellent,
- * tout en forcant le choix de plan a la premiere inscription.
+ *   - subscription_status === 'active' ET plan ∈ {Discovery,Basic,Pro} : acces normal.
+ *   - Tout autre etat ('none', 'expired', 'cancelled', 'past_due', 'trialing'…)
+ *     OU plan absent / 'Free' legacy : redirect bloquant vers /subscribe.
  *
  * Note securite : le redirect est UX. La protection des donnees doit etre
  * faite cote serveur (RLS Supabase + checks d'API).
@@ -22,11 +18,9 @@
 import { useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useAuthContext } from "@/components/auth-provider"
+import { isLockedAccount } from "@/lib/pricing"
 
 const SUBSCRIBE_PATH = "/subscribe"
-
-/** Status qui declenchent le redirect bloquant. */
-const NEVER_SUBSCRIBED_STATUSES = new Set(["", "none"])
 
 export function useRequireActiveSubscription() {
   const router = useRouter()
@@ -39,10 +33,10 @@ export function useRequireActiveSubscription() {
     if (!userProfile) return
     if (pathname?.startsWith(SUBSCRIBE_PATH)) return
 
-    const status = String((userProfile as any).subscription_status || "").toLowerCase()
-    if (NEVER_SUBSCRIBED_STATUSES.has(status)) {
+    const plan = (userProfile as any).plan as string | null | undefined
+    const status = (userProfile as any).subscription_status as string | null | undefined
+    if (isLockedAccount(plan, status)) {
       router.replace(`${SUBSCRIBE_PATH}?required=1`)
     }
-    // 'expired' / 'cancelled' / 'past_due' : pas de redirect, bottom-sheet affiche ailleurs.
   }, [loading, user, userProfile, pathname, router])
 }

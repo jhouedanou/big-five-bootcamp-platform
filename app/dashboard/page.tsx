@@ -287,8 +287,8 @@ export default function DashboardPage() {
   const [searchQuota, setSearchQuota] = useState<{
     counts: Record<string, number>
     limit: number | null
-    tier: 'free' | 'basic' | 'pro'
-  }>({ counts: {}, limit: null, tier: 'free' })
+    tier: 'discovery' | 'basic' | 'pro'
+  }>({ counts: {}, limit: null, tier: 'discovery' })
 
   // Mémorise la dernière recherche déjà comptabilisée pour éviter de la recompter.
   // Pré-marquage : SEUL `?brand=…` (deeplink suivi de marques) ne doit pas
@@ -508,7 +508,7 @@ export default function DashboardPage() {
         setSearchQuota({
           counts: data.counts || {},
           limit: data.limit ?? null,
-          tier: data.tier ?? 'free',
+          tier: data.tier ?? 'discovery',
         })
       })
       .catch(() => { /* silencieux */ })
@@ -570,7 +570,7 @@ export default function DashboardPage() {
               setSearchQuota({
                 counts: data.counts,
                 limit: data.limit ?? null,
-                tier: data.tier ?? 'free',
+                tier: data.tier ?? 'discovery',
               })
             }
           } catch { /* ignore */ }
@@ -948,7 +948,7 @@ export default function DashboardPage() {
               setSearchQuota({
                 counts: data.counts,
                 limit: data.limit ?? null,
-                tier: data.tier ?? 'free',
+                tier: data.tier ?? 'discovery',
               })
             }
           } catch { /* ignore */ }

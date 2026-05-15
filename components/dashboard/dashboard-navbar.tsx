@@ -40,7 +40,7 @@ export function DashboardNavbar({
   searchQuota?: {
     counts: Record<string, number>
     limit: number | null
-    tier: 'free' | 'basic' | 'pro'
+    tier: 'discovery' | 'basic' | 'pro'
   } | null
 } = {}) {
   const router = useRouter()
@@ -49,6 +49,7 @@ export function DashboardNavbar({
   const [isOpen, setIsOpen] = useState(false)
   const [internalSearchQuery, setInternalSearchQuery] = useState("")
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [isUserMenuMounted, setIsUserMenuMounted] = useState(false)
 
   // Lire tout depuis le contexte centralisé — AUCUN appel getUser() ni requête DB
   const {
@@ -95,6 +96,10 @@ export function DashboardNavbar({
   const initials = userName ? userName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "?"
   const avatarUrl = (userProfile as any)?.avatar_url || user?.user_metadata?.avatar_url || ""
 
+  useEffect(() => {
+    setIsUserMenuMounted(true)
+  }, [])
+
   // Couleur du badge plan : Découverte = bleu, Basic = vert, Pro = gold.
   const planKeyLower = (effectivePlan || "").toLowerCase()
   const planDropdownBadgeClass =
@@ -131,7 +136,7 @@ export function DashboardNavbar({
   const [internalSearchQuota, setInternalSearchQuota] = useState<{
     counts: Record<string, number>
     limit: number | null
-    tier: 'free' | 'basic' | 'pro'
+    tier: 'discovery' | 'basic' | 'pro'
   } | null>(null)
   const searchQuota = externalSearchQuota !== undefined ? externalSearchQuota : internalSearchQuota
 
@@ -147,7 +152,7 @@ export function DashboardNavbar({
         setInternalSearchQuota({
           counts: data.counts || {},
           limit: data.limit ?? null,
-          tier: data.tier ?? 'free',
+          tier: data.tier ?? 'discovery',
         })
       } catch { /* silencieux */ }
     }
@@ -544,7 +549,8 @@ export function DashboardNavbar({
             </Link>
           ) : null}
 
-          <DropdownMenu>
+          {isUserMenuMounted ? (
+            <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="rounded-full">
                 {avatarUrl ? (
@@ -635,7 +641,33 @@ export function DashboardNavbar({
                 Déconnexion
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+            </DropdownMenu>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="pointer-events-none rounded-full"
+              type="button"
+              aria-hidden="true"
+              tabIndex={-1}
+            >
+              {avatarUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={avatarUrl}
+                  alt=""
+                  className="h-8 w-8 rounded-full object-cover"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src="/icons/default-avatar.svg"
+                  alt=""
+                  className="h-8 w-8 rounded-full bg-[#F5F5F5]"
+                />
+              )}
+            </Button>
+          )}
 
           <button
             type="button"

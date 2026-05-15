@@ -35,3 +35,7 @@ nul
 # RGPD browser verification temp files
 .tmp-chrome-rgpd*
 tmp-chrome-rgpd*
+
+# Browser verification temp files
+.tmp-chrome-hydration*
+.tmp-edge-hydration*

@@ -68,8 +68,8 @@ export function getQuotaUpsell(
 
   if (level === "safe") return null
 
-  // Cible d'upsell : Free → Basic, Basic → Pro.
-  const ctaPlan: "basic" | "pro" = tier === "free" ? "basic" : "pro"
+  // Cible d'upsell : Découverte → Basic, Basic → Pro.
+  const ctaPlan: "basic" | "pro" = tier === "discovery" ? "basic" : "pro"
   const ctaLabel = PLAN_LABELS[ctaPlan]
 
   const noun =
@@ -81,14 +81,14 @@ export function getQuotaUpsell(
   // Détails de l'offre supérieure pour cadrer l'upsell.
   const upsellHint =
     kind === "searches"
-      ? tier === "free"
+      ? tier === "discovery"
         ? "Basic vous donne 30 recherches/mois, Pro l'illimité."
         : "Pro vous donne des recherches et filtres illimités."
       : kind === "clicks"
-        ? tier === "free"
+        ? tier === "discovery"
           ? "Basic et Pro débloquent les consultations illimitées."
           : "Pro débloque encore plus de fonctionnalités avancées."
-        : tier === "free"
+        : tier === "discovery"
           ? "Basic et Pro débloquent l'analyse stratégique complète."
           : "Pro vous donne accès aux sessions expert et aux analyses approfondies."
 

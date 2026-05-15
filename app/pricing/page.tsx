@@ -18,7 +18,7 @@ const plans = pricingContent.plans.map((plan) => ({
 
 const comparisonFeatures = pricingContent.comparison.features as Array<{
     name: string
-    free: string | boolean
+    discovery: string | boolean
     basic: string | boolean
     pro: string | boolean
 }>
@@ -273,7 +273,7 @@ export default function PricingPage() {
                                         {comparisonFeatures.map((feature, idx) => (
                                             <tr key={feature.name} className={cn("border-b border-[#F5F5F5]/50", idx % 2 === 0 ? "bg-white" : "bg-[#F5F5F5]/10")}>
                                                 <td className="p-4 sm:p-5 text-sm text-[#0F0F0F]/80 font-medium">{feature.name}</td>
-                                                {(["free", "basic", "pro"] as const).map((planKey) => {
+                                                {(["discovery", "basic", "pro"] as const).map((planKey) => {
                                                     const value = feature[planKey]
                                                     return (
                                                         <td key={planKey} className={cn("p-4 sm:p-5 text-center", planKey === "pro" && "bg-[#F2B33D]/5")}>
@@ -294,7 +294,7 @@ export default function PricingPage() {
 
                         {/* Mobile */}
                         <div className="md:hidden space-y-4 max-w-lg mx-auto">
-                            {(["free", "basic", "pro"] as const).map((planKey) => {
+                            {(["discovery", "basic", "pro"] as const).map((planKey) => {
                                 const planInfo = plans.find(p => p.key === planKey)!
                                 return (
                                     <div key={planKey} className={cn("rounded-xl border bg-white p-5 shadow-sm", planKey === "pro" ? "border-[#F2B33D] shadow-md" : "border-[#F5F5F5]")}>

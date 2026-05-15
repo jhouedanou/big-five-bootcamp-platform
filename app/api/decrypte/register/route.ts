@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
         error: 'Plan Pro requis',
         message:
           '#BigFiveDecrypte est reserve aux abonnes Pro. Passez en Pro pour acceder a la session.',
-        currentPlan: profile.plan || 'Free',
+        currentPlan: profile.plan || 'Locked',
       },
       { status: 403 }
     )

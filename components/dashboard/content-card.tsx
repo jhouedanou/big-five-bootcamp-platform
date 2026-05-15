@@ -38,7 +38,7 @@ export interface ContentItem {
   award?: string
   axe?: string[]
   status?: 'Publié' | 'Brouillon' | 'En attente'
-  accessLevel?: 'free' | 'premium' // 'free' = visible par tous, 'premium' = réservé aux abonnés
+  accessLevel?: 'free' | 'premium' // 'free' = visible par tous, 'premium' = accessible avec Basic ou Pro
   analyse?: string // Analyse stratégique de la campagne
   howToUse?: string // Comment s'en servir / s'inspirer de cette campagne
   slug?: string // Permalien SEO-friendly

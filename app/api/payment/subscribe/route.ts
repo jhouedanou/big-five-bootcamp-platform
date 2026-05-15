@@ -74,7 +74,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const planKey = (plan || 'pro').toLowerCase();
+    // Plan strict — aucun fallback silencieux vers Pro.
+    // Le client DOIT envoyer un plan valide ("discovery" | "basic" | "pro").
+    const planKey = String(plan || '').toLowerCase().trim();
     const planConfig = PLAN_PRICES[planKey];
     const isAnnual = billing === 'annual';
 

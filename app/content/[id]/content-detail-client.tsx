@@ -465,7 +465,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 Campagne Premium
               </Badge>
               <h1 className="font-[family-name:var(--font-heading)] text-2xl sm:text-3xl font-bold text-[#0F0F0F] mb-3">
-                Cette campagne est réservée aux abonnés Basic ou Pro
+                Accessible avec Basic ou Pro
               </h1>
               <p className="text-[#0F0F0F]/70 text-sm sm:text-base mb-6 max-w-md mx-auto">
                 Les campagnes Premium font partie de notre sélection exclusive.

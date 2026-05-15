@@ -135,18 +135,32 @@ export async function POST(
           ? new Date(paymentData.metadata.subscription_end_date)
           : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-        await supabase
-          .from('users')
-          .update({
-            plan: 'Pro',
-            subscription_status: 'active',
-            subscription_start_date: new Date().toISOString(),
-            subscription_end_date: subscriptionEndDate.toISOString(),
-            updated_at: new Date().toISOString(),
-          } as any)
-          .eq('id', paymentData.metadata.userId);
+        // Plan strict — pas de fallback silencieux vers Pro.
+        // Le plan doit etre present dans metadata (genere par /api/payment/subscribe).
+        const rawPlan = String(paymentData.metadata.plan || '').toLowerCase().trim();
+        let planName: 'Basic' | 'Pro' | null = null;
+        if (rawPlan === 'basic') planName = 'Basic';
+        else if (rawPlan === 'pro') planName = 'Pro';
 
-        console.log('User subscription activated:', paymentData.metadata.userId);
+        if (!planName) {
+          console.error(
+            '[pawapay/check] Plan invalide ou manquant dans metadata, activation annulee',
+            { paymentId: paymentData.id, rawPlan, metadata: paymentData.metadata }
+          );
+        } else {
+          await supabase
+            .from('users')
+            .update({
+              plan: planName,
+              subscription_status: 'active',
+              subscription_start_date: new Date().toISOString(),
+              subscription_end_date: subscriptionEndDate.toISOString(),
+              updated_at: new Date().toISOString(),
+            } as any)
+            .eq('id', paymentData.metadata.userId);
+
+          console.log('User subscription activated:', paymentData.metadata.userId, '— plan:', planName);
+        }
       }
 
       return NextResponse.json({

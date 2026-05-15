@@ -1241,7 +1241,7 @@ function CampaignsPageContent() {
                       <SelectItem value="premium">
                         <span className="inline-flex items-center gap-2 text-amber-600">
                           <Crown className="h-4 w-4" />
-                          Premium - Réservé aux abonnés
+                          Premium - Accessible avec Basic ou Pro
                         </span>
                       </SelectItem>
                     </SelectContent>

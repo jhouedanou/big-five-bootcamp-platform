@@ -96,10 +96,11 @@ export default function SubscribePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, userProfile, loading } = useSupabaseAuth()
-  const rawPlanParam = searchParams.get("plan") || "pro"
+  // Par defaut : Basic (jamais Pro). Pro reste un choix explicite de l'utilisateur.
+  const rawPlanParam = searchParams.get("plan") || "basic"
   const validPlan: PlanChoice = ["basic", "pro", "discovery"].includes(rawPlanParam)
     ? (rawPlanParam as PlanChoice)
-    : "pro"
+    : "basic"
   const [selectedPlan, setSelectedPlan] = useState<PlanChoice>(validPlan)
   const [isAnnual, setIsAnnual] = useState(
     searchParams.get("billing") === "annual"

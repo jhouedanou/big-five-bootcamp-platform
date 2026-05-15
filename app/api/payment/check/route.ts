@@ -12,14 +12,30 @@ import { supabaseAdmin } from '@/lib/supabase';
 const SUBSCRIPTION_DURATION_DAYS = 30;
 
 /**
- * Active l'abonnement Premium pour l'utilisateur associé à un paiement
+ * Active l'abonnement pour l'utilisateur associé à un paiement.
+ * Le plan est lu strictement depuis payment.metadata.plan (ou explicitOverride).
+ * AUCUN fallback silencieux vers Pro : si le plan est absent/invalide, log et abort.
  */
-async function activatePremiumForPayment(payment: any) {
+async function activatePremiumForPayment(payment: any, explicitOverride?: string) {
   const userId = payment.metadata?.userId || payment.user_id;
   const userEmail = payment.metadata?.userEmail || payment.user_email;
 
   if (!userId && !userEmail) {
-    console.warn('⚠️ Impossible d\'activer Premium: pas de userId/email dans le paiement', payment.id);
+    console.warn('⚠️ Impossible d\'activer l\'abonnement: pas de userId/email dans le paiement', payment.id);
+    return;
+  }
+
+  // Plan strict — source : metadata.plan, sinon explicitOverride (admin POST), sinon abort.
+  const rawPlan = String(explicitOverride || payment.metadata?.plan || '').toLowerCase().trim();
+  let planName: 'Basic' | 'Pro' | null = null;
+  if (rawPlan === 'basic') planName = 'Basic';
+  else if (rawPlan === 'pro') planName = 'Pro';
+
+  if (!planName) {
+    console.error(
+      '[payment/check] Plan invalide ou manquant, activation annulee',
+      { paymentId: payment.id, rawPlan, metadata: payment.metadata }
+    );
     return;
   }
 
@@ -28,7 +44,7 @@ async function activatePremiumForPayment(payment: any) {
 
   try {
     let query = (supabaseAdmin as any).from('users').update({
-      plan: 'Pro',
+      plan: planName,
       subscription_status: 'active',
       subscription_start_date: now.toISOString(),
       subscription_end_date: endDate.toISOString(),
@@ -43,12 +59,12 @@ async function activatePremiumForPayment(payment: any) {
 
     const { error } = await query;
     if (error) {
-      console.error('❌ Erreur activation Premium:', error.message);
+      console.error('❌ Erreur activation abonnement:', error.message);
     } else {
-      console.log('✅ Premium activé pour:', userId || userEmail, '→ fin le', endDate.toISOString());
+      console.log('✅ Abonnement', planName, 'activé pour:', userId || userEmail, '→ fin le', endDate.toISOString());
     }
   } catch (err) {
-    console.error('❌ Exception activation Premium:', err);
+    console.error('❌ Exception activation abonnement:', err);
   }
 }
 
@@ -120,7 +136,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { ref_command, phone, status, amount, payment_method, item_name, user_id } = body;
+    const { ref_command, phone, status, amount, payment_method, item_name, user_id, plan: planOverride } = body;
 
     // Vérifier si le paiement existe déjà
     const { data: existingPayment } = await (supabaseAdmin as any)
@@ -144,9 +160,9 @@ export async function POST(request: NextRequest) {
 
       if (error) throw error;
 
-      // Si paiement complété, activer l'abonnement Premium
+      // Si paiement complété, activer l'abonnement
       if ((status || 'completed') === 'completed') {
-        await activatePremiumForPayment(existingPayment);
+        await activatePremiumForPayment(existingPayment, planOverride);
       }
 
       return NextResponse.json({
@@ -175,9 +191,12 @@ export async function POST(request: NextRequest) {
 
       if (error) throw error;
 
-      // Si paiement complété et user_id fourni, activer Premium
+      // Si paiement complété et user_id fourni, activer l'abonnement (plan requis explicitement)
       if ((status || 'completed') === 'completed' && user_id) {
-        await activatePremiumForPayment({ user_id, user_email: body.email });
+        await activatePremiumForPayment(
+          { id: created?.id, user_id, user_email: body.email, metadata: { plan: planOverride } },
+          planOverride
+        );
       }
 
       return NextResponse.json({

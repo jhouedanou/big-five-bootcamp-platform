@@ -28,8 +28,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email requis' }, { status: 400 });
     }
 
-    // Déterminer le plan
-    const planKey = (plan || 'pro').toLowerCase();
+    // Plan strict — pas de fallback silencieux vers Pro.
+    // Le widget Chariow doit envoyer explicitement "basic" ou "pro".
+    const planKey = String(plan || '').toLowerCase().trim();
+    if (planKey !== 'basic' && planKey !== 'pro') {
+      console.error('[activate-widget] Plan invalide ou manquant', { email, plan });
+      return NextResponse.json(
+        { error: 'Plan invalide. Le widget doit envoyer "basic" ou "pro".' },
+        { status: 400 }
+      );
+    }
     const planConfig = planKey === 'basic' ? PLAN_BASIC : PLAN_PRO;
     const planLabel = planConfig.name; // "Basic" ou "Pro"
 

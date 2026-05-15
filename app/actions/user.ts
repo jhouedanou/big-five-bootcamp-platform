@@ -131,17 +131,32 @@ export async function endSubscription(userId: string) {
 export async function resetSubscription(
     userId: string,
     days: number = 30,
-    plan: 'Basic' | 'Pro' = 'Pro'
+    plan?: 'Free' | 'Basic' | 'Pro'
 ) {
     try {
         const supabase = getSupabaseAdmin()
         const now = new Date()
         const endDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000)
 
+        // Pas d'upgrade silencieux vers Pro : si plan non specifie, on reprend
+        // le plan actuel de l'utilisateur (par defaut "Basic" si jamais defini).
+        let resolvedPlan: 'Free' | 'Basic' | 'Pro'
+        if (plan) {
+            resolvedPlan = plan
+        } else {
+            const { data: existing } = await supabase
+                .from('users')
+                .select('plan')
+                .eq('id', userId)
+                .single<{ plan: string | null }>()
+            const current = String(existing?.plan || '').toLowerCase()
+            resolvedPlan = current === 'pro' ? 'Pro' : current === 'basic' ? 'Basic' : 'Basic'
+        }
+
         const { error } = await supabase
             .from('users')
             .update({
-                plan,
+                plan: resolvedPlan,
                 subscription_status: 'active',
                 subscription_start_date: now.toISOString(),
                 subscription_end_date: endDate.toISOString(),

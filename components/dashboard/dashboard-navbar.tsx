@@ -609,6 +609,14 @@ export function DashboardNavbar({
                   Veille concurrentielle
                 </Link>
               </DropdownMenuItem>
+              {planKeyLower === "pro" && (
+                <DropdownMenuItem asChild>
+                  <Link href="/decrypte" className="flex items-center gap-2 text-[#0F0F0F]">
+                    <Crown className="h-4 w-4 text-[#F2B33D]" />
+                    #BigFiveDécrypte
+                  </Link>
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem asChild>
                 <Link href="/settings" className="flex items-center gap-2 text-[#0F0F0F]">
                   <Settings className="h-4 w-4" />

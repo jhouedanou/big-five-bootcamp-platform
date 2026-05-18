@@ -106,8 +106,12 @@ export function isAllowedPawaPayIP(request: Request): boolean {
 
   if (!shouldVerify) return true
 
+  // Cloudflare: vraie IP source dans `cf-connecting-ip`. Fallback `x-forwarded-for`
+  // pour Vercel/Node. `x-real-ip` en backup.
+  const cfIp = request.headers.get('cf-connecting-ip') || ''
   const forwarded = request.headers.get('x-forwarded-for') || ''
-  const ip = forwarded.split(',')[0]?.trim() || ''
+  const realIp = request.headers.get('x-real-ip') || ''
+  const ip = cfIp || forwarded.split(',')[0]?.trim() || realIp || ''
 
   const allowed: string[] = [
     ...PAWAPAY_ALLOWED_IPS.sandbox,

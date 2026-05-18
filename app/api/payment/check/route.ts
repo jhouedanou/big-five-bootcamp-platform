@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { ADMIN_EMAILS } from '@/lib/admin-auth';
 
 const SUBSCRIPTION_DURATION_DAYS = 30;
 
@@ -79,7 +80,6 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
     }
-    const { ADMIN_EMAILS } = await import('@/lib/admin-auth');
     const isAdmin = user.user_metadata?.role === 'admin' || ADMIN_EMAILS.includes((user.email || '').toLowerCase());
     if (!isAdmin) {
       return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 });
@@ -169,14 +169,7 @@ export async function POST(request: NextRequest) {
       if (!user) {
         return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
       }
-      const adminEmails = [
-        'jeanluc@bigfiveabidjan.com',
-        'cossi@bigfiveabidjan.com',
-        'yannick@bigfiveabidjan.com',
-        'franck@bigfiveabidjan.com',
-        'stephanie@bigfiveabidjan.com',
-      ];
-      const isAdmin = user.user_metadata?.role === 'admin' || adminEmails.includes(user.email || '');
+      const isAdmin = user.user_metadata?.role === 'admin' || ADMIN_EMAILS.includes((user.email || '').toLowerCase());
       if (!isAdmin) {
         return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 });
       }

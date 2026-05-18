@@ -250,25 +250,29 @@ export function Lightbox({ images: rawImages, initialIndex = 0, isOpen, onClose,
       </div>
 
       {/* Main image */}
-      <div 
+      <div
         className="flex items-center justify-center w-full h-full px-4 pb-24 pt-16 sm:p-16"
         onClick={(e) => e.stopPropagation()}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
+        onContextMenu={isPremium ? undefined : (e) => e.preventDefault()}
       >
-        <div 
+        <div
           className={`relative w-full h-full transition-transform duration-300 ${
             isZoomed ? "cursor-zoom-out scale-150" : "cursor-zoom-in"
           }`}
           onClick={toggleZoom}
+          onContextMenu={isPremium ? undefined : (e) => e.preventDefault()}
         >
           <Image
             src={images[currentIndex]}
             alt={`Image ${currentIndex + 1}`}
             fill
-            className="object-contain"
+            className={`object-contain ${!isPremium ? "select-none pointer-events-none" : ""}`}
             sizes="100vw"
             priority
+            draggable={isPremium}
+            onContextMenu={isPremium ? undefined : (e) => e.preventDefault()}
           />
         </div>
       </div>
@@ -369,6 +373,8 @@ export function ImageGallery({ mainImage, images: rawImages, title, campaignId, 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { isPremium } = useAuthContext();
+  const blockContext = isPremium ? undefined : (e: React.MouseEvent) => e.preventDefault();
 
   // Combine main image and additional images, converting Drive URLs
   const images = rawImages.map(getGoogleDriveImageUrl);
@@ -413,6 +419,7 @@ export function ImageGallery({ mainImage, images: rawImages, title, campaignId, 
         <div
           className="relative overflow-hidden rounded-xl bg-gray-50 cursor-pointer group dark:bg-white/5"
           onClick={() => openLightbox(currentIndex)}
+          onContextMenu={blockContext}
         >
           <div className="relative flex min-h-[260px] w-full items-center justify-center sm:min-h-[320px]">
             <Image
@@ -420,9 +427,11 @@ export function ImageGallery({ mainImage, images: rawImages, title, campaignId, 
               alt={title}
               width={800}
               height={800}
-              className="h-auto max-h-[calc(100svh-230px)] w-auto max-w-full object-contain transition-transform duration-300 group-hover:scale-[1.02] lg:max-h-[calc(100vh-210px)]"
+              className={`h-auto max-h-[calc(100svh-230px)] w-auto max-w-full object-contain transition-transform duration-300 group-hover:scale-[1.02] lg:max-h-[calc(100vh-210px)] ${!isPremium ? "select-none pointer-events-none" : ""}`}
               sizes="(max-width: 1024px) 100vw, 800px"
               priority
+              draggable={isPremium}
+              onContextMenu={blockContext}
             />
           </div>
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
@@ -495,13 +504,16 @@ export function ImageGallery({ mainImage, images: rawImages, title, campaignId, 
                   )}
                   aria-label={`Afficher image ${index + 2}`}
                   title={`Image ${index + 2}`}
+                  onContextMenu={blockContext}
                 >
                   <Image
                     src={image}
                     alt={`${title} - Image ${index + 2}`}
                     fill
-                    className="object-cover transition-transform duration-300 group-hover:scale-110"
+                    className={`object-cover transition-transform duration-300 group-hover:scale-110 ${!isPremium ? "select-none pointer-events-none" : ""}`}
                     sizes="(max-width: 640px) 25vw, (max-width: 768px) 20vw, 16vw"
+                    draggable={isPremium}
+                    onContextMenu={blockContext}
                   />
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
                     <ZoomIn className="h-4 w-4 text-white opacity-0 group-hover:opacity-100 transition-opacity" />

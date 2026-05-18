@@ -134,7 +134,7 @@ export function Navbar() {
   const initials = userName ? userName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "?"
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-[#F5F5F5] bg-white/95 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 w-full border-b border-[#F5F5F5] bg-white/95 backdrop-blur-xl dark:border-white/10 dark:bg-[#0F0F0F]/95">
       <div className="mx-auto flex h-18 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 py-3">
         <Link href="/" className="group flex items-center gap-3 transition-all duration-300 hover:opacity-80">
           <div className="relative">
@@ -163,7 +163,7 @@ export function Navbar() {
             <>
               <Link
                 href="/library"
-                className="relative px-4 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:text-[#0F0F0F] group flex items-center gap-1.5"
+                className="relative px-4 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:text-[#0F0F0F] group flex items-center gap-1.5 dark:text-white/70 dark:hover:text-white"
               >
                 <LibraryBig className="h-4 w-4" aria-hidden="true" />
                 Bibliothèque
@@ -171,7 +171,7 @@ export function Navbar() {
               </Link>
               <Link
                 href="/favorites"
-                className="relative px-4 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:text-[#0F0F0F] group flex items-center gap-1.5"
+                className="relative px-4 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:text-[#0F0F0F] group flex items-center gap-1.5 dark:text-white/70 dark:hover:text-white"
               >
                 <Heart className="h-4 w-4" />
                 Favoris
@@ -179,7 +179,7 @@ export function Navbar() {
               </Link>
               <Link
                 href="/subscribe"
-                className="relative px-4 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:text-[#0F0F0F] group flex items-center gap-1.5"
+                className="relative px-4 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:text-[#0F0F0F] group flex items-center gap-1.5 dark:text-white/70 dark:hover:text-white"
               >
                 <CreditCard className="h-4 w-4" aria-hidden="true" />
                 Abonnement
@@ -189,14 +189,14 @@ export function Navbar() {
           )}
           <Link
             href="/#features"
-            className="relative px-4 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:text-[#0F0F0F] group"
+            className="relative px-4 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:text-[#0F0F0F] group dark:text-white/70 dark:hover:text-white"
           >
             Fonctionnalités
             <span className="absolute bottom-0 left-1/2 h-0.5 w-0 bg-[#F2B33D] transition-all duration-300 group-hover:left-4 group-hover:w-[calc(100%-32px)]" />
           </Link>
           <Link
             href="/pricing"
-            className="relative px-4 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:text-[#0F0F0F] group"
+            className="relative px-4 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:text-[#0F0F0F] group dark:text-white/70 dark:hover:text-white"
           >
             Tarifs
             <span className="absolute bottom-0 left-1/2 h-0.5 w-0 bg-[#F2B33D] transition-all duration-300 group-hover:left-4 group-hover:w-[calc(100%-32px)]" />
@@ -205,7 +205,7 @@ export function Navbar() {
           {!isAuthenticated && (
             <Link
               href="/dashboard"
-              className="relative px-4 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:text-[#0F0F0F] group"
+              className="relative px-4 py-2 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:text-[#0F0F0F] group dark:text-white/70 dark:hover:text-white"
             >
               Démo
               <span className="absolute bottom-0 left-1/2 h-0.5 w-0 bg-[#F2B33D] transition-all duration-300 group-hover:left-4 group-hover:w-[calc(100%-32px)]" />
@@ -241,7 +241,7 @@ export function Navbar() {
             </>
           ) : (
             <>
-              <Button variant="ghost" asChild className="font-medium text-[#0F0F0F] hover:bg-[#F5F5F5]/50">
+              <Button variant="ghost" asChild className="font-medium text-[#0F0F0F] hover:bg-[#F5F5F5]/50 dark:text-white dark:hover:bg-white/10">
                 <Link href="/login">Connexion</Link>
               </Button>
               <Button variant="outline" asChild className="font-semibold border-[#F2B33D] text-[#F2B33D] hover:bg-[#F2B33D]/10">
@@ -253,30 +253,30 @@ export function Navbar() {
 
         <button
           type="button"
-          className="relative md:hidden p-2 rounded-lg transition-colors hover:bg-[#F5F5F5]/50"
+          className="relative md:hidden p-2 rounded-lg transition-colors hover:bg-[#F5F5F5]/50 dark:hover:bg-white/10"
           onClick={() => setIsOpen(!isOpen)}
           aria-label="Toggle menu"
         >
-          {isOpen ? <X className="h-6 w-6 text-[#0F0F0F]" /> : <Menu className="h-6 w-6 text-[#0F0F0F]" />}
+          {isOpen ? <X className="h-6 w-6 text-[#0F0F0F] dark:text-white" /> : <Menu className="h-6 w-6 text-[#0F0F0F] dark:text-white" />}
         </button>
       </div>
 
       {/* Mobile menu with animation */}
       <div className={`md:hidden overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
-        <div className="border-t border-[#F5F5F5] bg-white/95 backdrop-blur-xl">
+        <div className="border-t border-[#F5F5F5] bg-white/95 backdrop-blur-xl dark:border-white/10 dark:bg-[#0F0F0F]/95">
           <nav className="flex flex-col gap-1 px-4 py-4">
             {isAuthenticated && (
               <>
                 <div className="px-4 py-2">
                   <PlanBadge plan={userPlan} />
                 </div>
-                <div className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-medium text-[#0F0F0F]/70">
+                <div className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-medium text-[#0F0F0F]/70 dark:text-white/70">
                   <span>Apparence</span>
                   <ThemeToggle />
                 </div>
                 <Link
                   href="/library"
-                  className="rounded-xl px-4 py-3 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] hover:translate-x-1 flex items-center gap-2"
+                  className="rounded-xl px-4 py-3 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] hover:translate-x-1 flex items-center gap-2 dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white"
                   onClick={() => setIsOpen(false)}
                 >
                   <LibraryBig className="h-4 w-4" aria-hidden="true" />
@@ -284,7 +284,7 @@ export function Navbar() {
                 </Link>
                 <Link
                   href="/favorites"
-                  className="rounded-xl px-4 py-3 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] hover:translate-x-1 flex items-center gap-2"
+                  className="rounded-xl px-4 py-3 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] hover:translate-x-1 flex items-center gap-2 dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white"
                   onClick={() => setIsOpen(false)}
                 >
                   <Heart className="h-4 w-4" />
@@ -292,7 +292,7 @@ export function Navbar() {
                 </Link>
                 <Link
                   href="/subscribe"
-                  className="rounded-xl px-4 py-3 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] hover:translate-x-1 flex items-center gap-2"
+                  className="rounded-xl px-4 py-3 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] hover:translate-x-1 flex items-center gap-2 dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white"
                   onClick={() => setIsOpen(false)}
                 >
                   <CreditCard className="h-4 w-4" aria-hidden="true" />
@@ -302,20 +302,20 @@ export function Navbar() {
             )}
             <Link
               href="/#features"
-              className="rounded-xl px-4 py-3 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] hover:translate-x-1"
+              className="rounded-xl px-4 py-3 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] hover:translate-x-1 dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white"
               onClick={() => setIsOpen(false)}
             >
               Fonctionnalités
             </Link>
             <Link
               href="/pricing"
-              className="rounded-xl px-4 py-3 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] hover:translate-x-1"
+              className="rounded-xl px-4 py-3 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] hover:translate-x-1 dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white"
               onClick={() => setIsOpen(false)}
             >
               Tarifs
             </Link>
             {!isAuthenticated && (
-              <div className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-medium text-[#0F0F0F]/70">
+              <div className="flex items-center justify-between rounded-xl px-4 py-3 text-sm font-medium text-[#0F0F0F]/70 dark:text-white/70">
                 <span>Apparence</span>
                 <ThemeToggle />
               </div>
@@ -324,14 +324,14 @@ export function Navbar() {
             {!isAuthenticated && (
               <Link
                 href="/dashboard"
-                className="rounded-xl px-4 py-3 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] hover:translate-x-1"
+                className="rounded-xl px-4 py-3 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] hover:translate-x-1 dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white"
                 onClick={() => setIsOpen(false)}
               >
                 Démo
               </Link>
             )}
             */}
-            <hr className="my-3 border-[#F5F5F5]" />
+            <hr className="my-3 border-[#F5F5F5] dark:border-white/10" />
             {isAuthenticated ? (
               <Button asChild className="h-12 font-semibold shadow-lg shadow-[#F2B33D]/25 bg-[#F2B33D] hover:bg-[#F2B33D]/90">
                 <Link href="/dashboard" onClick={() => setIsOpen(false)}>
@@ -343,7 +343,7 @@ export function Navbar() {
               <>
                 <Link
                   href="/login"
-                  className="rounded-xl px-4 py-3 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] hover:translate-x-1"
+                  className="rounded-xl px-4 py-3 text-sm font-medium text-[#0F0F0F]/70 transition-all duration-300 hover:bg-[#F5F5F5]/50 hover:text-[#0F0F0F] hover:translate-x-1 dark:text-white/70 dark:hover:bg-white/10 dark:hover:text-white"
                   onClick={() => setIsOpen(false)}
                 >
                   Connexion

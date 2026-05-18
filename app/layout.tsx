@@ -3,13 +3,38 @@ import type { Metadata, Viewport } from 'next'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://laveiye.com'
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: 'Laveiye - La référence créative',
   description: 'Benchmarkez, analysez et créez des concepts gagnants en quelques minutes.',
   icons: {
     icon: '/favicon_onglet.png',
     shortcut: '/favicon_onglet.png',
     apple: '/favicon_onglet.png',
+  },
+  openGraph: {
+    type: 'website',
+    siteName: 'Laveiye',
+    title: 'Laveiye - La référence créative',
+    description: 'Benchmarkez, analysez et créez des concepts gagnants en quelques minutes.',
+    url: siteUrl,
+    locale: 'fr_FR',
+    images: [
+      {
+        url: '/logo.png',
+        width: 1200,
+        height: 630,
+        alt: 'Laveiye',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Laveiye - La référence créative',
+    description: 'Benchmarkez, analysez et créez des concepts gagnants en quelques minutes.',
+    images: ['/logo.png'],
   },
 }
 

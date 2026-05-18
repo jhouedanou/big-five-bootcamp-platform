@@ -22,7 +22,6 @@ const FALLBACK_ADMIN_EMAILS = [
   'yannick@bigfiveabidjan.com',
   'franck@bigfiveabidjan.com',
   'stephanie@bigfiveabidjan.com',
-  'jhouedanou@gmail.com',
 ]
 
 export const ADMIN_EMAILS: string[] = (process.env.ADMIN_EMAILS || '')

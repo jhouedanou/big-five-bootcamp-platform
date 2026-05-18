@@ -269,6 +269,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Trigger atomique de capacité (scripts/add-session-capacity-trigger.sql)
+    if (errCode === 'P0001' && errMsg === 'SESSION_FULL') {
+      return NextResponse.json(
+        { error: 'Cette seance est complete.' },
+        { status: 409 }
+      )
+    }
+
     // Table manquante (migration non appliquee) : message clair pour l'admin
     if (
       errCode === '42P01' ||

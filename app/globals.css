@@ -3,11 +3,10 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Fallback CSS pur : applique les variables dark via la préférence système
-   avant même l'hydratation JS (next-themes injecte ensuite la classe .dark).
-   :root:not(.light) évite d'écraser le choix explicite "light" de l'utilisateur. */
+/* Dark mode auto desactive. Variables dark appliquees uniquement si .dark
+   est explicitement ajoute via le toggle (next-themes avec enableSystem=false). */
 @media (prefers-color-scheme: dark) {
-  :root:not(.light) {
+  :root.force-never-dark-auto {
     --text-dark: #F8FAFC;
     --background: #0B0D10;
     --foreground: #F8FAFC;

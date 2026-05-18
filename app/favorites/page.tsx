@@ -1173,7 +1173,7 @@ function FavoritesPageContent() {
               )}
             </div>
 
-            <div className="mt-5 inline-flex rounded-xl border border-[#E8EDF2] bg-[#F8FAFC] p-1" role="tablist" aria-label="Favoris et collections">
+            <div className="mt-5 inline-flex rounded-xl border border-border bg-muted p-1" role="tablist" aria-label="Favoris et collections">
               <button
                 type="button"
                 role="tab"
@@ -1182,8 +1182,8 @@ function FavoritesPageContent() {
                 className={cn(
                   "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors",
                   activeTab === 'favorites'
-                    ? "bg-[#0F0F0F] text-white shadow-sm"
-                    : "text-[#0F0F0F]/55 hover:bg-white hover:text-[#0F0F0F]"
+                    ? "bg-foreground text-background shadow-sm"
+                    : "text-muted-foreground hover:bg-background hover:text-foreground"
                 )}
               >
                 <Heart className="h-4 w-4" />
@@ -1197,8 +1197,8 @@ function FavoritesPageContent() {
                 className={cn(
                   "flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors",
                   activeTab === 'collections'
-                    ? "bg-[#0F0F0F] text-white shadow-sm"
-                    : "text-[#0F0F0F]/55 hover:bg-white hover:text-[#0F0F0F]"
+                    ? "bg-foreground text-background shadow-sm"
+                    : "text-muted-foreground hover:bg-background hover:text-foreground"
                 )}
               >
                 <Grid3X3 className="h-4 w-4" />

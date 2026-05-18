@@ -3,6 +3,31 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Fallback CSS pur : applique les variables dark via la préférence système
+   avant même l'hydratation JS (next-themes injecte ensuite la classe .dark).
+   :root:not(.light) évite d'écraser le choix explicite "light" de l'utilisateur. */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --text-dark: #F8FAFC;
+    --background: #0B0D10;
+    --foreground: #F8FAFC;
+    --card: #15181E;
+    --card-foreground: #F8FAFC;
+    --popover: #15181E;
+    --popover-foreground: #F8FAFC;
+    --muted: #20242C;
+    --muted-foreground: #B9C0CC;
+    --border: #2A303A;
+    --input: #20242C;
+    --secondary: #20242C;
+    --secondary-foreground: #F8FAFC;
+    --sidebar: #0B0D10;
+    --sidebar-accent: #20242C;
+    --sidebar-accent-foreground: #FFFFFF;
+    --sidebar-border: #2A303A;
+  }
+}
+
 :root {
   /* Big Five Brand Identity */
   --primary-violet: #F2B33D;
@@ -151,6 +176,12 @@
   }
   html.dark {
     color-scheme: dark;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    html:not(.light) {
+      color-scheme: dark;
+    }
   }
 
   body {

@@ -18,6 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export function DashboardNavbar({
   searchQuery: externalSearchQuery,
@@ -559,6 +560,8 @@ export function DashboardNavbar({
             </Link>
           ) : null}
 
+          <ThemeToggle className="hidden md:inline-flex" />
+
           {isUserMenuMounted ? (
             <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -705,6 +708,10 @@ export function DashboardNavbar({
           </div>
           )}
           <nav className="flex flex-col gap-1 px-4 pb-4">
+            <div className="flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F]/70">
+              <span>Apparence</span>
+              <ThemeToggle />
+            </div>
             <Link
               href="/dashboard"
               className="rounded-md px-3 py-2 text-sm font-medium text-[#0F0F0F] transition-colors hover:bg-[#F5F5F5]/50 flex items-center gap-1.5"

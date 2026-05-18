@@ -10,5 +10,8 @@
   },
   "observability": {
     "enabled": true
+  },
+  "vars": {
+    "PAWAPAY_ENV": "production"
   }
 }

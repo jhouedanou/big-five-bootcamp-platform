@@ -101,23 +101,32 @@ export default function SubscribePage() {
   // quand l'utilisateur n'a pas encore d'abonnement actif. Affiche un bandeau bloquant
   // et masque le bouton "Retour au dashboard" tant qu'aucun plan n'est choisi.
   const planRequired = searchParams.get("required") === "1"
-  // Par defaut : Basic (jamais Pro). Pro reste un choix explicite de l'utilisateur.
-  // Fallback : si l'URL n'a pas ?plan=, on lit le choix conservé en localStorage
-  // (posé avant un detour /register ou /login depuis /pricing).
-  const storedPlan = typeof window !== 'undefined'
-    ? window.localStorage.getItem('laveiye:selectedPlan')
-    : null
-  const storedBilling = typeof window !== 'undefined'
-    ? window.localStorage.getItem('laveiye:selectedBilling')
-    : null
-  const rawPlanParam = searchParams.get("plan") || storedPlan || "basic"
+  // Init depuis URL uniquement pour eviter hydration mismatch SSR/CSR.
+  // Le fallback localStorage est applique cote client via useEffect post-hydration.
+  const rawPlanParam = searchParams.get("plan") || "basic"
   const validPlan: PlanChoice = ["basic", "pro", "discovery"].includes(rawPlanParam)
     ? (rawPlanParam as PlanChoice)
     : "basic"
   const [selectedPlan, setSelectedPlan] = useState<PlanChoice>(validPlan)
   const [isAnnual, setIsAnnual] = useState(
-    (searchParams.get("billing") || storedBilling) === "annual"
+    searchParams.get("billing") === "annual"
   )
+
+  useEffect(() => {
+    try {
+      if (!searchParams.get("plan")) {
+        const stored = window.localStorage.getItem('laveiye:selectedPlan')
+        if (stored && ["basic", "pro", "discovery"].includes(stored)) {
+          setSelectedPlan(stored as PlanChoice)
+        }
+      }
+      if (!searchParams.get("billing")) {
+        const storedBilling = window.localStorage.getItem('laveiye:selectedBilling')
+        if (storedBilling === "annual") setIsAnnual(true)
+      }
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
   const [phoneNumber, setPhoneNumber] = useState("")

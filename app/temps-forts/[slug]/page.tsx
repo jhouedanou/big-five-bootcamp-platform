@@ -50,18 +50,18 @@ export default async function TempsFortDetailPage({ params }: TempsFortDetailPag
 
   return (
     <SubscriptionGuard>
-    <div className="min-h-screen bg-gradient-to-br from-white via-white to-[#F5F5F5]/40">
+    <div className="min-h-screen bg-background">
       <DashboardNavbar />
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <Button asChild variant="ghost" className="mb-5 px-0 font-bold text-[#0F0F0F]/65 hover:bg-transparent hover:text-[#F2B33D]">
+        <Button asChild variant="ghost" className="mb-5 px-0 font-bold text-muted-foreground hover:bg-transparent hover:text-[#F2B33D]">
           <Link href="/temps-forts">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Tous les temps forts
           </Link>
         </Button>
 
-        <section className="grid overflow-hidden rounded-2xl border border-[#F5F5F5] bg-white shadow-sm lg:grid-cols-[1.15fr_0.85fr]">
+        <section className="grid overflow-hidden rounded-2xl border border-border bg-card shadow-sm lg:grid-cols-[1.15fr_0.85fr]">
           <div className="relative min-h-[360px] overflow-hidden lg:min-h-[560px]">
             <Image
               src={tempsFort.heroImageUrl || tempsFort.imageUrl}
@@ -81,14 +81,14 @@ export default async function TempsFortDetailPage({ params }: TempsFortDetailPag
           </div>
 
           <div className="flex flex-col justify-center p-6 sm:p-8 lg:p-10">
-            <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#F2B33D]/15 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide text-[#0F0F0F]">
+            <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#F2B33D]/15 px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide text-foreground">
               <Sparkles className="h-3.5 w-3.5 text-[#F2B33D]" />
               Temps fort
             </div>
-            <h1 className="mt-5 font-[family-name:var(--font-heading)] text-4xl font-extrabold leading-tight text-[#0F0F0F] sm:text-5xl">
+            <h1 className="mt-5 font-[family-name:var(--font-heading)] text-4xl font-extrabold leading-tight text-foreground sm:text-5xl">
               {tempsFort.shortTitle || tempsFort.title}
             </h1>
-            <p className="mt-4 text-lg font-medium leading-relaxed text-[#0F0F0F]/70">
+            <p className="mt-4 text-lg font-medium leading-relaxed text-muted-foreground">
               {tempsFort.description}
             </p>
 
@@ -99,13 +99,13 @@ export default async function TempsFortDetailPage({ params }: TempsFortDetailPag
 
             <div className="mt-8 flex flex-wrap gap-2">
               {tempsFort.tags.map((tag) => (
-                <span key={tag} className="rounded-full bg-[#F5F5F5] px-3 py-1 text-sm font-bold text-[#0F0F0F]/75">
+                <span key={tag} className="rounded-full bg-muted px-3 py-1 text-sm font-bold text-muted-foreground">
                   {tag}
                 </span>
               ))}
             </div>
 
-            <Button asChild className="mt-8 h-12 w-fit rounded-lg bg-[#0F0F0F] px-5 font-bold text-white hover:bg-[#0F0F0F]/90">
+            <Button asChild className="mt-8 h-12 w-fit rounded-lg bg-foreground px-5 font-bold text-background hover:bg-foreground/90">
               <Link href={`/dashboard?temps_fort=${tempsFort.slug}`}>
                 Voir dans le dashboard
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -116,20 +116,20 @@ export default async function TempsFortDetailPage({ params }: TempsFortDetailPag
 
         <section className="mt-12">
           <div className="mb-5 flex items-center justify-between gap-4">
-            <h2 className="font-[family-name:var(--font-heading)] text-2xl font-extrabold text-[#0F0F0F]">
+            <h2 className="font-[family-name:var(--font-heading)] text-2xl font-extrabold text-foreground">
               Campagnes liées à ce temps fort
             </h2>
-            <span className="rounded-full bg-[#F5F5F5] px-3 py-1 text-sm font-bold text-[#0F0F0F]/65">
+            <span className="rounded-full bg-muted px-3 py-1 text-sm font-bold text-muted-foreground">
               {campaigns.length} campagne{campaigns.length > 1 ? "s" : ""}
             </span>
           </div>
 
           {campaigns.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-[#F2B33D]/40 bg-[#F2B33D]/5 p-8 text-center">
-              <h3 className="font-[family-name:var(--font-heading)] text-xl font-extrabold text-[#0F0F0F]">
+              <h3 className="font-[family-name:var(--font-heading)] text-xl font-extrabold text-foreground">
                 Aucune campagne associée pour le moment
               </h3>
-              <p className="mx-auto mt-2 max-w-md text-sm font-medium text-[#0F0F0F]/60">
+              <p className="mx-auto mt-2 max-w-md text-sm font-medium text-muted-foreground">
                 Associez des campagnes à ce temps fort depuis l'admin pour les voir apparaître ici.
               </p>
             </div>
@@ -150,18 +150,18 @@ export default async function TempsFortDetailPage({ params }: TempsFortDetailPag
 
         {relatedTempsForts.length > 0 && (
           <section className="mt-12">
-            <h2 className="font-[family-name:var(--font-heading)] text-2xl font-extrabold text-[#0F0F0F]">
+            <h2 className="font-[family-name:var(--font-heading)] text-2xl font-extrabold text-foreground">
               Autres temps forts {tempsFort.category.toLowerCase()}
             </h2>
             <div className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {relatedTempsForts.map((item) => (
-                <Link key={item.id} href={`/temps-forts/${item.slug}`} className="group overflow-hidden rounded-xl border border-[#F5F5F5] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
+                <Link key={item.id} href={`/temps-forts/${item.slug}`} className="group overflow-hidden rounded-xl border border-border bg-card shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
                   <div className="relative aspect-[4/3]">
                     <Image src={item.imageUrl} alt={item.shortTitle || item.title} fill sizes="33vw" className="object-cover transition group-hover:scale-105" />
                   </div>
                   <div className="p-5">
-                    <h3 className="font-[family-name:var(--font-heading)] text-xl font-extrabold text-[#0F0F0F]">{item.shortTitle || item.title}</h3>
-                    <p className="mt-1 text-sm font-bold text-[#0F0F0F]/60">{item.campaignCount} campagne{item.campaignCount > 1 ? "s" : ""}</p>
+                    <h3 className="font-[family-name:var(--font-heading)] text-xl font-extrabold text-foreground">{item.shortTitle || item.title}</h3>
+                    <p className="mt-1 text-sm font-bold text-muted-foreground">{item.campaignCount} campagne{item.campaignCount > 1 ? "s" : ""}</p>
                   </div>
                 </Link>
               ))}
@@ -184,8 +184,8 @@ function CampaignTile({ campaign }: { campaign: any }) {
 
   return (
     <Link href={`/content/${slugOrId}`} className="group block">
-      <article className="overflow-hidden rounded-xl border border-[#F5F5F5] bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl">
-        <div className="relative aspect-[4/3] overflow-hidden bg-[#F5F5F5]">
+      <article className="overflow-hidden rounded-xl border border-border bg-card shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl">
+        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
           {thumbnail && (
             <Image
               src={thumbnail}
@@ -197,18 +197,18 @@ function CampaignTile({ campaign }: { campaign: any }) {
           )}
         </div>
         <div className="p-4">
-          {brand && <p className="text-xs font-bold uppercase tracking-wide text-[#0F0F0F]/55">{brand}</p>}
-          <h3 className="mt-1 line-clamp-2 font-[family-name:var(--font-heading)] text-base font-extrabold text-[#0F0F0F]">
+          {brand && <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">{brand}</p>}
+          <h3 className="mt-1 line-clamp-2 font-[family-name:var(--font-heading)] text-base font-extrabold text-foreground">
             {title}
           </h3>
           <div className="mt-3 flex items-center justify-between gap-2">
             {sector && (
-              <span className="rounded-full bg-[#F5F5F5] px-2.5 py-0.5 text-[11px] font-bold text-[#0F0F0F]/75">
+              <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-bold text-muted-foreground">
                 {sector}
               </span>
             )}
             {country && (
-              <span className="text-[11px] font-bold text-[#0F0F0F]/55">{country}</span>
+              <span className="text-[11px] font-bold text-muted-foreground">{country}</span>
             )}
           </div>
         </div>
@@ -219,20 +219,20 @@ function CampaignTile({ campaign }: { campaign: any }) {
 
 function InfoTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-[#F5F5F5] bg-[#F5F5F5]/45 p-4">
-      <p className="text-xs font-extrabold uppercase tracking-wide text-[#0F0F0F]/45">{label}</p>
-      <p className="mt-1 text-lg font-extrabold text-[#0F0F0F]">{value}</p>
+    <div className="rounded-xl border border-border bg-muted/45 p-4">
+      <p className="text-xs font-extrabold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 text-lg font-extrabold text-foreground">{value}</p>
     </div>
   )
 }
 
 function GuidanceCard({ title, items }: { title: string; items: string[] }) {
   return (
-    <article className="rounded-xl border border-[#F5F5F5] bg-white p-5 shadow-sm">
-      <h3 className="font-[family-name:var(--font-heading)] text-lg font-extrabold text-[#0F0F0F]">{title}</h3>
+    <article className="rounded-xl border border-border bg-card p-5 shadow-sm">
+      <h3 className="font-[family-name:var(--font-heading)] text-lg font-extrabold text-foreground">{title}</h3>
       <div className="mt-4 space-y-3">
         {items.slice(0, 4).map((item) => (
-          <div key={item} className="flex items-center gap-3 text-sm font-bold text-[#0F0F0F]/70">
+          <div key={item} className="flex items-center gap-3 text-sm font-bold text-muted-foreground">
             <CheckCircle2 className="h-4 w-4 shrink-0 text-[#F2B33D]" />
             {item}
           </div>
@@ -244,7 +244,7 @@ function GuidanceCard({ title, items }: { title: string; items: string[] }) {
 
 function StatusPill({ status }: { status: "active" | "upcoming" | "past" }) {
   const label = status === "active" ? "Actif" : status === "upcoming" ? "À venir" : "Passé"
-  const className = status === "active" ? "bg-[#F2B33D] text-[#0F0F0F]" : status === "upcoming" ? "bg-emerald-500 text-white" : "bg-white text-[#0F0F0F]"
+  const className = status === "active" ? "bg-[#F2B33D] text-[#0F0F0F]" : status === "upcoming" ? "bg-emerald-500 text-white" : "bg-card text-foreground"
 
   return (
     <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-extrabold shadow-sm ${className}`}>

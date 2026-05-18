@@ -1,12 +1,13 @@
 ﻿"use client"
 
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { Menu, X, Search, User, LogOut, Settings, CreditCard, Crown, Sparkles, Clock, Users, Heart, MousePointer, Building2, FolderOpen, SlidersHorizontal, ArrowRight, LibraryBig, Flame, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { useAuthContext } from "@/components/auth-provider"
+import { toast } from "sonner"
 import { getQuotaUpsell, quotaBadgeClass, quotaProgressFillClass, levelFromUsage } from "@/lib/upsell"
 import { resolveTier, UNLIMITED } from "@/lib/quotas"
 import { getPlanDisplayName } from "@/lib/pricing"
@@ -29,6 +30,7 @@ export function DashboardNavbar({
   monthlyExplored: externalMonthlyExplored,
   searchSuggestions,
   searchQuota: externalSearchQuota,
+  showSearch = true,
 }: {
   searchQuery?: string;
   onSearchChange?: (query: string) => void
@@ -45,6 +47,7 @@ export function DashboardNavbar({
     limit: number | null
     tier: 'discovery' | 'basic' | 'pro'
   } | null
+  showSearch?: boolean
 } = {}) {
   const router = useRouter()
   const pathname = usePathname()
@@ -53,6 +56,7 @@ export function DashboardNavbar({
   const [internalSearchQuery, setInternalSearchQuery] = useState("")
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [isUserMenuMounted, setIsUserMenuMounted] = useState(false)
+  const lastSearchHintAtRef = useRef(0)
 
   // Lire tout depuis le contexte centralisé — AUCUN appel getUser() ni requête DB
   const {
@@ -176,6 +180,26 @@ export function DashboardNavbar({
   const filtersPeak = sharedSearchUsed
   const filtersReached = sharedSearchReached
 
+  const maybeShowSearchHintToast = (rawQuery: string) => {
+    const q = rawQuery.trim().toLowerCase()
+    if (q.length < 2) return
+
+    const hasSuggestion = (searchSuggestions || []).some((s) => {
+      const normalized = (s || '').trim().toLowerCase()
+      return normalized.length > 0 && normalized !== q && normalized.includes(q)
+    })
+    if (!hasSuggestion) return
+
+    const now = Date.now()
+    if (now - lastSearchHintAtRef.current < 10000) return
+    lastSearchHintAtRef.current = now
+
+    toast("Astuce recherche", {
+      id: "dashboard-search-enter-or-suggestion",
+      description: "Appuyez sur Entrée ou choisissez une suggestion dans la liste.",
+    })
+  }
+
   // —— Upsell progressif (paliers 70/90/100%) ——
   // Résout le tier effectif pour adapter le message (Free → Basic, Basic → Pro).
   const upsellTier = resolveTier(effectivePlan, subscriptionStatus)
@@ -253,6 +277,7 @@ export function DashboardNavbar({
           </nav>
         </div>
 
+        {showSearch && (
         <div className="hidden flex-1 items-center justify-center px-8 md:flex">
           <div className="relative w-full max-w-xl group">
             {/* Glow gradient de fond */}
@@ -280,7 +305,12 @@ export function DashboardNavbar({
                 type="text"
                 placeholder="Rechercher par mots-clés, marque, secteur, pays..."
                 value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setShowSuggestions(true) }}
+                onChange={(e) => {
+                  const nextQuery = e.target.value
+                  setSearchQuery(nextQuery)
+                  setShowSuggestions(true)
+                  maybeShowSearchHintToast(nextQuery)
+                }}
                 onFocus={() => setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
                 className="h-13 w-full rounded-2xl border-2 border-[#F2B33D]/40 bg-gradient-to-r from-[#F5F5F5]/40 to-white pl-14 pr-4 text-sm font-semibold text-[#0F0F0F] shadow-lg shadow-[#F2B33D]/15 outline-none transition-all placeholder:text-[#0F0F0F]/45 placeholder:font-medium focus:border-[#F2B33D] focus:ring-4 focus:ring-[#F2B33D]/20 focus:shadow-xl focus:shadow-[#F2B33D]/20 focus:bg-white hover:border-[#F2B33D]/60 hover:shadow-xl hover:shadow-[#F2B33D]/15"
@@ -345,6 +375,7 @@ export function DashboardNavbar({
             })()}
           </div>
         </div>
+        )}
 
         <div className="flex items-center gap-2">
           {/* Skeleton tant que le profil n'est pas chargé — évite le flash de plan */}
@@ -661,6 +692,7 @@ export function DashboardNavbar({
 
       {isOpen && (
         <div className="border-t border-[#F5F5F5] bg-white md:hidden">
+          {showSearch && (
           <div className="px-4 py-3">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#0F0F0F]/50" />
@@ -671,6 +703,7 @@ export function DashboardNavbar({
               />
             </div>
           </div>
+          )}
           <nav className="flex flex-col gap-1 px-4 pb-4">
             <Link
               href="/dashboard"

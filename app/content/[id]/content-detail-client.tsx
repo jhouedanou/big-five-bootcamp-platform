@@ -357,6 +357,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
             monthlyClickLimit={MONTHLY_CLICK_LIMIT}
             isFreeUser={isFreeUser}
             monthlyExplored={monthlyExplored}
+            showSearch={false}
           />
         ) : (
           <Navbar />
@@ -378,6 +379,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
           monthlyClickLimit={MONTHLY_CLICK_LIMIT}
           isFreeUser={isFreeUser}
           monthlyExplored={monthlyExplored}
+          showSearch={false}
         />
         <main className="container mx-auto px-4 py-8">
           <Link
@@ -420,6 +422,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
             monthlyClickLimit={MONTHLY_CLICK_LIMIT}
             isFreeUser={isFreeUser}
             monthlyExplored={monthlyExplored}
+            showSearch={false}
           />
         ) : (
           <Navbar />
@@ -454,6 +457,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
             monthlyClickLimit={MONTHLY_CLICK_LIMIT}
             isFreeUser={isFreeUser}
             monthlyExplored={monthlyExplored}
+            showSearch={false}
           />
         ) : (
           <Navbar />
@@ -824,7 +828,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <DashboardNavbar />
+      <DashboardNavbar showSearch={false} />
 
       {/* Barre de progression de lecture */}
       <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-muted/30">
@@ -1191,6 +1195,29 @@ export default function ContentDetailClient({ id }: { id: string }) {
                   </Button>
                 </Link>
               )}
+              {/* Bouton Favori */}
+              <Button
+                variant={isFavorite(content.id) ? "default" : "outline"}
+                size="icon"
+                className={`h-10 w-10 border-border ${isFavorite(content.id) ? "bg-[#F2B33D] text-white hover:bg-[#b8850a]" : "hover:border-[#F2B33D]/30 hover:text-[#F2B33D]"}`}
+                disabled={isToggling}
+                onClick={async () => {
+                  if (!isAuthenticated) {
+                    window.location.href = `/login?redirect=/content/${id}`;
+                    return;
+                  }
+                  setIsToggling(true);
+                  try {
+                    await toggleFavorite(content.id);
+                  } finally {
+                    setIsToggling(false);
+                  }
+                }}
+                title={isFavorite(content.id) ? "Retirer des favoris" : "Ajouter aux favoris"}
+                aria-pressed={isFavorite(content.id)}
+              >
+                <Heart className={`h-5 w-5 ${isFavorite(content.id) ? "fill-current" : ""}`} />
+              </Button>
               <Button
                 variant="outline"
                 size="icon"

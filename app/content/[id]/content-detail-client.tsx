@@ -565,12 +565,22 @@ export default function ContentDetailClient({ id }: { id: string }) {
 
   const hasGallery = !!(content.thumbnail || (content.images && content.images.length > 0));
 
-  const handleShare = () => {
+  const handleShare = async () => {
     if (navigator.share) {
-      navigator.share({ title: content.title, url: window.location.href });
+      try {
+        await navigator.share({ title: content.title, url: window.location.href });
+      } catch (err) {
+        if (err instanceof Error && err.name !== "AbortError") {
+          toast.error("Impossible de partager le lien.");
+        }
+      }
     } else {
-      navigator.clipboard.writeText(window.location.href);
-      toast.success("Lien copié !");
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success("Lien copié !");
+      } catch {
+        toast.error("Impossible de copier le lien.");
+      }
     }
   };
 

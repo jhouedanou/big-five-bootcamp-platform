@@ -201,8 +201,18 @@ export async function POST(request: NextRequest) {
       .eq('email', userEmail)
       .single();
 
-    // Si l'utilisateur n'existe pas, le creer
-    if (!existingUser || userError?.code === 'PGRST116') {
+    // Erreur DB inattendue (schema manquant, colonne inconnue…) — ne pas tenter
+    // d'upsert car cela pourrait écraser le plan de l'utilisateur avec 'Discovery'.
+    if (userError && userError.code !== 'PGRST116') {
+      console.error('[subscribe] user lookup error:', userError);
+      return NextResponse.json(
+        { error: 'Erreur lors de la récupération du profil utilisateur.', details: userError.message },
+        { status: 500 }
+      );
+    }
+
+    // Si l'utilisateur n'existe pas (PGRST116 = no row), le créer
+    if (!existingUser) {
       const { data: authListData } = await supabaseAdmin.auth.admin.listUsers() as any;
       const authUser = authListData?.users?.find((u: any) => u.email === userEmail);
 

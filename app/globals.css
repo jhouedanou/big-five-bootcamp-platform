@@ -290,7 +290,7 @@
 }
 
 @layer utilities {
-  .dark [class*="bg-white"] {
+  .dark [class~="bg-white"] {
     background-color: rgba(21, 24, 30, 0.96) !important;
   }
 

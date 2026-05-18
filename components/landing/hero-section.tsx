@@ -94,7 +94,7 @@ export function HeroSection() {
     : [{ initials: '...' }, { initials: '...' }, { initials: '...' }, { initials: '...' }]
 
   return (
-    <section className="relative overflow-hidden bg-white pt-20 pb-32 sm:pt-32 sm:pb-40 lg:pb-48">
+    <section className="relative overflow-hidden bg-white pt-20 pb-32 sm:pt-32 sm:pb-40 lg:pb-48 dark:bg-[#0F0F0F]">
       {/* Subtle background pattern */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute inset-0 bg-[linear-gradient(rgba(245, 245, 245,0.3)_1px,transparent_1px),linear-gradient(90deg,rgba(245, 245, 245,0.3)_1px,transparent_1px)] bg-[size:40px_40px]" />
@@ -111,13 +111,13 @@ export function HeroSection() {
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#F2B33D] text-white">
                   <CheckCircle className="h-5 w-5" />
                 </span>
-                <span className="text-base font-bold text-[#0F0F0F]">
+                <span className="text-base font-bold text-[#0F0F0F] dark:text-white">
                   {t.badge}
                 </span>
               </div>
             </div>
 
-            <h1 className="font-[family-name:var(--font-heading)] text-5xl font-extrabold tracking-tight text-[#0F0F0F] sm:text-6xl lg:text-7xl leading-[1.1] animate-fade-in-up delay-100">
+            <h1 className="font-[family-name:var(--font-heading)] text-5xl font-extrabold tracking-tight text-[#0F0F0F] sm:text-6xl lg:text-7xl leading-[1.1] animate-fade-in-up delay-100 dark:text-white">
               {t.title.line1}<br />
               <span className="text-[#F2B33D] relative inline-block">
                  {t.title.highlight}
@@ -126,7 +126,7 @@ export function HeroSection() {
               {t.title.line3}
             </h1>
 
-            <p className="mt-8 max-w-xl text-lg text-[#0F0F0F]/70 leading-relaxed animate-fade-in-up delay-200">
+            <p className="mt-8 max-w-xl text-lg text-[#0F0F0F]/70 leading-relaxed animate-fade-in-up delay-200 dark:text-white/70">
               {t.subtitle}
             </p>
 
@@ -149,7 +149,7 @@ export function HeroSection() {
 
             {/* Price info below buttons */}
             <br/>
-            <p className="mt-4 text-sm text-[#0F0F0F]/60 animate-fade-in-up delay-300">
+            <p className="mt-4 text-sm text-[#0F0F0F]/60 animate-fade-in-up delay-300 dark:text-white/60">
               {t.price.label} <span className="font-semibold text-foreground">{t.price.amount}</span> {t.price.suffix}
             </p>
 
@@ -179,16 +179,16 @@ export function HeroSection() {
             <div className="absolute -bottom-8 -left-8 h-48 w-48 bg-[#F2B33D]/10 rounded-full blur-3xl"></div>
 
             <div className="glass-panel rounded-2xl p-4 transform rotate-y-[-5deg] rotate-x-[5deg] transition-transform duration-500 hover:rotate-0 hover:scale-[1.02]">
-              <div className="rounded-xl bg-white border border-[#F5F5F5] shadow-2xl overflow-hidden">
+              <div className="rounded-xl bg-white border border-[#F5F5F5] shadow-2xl overflow-hidden dark:bg-[#1a1a1a] dark:border-white/10">
                 {/* Window Header */}
-                <div className="flex items-center justify-between border-b border-[#F5F5F5] bg-[#F5F5F5]/30 px-4 py-3">
+                <div className="flex items-center justify-between border-b border-[#F5F5F5] bg-[#F5F5F5]/30 px-4 py-3 dark:border-white/10 dark:bg-white/5">
                   <div className="flex items-center gap-2">
                     <div className="h-3 w-3 rounded-full bg-[#EF4444]" />
                     <div className="h-3 w-3 rounded-full bg-[#F2B33D]" />
                     <div className="h-3 w-3 rounded-full bg-[#10B981]" />
                   </div>
                   <div className="flex-1 text-center">
-                    <div className="inline-flex items-center gap-2 rounded-md bg-white px-3 py-1 text-xs font-medium text-[#0F0F0F]/70 border border-[#F5F5F5] shadow-sm">
+                    <div className="inline-flex items-center gap-2 rounded-md bg-white px-3 py-1 text-xs font-medium text-[#0F0F0F]/70 border border-[#F5F5F5] shadow-sm dark:bg-white/10 dark:text-white/80 dark:border-white/10">
                       <Search className="h-3 w-3" />
                       {t.browserBar}
                     </div>
@@ -197,10 +197,10 @@ export function HeroSection() {
                 </div>
 
                 {/* Dashboard Preview Content */}
-                <div className="p-6 bg-white">
+                <div className="p-6 bg-white dark:bg-[#1a1a1a]">
                   <div className="mb-6 flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
                     {t.filters.map((filter, i) => (
-                      <span key={i} className={`whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-medium transition-colors cursor-pointer ${i === 0 ? 'bg-[#F2B33D] text-white shadow-lg shadow-[#F2B33D]/25' : 'bg-[#F5F5F5] text-[#0F0F0F] hover:bg-[#F5F5F5]/80'}`}>
+                      <span key={i} className={`whitespace-nowrap rounded-full px-4 py-1.5 text-xs font-medium transition-colors cursor-pointer ${i === 0 ? 'bg-[#F2B33D] text-white shadow-lg shadow-[#F2B33D]/25' : 'bg-[#F5F5F5] text-[#0F0F0F] hover:bg-[#F5F5F5]/80 dark:bg-white/10 dark:text-white dark:hover:bg-white/20'}`}>
                         {filter}
                       </span>
                     ))}
@@ -209,7 +209,7 @@ export function HeroSection() {
                   <div className="grid grid-cols-2 gap-5">
                     {recentCampaigns.length > 0
                       ? recentCampaigns.map((campaign) => (
-                        <Link key={campaign.id} href={`/content/${campaign.slug || campaign.id}`} className="group cursor-pointer rounded-xl border border-[#F5F5F5] bg-white p-3 transition-all hover:shadow-lg hover:-translate-y-1">
+                        <Link key={campaign.id} href={`/content/${campaign.slug || campaign.id}`} className="group cursor-pointer rounded-xl border border-[#F5F5F5] bg-white p-3 transition-all hover:shadow-lg hover:-translate-y-1 dark:border-white/10 dark:bg-white/5">
                           <div className="aspect-[16/10] w-full rounded-lg bg-[#F5F5F5] relative overflow-hidden">
                             {campaign.thumbnail ? (
                               <Image
@@ -231,14 +231,14 @@ export function HeroSection() {
                             </div>
                           </div>
                           <div className="mt-3 px-1">
-                            <h4 className="font-semibold text-sm text-[#0F0F0F] line-clamp-1">{campaign.title}</h4>
-                            <span className="text-xs text-[#0F0F0F]/60">{campaign.category || "Campagne"}</span>
+                            <h4 className="font-semibold text-sm text-[#0F0F0F] line-clamp-1 dark:text-white">{campaign.title}</h4>
+                            <span className="text-xs text-[#0F0F0F]/60 dark:text-white/60">{campaign.category || "Campagne"}</span>
                           </div>
                         </Link>
                       ))
                       : /* Skeleton placeholders while loading */
                       Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="rounded-xl border border-[#F5F5F5] bg-white p-3">
+                        <div key={i} className="rounded-xl border border-[#F5F5F5] bg-white p-3 dark:border-white/10 dark:bg-white/5">
                           <div className="aspect-[16/10] w-full rounded-lg skeleton-shimmer" />
                           <div className="mt-3 px-1 space-y-1.5">
                             <div className="skeleton-line h-4 w-3/4 rounded" />
@@ -253,14 +253,14 @@ export function HeroSection() {
             </div>
 
             {/* Floating Badge */}
-            <div className="absolute -right-8 top-1/2 -translate-y-1/2 bg-white p-4 rounded-xl shadow-xl border border-[#F5F5F5] animate-float hidden xl:block">
+            <div className="absolute -right-8 top-1/2 -translate-y-1/2 bg-white p-4 rounded-xl shadow-xl border border-[#F5F5F5] animate-float hidden xl:block dark:bg-[#1a1a1a] dark:border-white/10">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
                   <BarChart3 className="h-5 w-5" />
                 </div>
                 <div>
-                  <div className="text-xs text-[#0F0F0F]/60">{t.floatingBadge.label}</div>
-                  <div className="text-sm font-bold text-[#0F0F0F]">{t.floatingBadge.value}</div>
+                  <div className="text-xs text-[#0F0F0F]/60 dark:text-white/60">{t.floatingBadge.label}</div>
+                  <div className="text-sm font-bold text-[#0F0F0F] dark:text-white">{t.floatingBadge.value}</div>
                 </div>
               </div>
             </div>

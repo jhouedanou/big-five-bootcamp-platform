@@ -6,6 +6,7 @@ import { Building2, Loader2, ArrowLeft, MessageSquare, GitMerge, CheckSquare, Sq
 import Link from "next/link"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { BrandRequestCampaignsManager } from "@/components/admin/brand-request-campaigns-manager"
+import { sanitizeHtml } from "@/lib/sanitize-html"
 
 interface BrandRequest {
   id: string
@@ -365,7 +366,7 @@ export default function AdminBrandRequestsPage() {
           <Building2 className="h-5 w-5 text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Demandes de suivi de marques</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Demandes de veille concurrentielle</h1>
           <p className="text-sm text-gray-500">
             {pendingCount} en attente · {inProgressCount} en cours · {requests.length} total
           </p>
@@ -458,7 +459,7 @@ export default function AdminBrandRequestsPage() {
           </h3>
           <p className="text-sm text-gray-500 mt-1">
             {requests.length === 0
-              ? 'Les demandes de suivi de marques apparaîtront ici.'
+              ? 'Les demandes de veille concurrentielle apparaîtront ici.'
               : 'Aucune demande ne correspond à votre filtre.'}
           </p>
         </div>
@@ -564,7 +565,7 @@ export default function AdminBrandRequestsPage() {
                         {/* admin_notes peut être du HTML (RichTextEditor Tiptap) ou du texte simple */}
                         <div
                           className="prose prose-sm max-w-none text-sm text-gray-700"
-                          dangerouslySetInnerHTML={{ __html: req.admin_notes }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(req.admin_notes) }}
                         />
                       </div>
                     )}

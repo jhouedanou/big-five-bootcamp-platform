@@ -132,13 +132,13 @@ async function handlePaymentSuccess(
 
       // Plan strict — pas de fallback silencieux vers Pro.
       const rawPlan = String(customData.plan || '').toLowerCase().trim();
-      let planName: 'Free' | 'Basic' | 'Pro';
+      let planName: 'Discovery' | 'Basic' | 'Pro';
       if (rawPlan === 'basic') {
         planName = 'Basic';
       } else if (rawPlan === 'pro') {
         planName = 'Pro';
       } else if (rawPlan === 'discovery' || rawPlan === 'free') {
-        planName = 'Free';
+        planName = 'Discovery';
       } else {
         console.error(
           '[ipn] Plan invalide ou manquant dans custom_field, activation annul\u00e9e',

@@ -48,7 +48,7 @@ interface FiltersSidebarProps {
   searchQuota?: {
     counts: Record<string, number>
     limit: number | null
-    tier: 'free' | 'basic' | 'pro'
+    tier: 'discovery' | 'basic' | 'pro'
   }
 }
 

@@ -38,10 +38,27 @@ export const PAWAPAY_API_TOKEN = process.env.PAWAPAY_API_TOKEN || ''
  *
  * Doit être en HTTPS en production.
  */
-export const PUBLIC_BASE_URL =
-  process.env.NEXT_PUBLIC_APP_URL ||
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  'http://localhost:3000'
+function resolvePublicBaseUrl(): string {
+  const raw =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    'http://localhost:3000'
+
+  // En production : refuser localhost / 127.0.0.1 / http (non-HTTPS).
+  // Sinon les callbacks PawaPay et les emails pointent vers localhost et
+  // la prod casse en silence.
+  if (process.env.NODE_ENV === 'production') {
+    if (/localhost|127\.0\.0\.1/i.test(raw) || !/^https:\/\//i.test(raw)) {
+      throw new Error(
+        `NEXT_PUBLIC_APP_URL invalide en production : "${raw}". ` +
+          `Définir une URL HTTPS publique (sans localhost) — utilisée pour les callbacks PawaPay et les emails.`
+      )
+    }
+  }
+  return raw
+}
+
+export const PUBLIC_BASE_URL = resolvePublicBaseUrl()
 
 /**
  * URLs publiques de callback à déclarer dans le Dashboard PawaPay.
@@ -78,7 +95,17 @@ export const PAWAPAY_ALLOWED_IPS = {
  * (utile en local et pour tester).
  */
 export function isAllowedPawaPayIP(request: Request): boolean {
-  if (process.env.PAWAPAY_VERIFY_IP !== 'true') return true
+  const isProd = process.env.NODE_ENV === 'production'
+  const verifyFlag = process.env.PAWAPAY_VERIFY_IP === 'true'
+
+  // En production, la vérification IP est obligatoire (sauf opt-out explicite
+  // via PAWAPAY_DISABLE_IP_CHECK=true pour debug ponctuel). En dev/test, on
+  // ne vérifie que si PAWAPAY_VERIFY_IP=true.
+  const shouldVerify = isProd
+    ? process.env.PAWAPAY_DISABLE_IP_CHECK !== 'true'
+    : verifyFlag
+
+  if (!shouldVerify) return true
 
   const forwarded = request.headers.get('x-forwarded-for') || ''
   const ip = forwarded.split(',')[0]?.trim() || ''

@@ -16,12 +16,26 @@ import {
   isPromoCodeFormatValid,
   normalizePromoCode,
 } from '@/lib/promo-codes'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 export async function POST(request: NextRequest) {
-  let body: { code?: string }
+  // Rate-limit anti brute-force : LAVEIYE-XXXX a ~1M combinaisons,
+  // 8 essais / 5 min par IP rendent l'énumération impraticable.
+  const ip = getClientIp(request)
+  const rl = rateLimit(`promo-validate:${ip}`, 8, 5 * 60_000)
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { valid: false, error: 'Trop de tentatives. Réessayez dans quelques minutes.' },
+      { status: 429 }
+    )
+  }
+
+  let body: { code?: string; email?: string }
   try {
     body = await request.json()
   } catch {
@@ -29,6 +43,8 @@ export async function POST(request: NextRequest) {
   }
 
   const code = normalizePromoCode(body.code)
+  const email = String(body.email || '').trim().toLowerCase()
+
   if (!code) {
     return NextResponse.json({ valid: false, error: 'Code requis' }, { status: 400 })
   }
@@ -38,12 +54,22 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     )
   }
+  if (!email || !EMAIL_RE.test(email)) {
+    return NextResponse.json(
+      { valid: false, error: 'Email requis pour valider le code (combinaison code + email).' },
+      { status: 400 }
+    )
+  }
 
   const supabase = getSupabaseAdmin()
+  // Validation par couple (code, email) : single-use bloque la redemption,
+  // et la combinaison empêche un tiers d'utiliser un code volé sans
+  // connaître aussi l'email du destinataire d'origine.
   const { data, error } = await supabase
     .from('keynote_registrations')
     .select('id, email, promo_code, promo_redeemed_at')
     .eq('promo_code', code)
+    .eq('email', email)
     .maybeSingle()
 
   if (error) {
@@ -54,8 +80,10 @@ export async function POST(request: NextRequest) {
   }
 
   if (!data) {
+    // Message volontairement générique pour ne pas révéler si c'est l'email
+    // ou le code qui est faux (évite l'énumération).
     return NextResponse.json(
-      { valid: false, error: 'Code promo introuvable' },
+      { valid: false, error: 'Code promo invalide ou email ne correspondant pas.' },
       { status: 404 }
     )
   }

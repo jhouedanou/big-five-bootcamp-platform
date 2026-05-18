@@ -9,7 +9,12 @@
 
 export const UNLIMITED = Number.POSITIVE_INFINITY
 
-export type PlanTier = 'free' | 'basic' | 'pro'
+// Le tier 'free' a été supprimé : l'accès exige un abonnement payant actif.
+// 'discovery' est le tier d'entrée de gamme (plan Découverte payant).
+export type PlanTier = 'discovery' | 'basic' | 'pro'
+
+/** @deprecated Alias rétro-compat (legacy 'free'). Utiliser 'discovery'. */
+export type LegacyPlanTier = PlanTier | 'free'
 
 export interface PlanQuotas {
   tier: PlanTier
@@ -20,15 +25,16 @@ export interface PlanQuotas {
 }
 
 export const QUOTAS: Record<PlanTier, PlanQuotas> = {
-  free:  { tier: 'free',  monthlyClickLimit: 10,        monthlySearchLimit: 5 },
-  basic: { tier: 'basic', monthlyClickLimit: UNLIMITED, monthlySearchLimit: 30 },
-  pro:   { tier: 'pro',   monthlyClickLimit: UNLIMITED, monthlySearchLimit: UNLIMITED },
+  discovery: { tier: 'discovery', monthlyClickLimit: 10,        monthlySearchLimit: 5 },
+  basic:     { tier: 'basic',     monthlyClickLimit: UNLIMITED, monthlySearchLimit: 30 },
+  pro:       { tier: 'pro',       monthlyClickLimit: UNLIMITED, monthlySearchLimit: UNLIMITED },
 }
 
 /**
  * Determine le tier effectif depuis le plan utilisateur et son statut d'abonnement.
- * Un utilisateur avec plan "basic"/"pro" mais subscription_status != "active"
- * est considere comme "free" (Decouverte).
+ * Un utilisateur sans abonnement actif est forcé sur le tier le plus restrictif
+ * (Découverte) ; les pages applicatives le redirigent toutefois vers /subscribe
+ * avant que les quotas ne soient évalués.
  */
 export function resolveTier(
   plan?: string | null,
@@ -38,7 +44,8 @@ export function resolveTier(
   const active = subscriptionStatus === 'active'
   if (active && normalized === 'pro') return 'pro'
   if (active && normalized === 'basic') return 'basic'
-  return 'free'
+  if (active && normalized === 'discovery') return 'discovery'
+  return 'discovery'
 }
 
 /**

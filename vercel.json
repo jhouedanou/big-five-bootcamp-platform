@@ -1,16 +1,16 @@
 {
   "crons": [
     {
-      "path": "/api/cron/check-subscriptions",
-      "schedule": "0 1 * * *"
-    },
-    {
       "path": "/api/cron/weekly-email",
       "schedule": "0 8 * * 1"
     },
     {
       "path": "/api/cron/brand-renewals",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/check-subscriptions",
+      "schedule": "5 0 * * *"
     }
   ]
 }

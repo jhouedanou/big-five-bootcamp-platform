@@ -27,11 +27,16 @@ async function getAuthenticatedAdmin() {
   if (!user) return null
 
   // Vérifier que l'utilisateur est admin
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  )
+  const adminUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!adminUrl || !adminKey) {
+    // Misconfig serveur — fail-safe. Le caller voit "non autorisé" plutôt
+    // que de remonter un détail de config.
+    return null
+  }
+  const supabaseAdmin = createClient(adminUrl, adminKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  })
 
   const { data: profile } = await supabaseAdmin
     .from('users')
@@ -123,7 +128,7 @@ export async function POST(request: NextRequest) {
         .from('users')
         .update({
           subscription_status: "cancelled",
-          plan: "Free",
+          plan: null,
         })
         .eq('id', cancellationRequest.user_id)
 
@@ -138,7 +143,7 @@ export async function POST(request: NextRequest) {
           .insert({
             user_id: cancellationRequest.user_id,
             title: "Abonnement annulé",
-            message: "Votre demande d'annulation d'abonnement a été traitée. Votre plan est désormais Free.",
+            message: "Votre demande d'annulation d'abonnement a été traitée. Souscrivez à un plan pour continuer à utiliser la plateforme.",
             type: "subscription",
             read: false,
           })

@@ -14,9 +14,15 @@ export async function GET(request: Request) {
     const cookieStore = await cookies()
 
     // Détecter le flux de récupération de mot de passe via le cookie
-    // (fallback car les query params peuvent être perdus lors du redirect Supabase)
+    // (fallback car les query params peuvent être perdus lors du redirect Supabase).
+    // IMPORTANT : un `type` explicite (signup, email, invite...) prime sur le cookie,
+    // sinon un email de vérification arrivé après un reset password est mal routé.
     const hasRecoveryCookie = cookieStore.get('sb-password-recovery')?.value === 'true'
-    const isRecoveryFlow = rawType === 'recovery' || next.includes('update-password') || hasRecoveryCookie
+    const isExplicitNonRecovery = rawType === 'signup' || rawType === 'email' || rawType === 'invite' || rawType === 'email_change'
+    const isRecoveryFlow =
+        rawType === 'recovery' ||
+        next.includes('update-password') ||
+        (hasRecoveryCookie && !isExplicitNonRecovery)
 
     // Collecter les cookies à écrire sur la réponse de redirection
     const cookiesToSet: { name: string; value: string; options: any }[] = []
@@ -93,13 +99,16 @@ async function ensureUserProfile(user: { id: string; email?: string | null; user
             .single()
 
         if (!existing) {
+            // Nouveau compte : aucun plan par defaut. L'utilisateur doit souscrire a
+            // Decouverte / Basic / Pro avant d'acceder a la plateforme.
             await admin.from('users').upsert({
                 id: user.id,
                 email: user.email,
                 name: user.user_metadata?.name || user.email.split('@')[0],
                 role: 'user',
-                plan: 'Free',
+                plan: null,
                 status: 'active',
+                subscription_status: 'none',
             }, { onConflict: 'id' })
         }
     } catch (e) {

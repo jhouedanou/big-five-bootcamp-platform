@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select"
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
 import { LegalModal } from "@/components/legal-modal"
+import { SubscribeCampaignsCarousel } from "@/components/subscribe-campaigns-carousel"
 import { getOperatorLogo } from "@/lib/operator-logos"
 import {
   PAWAPAY_COUNTRIES,
@@ -96,13 +97,26 @@ export default function SubscribePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, userProfile, loading } = useSupabaseAuth()
-  const rawPlanParam = searchParams.get("plan") || "pro"
+  // Mode "choix obligatoire" : route appelee par le hook useRequireActiveSubscription
+  // quand l'utilisateur n'a pas encore d'abonnement actif. Affiche un bandeau bloquant
+  // et masque le bouton "Retour au dashboard" tant qu'aucun plan n'est choisi.
+  const planRequired = searchParams.get("required") === "1"
+  // Par defaut : Basic (jamais Pro). Pro reste un choix explicite de l'utilisateur.
+  // Fallback : si l'URL n'a pas ?plan=, on lit le choix conservé en localStorage
+  // (posé avant un detour /register ou /login depuis /pricing).
+  const storedPlan = typeof window !== 'undefined'
+    ? window.localStorage.getItem('laveiye:selectedPlan')
+    : null
+  const storedBilling = typeof window !== 'undefined'
+    ? window.localStorage.getItem('laveiye:selectedBilling')
+    : null
+  const rawPlanParam = searchParams.get("plan") || storedPlan || "basic"
   const validPlan: PlanChoice = ["basic", "pro", "discovery"].includes(rawPlanParam)
     ? (rawPlanParam as PlanChoice)
-    : "pro"
+    : "basic"
   const [selectedPlan, setSelectedPlan] = useState<PlanChoice>(validPlan)
   const [isAnnual, setIsAnnual] = useState(
-    searchParams.get("billing") === "annual"
+    (searchParams.get("billing") || storedBilling) === "annual"
   )
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
@@ -146,11 +160,17 @@ export default function SubscribePage() {
 
   useEffect(() => {
     if (!loading && !user) {
-      // Préserver le plan/billing sélectionnés dans l'URL après login,
-      // sinon l'utilisateur retombe sur le plan par défaut (Pro) au retour.
+      // Préserver le plan/billing sélectionnés dans l'URL ET dans localStorage
+      // pour qu'ils survivent au flux d'inscription (incl. confirmation email).
       const qs = searchParams.toString()
       const redirect = qs ? `/subscribe?${qs}` : '/subscribe'
-      router.push(`/login?redirect=${encodeURIComponent(redirect)}`)
+      try {
+        const plan = searchParams.get('plan')
+        if (plan) window.localStorage.setItem('laveiye:selectedPlan', plan)
+        const billing = searchParams.get('billing')
+        if (billing) window.localStorage.setItem('laveiye:selectedBilling', billing)
+      } catch {}
+      router.push(`/register?redirect=${encodeURIComponent(redirect)}`)
     }
   }, [user, loading, router, searchParams])
 
@@ -169,9 +189,8 @@ export default function SubscribePage() {
 
   const currentPlan = PLANS[selectedPlan]
 
-  // Rang des plans pour interdire les downgrades quand l'abonnement
-  // est encore actif. Doit rester aligné avec le check serveur dans
-  // /api/payment/subscribe (PLAN_RANK).
+  // Rang des plans pour distinguer downgrade vs upgrade vs renouvellement.
+  // Doit rester aligné avec le serveur dans /api/payment/subscribe (PLAN_RANK).
   const PLAN_RANKS: Record<PlanChoice, number> = {
     discovery: 1,
     basic: 2,
@@ -183,22 +202,21 @@ export default function SubscribePage() {
     : currentPlanKey === 'basic' ? 2
     : currentPlanKey === 'discovery' ? 1
     : 0
-  /** Un plan est verrouillé si l'abonnement est actif ET de rang strictement supérieur. */
-  const isPlanLocked = (key: PlanChoice) =>
-    !!isActive && PLAN_RANKS[key] < currentPlanRank
 
-  // Si le plan présélectionné via ?plan=... est inférieur au plan actif,
-  // basculer sur le plan actif pour éviter d'afficher une carte "downgrade".
-  useEffect(() => {
-    if (isActive && isPlanLocked(selectedPlan)) {
-      const fallback: PlanChoice =
-        currentPlanRank === 3 ? 'pro'
-        : currentPlanRank === 2 ? 'basic'
-        : 'discovery'
-      setSelectedPlan(fallback)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isActive, currentPlanRank])
+  // Downgrade différé : on autorise le paiement immédiat même hors fenêtre
+  // de renouvellement. Le plan inférieur sera activé à expiration du plan
+  // courant (cron `check-subscriptions`). On bloque uniquement si un
+  // downgrade est déjà programmé pour éviter d'en empiler plusieurs.
+  const pendingPlanKey = ((userProfile as any)?.pending_plan || '').toLowerCase()
+  const pendingStartsAt = (userProfile as any)?.pending_plan_starts_at
+    ? new Date((userProfile as any).pending_plan_starts_at)
+    : null
+  const hasPending = !!pendingPlanKey
+
+  const isPlanLocked = (key: PlanChoice) =>
+    hasPending && PLAN_RANKS[key] < currentPlanRank && key !== (pendingPlanKey as PlanChoice)
+
+  const isDowngradeChoice = !!isActive && PLAN_RANKS[selectedPlan] < currentPlanRank
 
   /** Valide un code promo auprès de l'API et applique l'offre. */
   const handleApplyPromo = async () => {
@@ -210,10 +228,12 @@ export default function SubscribePage() {
     setIsCheckingPromo(true)
     setPromoError(null)
     try {
+      // Validation par couple (code, email) : l'API exige les deux.
+      // L'email connecté est utilisé — pas besoin de second champ visible.
       const res = await fetch("/api/promo/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code, email: user?.email || '' }),
       })
       const data = await res.json()
       if (!res.ok || !data.valid) {
@@ -338,13 +358,21 @@ export default function SubscribePage() {
       {/* Header */}
       <header className="border-b border-[#F5F5F5] bg-white">
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-2 text-sm text-[#0F0F0F]/70 hover:text-[#0F0F0F]"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Retour
-          </Link>
+          {planRequired ? (
+            // Mode "choix obligatoire" : pas de retour possible.
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#a17320]">
+              <Sparkles className="h-4 w-4" />
+              Activez votre accès Laveiye
+            </span>
+          ) : (
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 text-sm text-[#0F0F0F]/70 hover:text-[#0F0F0F]"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Retour
+            </Link>
+          )}
           <Link href="/" className="flex items-center gap-2">
             <img src="/logo.png" className="w-30" alt="" />
           </Link>
@@ -352,15 +380,39 @@ export default function SubscribePage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-2xl px-4 py-8">
-        <h1 className="text-center font-[family-name:var(--font-heading)] text-2xl font-bold text-[#0F0F0F]">
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        {planRequired && (
+          <div className="mb-6 rounded-2xl border-2 border-[#F2B33D]/40 bg-gradient-to-r from-[#FFFBEC] to-white p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F2B33D]/20">
+                <Sparkles className="h-4 w-4 text-[#a17320]" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-[#0F0F0F]">
+                  Débloquez toute la créativité africaine
+                </p>
+                <p className="mt-1 text-sm text-[#0F0F0F]/70">
+                  Choisissez votre formule pour explorer les campagnes,
+                  enregistrer vos favoris et suivre les temps forts du marché.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Layout 2 colonnes : formules à gauche, carrousel vendeur (visuel + perks) à droite (sticky). */}
+        <div className="mt-6 grid gap-8 md:grid-cols-[1.15fr_1fr] md:items-start">
+          {/* === COLONNE GAUCHE : Choix des formules === */}
+          <div>
+        <h1 className="text-center md:text-left font-[family-name:var(--font-heading)] text-2xl font-bold text-[#0F0F0F]">
           {isActive
             ? "Prolonger ou changer de formule"
             : "Choisissez votre formule"}
         </h1>
-        <p className="mt-2 text-center text-[#0F0F0F]/60">
+        <p className="mt-2 text-center md:text-left text-[#0F0F0F]/60">
           {isActive
-            ? `${isAnnual ? '365' : '30'} jours supplémentaires seront ajoutés à votre abonnement`
+            ? (isDowngradeChoice
+                ? `Le nouveau plan prendra le relais à l'expiration de l'abonnement actuel`
+                : `${isAnnual ? '365' : '30'} jours supplémentaires seront ajoutés à votre abonnement`)
             : "Débloquez l'accès complet à Laveiye"}
         </p>
 
@@ -386,12 +438,68 @@ export default function SubscribePage() {
                   })}
                   )
                 </p>
+                {!isDowngradeChoice && (
+                  <p className="mt-1 text-sm text-[#0F0F0F]/70">
+                    En renouvelant maintenant,{" "}
+                    <span className="font-semibold">
+                      {isAnnual ? '365 jours' : '30 jours'} seront ajoutés
+                    </span>{" "}
+                    à la fin de ton abonnement actuel.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Downgrade différé — explication */}
+        {isActive && isDowngradeChoice && !hasPending && (
+          <div className="mt-3 rounded-xl border-2 border-[#F2B33D] bg-[#FFFBEC] p-4">
+            <div className="flex items-start gap-3">
+              <Sparkles className="h-5 w-5 text-[#a17320] mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-[#0F0F0F]">
+                  Changement programmé vers {PLANS[selectedPlan].name}
+                </p>
                 <p className="mt-1 text-sm text-[#0F0F0F]/70">
-                  En renouvelant maintenant,{" "}
-                  <span className="font-semibold">
-                    {isAnnual ? '365 jours' : '30 jours'} seront ajoutés
-                  </span>{" "}
-                  à la fin de ton abonnement actuel.
+                  Ton plan <strong>{userProfile?.plan}</strong> reste actif jusqu'au{" "}
+                  <strong>
+                    {subscriptionEndDate!.toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </strong>
+                  . À cette date, le plan <strong>{PLANS[selectedPlan].name}</strong>{" "}
+                  prendra le relais pour {isAnnual ? '365 jours' : '30 jours'}.
+                </p>
+                <p className="mt-1 text-xs text-[#0F0F0F]/60">
+                  Tu paies maintenant, mais aucune fonctionnalité actuelle n'est perdue avant l'échéance.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Pending déjà programmé — info */}
+        {hasPending && pendingStartsAt && (
+          <div className="mt-3 rounded-xl border-2 border-[#0F0F0F]/20 bg-[#F5F5F5]/40 p-4">
+            <div className="flex items-start gap-3">
+              <Calendar className="h-5 w-5 text-[#0F0F0F]/60 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-[#0F0F0F]">
+                  Changement de plan déjà programmé
+                </p>
+                <p className="mt-1 text-sm text-[#0F0F0F]/70">
+                  Le plan <strong>{(userProfile as any)?.pending_plan}</strong> sera activé le{" "}
+                  <strong>
+                    {pendingStartsAt.toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </strong>
+                  . Tu peux toujours upgrader maintenant pour un effet immédiat.
                 </p>
               </div>
             </div>
@@ -425,13 +533,13 @@ export default function SubscribePage() {
         </div>
 
         {/* Plan Selection Cards */}
-        <div className="mt-6 grid grid-cols-2 gap-4">
+        <div className="mt-6 grid gap-4 grid-cols-1">
           {/* Découverte Card */}
           <button
             type="button"
             disabled={isPlanLocked("discovery")}
             onClick={() => setSelectedPlan("discovery")}
-            className={`rounded-xl border-2 p-5 text-left transition-all col-span-2 ${
+            className={`rounded-xl border-2 p-5 text-left transition-all ${
               isPlanLocked("discovery")
                 ? "border-[#F5F5F5] bg-[#F5F5F5]/40 opacity-60 cursor-not-allowed"
                 : selectedPlan === "discovery"
@@ -444,7 +552,7 @@ export default function SubscribePage() {
                 Découverte
                 {isPlanLocked("discovery") && (
                   <span className="ml-2 inline-block rounded-full bg-[#0F0F0F]/10 px-2 py-0.5 text-[10px] font-bold text-[#0F0F0F]/60 align-middle">
-                    Downgrade indisponible
+                    Changement déjà programmé
                   </span>
                 )}
               </h3>
@@ -495,7 +603,7 @@ export default function SubscribePage() {
             }`}
           >
             <div className="absolute -top-3 right-3 bg-[#10B981] text-white px-2.5 py-0.5 rounded-full text-[10px] font-bold">
-              {isPlanLocked("basic") ? "Indisponible" : "Populaire"}
+              {isPlanLocked("basic") ? "Déjà programmé" : "Populaire"}
             </div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-bold text-lg text-[#10B981]">Basic</h3>
@@ -597,6 +705,12 @@ export default function SubscribePage() {
             ))}
           </ul>
         </div>
+          </div>
+          {/* === COLONNE DROITE : Carrousel vendeur (visuel + perks dynamiques) === */}
+          <aside className="md:sticky md:top-6 md:self-start">
+            <SubscribeCampaignsCarousel plan={selectedPlan} />
+          </aside>
+        </div>
 
         {/* Mobile Money — details de paiement PawaPay */}
         <div className="mt-6 rounded-xl border border-[#F5F5F5] bg-white p-5 space-y-4">
@@ -690,6 +804,10 @@ export default function SubscribePage() {
           </div>
           <p className="text-xs text-[#0F0F0F]/60 mb-3">
             Code reçu lors de l'inscription au keynote. Donne droit à 3 mois d'accès Basic pour 10 000 FCFA TTC (au lieu de 14 700 FCFA).
+            <br />
+            <span className="text-[#0F0F0F]/50">
+              Le code n'est valable qu'avec l'email <strong>{user?.email}</strong> auquel il a été attribué.
+            </span>
           </p>
 
           {appliedPromo ? (
@@ -794,7 +912,9 @@ export default function SubscribePage() {
           ) : (
             <>
               <Lock className="mr-2 h-4 w-4" />
-              {isActive ? "Renouveler" : "Payer"} — {finalAmountFormatted} XOF
+              {isDowngradeChoice
+                ? "Programmer le changement"
+                : (isActive ? "Renouveler" : "Payer")}{" "}— {finalAmountFormatted} XOF
             </>
           )}
         </Button>
@@ -806,7 +926,7 @@ export default function SubscribePage() {
               <span className="text-[#0F0F0F]/60">
                 {appliedPromo
                   ? `Offre LAVEIYE — ${appliedPromo.planLabel} (${appliedPromo.durationLabel})`
-                  : `${isActive ? "Renouvellement" : "Abonnement"} Laveiye — ${plan.name} (${isAnnual ? 'Annuel' : 'Mensuel'})`}
+                  : `${isDowngradeChoice ? "Changement programmé" : (isActive ? "Renouvellement" : "Abonnement")} Laveiye — ${plan.name} (${isAnnual ? 'Annuel' : 'Mensuel'})`}
               </span>
               <span className="font-medium text-[#0F0F0F]">
                 {finalAmountFormatted} XOF
@@ -824,7 +944,7 @@ export default function SubscribePage() {
               <span className="text-[#0F0F0F]/60">Durée ajoutée</span>
               <span className="text-[#0F0F0F]">+{finalDurationDays} jours ({finalDurationLabel})</span>
             </div>
-            {isActive && (
+            {isActive && !isDowngradeChoice && (
               <div className="flex items-center justify-between">
                 <span className="text-[#0F0F0F]/60">
                   Nouvelle date d{"'"}expiration
@@ -834,6 +954,20 @@ export default function SubscribePage() {
                     subscriptionEndDate!.getTime() +
                       finalDurationDays * 24 * 60 * 60 * 1000
                   ).toLocaleDateString("fr-FR", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
+              </div>
+            )}
+            {isActive && isDowngradeChoice && (
+              <div className="flex items-center justify-between">
+                <span className="text-[#0F0F0F]/60">
+                  Activation du nouveau plan
+                </span>
+                <span className="text-[#0F0F0F] font-medium">
+                  {subscriptionEndDate!.toLocaleDateString("fr-FR", {
                     day: "numeric",
                     month: "short",
                     year: "numeric",

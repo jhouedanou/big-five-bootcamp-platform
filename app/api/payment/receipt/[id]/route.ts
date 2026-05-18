@@ -31,6 +31,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params
+    const forceDownload = request.nextUrl.searchParams.get('download') === '1'
     const user = await getAuthUser()
 
     if (!user) {
@@ -38,17 +39,20 @@ export async function GET(
     }
 
     // Récupérer le paiement
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    )
+    const adminUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!adminUrl || !adminKey) {
+      return NextResponse.json({ error: 'Server misconfigured' }, { status: 503 })
+    }
+    const supabaseAdmin = createClient(adminUrl, adminKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    })
 
     const { data: payment, error } = await supabaseAdmin
       .from('payments')
       .select('*')
       .eq('id', id)
-      .eq('user_id', user.id)
+      .eq('user_email', user.email)
       .single()
 
     if (error || !payment) {
@@ -70,6 +74,23 @@ export async function GET(
     const paymentTime = new Date(payment.created_at).toLocaleTimeString("fr-FR", {
       hour: "2-digit", minute: "2-digit"
     })
+
+    // Détails de l'abonnement : plan + date de validité
+    const meta = (payment.metadata || {}) as Record<string, any>
+    const planLabel: string =
+      meta.plan_label ||
+      (meta.plan ? String(meta.plan).charAt(0).toUpperCase() + String(meta.plan).slice(1) : "Abonnement")
+    const billingLabel = meta.billing === 'annual'
+      ? 'annuel'
+      : meta.billing === 'promo3m'
+        ? '3 mois (offre)'
+        : 'mensuel'
+    const planDescription = `Abonnement ${planLabel} (${billingLabel})`
+
+    const endDateRaw = meta.subscription_end_date || null
+    const validityDate = endDateRaw
+      ? new Date(endDateRaw).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
+      : null
 
     // Générer le reçu en HTML
     const receiptHTML = `
@@ -141,8 +162,12 @@ export async function GET(
       </div>
       <div class="row">
         <span class="label">Description</span>
-        <span class="value">Abonnement Premium</span>
+        <span class="value">${planDescription}</span>
       </div>
+      ${validityDate ? `<div class="row">
+        <span class="label">Valable jusqu'au</span>
+        <span class="value">${validityDate}</span>
+      </div>` : ''}
       <div class="total">
         <div class="row">
           <span class="label">Montant total</span>
@@ -162,7 +187,7 @@ export async function GET(
     return new NextResponse(receiptHTML, {
       headers: {
         "Content-Type": "text/html; charset=utf-8",
-        "Content-Disposition": `inline; filename="recu-${payment.ref_command}.html"`,
+        "Content-Disposition": `${forceDownload ? 'attachment' : 'inline'}; filename="recu-${payment.ref_command}.html"`,
       },
     })
   } catch (error) {

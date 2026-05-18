@@ -1,14 +1,14 @@
 /**
  * API Route: GET /api/cron/check-subscriptions
  * 
- * Vérifie les abonnements expirés et les downgrade automatiquement.
+ * Vérifie les abonnements expirés et bascule l'utilisateur en état verrouillé.
  * À appeler via un cron job Vercel (vercel.json) ou manuellement.
  * 
  * Sécurité: Protégé par CRON_SECRET dans les headers
  * 
  * Logique:
  * 1. Trouver les utilisateurs avec subscription_end_date < NOW() et subscription_status = 'active'
- * 2. Mettre subscription_status = 'expired' et plan = 'Free'
+ * 2. Mettre subscription_status = 'expired' et plan = NULL (compte verrouillé)
  * 3. Logger les utilisateurs downgradués
  */
 
@@ -19,22 +19,70 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    // Vérification de sécurité : CRON_SECRET ou Authorization header
+    // Vérification de sécurité : CRON_SECRET obligatoire.
+    // Refuse l'appel si la variable d'env est absente (évite un endpoint
+    // publiquement déclenchable en cas de mauvaise config Vercel).
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
-    
-    // En production, vérifier le secret (Vercel Cron envoie le header automatiquement)
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (!cronSecret) {
+      console.error('[cron/check-subscriptions] CRON_SECRET non configuré');
+      return NextResponse.json({ error: 'Server misconfigured' }, { status: 503 });
+    }
+    if (authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const now = new Date().toISOString();
 
-    // 1. Trouver les abonnements actifs qui ont expiré
+    // 0. Appliquer les downgrades programmés (pending_plan) dont la date
+    //    d'activation est passée. À distinguer de l'expiration sèche : ici
+    //    l'utilisateur a déjà payé son nouveau plan, on bascule simplement.
+    let pendingApplied = 0;
+    try {
+      const { data: pendingUsers } = await (supabaseAdmin as any)
+        .from('users')
+        .select('id, email, plan, pending_plan, pending_plan_starts_at, pending_duration_days, pending_billing')
+        .not('pending_plan', 'is', null)
+        .lte('pending_plan_starts_at', now);
+
+      for (const u of (pendingUsers || [])) {
+        const startsAt = new Date(u.pending_plan_starts_at);
+        const durationDays = u.pending_duration_days || 30;
+        const newEnd = new Date(startsAt.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+
+        const { error: applyErr } = await (supabaseAdmin as any)
+          .from('users')
+          .update({
+            plan: u.pending_plan,
+            subscription_status: 'active',
+            subscription_start_date: u.pending_plan_starts_at,
+            subscription_end_date: newEnd,
+            pending_plan: null,
+            pending_plan_starts_at: null,
+            pending_billing: null,
+            pending_duration_days: null,
+            updated_at: now,
+          })
+          .eq('id', u.id);
+
+        if (applyErr) {
+          console.error('[cron/check-subscriptions] apply pending failed', u.id, applyErr);
+        } else {
+          pendingApplied++;
+          console.log(`✅ Pending plan applied for ${u.email}: ${u.plan} → ${u.pending_plan}`);
+        }
+      }
+    } catch (e) {
+      console.error('[cron/check-subscriptions] pending plan apply error:', e);
+    }
+
+    // 1. Trouver les abonnements actifs qui ont expiré (et n'ont PAS de pending
+    //    qui vient juste d'être appliqué — protection idempotence).
     const { data: expiredUsers, error: fetchError } = await (supabaseAdmin as any)
       .from('users')
       .select('id, email, name, plan, subscription_status, subscription_end_date')
       .eq('subscription_status', 'active')
+      .is('pending_plan', null)
       .lt('subscription_end_date', now);
 
     if (fetchError) {
@@ -45,56 +93,116 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (!expiredUsers || expiredUsers.length === 0) {
+    const hasExpired = !!(expiredUsers && expiredUsers.length)
+    if (!hasExpired) {
       console.log(`Aucun abonnement expiré.`)
-      return NextResponse.json({
-        success: true,
-        message: 'Aucun abonnement expiré.',
-        downgraded: 0,
-        checked_at: now,
-      })
-    }
+    } else {
+      console.log(`⏰ ${expiredUsers.length} abonnement(s) payant(s) expiré(s) trouvé(s)`);
 
-    console.log(`⏰ ${expiredUsers.length} abonnement(s) payant(s) expiré(s) trouvé(s)`);
+      // 2. Downgrader tous les utilisateurs expirés
+      const userIds = expiredUsers.map((u: any) => u.id);
 
-    // 2. Downgrader tous les utilisateurs expirés
-    const userIds = expiredUsers.map((u: any) => u.id);
+      const { error: updateError } = await (supabaseAdmin as any)
+        .from('users')
+        .update({
+          plan: null,
+          subscription_status: 'expired',
+          updated_at: now,
+        })
+        .in('id', userIds);
 
-    const { error: updateError } = await (supabaseAdmin as any)
-      .from('users')
-      .update({
-        plan: 'Free',
-        subscription_status: 'expired',
-        updated_at: now,
-      })
-      .in('id', userIds);
-
-    if (updateError) {
-      console.error('❌ Erreur downgrade abonnements:', updateError.message);
-      return NextResponse.json(
-        { error: 'Erreur lors du downgrade', details: updateError.message },
-        { status: 500 }
-      );
-    }
-
-    // 3. Créer des notifications d'expiration pour chaque utilisateur
-    for (const user of expiredUsers) {
-      try {
-        await (supabaseAdmin as any)
-          .from('notifications')
-          .insert({
-            user_id: user.id,
-            type: 'subscription_expired',
-            title: '⏰ Votre abonnement a expiré',
-            message: `Votre abonnement ${user.plan || 'Pro'} a expiré. Renouvelez-le pour continuer à accéder à toutes les fonctionnalités.`,
-            metadata: {
-              subscription_end_date: user.subscription_end_date,
-              previous_plan: user.plan,
-            },
-          });
-      } catch (notifError) {
-        console.warn('⚠️ Erreur notification pour', user.email, ':', notifError);
+      if (updateError) {
+        console.error('❌ Erreur downgrade abonnements:', updateError.message);
+        return NextResponse.json(
+          { error: 'Erreur lors du downgrade', details: updateError.message },
+          { status: 500 }
+        );
       }
+
+      // 3. Créer des notifications d'expiration pour chaque utilisateur
+      for (const user of expiredUsers) {
+        try {
+          await (supabaseAdmin as any)
+            .from('notifications')
+            .insert({
+              user_id: user.id,
+              type: 'subscription_expired',
+              title: '⏰ Votre abonnement a expiré',
+              message: `Votre abonnement ${user.plan || 'Discovery'} a expiré. Renouvelez-le pour continuer à accéder à toutes les fonctionnalités.`,
+              metadata: {
+                subscription_end_date: user.subscription_end_date,
+                previous_plan: user.plan,
+              },
+            });
+        } catch (notifError) {
+          console.warn('⚠️ Erreur notification pour', user.email, ':', notifError);
+        }
+      }
+    }
+
+    // 3bis. Rappel J-7 : abonnements ACTIFS dont la fin tombe dans 0..7 jours.
+    // On envoie une notif "subscription_expiring" une seule fois par
+    // (user, subscription_end_date) en s'appuyant sur metadata pour
+    // l'idempotence (pas besoin de nouvelle colonne DB).
+    let expiringRemindersSent = 0
+    try {
+      const sevenDays = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
+      const { data: expiringUsers } = await (supabaseAdmin as any)
+        .from('users')
+        .select('id, email, name, plan, subscription_end_date')
+        .eq('subscription_status', 'active')
+        .gte('subscription_end_date', now)
+        .lte('subscription_end_date', sevenDays)
+
+      // Idempotence batchée : récupère en une requête toutes les notifs
+      // 'subscription_expiring' déjà envoyées pour les utilisateurs ciblés,
+      // puis filtre côté serveur sur (user_id, metadata.subscription_end_date).
+      // Évite un N+1 sur la table notifications lors du cron.
+      const expiringUserIds = (expiringUsers || []).map((u: any) => u.id)
+      const sentKeys = new Set<string>()
+      if (expiringUserIds.length > 0) {
+        const { data: sentNotifs } = await (supabaseAdmin as any)
+          .from('notifications')
+          .select('user_id, metadata')
+          .eq('type', 'subscription_expiring')
+          .in('user_id', expiringUserIds)
+        for (const n of (sentNotifs || [])) {
+          const end = n?.metadata?.subscription_end_date
+          if (end) sentKeys.add(`${n.user_id}|${end}`)
+        }
+      }
+
+      for (const u of (expiringUsers || [])) {
+        if (sentKeys.has(`${u.id}|${u.subscription_end_date}`)) continue
+
+        const endDate = new Date(u.subscription_end_date)
+        const daysLeft = Math.max(
+          0,
+          Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        )
+        const planForRenew = String(u.plan || '').toLowerCase() === 'pro' ? 'pro'
+          : String(u.plan || '').toLowerCase() === 'basic' ? 'basic'
+          : 'discovery'
+
+        await (supabaseAdmin as any).from('notifications').insert({
+          user_id: u.id,
+          type: 'subscription_expiring',
+          title: `Votre abonnement expire dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}`,
+          message: `Renouvelez votre abonnement ${u.plan || 'Discovery'} pour conserver l'acces.`,
+          action_url: `/subscribe?plan=${planForRenew}`,
+          metadata: {
+            subscription_end_date: u.subscription_end_date,
+            plan: u.plan,
+            days_left: daysLeft,
+          },
+        })
+        expiringRemindersSent++
+      }
+      if (expiringRemindersSent > 0) {
+        console.log(`Pre-expiry reminders sent: ${expiringRemindersSent}`)
+      }
+    } catch (reminderErr) {
+      console.error('Erreur envoi rappels pre-expiration:', reminderErr)
     }
 
     // 4. Reset mensuel des compteurs de clics (le 1er du mois)
@@ -115,18 +223,26 @@ export async function GET(request: NextRequest) {
     }
 
     // 5. Logger les résultats
-    const downgraded = expiredUsers.map((u: any) => ({
-      email: u.email,
-      name: u.name,
-      expired_at: u.subscription_end_date,
-    }));
+    const downgraded = hasExpired
+      ? expiredUsers.map((u: any) => ({
+          email: u.email,
+          name: u.name,
+          expired_at: u.subscription_end_date,
+        }))
+      : []
 
-    console.log('✅ Abonnements downgradués:', JSON.stringify(downgraded, null, 2));
+    if (hasExpired) {
+      console.log('✅ Abonnements downgradués:', JSON.stringify(downgraded, null, 2));
+    }
 
     return NextResponse.json({
       success: true,
-      message: `${expiredUsers.length} abonnement(s) downgradué(s)`,
-      downgraded: expiredUsers.length,
+      message: hasExpired
+        ? `${expiredUsers.length} abonnement(s) downgradué(s)`
+        : 'Aucun abonnement expiré.',
+      downgraded: hasExpired ? expiredUsers.length : 0,
+      pending_applied: pendingApplied,
+      expiring_reminders_sent: expiringRemindersSent,
       users: downgraded,
       checked_at: now,
     });

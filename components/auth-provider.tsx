@@ -11,7 +11,7 @@ export interface UserProfile {
   email: string
   name: string
   role: string
-  plan: string
+  plan: string | null
   status: string
   subscription_status: string | null
   subscription_end_date: string | null
@@ -84,7 +84,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .single()
 
       if (error?.code === "PGRST116") {
-        // L'utilisateur n'existe pas encore en DB, le créer
+        // L'utilisateur n'existe pas encore en DB, le créer.
+        // Plan = null : aucun abonnement actif. L'utilisateur doit souscrire à
+        // Découverte / Basic / Pro pour débloquer les fonctionnalités —
+        // redirect géré par use-require-active-subscription.
         const { data: newProfile, error: createError } = await supabase
           .from("users")
           .insert({
@@ -92,7 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: authUser.email!,
             name: authUser.user_metadata?.name || authUser.email!.split("@")[0],
             role: "user",
-            plan: "Free",
+            plan: null,
             status: "active",
             subscription_status: "none",
           })
@@ -103,19 +106,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUserProfile(newProfile as UserProfile)
         }
       } else if (!error && data) {
-        // Vérifier si l'abonnement payant est expiré
-        const isPaid = ["basic", "pro"].includes(
+        // Fail-safe expiration : si subscription_end_date est dans le passé,
+        // on bascule l'utilisateur en état verrouillé côté client — quel que
+        // soit le plan (Discovery, Basic, Pro). Évite la fenêtre entre la
+        // date de fin et l'exécution du cron.
+        const hasPaidPlan = ["discovery", "basic", "pro"].includes(
           data.plan?.toLowerCase() || ""
         )
         if (
-          isPaid &&
+          hasPaidPlan &&
           data.subscription_end_date &&
           new Date(data.subscription_end_date) < new Date()
         ) {
-          // Abonnement expiré → forcer Free côté client
-          setUserProfile({ ...data, plan: "Free", subscription_status: "expired" } as UserProfile)
+          // Abonnement expiré -> repasser en état verrouillé côté client.
+          // L'utilisateur sera redirigé vers /subscribe par use-require-active-subscription.
+          setUserProfile({ ...data, plan: null, subscription_status: "expired" } as UserProfile)
           // Synchroniser la DB côté serveur, puis re-fetch pour refléter l'état officiel.
-          fetch("/api/cron/check-subscriptions")
+          fetch("/api/subscription/expire-self", { method: "POST" })
             .then(async () => {
               try {
                 const { data: refreshed } = await supabase
@@ -307,21 +314,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase])
 
   const signUp = useCallback(async (email: string, password: string, name?: string) => {
+    const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { name: name || email.split("@")[0] },
+        emailRedirectTo: `${baseUrl}/auth/callback?next=/dashboard`,
       },
     })
 
     if (data.user && !error) {
+      // Aucun plan par défaut : choix de plan PAYANT obligatoire après signup.
       await supabase.from("users").insert({
         id: data.user.id,
         email: data.user.email!,
         name: name || data.user.email!.split("@")[0],
         role: "user",
-        plan: "Free",
+        plan: null,
         status: "active",
         subscription_status: "none",
       })
@@ -365,14 +375,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase])
 
   // Derived state
-  const planLower = userProfile?.plan?.toLowerCase() || "free"
+  const planLower = userProfile?.plan?.toLowerCase() || ""
   const isAuthenticated = !!user
   const isAdmin = userProfile?.role === "admin"
   const isModerator = userProfile?.role === "moderator" || isAdmin
   const isPremium = ["basic", "pro"].includes(planLower)
   // Legacy : agency / enterprise n'existent plus mais on garde un flag neutre pour compat
   const isEnterprise = false
-  const userPlan = userProfile?.plan || "Free"
+  const userPlan = userProfile?.plan || ""
   const isFreeUser = !isPremium || userProfile?.subscription_status !== "active"
 
   const contextValue = useMemo<AuthContextType>(() => ({

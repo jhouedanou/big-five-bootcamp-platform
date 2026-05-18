@@ -21,6 +21,11 @@ interface UserProfile {
   subscriptionEndDate: string
   plan?: string
   monthlyUsage?: number
+  // Plan programmé (downgrade payé d'avance, activé à expiration du plan courant)
+  pendingPlan?: string | null
+  pendingStartsAt?: string | null
+  pendingDurationDays?: number | null
+  pendingBilling?: string | null
 }
 
 interface PaymentRecord {
@@ -70,8 +75,12 @@ export default function ProfilePage() {
     avatar: "",
     status: "none",
     subscriptionEndDate: "",
-    plan: "Free",
+    plan: "",
     monthlyUsage: 0,
+    pendingPlan: null,
+    pendingStartsAt: null,
+    pendingDurationDays: null,
+    pendingBilling: null,
   })
 
   // Charger les données utilisateur depuis Supabase
@@ -91,11 +100,11 @@ export default function ProfilePage() {
         .eq("id", authUser.id)
         .single()
 
-      // Vérifier aussi les paiements confirmés
+      // Vérifier aussi les paiements confirmés (table payments est indexée par user_email)
       const { data: paymentsData } = await supabase
         .from("payments")
         .select("id, ref_command, amount, created_at, status, payment_method")
-        .eq("user_id", authUser.id)
+        .eq("user_email", authUser.email)
         .order("created_at", { ascending: false })
         .limit(10)
 
@@ -107,25 +116,26 @@ export default function ProfilePage() {
       let status: "subscribed" | "expired" | "none" = "none"
       let subscriptionEndDate = ""
 
-      const completedPayments = paymentsData?.filter((p: PaymentRecord) => p.status === "completed") || []
-
-      let planName = profile?.plan || "Free"
+      // plan = null => compte verrouille (pas d'abonnement actif). Pas de fallback Decouverte.
+      let planName = profile?.plan || ""
       let monthlyUsage = 0
 
       if (profile) {
-        const isPremiumPlan = ["basic", "pro"].includes(profile.plan?.toLowerCase() || "")
-        const isActiveSubscription = profile.subscription_status === "active"
-        const hasCompletedPayment = completedPayments.length > 0
+        const subStatus = String(profile.subscription_status || "").toLowerCase()
+        const endDate = profile.subscription_end_date ? new Date(profile.subscription_end_date) : null
+        const isActive = subStatus === "active" && endDate && endDate.getTime() > Date.now()
 
-        if ((isPremiumPlan && isActiveSubscription) || hasCompletedPayment) {
+        if (isActive) {
           status = "subscribed"
-          if (profile.subscription_end_date) {
-            subscriptionEndDate = format(new Date(profile.subscription_end_date), "d MMMM yyyy", { locale: fr })
-          }
-        } else if (profile.subscription_status === "expired") {
+        } else if (subStatus === "expired" || subStatus === "cancelled" || (endDate && endDate.getTime() <= Date.now())) {
           status = "expired"
         } else {
           status = "none"
+        }
+
+        // La date de fin est toujours affichee si on l'a, peu importe le statut.
+        if (endDate) {
+          subscriptionEndDate = format(endDate, "d MMMM yyyy", { locale: fr })
         }
 
         // Monthly usage from profile if stored
@@ -142,6 +152,10 @@ export default function ProfilePage() {
         subscriptionEndDate,
         plan: planName,
         monthlyUsage,
+        pendingPlan: profile?.pending_plan || null,
+        pendingStartsAt: profile?.pending_plan_starts_at || null,
+        pendingDurationDays: profile?.pending_duration_days || null,
+        pendingBilling: profile?.pending_billing || null,
       })
     } catch (error: any) {
       if (error?.name === 'AbortError') return
@@ -307,7 +321,7 @@ export default function ProfilePage() {
       const { data: paymentsData } = await supabase
         .from("payments")
         .select("id, ref_command, amount, created_at, status, payment_method")
-        .eq("user_id", authUser.id)
+        .eq("user_email", authUser.email)
         .order("created_at", { ascending: false })
         .limit(10)
 
@@ -322,7 +336,7 @@ export default function ProfilePage() {
   }
 
   // ─── Présentation du plan : style + libellés ke pour les 3 plans ───────────
-  const planKey = (user.plan || "Free").toLowerCase()
+  const planKey = (user.plan || "").toLowerCase()
   const planConfig = getPlanConfig(user.plan)
   const planName = planConfig.name // "Découverte" | "Basic" | "Pro"
   const monthlyClickLimit: number = Number.isFinite(planConfig.clicksPerMonth)
@@ -466,10 +480,12 @@ export default function ProfilePage() {
                     <>Votre abonnement est actif jusqu&apos;au <span className="font-semibold text-foreground">{user.subscriptionEndDate}</span></>
                   ) : user.status === "subscribed" ? (
                     <>Votre abonnement est <span className="font-semibold text-[#10B981]">actif</span>.</>
+                  ) : user.status === "expired" && user.subscriptionEndDate ? (
+                    <>Votre abonnement a expiré le <span className="font-semibold text-red-600">{user.subscriptionEndDate}</span>. <Link href="/subscribe" className="font-semibold text-[#F2B33D] underline">Renouveler</Link>.</>
                   ) : user.status === "expired" ? (
                     <>Votre abonnement a expiré. <Link href="/subscribe" className="font-semibold text-[#F2B33D] underline">Renouveler</Link>.</>
                   ) : (
-                    <>Vous bénéficiez actuellement du plan Découverte.</>
+                    <>Choisissez une formule pour commencer.</>
                   )}
                 </p>
               </div>
@@ -480,7 +496,31 @@ export default function ProfilePage() {
               <span className="text-sm font-medium">{planAccessLabel}</span>
             </div>
 
-            {planKey === "free" && (
+            {/* Plan programmé (downgrade payé d'avance, activé à expiration). */}
+            {user.pendingPlan && user.pendingStartsAt && (
+              <div className="mt-4 rounded-lg border border-[#F2B33D]/30 bg-[#FFFBEC] p-3">
+                <div className="flex items-start gap-2">
+                  <RefreshCw className="h-4 w-4 text-[#a17320] mt-0.5 shrink-0" />
+                  <div className="text-sm">
+                    <p className="font-semibold text-[#0F0F0F]">
+                      Prochain plan : {user.pendingPlan}
+                    </p>
+                    <p className="mt-0.5 text-[#0F0F0F]/70">
+                      Activation le{" "}
+                      <span className="font-semibold text-[#0F0F0F]">
+                        {format(new Date(user.pendingStartsAt), "d MMMM yyyy", { locale: fr })}
+                      </span>
+                      {user.pendingDurationDays
+                        ? <> pour <span className="font-semibold">{user.pendingDurationDays} jours</span></>
+                        : null}
+                      . Vous restez sur <strong>{planName}</strong> jusqu'à cette date.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {(!planKey || planKey === "free") && (
               <Button asChild className="mt-4 w-full shadow-lg shadow-primary/25 sm:w-auto bg-[#F2B33D] hover:bg-[#F2B33D]/90">
                 <Link href="/subscribe">
                   Choisir une formule
@@ -597,15 +637,24 @@ export default function ProfilePage() {
                       <div className="flex items-center gap-2 shrink-0">
                         <span className="text-xs text-muted-foreground">{dateLabel}</span>
                         {isCompleted && (
-                          <a
-                            href={`/api/payment/receipt/${payment.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
-                          >
-                            <Download className="h-3 w-3" />
-                            Reçu
-                          </a>
+                          <>
+                            <a
+                              href={`/api/payment/receipt/${payment.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 rounded-md bg-emerald-50 border border-emerald-200 px-2 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 transition-colors"
+                            >
+                              <Receipt className="h-3 w-3" />
+                              Reçu
+                            </a>
+                            <a
+                              href={`/api/payment/receipt/${payment.id}?download=1`}
+                              className="flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
+                            >
+                              <Download className="h-3 w-3" />
+                              Télécharger
+                            </a>
+                          </>
                         )}
                       </div>
                     </div>

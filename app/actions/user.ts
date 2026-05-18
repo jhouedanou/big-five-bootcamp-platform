@@ -4,10 +4,12 @@ import { createClient } from "@supabase/supabase-js"
 import { revalidatePath } from "next/cache"
 
 function getSupabaseAdmin() {
-    return createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!url || !key) {
+        throw new Error('SUPABASE_SERVICE_ROLE_KEY required for admin operations')
+    }
+    return createClient(url, key)
 }
 
 export async function getUsers() {
@@ -62,8 +64,12 @@ export async function updateUserPlan(id: string, plan: string) {
         const supabase = getSupabaseAdmin()
         const updateData: Record<string, unknown> = { plan }
 
-        // Si le plan est Free, réinitialiser le statut d'abonnement
-        if (plan === "Free") {
+        // Si l'admin force un plan non payant (null / vide / legacy 'Free'),
+        // marquer l'abonnement comme expiré — le user sera redirigé vers /subscribe.
+        const lower = String(plan || '').toLowerCase()
+        const isPaidPlan = lower === 'discovery' || lower === 'basic' || lower === 'pro'
+        if (!isPaidPlan) {
+            updateData.plan = null
             updateData.subscription_status = "expired"
         } else {
             updateData.subscription_status = "active"
@@ -112,7 +118,7 @@ export async function endSubscription(userId: string) {
         const { error } = await supabase
             .from('users')
             .update({
-                plan: 'Free',
+                plan: null,
                 subscription_status: 'expired',
                 subscription_end_date: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
@@ -131,17 +137,36 @@ export async function endSubscription(userId: string) {
 export async function resetSubscription(
     userId: string,
     days: number = 30,
-    plan: 'Basic' | 'Pro' = 'Pro'
+    plan?: 'Discovery' | 'Basic' | 'Pro'
 ) {
     try {
         const supabase = getSupabaseAdmin()
         const now = new Date()
         const endDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000)
 
+        // Pas d'upgrade silencieux vers Pro : si plan non specifie, on reprend
+        // le plan actuel de l'utilisateur (par defaut "Basic" si jamais defini).
+        let resolvedPlan: 'Discovery' | 'Basic' | 'Pro'
+        if (plan) {
+            resolvedPlan = plan
+        } else {
+            const { data: existing } = await supabase
+                .from('users')
+                .select('plan')
+                .eq('id', userId)
+                .single<{ plan: string | null }>()
+            const current = String(existing?.plan || '').toLowerCase()
+            resolvedPlan =
+                current === 'pro' ? 'Pro'
+                : current === 'basic' ? 'Basic'
+                : current === 'discovery' ? 'Discovery'
+                : 'Basic'
+        }
+
         const { error } = await supabase
             .from('users')
             .update({
-                plan,
+                plan: resolvedPlan,
                 subscription_status: 'active',
                 subscription_start_date: now.toISOString(),
                 subscription_end_date: endDate.toISOString(),

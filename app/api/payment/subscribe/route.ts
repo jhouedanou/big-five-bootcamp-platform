@@ -1,18 +1,19 @@
 /**
  * API Route: POST /api/payment/subscribe
  *
- * Cree une demande de paiement PawaPay pour un abonnement
- * Supporte Basic (4 900 XOF) et Pro (9 900 XOF)
- * Supporte le renouvellement anticipe : les jours restants sont conserves
+ * Cree une demande de paiement PawaPay pour un abonnement.
+ * Plans supportés : Découverte (1 000 XOF), Basic (4 900 XOF), Pro (9 900 XOF).
+ * Supporte le renouvellement anticipé : les jours restants sont conservés.
  *
  * Body:
  * - userEmail    : Email de l'utilisateur
- * - userName?   : Nom de l'utilisateur
- * - plan        : "basic" | "pro"
- * - billing     : "monthly" | "annual"
- * - phoneNumber : MSISDN du client (ex. "2250707123456")
- * - provider    : Code provider PawaPay (ex. "ORANGE_CIV", "MTN_MOMO_CIV", "MOOV_CIV" — Wave non supporté)
- * - currency?   : Devise (defaut "XOF")
+ * - userName?    : Nom de l'utilisateur
+ * - plan         : "discovery" | "basic" | "pro"
+ * - billing      : "monthly" | "annual"
+ * - phoneNumber  : MSISDN du client (ex. "2250707123456")
+ * - provider     : Code provider PawaPay (ex. "ORANGE_CIV", "MTN_MOMO_CIV", "MOOV_CIV" — Wave non supporté)
+ * - currency?    : Devise (defaut "XOF")
+ * - promoCode?   : Code promo (ex. KEYNOTE)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -29,9 +30,10 @@ import {
   isPromoCodeFormatValid,
   normalizePromoCode,
 } from '@/lib/promo-codes';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
 const PLAN_PRICES: Record<string, { price: number; annualPrice: number; label: string; dbKey: string }> = {
-  discovery: { price: 1000, annualPrice: 10000, label: 'Découverte', dbKey: 'Free' },
+  discovery: { price: 1000, annualPrice: 10000, label: 'Découverte', dbKey: 'Discovery' },
   basic: { price: 4900, annualPrice: 49000, label: 'Basic', dbKey: 'Basic' },
   pro: { price: 9900, annualPrice: 99000, label: 'Pro', dbKey: 'Pro' },
 };
@@ -40,11 +42,18 @@ const SUBSCRIPTION_DURATION_DAYS = 30;
 const ANNUAL_SUBSCRIPTION_DURATION_DAYS = 365;
 
 /**
+ * Fenêtre de renouvellement (en jours avant `subscription_end_date`).
+ * À l'intérieur de cette fenêtre, l'utilisateur peut souscrire à un plan
+ * inférieur (downgrade). En dehors, le downgrade reste bloqué pour éviter
+ * que l'utilisateur ne perde inutilement des jours déjà payés.
+ */
+const RENEWAL_WINDOW_DAYS = 7;
+
+/**
  * Rang d'un plan pour interdire les downgrades quand l'abonnement
- * est encore actif. Free < Découverte < Basic < Pro.
+ * est encore actif. Le tier "Free" a été déprécié. Découverte < Basic < Pro.
  */
 const PLAN_RANK: Record<string, number> = {
-  free: 0,
   discovery: 1,
   basic: 2,
   pro: 3,
@@ -57,6 +66,16 @@ function planRank(dbKeyOrSlug: string | null | undefined): number {
 
 export async function POST(request: NextRequest) {
   try {
+    // Auth obligatoire : l'utilisateur doit être connecté et ne peut souscrire
+    // que pour son propre compte. Empêche un attaquant d'initier un paiement
+    // pour un autre email ou de consommer un code promo unique au nom d'autrui.
+    const { getSupabaseServer } = await import('@/lib/supabase-server');
+    const supabaseServer = await getSupabaseServer();
+    const { data: { user: authUser } } = await supabaseServer.auth.getUser();
+    if (!authUser) {
+      return NextResponse.json({ error: 'Authentification requise' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { userEmail, userName, plan, billing, phoneNumber, provider, currency = 'XOF', promoCode } = body;
 
@@ -67,6 +86,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Le userEmail soumis doit correspondre à la session — pas de souscription
+    // pour un compte tiers.
+    if ((userEmail || '').toLowerCase().trim() !== (authUser.email || '').toLowerCase().trim()) {
+      return NextResponse.json(
+        { error: "Email ne correspond pas à la session authentifiée." },
+        { status: 403 }
+      );
+    }
+
     if (!phoneNumber || !provider) {
       return NextResponse.json(
         { error: 'phoneNumber et provider sont requis (ex. provider: "ORANGE_CIV").' },
@@ -74,7 +102,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const planKey = (plan || 'pro').toLowerCase();
+    // Plan strict — aucun fallback silencieux vers Pro.
+    // Le client DOIT envoyer un plan valide ("discovery" | "basic" | "pro").
+    const planKey = String(plan || '').toLowerCase().trim();
     const planConfig = PLAN_PRICES[planKey];
     const isAnnual = billing === 'annual';
 
@@ -93,20 +123,38 @@ export async function POST(request: NextRequest) {
     const normalizedPromo = normalizePromoCode(promoCode);
 
     if (normalizedPromo) {
+      // Rate-limit : 5 tentatives / 5 min par (IP + email) pour bloquer le
+      // brute-force sur les codes promo.
+      const ip = getClientIp(request);
+      const rl = rateLimit(`promo:${ip}:${(userEmail || '').toLowerCase()}`, 5, 5 * 60_000);
+      if (!rl.allowed) {
+        return NextResponse.json(
+          { error: 'Trop de tentatives. Réessayez dans quelques minutes.' },
+          { status: 429 }
+        );
+      }
       if (!isPromoCodeFormatValid(normalizedPromo)) {
         return NextResponse.json(
           { error: 'Code promo invalide (format attendu : LAVEIYE-XXXX)' },
           { status: 400 }
         );
       }
+      // Validation par couple (code, email) — le code seul ne suffit pas :
+      // l'email connecté DOIT correspondre à celui de l'inscription keynote
+      // qui a reçu le code. Empêche un tiers d'utiliser un code intercepté.
+      const promoEmail = (userEmail || '').toLowerCase().trim();
       const { data: regRow } = await supabaseAdmin
         .from('keynote_registrations')
-        .select('id, promo_code, promo_redeemed_at')
+        .select('id, email, promo_code, promo_redeemed_at')
         .eq('promo_code', normalizedPromo)
+        .eq('email', promoEmail)
         .maybeSingle();
 
       if (!regRow) {
-        return NextResponse.json({ error: 'Code promo introuvable' }, { status: 404 });
+        return NextResponse.json(
+          { error: 'Code promo invalide ou email ne correspondant pas à celui qui a reçu le code.' },
+          { status: 404 }
+        );
       }
       if ((regRow as any).promo_redeemed_at) {
         return NextResponse.json({ error: 'Ce code a déjà été utilisé' }, { status: 409 });
@@ -149,7 +197,7 @@ export async function POST(request: NextRequest) {
     // Verifier si l'utilisateur existe
     let { data: existingUser, error: userError } = await supabaseAdmin
       .from('users')
-      .select('id, email, name, subscription_status, subscription_end_date, plan')
+      .select('id, email, name, subscription_status, subscription_end_date, plan, pending_plan, pending_plan_starts_at')
       .eq('email', userEmail)
       .single();
 
@@ -172,7 +220,7 @@ export async function POST(request: NextRequest) {
           email: authUser.email!,
           name: authUser.user_metadata?.name || authUser.email!.split('@')[0],
           role: 'user',
-          plan: 'Free',
+          plan: 'Discovery',
           status: 'active',
         }, { onConflict: 'id' })
         .select('id, email, name, subscription_status, subscription_end_date, plan')
@@ -199,24 +247,46 @@ export async function POST(request: NextRequest) {
       && currentEndDate > now;
 
     // ——————————————————————————————————————————————————
-    // Anti-downgrade : si l'abonnement est encore actif,
-    // l'utilisateur ne peut souscrire qu'au même plan (renouvellement)
-    // ou à un plan supérieur (upgrade). Pas de downgrade payant.
+    // Downgrade différé : le user paie maintenant un plan inférieur, mais son
+    // plan actuel reste actif jusqu'à `subscription_end_date`. À cette date,
+    // un cron applique le `pending_plan` et démarre la durée achetée.
+    //
+    // - Si downgrade : on flag `is_downgrade=true`, on stocke `pending_starts_at`
+    //   (= currentEndDate) et on n'étend PAS l'abonnement courant.
+    // - Si même plan ou upgrade : comportement historique (renouvellement /
+    //   extension à partir de currentEndDate, ou démarrage immédiat).
+    // - Si un downgrade est déjà en attente : refus pour éviter d'écraser.
     // ——————————————————————————————————————————————————
+    let isDowngrade = false;
+    let pendingStartsAt: Date | null = null;
+
     if (isCurrentlyActive) {
       const currentRank = planRank((existingUser as any).plan);
       const targetRank = planRank(planConfig.dbKey);
       if (targetRank < currentRank) {
-        return NextResponse.json(
-          {
-            error: `Vous êtes déjà abonné à un plan supérieur (${(existingUser as any).plan}). Le downgrade vers ${planConfig.label} n'est pas autorisé tant que votre abonnement actuel est actif (expire le ${currentEndDate!.toLocaleDateString('fr-FR')}).`,
-          },
-          { status: 403 }
-        );
+        isDowngrade = true;
+        pendingStartsAt = currentEndDate;
+
+        // Bloquer si un downgrade est déjà programmé (pour éviter empilement).
+        if ((existingUser as any).pending_plan) {
+          return NextResponse.json(
+            {
+              error: `Un changement de plan est déjà programmé (${(existingUser as any).pending_plan}) pour le ${new Date((existingUser as any).pending_plan_starts_at).toLocaleDateString('fr-FR')}. Annulez-le ou attendez son application avant d'en programmer un autre.`,
+              pendingPlan: (existingUser as any).pending_plan,
+              pendingStartsAt: (existingUser as any).pending_plan_starts_at,
+            },
+            { status: 409 }
+          );
+        }
       }
     }
 
-    const baseDate = isCurrentlyActive ? currentEndDate : now;
+    // Pour un downgrade différé : la durée s'applique à partir de la date
+    // d'activation différée, pas du moment du paiement. Pour les autres cas,
+    // logique historique (extension depuis currentEndDate si actif, sinon now).
+    const baseDate = isDowngrade
+      ? pendingStartsAt!
+      : (isCurrentlyActive ? currentEndDate : now);
     const subscriptionEndDate = new Date(baseDate!);
     subscriptionEndDate.setDate(subscriptionEndDate.getDate() + durationDays);
 
@@ -244,6 +314,8 @@ export async function POST(request: NextRequest) {
         plan_label: planConfig.label,
         billing: promoApplied ? 'promo3m' : (isAnnual ? 'annual' : 'monthly'),
         renewal: isCurrentlyActive,
+        is_downgrade: isDowngrade,
+        pending_starts_at: isDowngrade ? pendingStartsAt!.toISOString() : null,
         duration_days: durationDays,
         subscription_end_date: subscriptionEndDate.toISOString(),
         previous_end_date: isCurrentlyActive ? currentEndDate!.toISOString() : null,
@@ -375,10 +447,12 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Subscription payment error:', error);
+    const devMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json(
       {
         error: 'Internal server error',
-        message: error instanceof Error ? error.message : 'Unknown error'
+        // En prod : pas de fuite. En dev : on garde pour debug.
+        ...(process.env.NODE_ENV !== 'production' ? { message: devMessage } : {}),
       },
       { status: 500 }
     );

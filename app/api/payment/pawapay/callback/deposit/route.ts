@@ -27,12 +27,13 @@ export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Vérification IP (optionnelle, activée via PAWAPAY_VERIFY_IP=true)
+    // 1. Vérification IP (obligatoire en production, cf. isAllowedPawaPayIP).
+    // On renvoie 401 — PawaPay réessaiera depuis la bonne IP si problème
+    // réseau, mais un acteur tiers sera bloqué.
     if (!isAllowedPawaPayIP(request)) {
-      console.warn('⚠️ PawaPay deposit callback reçu depuis une IP non autorisée')
-      // On renvoie quand même 200 pour éviter une boucle de retry côté PawaPay,
-      // mais on n'agit pas sur la donnée.
-      return new NextResponse('IP not allowed', { status: 200 })
+      const ip = request.headers.get('x-forwarded-for') || 'unknown'
+      console.warn(`⚠️ PawaPay deposit callback IP refusée: ${ip}`)
+      return new NextResponse('Unauthorized source', { status: 401 })
     }
 
     const payload = (await request.json()) as PawaPayDepositCallback
@@ -183,16 +184,52 @@ async function activateUserSubscription(payment: {
     // Plan strict — pas de fallback silencieux vers Pro.
     // Si la métadonnée est absente/invalide, on log et on n'active pas (sécurité).
     const rawPlan = String(metadata.plan || '').toLowerCase().trim()
-    let planName: 'Basic' | 'Pro'
+    let planName: 'Discovery' | 'Basic' | 'Pro'
     if (rawPlan === 'basic') {
       planName = 'Basic'
     } else if (rawPlan === 'pro') {
       planName = 'Pro'
+    } else if (rawPlan === 'discovery' || rawPlan === 'free') {
+      planName = 'Discovery'
     } else {
       console.error(
         '[pawapay/deposit] Plan invalide ou manquant dans metadata, activation annul\u00e9e',
         { paymentId: payment.id, rawPlan, metadata }
       )
+      return
+    }
+
+    // Downgrade différé : on stocke en `pending_plan` au lieu d'écraser
+    // le plan courant. Le cron `apply-pending-plans` basculera à expiration.
+    if (metadata.is_downgrade === true && metadata.pending_starts_at) {
+      console.log('[pawapay/deposit] Downgrade programmé', {
+        userId: metadata.userId,
+        pendingPlan: planName,
+        startsAt: metadata.pending_starts_at,
+        durationDays: metadata.duration_days,
+      })
+
+      await (supabaseAdmin as any)
+        .from('users')
+        .update({
+          pending_plan: planName,
+          pending_plan_starts_at: metadata.pending_starts_at,
+          pending_billing: metadata.billing || null,
+          pending_duration_days: metadata.duration_days || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', metadata.userId)
+
+      // Promo redemption marquée même pour un downgrade (cohérence single-use)
+      if (metadata.promo_code) {
+        await (supabaseAdmin as any)
+          .from('keynote_registrations')
+          .update({ promo_redeemed_at: new Date().toISOString() })
+          .eq('promo_code', metadata.promo_code)
+          .is('promo_redeemed_at', null)
+      }
+
+      console.log('✅ Downgrade différé enregistré pour user:', metadata.userId, '— pending:', planName)
       return
     }
 

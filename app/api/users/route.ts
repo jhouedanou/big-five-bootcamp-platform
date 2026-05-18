@@ -10,7 +10,7 @@ const userCreateSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8).optional(),
   role: z.enum(["user", "admin"]).optional(),
-  plan: z.enum(["Free", "Basic", "Pro"]).optional(),
+  plan: z.enum(["Discovery", "Basic", "Pro"]).optional(),
   status: z.enum(["active", "inactive"]).optional(),
 })
 
@@ -42,7 +42,9 @@ export async function GET(request: Request) {
       .range((page - 1) * limit, page * limit - 1)
 
     if (search) {
-      query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%`)
+      const { escapeForIlike } = await import('@/lib/search-utils')
+      const s = escapeForIlike(search)
+      if (s) query = query.or(`name.ilike.%${s}%,email.ilike.%${s}%`)
     }
     if (role) query = query.eq('role', role)
     if (plan) query = query.eq('plan', plan)
@@ -122,7 +124,7 @@ export async function POST(request: Request) {
         email,
         name,
         role: role || 'user',
-        plan: plan || 'Free',
+        plan: plan || null,
         status: status || 'active',
       })
       .select()

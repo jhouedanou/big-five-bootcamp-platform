@@ -43,3 +43,13 @@ tmp-chrome-rgpd*
 # Local-only admin scripts (service role usage)
 scripts/force-confirm-user.mjs
 scripts/delete-user.ts
+
+# OpenNext
+.open-next
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+
+!.env.example

@@ -7,7 +7,11 @@
     "dev": "next dev",
     "lint": "eslint .",
     "start": "next start",
-    "create-admins": "tsx scripts/create-admins.ts"
+    "create-admins": "tsx scripts/create-admins.ts",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

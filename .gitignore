@@ -35,3 +35,5 @@ nul
 # RGPD browser verification temp files
 .tmp-chrome-rgpd*
 tmp-chrome-rgpd*
+scripts/force-confirm-user.mjs
+scripts/force-confirm-user.mjs

@@ -58,6 +58,30 @@ function normalizeCountry(raw: string | null | undefined): string {
   return COUNTRY_ALIASES[degarbled.toLowerCase()] ?? degarbled
 }
 
+function getSearchQuotaMonthKey(date: Date = new Date()): string {
+  return date.toISOString().slice(0, 7)
+}
+
+function stableSearchFilterEntries(filters: Record<string, string[]>): Array<[string, string[]]> {
+  return Object.entries(filters)
+    .map(([category, values]) => {
+      const normalizedValues = Array.from(
+        new Set(values.map((value) => value.trim()).filter(Boolean))
+      ).sort((a, b) => a.localeCompare(b, 'fr'))
+      return [category, normalizedValues] as [string, string[]]
+    })
+    .filter(([, values]) => values.length > 0)
+    .sort(([a], [b]) => a.localeCompare(b, 'fr'))
+}
+
+function countedSearchKey(query: string, filters: Record<string, string[]>): string {
+  return JSON.stringify({
+    month: getSearchQuotaMonthKey(),
+    query: query.trim().toLowerCase(),
+    filters: stableSearchFilterEntries(filters),
+  })
+}
+
 // Les compteurs de clics sont maintenant gérés côté serveur via /api/track-click
 
 // Mélange aléatoire (Fisher-Yates) pour l'affichage des campagnes
@@ -286,10 +310,12 @@ export default function DashboardPage() {
   }>({ counts: {}, limit: null, tier: 'free' })
 
   // Mémorise la dernière recherche déjà comptabilisée pour éviter de la recompter.
+  // La clé inclut aussi les filtres et le mois de quota : une même requête dans
+  // un contexte différent peut donc être comptée, sans double compter la frappe.
   // Pré-marquage : SEUL `?brand=…` (deeplink suivi de marques) ne doit pas
   // consommer de quota. `?search=…` est une recherche utilisateur (depuis
   // navbar sur page detail, suggestion, etc.) → doit etre comptee.
-  const lastCountedSearchRef = useRef<string>(brandFilter.trim())
+  const lastCountedSearchRef = useRef<string>(brandFilter ? countedSearchKey(brandFilter, {}) : "")
 
   useEffect(() => {
     const next = brandFilter || initialSearch
@@ -298,8 +324,12 @@ export default function DashboardPage() {
     // Pré-marquer UNIQUEMENT les arrivees via `?brand=…` (suivi de marques).
     // Les `?search=…` doivent etre tracees par le debounce.
     if (brandFilter) {
-      lastCountedSearchRef.current = next.trim()
+      lastCountedSearchRef.current = countedSearchKey(next, selectedFilters)
     }
+    // `selectedFilters` est volontairement exclu : les filtres sont hydrates
+    // par l'effet URL juste apres, et un deeplink `?brand=...` ne consomme pas
+    // de quota meme quand ces filtres arrivent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brandFilter, initialSearch])
 
   // Hydrate les filtres depuis l'URL (?country=A,B&sector=X,Y&platform=Z).
@@ -516,12 +546,13 @@ export default function DashboardPage() {
   useEffect(() => {
     const q = searchQuery.trim()
     if (!q) return
-    if (q === lastCountedSearchRef.current) return
+    const searchKey = countedSearchKey(q, selectedFilters)
+    if (searchKey === lastCountedSearchRef.current) return
 
     const handle = setTimeout(async () => {
       // Regle metier : recherche sans resultat ne consomme pas de quota.
       if (countMatching(selectedFilters, q) === 0) {
-        lastCountedSearchRef.current = q
+        lastCountedSearchRef.current = searchKey
         return
       }
 
@@ -558,7 +589,7 @@ export default function DashboardPage() {
           return
         }
         if (res.ok) {
-          lastCountedSearchRef.current = q
+          lastCountedSearchRef.current = searchKey
           try {
             const data = await res.json()
             if (data?.counts) {
@@ -576,6 +607,10 @@ export default function DashboardPage() {
     }, 800)
 
     return () => clearTimeout(handle)
+    // On ne relance pas seulement parce qu'un filtre change : `handleFilterChange`
+    // comptabilise déjà les filtres ajoutes. La clé de déduplication inclut les
+    // filtres pour autoriser un nouveau comptage quand la recherche est relancée
+    // dans un contexte différent.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery])
 

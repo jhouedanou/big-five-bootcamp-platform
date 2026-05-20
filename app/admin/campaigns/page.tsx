@@ -50,7 +50,9 @@ import {
   Users,
   Star,
   ExternalLink,
+  ArrowLeft,
 } from "lucide-react";
+import Link from "next/link";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -427,6 +429,25 @@ function CampaignsPageContent() {
           </div>
         </div>
       )}
+
+      {searchParams.get("temps_fort") && (() => {
+        const slug = searchParams.get("temps_fort")!;
+        const tf = TEMPS_FORTS.find((t) => t.slug === slug);
+        return (
+          <div className="flex items-center gap-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">
+            <Button asChild size="sm" variant="ghost" className="text-orange-700 hover:bg-orange-100 -ml-1">
+              <Link href="/admin/temps-forts">
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Retour
+              </Link>
+            </Button>
+            <span className="text-sm font-medium text-orange-800">
+              Filtre actif : <span className="font-bold">{tf?.shortTitle || tf?.title || slug}</span>
+            </span>
+            <span className="ml-auto text-xs text-orange-600">{filteredCampaigns.length} campagne{filteredCampaigns.length > 1 ? "s" : ""}</span>
+          </div>
+        );
+      })()}
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>

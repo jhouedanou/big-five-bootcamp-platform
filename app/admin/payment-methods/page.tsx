@@ -1,466 +1,156 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { createClient } from "@/lib/supabase";
 import {
   CreditCard,
-  Smartphone,
   Globe,
-  Save,
   Loader2,
-  CheckCircle2,
   AlertCircle,
   ChevronDown,
   ChevronUp,
-  ToggleLeft,
-  ToggleRight,
   Wallet,
-  Building2,
   RefreshCw,
+  Smartphone,
+  WifiOff,
+  ArrowDownCircle,
+  ArrowUpCircle,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-
-// ============================================================================
-// Types
-// ============================================================================
-
-interface PaymentMethod {
-  code: string;
-  name: string;
-  icon: React.ElementType;
-  description: string;
-  type: "mobile_money" | "card" | "bank" | "wallet";
-}
-
-interface CountryConfig {
-  code: string;
-  name: string;
-  flag: string;
-  currency: string;
-  methods: PaymentMethod[];
-}
-
-interface PaymentMethodsConfig {
-  [countryCode: string]: {
-    enabled: boolean;
-    methods: {
-      [methodCode: string]: boolean;
-    };
-  };
-}
-
-// ============================================================================
-// Données de référence — Moyens de paiement PawaPay par pays
-// ============================================================================
-
-const PAYMENT_METHODS: Record<string, PaymentMethod> = {
-  orange_money: {
-    code: "orange_money",
-    name: "Orange Money",
-    icon: Smartphone,
-    description: "Paiement via Orange Money",
-    type: "mobile_money",
-  },
-  mtn_money: {
-    code: "mtn_money",
-    name: "MTN Mobile Money",
-    icon: Smartphone,
-    description: "Paiement via MTN MoMo",
-    type: "mobile_money",
-  },
-  moov_money: {
-    code: "moov_money",
-    name: "Moov Money",
-    icon: Smartphone,
-    description: "Paiement via Moov Money",
-    type: "mobile_money",
-  },
-  wave: {
-    code: "wave",
-    name: "Wave",
-    icon: Wallet,
-    description: "Paiement via Wave",
-    type: "wallet",
-  },
-  free_money: {
-    code: "free_money",
-    name: "Free Money",
-    icon: Smartphone,
-    description: "Paiement via Free Money",
-    type: "mobile_money",
-  },
-  visa: {
-    code: "visa",
-    name: "Visa",
-    icon: CreditCard,
-    description: "Carte bancaire Visa",
-    type: "card",
-  },
-  mastercard: {
-    code: "mastercard",
-    name: "Mastercard",
-    icon: CreditCard,
-    description: "Carte bancaire Mastercard",
-    type: "card",
-  },
-  bank_transfer: {
-    code: "bank_transfer",
-    name: "Virement bancaire",
-    icon: Building2,
-    description: "Virement depuis un compte bancaire",
-    type: "bank",
-  },
-};
-
-const COUNTRIES: CountryConfig[] = [
-  {
-    code: "CI",
-    name: "Côte d'Ivoire",
-    flag: "🇨🇮",
-    currency: "XOF",
-    methods: [
-      PAYMENT_METHODS.orange_money,
-      PAYMENT_METHODS.mtn_money,
-      PAYMENT_METHODS.moov_money,
-      PAYMENT_METHODS.wave,
-      PAYMENT_METHODS.visa,
-      PAYMENT_METHODS.mastercard,
-    ],
-  },
-  {
-    code: "SN",
-    name: "Sénégal",
-    flag: "🇸🇳",
-    currency: "XOF",
-    methods: [
-      PAYMENT_METHODS.orange_money,
-      PAYMENT_METHODS.free_money,
-      PAYMENT_METHODS.wave,
-      PAYMENT_METHODS.visa,
-      PAYMENT_METHODS.mastercard,
-    ],
-  },
-  {
-    code: "ML",
-    name: "Mali",
-    flag: "🇲🇱",
-    currency: "XOF",
-    methods: [
-      PAYMENT_METHODS.orange_money,
-      PAYMENT_METHODS.moov_money,
-      PAYMENT_METHODS.wave,
-      PAYMENT_METHODS.visa,
-      PAYMENT_METHODS.mastercard,
-    ],
-  },
-  {
-    code: "BF",
-    name: "Burkina Faso",
-    flag: "🇧🇫",
-    currency: "XOF",
-    methods: [
-      PAYMENT_METHODS.orange_money,
-      PAYMENT_METHODS.moov_money,
-      PAYMENT_METHODS.wave,
-      PAYMENT_METHODS.visa,
-      PAYMENT_METHODS.mastercard,
-    ],
-  },
-  {
-    code: "TG",
-    name: "Togo",
-    flag: "🇹🇬",
-    currency: "XOF",
-    methods: [
-      PAYMENT_METHODS.moov_money,
-      PAYMENT_METHODS.visa,
-      PAYMENT_METHODS.mastercard,
-    ],
-  },
-  {
-    code: "BJ",
-    name: "Bénin",
-    flag: "🇧🇯",
-    currency: "XOF",
-    methods: [
-      PAYMENT_METHODS.mtn_money,
-      PAYMENT_METHODS.moov_money,
-      PAYMENT_METHODS.visa,
-      PAYMENT_METHODS.mastercard,
-    ],
-  },
-  {
-    code: "NE",
-    name: "Niger",
-    flag: "🇳🇪",
-    currency: "XOF",
-    methods: [
-      PAYMENT_METHODS.orange_money,
-      PAYMENT_METHODS.moov_money,
-      PAYMENT_METHODS.visa,
-      PAYMENT_METHODS.mastercard,
-    ],
-  },
-  {
-    code: "GW",
-    name: "Guinée-Bissau",
-    flag: "🇬🇼",
-    currency: "XOF",
-    methods: [PAYMENT_METHODS.orange_money, PAYMENT_METHODS.visa, PAYMENT_METHODS.mastercard],
-  },
-  {
-    code: "GN",
-    name: "Guinée",
-    flag: "🇬🇳",
-    currency: "GNF",
-    methods: [
-      PAYMENT_METHODS.orange_money,
-      PAYMENT_METHODS.mtn_money,
-      PAYMENT_METHODS.visa,
-      PAYMENT_METHODS.mastercard,
-    ],
-  },
-  {
-    code: "CM",
-    name: "Cameroun",
-    flag: "🇨🇲",
-    currency: "XAF",
-    methods: [
-      PAYMENT_METHODS.orange_money,
-      PAYMENT_METHODS.mtn_money,
-      PAYMENT_METHODS.visa,
-      PAYMENT_METHODS.mastercard,
-    ],
-  },
-];
+import { Badge } from "@/components/ui/badge";
+import type { ActiveConfEntry } from "@/app/api/admin/pawapay-active-conf/route";
 
 // ============================================================================
 // Helpers
 // ============================================================================
 
-function getDefaultConfig(): PaymentMethodsConfig {
-  const config: PaymentMethodsConfig = {};
-  for (const country of COUNTRIES) {
-    config[country.code] = {
-      enabled: true,
-      methods: {},
-    };
-    for (const method of country.methods) {
-      config[country.code].methods[method.code] = true;
+const COUNTRY_INFO: Record<string, { name: string; flag: string }> = {
+  CIV: { name: "Côte d'Ivoire", flag: "🇨🇮" },
+  SEN: { name: "Sénégal",       flag: "🇸🇳" },
+  BFA: { name: "Burkina Faso",  flag: "🇧🇫" },
+  BEN: { name: "Bénin",         flag: "🇧🇯" },
+  MLI: { name: "Mali",          flag: "🇲🇱" },
+  TGO: { name: "Togo",          flag: "🇹🇬" },
+  CMR: { name: "Cameroun",      flag: "🇨🇲" },
+  NER: { name: "Niger",         flag: "🇳🇪" },
+  GHA: { name: "Ghana",         flag: "🇬🇭" },
+  RWA: { name: "Rwanda",        flag: "🇷🇼" },
+  TZA: { name: "Tanzanie",      flag: "🇹🇿" },
+  UGA: { name: "Ouganda",       flag: "🇺🇬" },
+  ZMB: { name: "Zambie",        flag: "🇿🇲" },
+  MOZ: { name: "Mozambique",    flag: "🇲🇿" },
+  GIN: { name: "Guinée",        flag: "🇬🇳" },
+}
+
+function countryInfo(iso3: string) {
+  return COUNTRY_INFO[iso3] ?? { name: iso3, flag: "🌍" }
+}
+
+const CORRESPONDENT_LABELS: Record<string, string> = {
+  MTN_MOMO:  "MTN Mobile Money",
+  MTN:       "MTN Mobile Money",
+  ORANGE:    "Orange Money",
+  MOOV:      "Moov Money",
+  FREE:      "Free Money",
+  WAVE:      "Wave",
+  VODAFONE:  "Vodafone Cash",
+  AIRTEL:    "Airtel Money",
+  TIGO:      "Tigo Pesa",
+  HALOTEL:   "Halotel",
+  ZANTEL:    "Zantel",
+  ZAMTEL:    "Zamtel",
+  MPESA:     "M-Pesa",
+}
+
+function correspondentLabel(code: string): string {
+  const prefix = code.split("_").slice(0, -1).join("_")
+  return CORRESPONDENT_LABELS[prefix] ?? code
+}
+
+interface CountryGroup {
+  iso3: string
+  name: string
+  flag: string
+  currency: string
+  correspondents: ActiveConfEntry[]
+}
+
+function groupByCountry(entries: ActiveConfEntry[]): CountryGroup[] {
+  const map = new Map<string, CountryGroup>()
+  for (const entry of entries) {
+    if (!map.has(entry.country)) {
+      const info = countryInfo(entry.country)
+      map.set(entry.country, { iso3: entry.country, name: info.name, flag: info.flag, currency: entry.currency, correspondents: [] })
     }
+    map.get(entry.country)!.correspondents.push(entry)
   }
-  return config;
+  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, "fr"))
 }
 
-function getMethodTypeLabel(type: PaymentMethod["type"]): string {
-  switch (type) {
-    case "mobile_money":
-      return "Mobile Money";
-    case "card":
-      return "Carte bancaire";
-    case "bank":
-      return "Banque";
-    case "wallet":
-      return "Portefeuille";
-  }
+function getOps(entry: ActiveConfEntry) {
+  return entry.correspondentDescription?.paymentOperations ?? []
 }
 
-function getMethodTypeColor(type: PaymentMethod["type"]): string {
-  switch (type) {
-    case "mobile_money":
-      return "bg-green-500/10 text-green-600 border-green-200";
-    case "card":
-      return "bg-blue-500/10 text-blue-600 border-blue-200";
-    case "bank":
-      return "bg-[#F2B33D]/10 text-[#0F0F0F] border-[#0F0F0F]/30";
-    case "wallet":
-      return "bg-amber-500/10 text-amber-600 border-amber-200";
-  }
+function isOpActive(entry: ActiveConfEntry, type: string) {
+  const ops = getOps(entry)
+  if (ops.length === 0) return true // pas de détail → assume actif
+  return ops.some((op) => op.operationType === type && op.isActive)
 }
 
 // ============================================================================
-// Composant principal
+// Page
 // ============================================================================
 
 export default function PaymentMethodsPage() {
-  const [config, setConfig] = useState<PaymentMethodsConfig>(getDefaultConfig());
-  const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [expandedCountries, setExpandedCountries] = useState<Set<string>>(new Set());
-  const [hasChanges, setHasChanges] = useState(false);
-  const [savedConfig, setSavedConfig] = useState<PaymentMethodsConfig | null>(null);
+  const [groups, setGroups] = useState<CountryGroup[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [expandedCountries, setExpandedCountries] = useState<Set<string>>(new Set())
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
-  const supabase = createClient();
-
-  // Charger la config depuis site_settings
-  const loadConfig = useCallback(async () => {
-    setIsLoading(true);
+  const fetchData = useCallback(async () => {
+    setIsLoading(true)
+    setError(null)
     try {
-      const { data, error } = await supabase
-        .from("site_settings")
-        .select("value")
-        .eq("key", "payment_methods_config")
-        .single();
-
-      if (error && error.code !== "PGRST116") {
-        console.error("Erreur chargement config:", error);
-        toast.error("Erreur lors du chargement de la configuration");
-      }
-
-      if (data?.value && data.value !== "{}") {
-        try {
-          const parsed = JSON.parse(data.value) as PaymentMethodsConfig;
-          // Fusionner avec les valeurs par défaut (pour les nouveaux pays/méthodes)
-          const merged = getDefaultConfig();
-          for (const countryCode of Object.keys(parsed)) {
-            if (merged[countryCode]) {
-              merged[countryCode].enabled = parsed[countryCode].enabled;
-              for (const methodCode of Object.keys(parsed[countryCode].methods)) {
-                if (merged[countryCode].methods[methodCode] !== undefined) {
-                  merged[countryCode].methods[methodCode] =
-                    parsed[countryCode].methods[methodCode];
-                }
-              }
-            }
-          }
-          setConfig(merged);
-          setSavedConfig(merged);
-        } catch {
-          console.warn("Config invalide, utilisation des valeurs par défaut");
-          const defaults = getDefaultConfig();
-          setConfig(defaults);
-          setSavedConfig(defaults);
-        }
-      } else {
-        const defaults = getDefaultConfig();
-        setConfig(defaults);
-        setSavedConfig(defaults);
-      }
-    } catch (err) {
-      console.error("Erreur:", err);
-      toast.error("Impossible de charger la configuration");
+      const res = await fetch("/api/admin/pawapay-active-conf", { credentials: "include" })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error || "Erreur PawaPay API")
+      const entries: ActiveConfEntry[] = Array.isArray(json.correspondents) ? json.correspondents : []
+      setGroups(groupByCountry(entries))
+      setLastUpdated(new Date())
+    } catch (e: any) {
+      setError(e?.message || "Impossible de joindre PawaPay")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  }, [supabase]);
+  }, [])
 
-  useEffect(() => {
-    loadConfig();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useEffect(() => { fetchData() }, [fetchData])
 
-  // Détecter les changements
-  useEffect(() => {
-    if (savedConfig) {
-      setHasChanges(JSON.stringify(config) !== JSON.stringify(savedConfig));
-    }
-  }, [config, savedConfig]);
-
-  // Sauvegarder la config
-  const handleSave = async () => {
-    setIsSaving(true);
-    try {
-      const { error } = await supabase
-        .from("site_settings")
-        .upsert(
-          {
-            key: "payment_methods_config",
-            value: JSON.stringify(config),
-            description: "Configuration des moyens de paiement PawaPay par pays",
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "key" }
-        );
-
-      if (error) {
-        console.error("Erreur sauvegarde:", error);
-        toast.error("Erreur lors de la sauvegarde");
-        return;
-      }
-
-      setSavedConfig(JSON.parse(JSON.stringify(config)));
-      setHasChanges(false);
-      toast.success("Configuration des paiements sauvegardée");
-    } catch (err) {
-      console.error("Erreur:", err);
-      toast.error("Impossible de sauvegarder");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  // Toggle pays entier
-  const toggleCountry = (countryCode: string) => {
-    setConfig((prev) => ({
-      ...prev,
-      [countryCode]: {
-        ...prev[countryCode],
-        enabled: !prev[countryCode].enabled,
-      },
-    }));
-  };
-
-  // Toggle un moyen de paiement
-  const toggleMethod = (countryCode: string, methodCode: string) => {
-    setConfig((prev) => ({
-      ...prev,
-      [countryCode]: {
-        ...prev[countryCode],
-        methods: {
-          ...prev[countryCode].methods,
-          [methodCode]: !prev[countryCode].methods[methodCode],
-        },
-      },
-    }));
-  };
-
-  // Expand/collapse pays
-  const toggleExpanded = (countryCode: string) => {
+  const toggleExpanded = (iso3: string) => {
     setExpandedCountries((prev) => {
-      const next = new Set(prev);
-      if (next.has(countryCode)) {
-        next.delete(countryCode);
-      } else {
-        next.add(countryCode);
-      }
-      return next;
-    });
-  };
+      const next = new Set(prev)
+      next.has(iso3) ? next.delete(iso3) : next.add(iso3)
+      return next
+    })
+  }
 
-  // Tout activer / désactiver
-  const toggleAll = (enabled: boolean) => {
-    setConfig((prev) => {
-      const next = { ...prev };
-      for (const code of Object.keys(next)) {
-        next[code] = {
-          ...next[code],
-          enabled,
-          methods: Object.fromEntries(
-            Object.keys(next[code].methods).map((m) => [m, enabled])
-          ),
-        };
-      }
-      return next;
-    });
-  };
-
-  // Stats
-  const enabledCountries = Object.values(config).filter((c) => c.enabled).length;
-  const totalMethods = Object.values(config).reduce(
-    (sum, c) => sum + Object.values(c.methods).filter(Boolean).length,
+  const totalCorrespondents = groups.reduce((s, g) => s + g.correspondents.length, 0)
+  const activeDeposits = groups.reduce(
+    (s, g) => s + g.correspondents.filter((c) => isOpActive(c, "DEPOSIT")).length,
     0
-  );
+  )
 
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
-          <p className="text-slate-500 text-sm">Chargement de la configuration...</p>
+          <p className="text-slate-500 text-sm">Chargement depuis PawaPay…</p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -475,301 +165,210 @@ export default function PaymentMethodsPage() {
             Moyens de paiement
           </h1>
           <p className="text-slate-500 mt-2">
-            Configurez les moyens de paiement PawaPay disponibles par pays
+            État en temps réel des correspondents configurés sur votre compte PawaPay
+            {lastUpdated && (
+              <span className="text-xs text-slate-400 ml-2">
+                · mis à jour à {lastUpdated.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
           </p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={fetchData}
+          disabled={isLoading}
+          className="gap-2 self-start sm:self-auto"
+        >
+          <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin" : ""}`} />
+          Actualiser
+        </Button>
+      </div>
+
+      {/* Erreur */}
+      {error && (
+        <div className="flex items-start gap-3 px-4 py-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
+          <WifiOff className="w-5 h-5 shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold">Impossible de joindre l'API PawaPay</p>
+            <p className="text-red-600 mt-1">{error}</p>
+            <p className="text-red-500 mt-1 text-xs">Vérifiez que <code>PAWAPAY_API_TOKEN</code> est configuré et valide.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Stats */}
+      {!error && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard icon={<Globe className="w-5 h-5 text-emerald-600" />} bg="bg-emerald-50" value={`${groups.length}`} label="Pays configurés" />
+          <StatCard icon={<Smartphone className="w-5 h-5 text-blue-600" />} bg="bg-blue-50" value={`${totalCorrespondents}`} label="Correspondents total" />
+          <StatCard icon={<Wallet className="w-5 h-5 text-orange-600" />} bg="bg-orange-50" value={`${activeDeposits}`} label="Dépôts actifs" />
+        </div>
+      )}
+
+      {/* Actions */}
+      {groups.length > 0 && (
         <div className="flex items-center gap-3">
           <Button
             variant="outline"
             size="sm"
-            onClick={loadConfig}
-            disabled={isLoading}
+            onClick={() =>
+              setExpandedCountries(
+                expandedCountries.size === groups.length
+                  ? new Set()
+                  : new Set(groups.map((g) => g.iso3))
+              )
+            }
             className="gap-2"
           >
-            <RefreshCw className="w-4 h-4" />
-            Actualiser
+            {expandedCountries.size === groups.length
+              ? <><ChevronUp className="w-4 h-4" /> Tout replier</>
+              : <><ChevronDown className="w-4 h-4" /> Tout déplier</>
+            }
           </Button>
-          <Button
-            onClick={handleSave}
-            disabled={isSaving || !hasChanges}
-            className="bg-[#F2B33D] hover:bg-[#d99a2a] text-white shadow-lg shadow-[#F2B33D]/25 gap-2"
-          >
-            {isSaving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Save className="w-4 h-4" />
-            )}
-            Sauvegarder
-          </Button>
-        </div>
-      </div>
-
-      {/* Indicateur changements non sauvegardés */}
-      {hasChanges && (
-        <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>Vous avez des modifications non sauvegardées.</span>
         </div>
       )}
 
-      {/* Stats résumé */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-emerald-50 rounded-lg">
-              <Globe className="w-5 h-5 text-emerald-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">{enabledCountries}</p>
-              <p className="text-xs text-slate-500">Pays actifs / {COUNTRIES.length}</p>
-            </div>
-          </div>
+      {/* Vide */}
+      {!error && groups.length === 0 && (
+        <div className="bg-white rounded-xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
+          <Smartphone className="w-10 h-10 mx-auto mb-3 text-slate-300" />
+          <p className="font-medium">Aucun correspondent retourné par PawaPay</p>
+          <p className="text-sm mt-1">Vérifiez votre configuration dans le Dashboard PawaPay.</p>
         </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-50 rounded-lg">
-              <Wallet className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">{totalMethods}</p>
-              <p className="text-xs text-slate-500">Méthodes actives</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-orange-50 rounded-lg">
-              <CreditCard className="w-5 h-5 text-orange-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-slate-900">PawaPay</p>
-              <p className="text-xs text-slate-500">Passerelle de paiement</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
 
-      {/* Actions rapides */}
-      <div className="flex items-center gap-3">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => toggleAll(true)}
-          className="gap-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50"
-        >
-          <ToggleRight className="w-4 h-4" />
-          Tout activer
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => toggleAll(false)}
-          className="gap-2 text-red-700 border-red-200 hover:bg-red-50"
-        >
-          <ToggleLeft className="w-4 h-4" />
-          Tout désactiver
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() =>
-            setExpandedCountries(
-              expandedCountries.size === COUNTRIES.length
-                ? new Set()
-                : new Set(COUNTRIES.map((c) => c.code))
-            )
-          }
-          className="gap-2"
-        >
-          {expandedCountries.size === COUNTRIES.length ? (
-            <>
-              <ChevronUp className="w-4 h-4" />
-              Tout replier
-            </>
-          ) : (
-            <>
-              <ChevronDown className="w-4 h-4" />
-              Tout déplier
-            </>
-          )}
-        </Button>
-      </div>
-
-      {/* Liste des pays */}
+      {/* Liste pays */}
       <div className="space-y-3">
-        {COUNTRIES.map((country) => {
-          const countryConfig = config[country.code];
-          const isExpanded = expandedCountries.has(country.code);
-          const enabledMethodsCount = Object.values(countryConfig.methods).filter(Boolean).length;
-          const totalMethodsCount = country.methods.length;
+        {groups.map((group) => {
+          const isExpanded = expandedCountries.has(group.iso3)
+          const depositActiveCount = group.correspondents.filter((c) => isOpActive(c, "DEPOSIT")).length
+          const allActive = depositActiveCount === group.correspondents.length
 
           return (
-            <div
-              key={country.code}
-              className={`bg-white rounded-xl border shadow-sm transition-all duration-200 ${
-                countryConfig.enabled
-                  ? "border-slate-200 hover:border-slate-300"
-                  : "border-slate-100 opacity-60"
-              }`}
-            >
-              {/* En-tête pays */}
-              <div className="flex items-center gap-4 px-5 py-4">
-                {/* Toggle pays */}
-                <button
-                  onClick={() => toggleCountry(country.code)}
-                  className={`relative w-12 h-6 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500/50 ${
-                    countryConfig.enabled ? "bg-emerald-500" : "bg-slate-300"
-                  }`}
-                  aria-label={`${countryConfig.enabled ? "Désactiver" : "Activer"} ${country.name}`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform duration-200 ${
-                      countryConfig.enabled ? "translate-x-6" : "translate-x-0"
-                    }`}
-                  />
-                </button>
-
-                {/* Infos pays */}
-                <button
-                  onClick={() => toggleExpanded(country.code)}
-                  className="flex-1 flex items-center gap-3 text-left"
-                >
-                  <span className="text-2xl">{country.flag}</span>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-slate-900">{country.name}</h3>
-                    <p className="text-xs text-slate-400">
-                      {country.currency} · {enabledMethodsCount}/{totalMethodsCount} méthodes
-                      actives
-                    </p>
-                  </div>
-                  {isExpanded ? (
-                    <ChevronUp className="w-5 h-5 text-slate-400" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-slate-400" />
-                  )}
-                </button>
-
-                {/* Badge status */}
-                <div
-                  className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    countryConfig.enabled
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "bg-slate-100 text-slate-500"
-                  }`}
-                >
-                  {countryConfig.enabled ? (
-                    <span className="flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Actif
-                    </span>
-                  ) : (
-                    "Inactif"
-                  )}
+            <div key={group.iso3} className="bg-white rounded-xl border border-slate-200 shadow-sm">
+              <button
+                onClick={() => toggleExpanded(group.iso3)}
+                className="w-full flex items-center gap-4 px-5 py-4 text-left"
+              >
+                <span className="text-2xl">{group.flag}</span>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-slate-900">{group.name}</h3>
+                  <p className="text-xs text-slate-400">
+                    {group.currency} · {group.correspondents.length} correspondent{group.correspondents.length > 1 ? "s" : ""}
+                  </p>
                 </div>
-              </div>
+                <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
+                  allActive
+                    ? "bg-emerald-50 text-emerald-700"
+                    : depositActiveCount > 0
+                      ? "bg-orange-50 text-orange-700"
+                      : "bg-red-50 text-red-600"
+                }`}>
+                  {allActive
+                    ? <><CheckCircle2 className="w-3 h-3" /> Tous actifs</>
+                    : depositActiveCount > 0
+                      ? `${depositActiveCount}/${group.correspondents.length} actifs`
+                      : <><XCircle className="w-3 h-3" /> Inactifs</>
+                  }
+                </div>
+                {isExpanded ? <ChevronUp className="w-5 h-5 text-slate-400 shrink-0" /> : <ChevronDown className="w-5 h-5 text-slate-400 shrink-0" />}
+              </button>
 
-              {/* Méthodes de paiement (expanded) */}
               {isExpanded && (
                 <div className="px-5 pb-5 pt-2 border-t border-slate-100">
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {country.methods.map((method) => {
-                      const isEnabled = countryConfig.methods[method.code];
-                      const Icon = method.icon;
+                    {group.correspondents.map((entry) => {
+                      const depositOk = isOpActive(entry, "DEPOSIT")
+                      const payoutOk  = isOpActive(entry, "PAYOUT")
+                      const refundOk  = isOpActive(entry, "REFUND")
+                      const ops = getOps(entry)
 
                       return (
-                        <button
-                          key={method.code}
-                          onClick={() => toggleMethod(country.code, method.code)}
-                          disabled={!countryConfig.enabled}
-                          className={`flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 text-left ${
-                            !countryConfig.enabled
-                              ? "border-slate-100 bg-slate-50 cursor-not-allowed opacity-50"
-                              : isEnabled
-                                ? "border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50"
-                                : "border-slate-200 bg-slate-50 hover:bg-slate-100"
+                        <div
+                          key={entry.correspondent}
+                          className={`flex flex-col gap-2.5 p-3.5 rounded-xl border-2 ${
+                            depositOk ? "border-emerald-200 bg-emerald-50/40" : "border-red-100 bg-red-50/30"
                           }`}
                         >
-                          <div
-                            className={`p-2 rounded-lg border ${getMethodTypeColor(method.type)}`}
-                          >
-                            <Icon className="w-4 h-4" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p
-                              className={`text-sm font-medium ${
-                                isEnabled ? "text-slate-900" : "text-slate-500"
-                              }`}
-                            >
-                              {method.name}
-                            </p>
-                            <p className="text-[10px] text-slate-400">
-                              {getMethodTypeLabel(method.type)}
+                          <div className="flex items-center gap-2">
+                            <div className={`p-1.5 rounded-lg shrink-0 ${depositOk ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-500"}`}>
+                              <Smartphone className="w-4 h-4" />
+                            </div>
+                            <p className="text-sm font-semibold text-slate-900 truncate">
+                              {correspondentLabel(entry.correspondent)}
                             </p>
                           </div>
-                          <div
-                            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                              isEnabled
-                                ? "bg-emerald-500 border-emerald-500"
-                                : "border-slate-300 bg-white"
-                            }`}
-                          >
-                            {isEnabled && (
-                              <svg
-                                className="w-3 h-3 text-white"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                strokeWidth={3}
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M5 13l4 4L19 7"
-                                />
-                              </svg>
-                            )}
-                          </div>
-                        </button>
-                      );
+
+                          <code className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded truncate">
+                            {entry.correspondent}
+                          </code>
+
+                          {ops.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {depositOk && (
+                                <Badge variant="outline" className="text-[9px] gap-1 py-0 border-emerald-300 text-emerald-700">
+                                  <ArrowDownCircle className="w-2.5 h-2.5" /> Dépôt
+                                </Badge>
+                              )}
+                              {!depositOk && (
+                                <Badge variant="outline" className="text-[9px] gap-1 py-0 border-red-300 text-red-600">
+                                  <XCircle className="w-2.5 h-2.5" /> Dépôt inactif
+                                </Badge>
+                              )}
+                              {payoutOk && (
+                                <Badge variant="outline" className="text-[9px] gap-1 py-0 border-blue-300 text-blue-700">
+                                  <ArrowUpCircle className="w-2.5 h-2.5" /> Payout
+                                </Badge>
+                              )}
+                              {refundOk && (
+                                <Badge variant="outline" className="text-[9px] gap-1 py-0 border-orange-300 text-orange-700">
+                                  Remb.
+                                </Badge>
+                              )}
+                            </div>
+                          ) : (
+                            <Badge variant="outline" className="text-[9px] py-0 border-emerald-300 text-emerald-700 self-start">
+                              <CheckCircle2 className="w-2.5 h-2.5 mr-1" /> Actif
+                            </Badge>
+                          )}
+                        </div>
+                      )
                     })}
                   </div>
                 </div>
               )}
             </div>
-          );
+          )
         })}
       </div>
 
-      {/* Note informative */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
-        <h4 className="font-semibold text-blue-900 flex items-center gap-2 mb-2">
-          <AlertCircle className="w-4 h-4" />
-          À propos de la configuration
-        </h4>
-        <ul className="text-sm text-blue-700 space-y-1.5">
-          <li>
-            • Les moyens de paiement affichés correspondent à ceux supportés par PawaPay dans
-            chaque pays.
-          </li>
-          <li>
-            • Désactiver un pays empêchera les utilisateurs de ce pays de souscrire un abonnement.
-          </li>
-          <li>
-            • La disponibilité réelle dépend aussi de la configuration de votre compte PawaPay.
-          </li>
-          <li>
-            • Consultez{" "}
-            <a
-              href="https://docs.pawapay.io"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline font-medium hover:text-blue-900"
-            >
-              la documentation PawaPay
-            </a>{" "}
-            pour plus de détails.
-          </li>
-        </ul>
+      {!error && groups.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5">
+          <h4 className="font-semibold text-blue-900 flex items-center gap-2 mb-2">
+            <AlertCircle className="w-4 h-4" />
+            Source de données
+          </h4>
+          <ul className="text-sm text-blue-700 space-y-1">
+            <li>• Données chargées depuis <code className="bg-blue-100 px-1 rounded">GET /v2/active-conf</code> PawaPay en temps réel.</li>
+            <li>• Pour modifier les correspondents disponibles, utilisez le <a href="https://dashboard.pawapay.io" target="_blank" rel="noreferrer" className="underline font-medium">Dashboard PawaPay</a>.</li>
+          </ul>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function StatCard({ icon, bg, value, label }: { icon: React.ReactNode; bg: string; value: string; label: string }) {
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
+      <div className="flex items-center gap-3">
+        <div className={`p-2 ${bg} rounded-lg`}>{icon}</div>
+        <div>
+          <p className="text-2xl font-bold text-slate-900">{value}</p>
+          <p className="text-xs text-slate-500">{label}</p>
+        </div>
       </div>
     </div>
-  );
+  )
 }

@@ -43,9 +43,11 @@ import {
   ArrowRight,
   CalendarHeart,
   ExternalLink,
+  ListChecks,
   Loader2,
   Pencil,
   Plus,
+  Search,
   Sparkles,
   Trash2,
 } from "lucide-react"
@@ -116,7 +118,7 @@ function toggleStringValue(values: string[] | undefined, value: string, checked:
 }
 
 export default function AdminTempsFortsPage() {
-  const { campaigns } = useAdmin()
+  const { campaigns, updateCampaign } = useAdmin()
   const { tempsForts, refresh } = useTempsForts()
   const overrides = useTempsFortsOverrides()
 
@@ -127,6 +129,15 @@ export default function AdminTempsFortsPage() {
   const [editing, setEditing] = useState<TempsFort | null>(null)
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
+
+  // Campaign association dialog
+  const [assocDialogOpen, setAssocDialogOpen] = useState(false)
+  const [assocTf, setAssocTf] = useState<TempsFort | null>(null)
+  const [assocSearch, setAssocSearch] = useState("")
+  const [assocChecked, setAssocChecked] = useState<Set<string>>(new Set())
+  const [savingAssoc, setSavingAssoc] = useState(false)
+  const [assocPage, setAssocPage] = useState(1)
+  const ASSOC_PER_PAGE = 12
 
   useEffect(() => {
     if (overrides) setLocalOverrides(overrides)
@@ -180,6 +191,41 @@ export default function AdminTempsFortsPage() {
     invalidateTempsFortsCache()
     await fetchTempsForts(true)
     await refresh()
+  }
+
+  const openAssocDialog = (tf: TempsFort) => {
+    setAssocTf(tf)
+    setAssocSearch("")
+    setAssocPage(1)
+    setAssocChecked(new Set(campaigns.filter((c) => (c.tempsFortSlugs || []).includes(tf.slug)).map((c) => c.id)))
+    setAssocDialogOpen(true)
+  }
+
+  const saveAssoc = async () => {
+    if (!assocTf) return
+    setSavingAssoc(true)
+    try {
+      const toUpdate = campaigns.filter((c) => {
+        const had = (c.tempsFortSlugs || []).includes(assocTf.slug)
+        const has = assocChecked.has(c.id)
+        return had !== has
+      })
+      await Promise.all(
+        toUpdate.map((c) => {
+          const current = c.tempsFortSlugs || []
+          const next = assocChecked.has(c.id)
+            ? [...current, assocTf.slug]
+            : current.filter((s) => s !== assocTf.slug)
+          return updateCampaign(c.id, { tempsFortSlugs: next })
+        }),
+      )
+      toast.success(`${toUpdate.length} campagne${toUpdate.length > 1 ? "s" : ""} mise${toUpdate.length > 1 ? "s" : ""} à jour`)
+      setAssocDialogOpen(false)
+    } catch (e: any) {
+      toast.error(e?.message || "Erreur enregistrement")
+    } finally {
+      setSavingAssoc(false)
+    }
   }
 
   const saveOverrides = async (patch: Partial<TempsFortsOverrides>) => {
@@ -360,10 +406,16 @@ export default function AdminTempsFortsPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-slate-900">{count}</p>
-                      <p className="text-[11px] uppercase tracking-wide text-slate-500">campagne{count > 1 ? "s" : ""}</p>
-                    </div>
+                    <Button asChild size="sm" variant="outline" className="text-slate-600">
+                      <Link href={`/admin/campaigns?temps_fort=${tf.slug}`}>
+                        <span className="font-bold mr-1">{count}</span>
+                        campagne{count > 1 ? "s" : ""}
+                      </Link>
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-orange-600 hover:text-orange-700" onClick={() => openAssocDialog(tf)}>
+                      <ListChecks className="mr-1 h-3.5 w-3.5" />
+                      Gérer
+                    </Button>
                     <Button size="sm" variant="outline" onClick={() => openEdit(tf)}>
                       <Pencil className="mr-1 h-3.5 w-3.5" />
                       Éditer
@@ -388,6 +440,157 @@ export default function AdminTempsFortsPage() {
           )}
         </div>
       </section>
+
+      <Dialog open={assocDialogOpen} onOpenChange={setAssocDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ListChecks className="h-5 w-5 text-orange-500" />
+              Campagnes associées à « {assocTf?.shortTitle || assocTf?.title} »
+            </DialogTitle>
+          </DialogHeader>
+
+          {assocTf && (() => {
+            const filtered = campaigns.filter((c) =>
+              !assocSearch.trim() ||
+              c.title.toLowerCase().includes(assocSearch.toLowerCase()) ||
+              (c.brand || "").toLowerCase().includes(assocSearch.toLowerCase())
+            )
+            const totalPages = Math.ceil(filtered.length / ASSOC_PER_PAGE)
+            const paginated = filtered.slice((assocPage - 1) * ASSOC_PER_PAGE, assocPage * ASSOC_PER_PAGE)
+            const checkedCount = assocChecked.size
+            const allFilteredChecked = filtered.length > 0 && filtered.every((c) => assocChecked.has(c.id))
+
+            return (
+              <div className="flex flex-col gap-3 overflow-hidden flex-1">
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Input
+                      placeholder="Rechercher par titre ou marque…"
+                      value={assocSearch}
+                      onChange={(e) => { setAssocSearch(e.target.value); setAssocPage(1) }}
+                      className="pl-9"
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      if (allFilteredChecked) {
+                        setAssocChecked((prev) => {
+                          const next = new Set(prev)
+                          filtered.forEach((c) => next.delete(c.id))
+                          return next
+                        })
+                      } else {
+                        setAssocChecked((prev) => {
+                          const next = new Set(prev)
+                          filtered.forEach((c) => next.add(c.id))
+                          return next
+                        })
+                      }
+                    }}
+                  >
+                    {allFilteredChecked ? "Tout désélectionner" : "Tout sélectionner"}
+                  </Button>
+                </div>
+
+                <p className="text-xs text-slate-500">
+                  {checkedCount} sélectionnée{checkedCount > 1 ? "s" : ""} · {filtered.length} sur {campaigns.length} campagne{campaigns.length > 1 ? "s" : ""}
+                </p>
+
+                <div className="overflow-y-auto flex-1">
+                  {paginated.length === 0 ? (
+                    <p className="p-8 text-center text-sm text-slate-500">Aucune campagne trouvée.</p>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {paginated.map((c) => {
+                        const checked = assocChecked.has(c.id)
+                        return (
+                          <label
+                            key={c.id}
+                            className={`group relative flex flex-col cursor-pointer rounded-xl border-2 overflow-hidden transition-all ${
+                              checked
+                                ? "border-orange-400 shadow-md shadow-orange-100"
+                                : "border-slate-200 hover:border-slate-300"
+                            }`}
+                            onClick={() =>
+                              setAssocChecked((prev) => {
+                                const next = new Set(prev)
+                                if (next.has(c.id)) next.delete(c.id)
+                                else next.add(c.id)
+                                return next
+                              })
+                            }
+                          >
+                            <div className="relative aspect-video bg-slate-100 shrink-0">
+                              {c.imageUrl ? (
+                                <Image src={c.imageUrl} alt={c.title} fill sizes="200px" className="object-cover" />
+                              ) : (
+                                <div className="absolute inset-0 flex items-center justify-center text-slate-300">
+                                  <Sparkles className="h-6 w-6" />
+                                </div>
+                              )}
+                              <div className={`absolute top-2 right-2 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                                checked ? "bg-orange-500 border-orange-500" : "bg-white/80 border-slate-300"
+                              }`}>
+                                {checked && (
+                                  <svg className="h-3 w-3 text-white" viewBox="0 0 12 12" fill="none">
+                                    <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                )}
+                              </div>
+                            </div>
+                            <div className="p-2.5 flex flex-col gap-0.5">
+                              <p className="text-xs font-semibold text-slate-900 line-clamp-2 leading-tight">{c.title}</p>
+                              <p className="text-[10px] text-slate-500 truncate">{c.brand}{c.sector ? ` · ${c.sector}` : ""}</p>
+                            </div>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={assocPage <= 1}
+                      onClick={() => setAssocPage((p) => p - 1)}
+                    >
+                      ← Précédent
+                    </Button>
+                    <span className="text-xs text-slate-500">
+                      Page {assocPage} / {totalPages}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={assocPage >= totalPages}
+                      onClick={() => setAssocPage((p) => p + 1)}
+                    >
+                      Suivant →
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssocDialogOpen(false)} disabled={savingAssoc}>
+              Annuler
+            </Button>
+            <Button onClick={saveAssoc} disabled={savingAssoc} className="bg-[#F2B33D] hover:bg-[#d99a2a] text-white">
+              {savingAssoc && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">

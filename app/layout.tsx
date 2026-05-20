@@ -1,6 +1,9 @@
 import React from "react"
 import type { Metadata, Viewport } from 'next'
+import Script from 'next/script'
 import './globals.css'
+
+const GA_ID = 'G-H34KN567Q2'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://laveiye.com'
 
@@ -75,6 +78,18 @@ export default function RootLayout({
         <Providers>
           {children}
         </Providers>
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="ga4-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_ID}');
+          `}
+        </Script>
       </body>
     </html>
   )

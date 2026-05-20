@@ -37,6 +37,7 @@ export function NotificationBell() {
 
   // Charger les notifications
   const fetchNotifications = async () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
     try {
       setLoading(true);
       const response = await fetch('/api/notifications?limit=10');
@@ -53,11 +54,16 @@ export function NotificationBell() {
     }
   };
 
-  // Charger au montage et toutes les 30 secondes
+  // Charger au montage et toutes les 2 minutes, pause si onglet caché
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchNotifications, 120000);
+    const onVisible = () => { if (document.visibilityState === 'visible') fetchNotifications(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   }, []);
 
   // Marquer comme lue

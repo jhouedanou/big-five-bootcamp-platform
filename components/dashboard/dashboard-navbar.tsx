@@ -153,6 +153,7 @@ export function DashboardNavbar({
     if (!profileReady || !user) return
     let cancelled = false
     const load = async () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
       try {
         const r = await fetch('/api/track-search')
         if (!r.ok || cancelled) return
@@ -166,8 +167,14 @@ export function DashboardNavbar({
     }
     load()
     // Polling régulier pour les pages qui ne nous fournissent pas le quota en temps réel.
-    const id = setInterval(load, 15000)
-    return () => { cancelled = true; clearInterval(id) }
+    const id = setInterval(load, 60000)
+    const onVisible = () => { if (document.visibilityState === 'visible') load() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [profileReady, user, externalSearchQuota])
 
   // Compteur partage recherches+filtres (cle _shared dans le JSONB mensuel).

@@ -84,7 +84,8 @@
       "Bash(python3 *)",
       "Bash(git config *)",
       "Bash(git mv *)",
-      "Bash(npx wrangler *)"
+      "Bash(npx wrangler *)",
+      "Bash(npm uninstall *)"
     ]
   }
 }

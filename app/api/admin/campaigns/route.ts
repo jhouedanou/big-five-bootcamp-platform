@@ -44,12 +44,7 @@ async function isAdminUser(request: NextRequest): Promise<{ isAdmin: boolean; em
   try {
     const cookieStore = await cookies()
     const allCookies = cookieStore.getAll()
-    
-    // Debug: Log les cookies disponibles (en développement)
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Available cookies:', allCookies.map(c => c.name).join(', '))
-    }
-    
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -75,27 +70,19 @@ async function isAdminUser(request: NextRequest): Promise<{ isAdmin: boolean; em
     const { data: { user }, error } = await supabase.auth.getUser()
     
     if (error) {
-      console.log('Auth getUser error:', error.message)
       return { isAdmin: false, error: error.message }
     }
-    
+
     if (!user?.email) {
-      console.log('No user or email found in session')
       return { isAdmin: false, error: 'No user session' }
     }
-    
-    console.log('Checking admin status for:', user.email)
-    
-    // Vérifier les métadonnées ou la liste connue
+
     if (user.user_metadata?.role === 'admin' || ADMIN_EMAILS.includes(user.email)) {
-      console.log('User is admin:', user.email)
       return { isAdmin: true, email: user.email }
     }
-    
-    console.log('User not in admin list:', user.email)
+
     return { isAdmin: false, email: user.email, error: 'Not an admin' }
   } catch (error: any) {
-    console.error('Error checking admin status:', error)
     return { isAdmin: false, error: error.message }
   }
 }

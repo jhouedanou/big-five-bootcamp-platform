@@ -408,10 +408,10 @@ function EmptyState({ onClear }: { onClear: () => void }) {
   return (
     <div className="rounded-2xl border border-dashed border-[#F2B33D]/40 bg-[#F2B33D]/5 p-8 text-center">
       <h3 className="font-[family-name:var(--font-heading)] text-xl font-extrabold text-foreground">
-        Aucun temps fort ne correspond à ces tags
+        Aucun temps fort actif pour le moment
       </h3>
-      <p className="mx-auto mt-2 max-w-md text-sm font-medium text-muted-foreground">
-        Essayez de retirer un filtre pour retrouver des inspirations actives.
+      <p className="mx-auto mt-2 mt-2! text-sm font-medium text-muted-foreground">
+        Revenez bientôt pour découvrir les temps forts à venir et les campagnes associées.
       </p>
       <Button className="mt-5 bg-[#F2B33D] font-bold text-[#0F0F0F] hover:bg-[#F2B33D]/90" onClick={onClear}>
         Réinitialiser les filtres

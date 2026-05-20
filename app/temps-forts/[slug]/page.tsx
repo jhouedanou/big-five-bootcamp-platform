@@ -129,8 +129,8 @@ export default async function TempsFortDetailPage({ params }: TempsFortDetailPag
               <h3 className="font-[family-name:var(--font-heading)] text-xl font-extrabold text-foreground">
                 Aucune campagne associée pour le moment
               </h3>
-              <p className="mx-auto mt-2 max-w-md text-sm font-medium text-muted-foreground">
-                Associez des campagnes à ce temps fort depuis l'admin pour les voir apparaître ici.
+              <p className="mx-auto mt-2! text-sm font-medium text-muted-foreground mb-12">
+                Ce temps fort n'est associé à aucune campagne pour le moment. Revenez plus tard pour découvrir les campagnes qui seront ajoutées à ce temps fort.
               </p>
             </div>
           ) : (

@@ -153,6 +153,7 @@ export function DashboardNavbar({
     if (!profileReady || !user) return
     let cancelled = false
     const load = async () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
       try {
         const r = await fetch('/api/track-search')
         if (!r.ok || cancelled) return
@@ -165,11 +166,17 @@ export function DashboardNavbar({
       } catch { /* silencieux */ }
     }
     load()
-    // Polling 60s : le quota change uniquement sur action utilisateur
-    // (recherche/filtre soumis). 15s déclenchait 4 appels/min, donc 4 passages
-    // middleware → 4 appels Auth par minute par onglet ouvert.
+    // Polling 60s : quota change uniquement sur action user (recherche/filtre).
+    // 15s = 4 appels/min/onglet via middleware. `load` skip déjà si onglet caché.
+    // Reload au retour de visibilité pour rattraper l'état après alt-tab long.
     const id = setInterval(load, 60000)
-    return () => { cancelled = true; clearInterval(id) }
+    const onVisible = () => { if (document.visibilityState === 'visible') load() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      cancelled = true
+      clearInterval(id)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [profileReady, user, externalSearchQuota])
 
   // Compteur partage recherches+filtres (cle _shared dans le JSONB mensuel).

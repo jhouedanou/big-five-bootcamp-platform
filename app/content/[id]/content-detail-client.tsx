@@ -496,7 +496,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
               <h1 className="font-[family-name:var(--font-heading)] text-2xl sm:text-3xl font-bold text-[#0F0F0F] mb-3">
                 Accessible avec Basic ou Pro
               </h1>
-              <p className="text-[#0F0F0F]/70 text-sm sm:text-base mb-6 max-w-md mx-auto">
+              <p className="text-[#0F0F0F]/70 text-sm sm:text-base mb-6 mx-auto mt-2! mb-2!">
                 Les campagnes Premium font partie de notre sélection exclusive.
                 Passez en Basic ou Pro pour débloquer l'accès complet, l'analyse stratégique
                 et tous les contenus réservés.

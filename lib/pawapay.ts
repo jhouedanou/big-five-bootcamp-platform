@@ -97,12 +97,9 @@ export function isAllowedPawaPayIP(request: Request): boolean {
   const isProd = process.env.NODE_ENV === 'production'
   const verifyFlag = process.env.PAWAPAY_VERIFY_IP === 'true'
 
-  // En production, la vérification IP est obligatoire (sauf opt-out explicite
-  // via PAWAPAY_DISABLE_IP_CHECK=true pour debug ponctuel). En dev/test, on
-  // ne vérifie que si PAWAPAY_VERIFY_IP=true.
-  const shouldVerify = isProd
-    ? process.env.PAWAPAY_DISABLE_IP_CHECK !== 'true'
-    : verifyFlag
+  // Production: vérification IP toujours active, pas de bypass.
+  // Dev/test: vérifier uniquement si PAWAPAY_VERIFY_IP=true.
+  const shouldVerify = isProd || verifyFlag
 
   if (!shouldVerify) return true
 

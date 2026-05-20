@@ -14,7 +14,10 @@ function getEncryptionKey(): Buffer {
   if (envKey && envKey.length === 64) {
     return Buffer.from(envKey, 'hex')
   }
-  // Fallback : dériver une clé à partir du service role key
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('ENCRYPTION_KEY missing or invalid (must be 64-char hex) in production')
+  }
+  // Dev only : dériver clé à partir du service role key
   const fallback = process.env.SUPABASE_SERVICE_ROLE_KEY || 'default-fallback-key-for-dev'
   return crypto.createHash('sha256').update(fallback).digest()
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { getSupabaseAdmin } from '@/lib/supabase-server'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 // Valeurs par défaut
 // IMPORTANT : Avec onboarding@resend.dev, Resend n'envoie qu'au propriétaire du compte.
@@ -33,13 +34,29 @@ async function getContactEmails() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { firstName, lastName, email, message } = await request.json()
+    const ip = getClientIp(request)
+    const rl = rateLimit(`contact:${ip}`, 5, 5 * 60_000)
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Trop de requêtes' }, { status: 429 })
+    }
+
+    const { firstName, lastName, email, message, website } = await request.json()
+
+    // Honeypot anti-bot : champ "website" doit être vide
+    if (website && String(website).trim().length > 0) {
+      return NextResponse.json({ success: true })
+    }
 
     if (!firstName || !lastName || !email || !message) {
       return NextResponse.json(
         { error: 'Tous les champs sont requis' },
         { status: 400 }
       )
+    }
+
+    // Limites de taille pour bloquer payloads massifs
+    if (message.length > 5000 || firstName.length > 100 || lastName.length > 100) {
+      return NextResponse.json({ error: 'Champs trop longs' }, { status: 400 })
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -61,12 +78,24 @@ export async function POST(request: NextRequest) {
     const resend = new Resend(process.env.RESEND_API_KEY)
     const contactEmails = await getContactEmails()
 
+    const esc = (s: string) =>
+      String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+    const fn = esc(firstName)
+    const ln = esc(lastName)
+    const em = esc(email)
+    const msg = esc(message)
+
     // 1. Email principal à l'équipe
     const { data, error } = await resend.emails.send({
       from: contactEmails.from,
       to: contactEmails.to,
       replyTo: email,
-      subject: `Nouveau message de ${firstName} ${lastName}`,
+      subject: `Nouveau message de ${fn} ${ln}`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background: #F2B33D; padding: 24px; border-radius: 12px 12px 0 0; text-align: center;">
@@ -74,20 +103,20 @@ export async function POST(request: NextRequest) {
             <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0;">Nouveau message de contact</p>
           </div>
           <div style="background: #f9fafb; padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-            <h2 style="color: #0F0F0F; margin: 0 0 16px;">Message de ${firstName} ${lastName}</h2>
+            <h2 style="color: #0F0F0F; margin: 0 0 16px;">Message de ${fn} ${ln}</h2>
             <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
               <tr>
                 <td style="padding: 8px 12px; background: #e5e7eb; border-radius: 6px 0 0 0; font-weight: 600; color: #374151; width: 100px;">Nom</td>
-                <td style="padding: 8px 12px; background: #f3f4f6; border-radius: 0 6px 0 0; color: #4b5563;">${firstName} ${lastName}</td>
+                <td style="padding: 8px 12px; background: #f3f4f6; border-radius: 0 6px 0 0; color: #4b5563;">${fn} ${ln}</td>
               </tr>
               <tr>
                 <td style="padding: 8px 12px; background: #e5e7eb; font-weight: 600; color: #374151;">Email</td>
-                <td style="padding: 8px 12px; background: #f3f4f6; color: #4b5563;"><a href="mailto:${email}" style="color: #F2B33D;">${email}</a></td>
+                <td style="padding: 8px 12px; background: #f3f4f6; color: #4b5563;"><a href="mailto:${em}" style="color: #F2B33D;">${em}</a></td>
               </tr>
             </table>
             <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-top: 12px;">
               <p style="color: #374151; font-weight: 600; margin: 0 0 8px;">Message :</p>
-              <p style="color: #4b5563; line-height: 1.6; margin: 0; white-space: pre-wrap;">${message}</p>
+              <p style="color: #4b5563; line-height: 1.6; margin: 0; white-space: pre-wrap;">${msg}</p>
             </div>
             <p style="color: #9ca3af; font-size: 12px; margin: 16px 0 0;">
               Reçu le ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -118,13 +147,13 @@ export async function POST(request: NextRequest) {
               <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0;">Accusé de réception</p>
             </div>
             <div style="background: #f9fafb; padding: 24px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 12px 12px;">
-              <h2 style="color: #0F0F0F; margin: 0 0 16px;">Merci ${firstName} !</h2>
+              <h2 style="color: #0F0F0F; margin: 0 0 16px;">Merci ${fn} !</h2>
               <p style="color: #4b5563; line-height: 1.6;">
                 Nous avons bien reçu votre message et nous vous répondrons dans les plus brefs délais.
               </p>
               <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin: 16px 0;">
                 <p style="color: #374151; font-weight: 600; margin: 0 0 8px;">Récapitulatif de votre message :</p>
-                <p style="color: #4b5563; line-height: 1.6; margin: 0; white-space: pre-wrap;">${message}</p>
+                <p style="color: #4b5563; line-height: 1.6; margin: 0; white-space: pre-wrap;">${msg}</p>
               </div>
               <p style="color: #4b5563; line-height: 1.6; margin: 16px 0 0;">
                 À très bientôt,<br />

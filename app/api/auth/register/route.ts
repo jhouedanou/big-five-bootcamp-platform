@@ -11,7 +11,6 @@ const registerSchema = z.object({
   password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
   website: z.string().optional(),
   elapsedMs: z.number().optional(),
-  captchaToken: z.string().optional(),
 })
 
 // Rate limit en mémoire : max 5 tentatives par IP / 10 minutes
@@ -65,7 +64,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { name, email, password, website, elapsedMs, captchaToken } = validation.data
+    const { name, email, password, website, elapsedMs } = validation.data
 
     // Refuser les domaines d'emails jetables / temporaires
     if (isDisposableEmail(email)) {
@@ -133,7 +132,6 @@ export async function POST(request: Request) {
       options: {
         data: { name },
         emailRedirectTo,
-        captchaToken: captchaToken,
       },
     })
 

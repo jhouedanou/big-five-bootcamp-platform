@@ -10,6 +10,21 @@ type Bucket = { count: number; resetAt: number }
 
 const buckets = new Map<string, Bucket>()
 
+// Purge expired buckets every minute to avoid unbounded memory growth.
+// Guard via globalThis to avoid duplicate timers on HMR / module re-imports.
+const PURGE_KEY = '__laveiyeRateLimitPurger__'
+if (typeof globalThis !== 'undefined' && !(globalThis as any)[PURGE_KEY]) {
+  ;(globalThis as any)[PURGE_KEY] = setInterval(() => {
+    const now = Date.now()
+    for (const [k, v] of buckets) {
+      if (v.resetAt < now) buckets.delete(k)
+    }
+  }, 60_000)
+  // Unref so timer doesn't keep Node process alive (no-op on Workers).
+  const t: any = (globalThis as any)[PURGE_KEY]
+  if (t && typeof t.unref === 'function') t.unref()
+}
+
 export interface RateLimitResult {
   allowed: boolean
   remaining: number

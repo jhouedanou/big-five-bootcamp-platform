@@ -16,16 +16,34 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { getAuthenticatedUser } from '@/lib/supabase-server';
+import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { CHARIOW_CONFIG, generateRefCommand, getSale } from '@/lib/chariow';
 import { PLAN_BASIC, PLAN_PRO } from '@/lib/pricing';
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request);
+    const rl = rateLimit(`activate-widget:${ip}`, 10, 60_000);
+    if (!rl.allowed) {
+      return NextResponse.json({ error: 'Trop de requêtes' }, { status: 429 });
+    }
+
+    const currentUser = await getAuthenticatedUser();
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+    }
+
     const body = await request.json();
     const { email, purchaseId, plan } = body;
 
     if (!email) {
       return NextResponse.json({ error: 'Email requis' }, { status: 400 });
+    }
+
+    // Email du body doit matcher user authentifié — empêche activation cross-account
+    if (email.toLowerCase() !== currentUser.email?.toLowerCase()) {
+      return NextResponse.json({ error: 'Email non autorisé' }, { status: 403 });
     }
 
     // Plan strict — pas de fallback silencieux vers Pro.

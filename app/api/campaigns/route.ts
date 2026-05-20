@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase, supabaseAdmin } from '@/lib/supabase'
+import { getAuthenticatedUser } from '@/lib/supabase-server'
 
 export const dynamic = 'force-dynamic';
 
@@ -49,6 +50,11 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    const currentUser = await getAuthenticatedUser()
+    if (!currentUser?.isAdmin) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    }
+
     const body = await request.json()
 
     const { data, error } = await (supabaseAdmin as any)
@@ -66,8 +72,8 @@ export async function POST(request: NextRequest) {
         target_audience: body.target_audience,
         tags: body.tags || [],
         status: body.status || 'Brouillon',
-        author_id: body.author_id,
-        author_name: body.author_name,
+        author_id: currentUser.id,
+        author_name: currentUser.profile?.name || currentUser.email,
       })
       .select()
       .single()

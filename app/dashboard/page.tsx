@@ -467,9 +467,12 @@ export default function DashboardPage() {
       try {
         const { data, error } = await supabase
           .from('campaigns')
-          .select('*')
+          .select(
+            'id, title, summary, description, thumbnail, platforms, country, category, format, tags, created_at, video_url, images, brand, agency, year, axe, analyse, how_to_use, status, access_level, featured, publication_url, temps_fort_slugs'
+          )
           .eq('status', 'Publié')
           .order('created_at', { ascending: false })
+          .limit(500)
 
         if (error) {
           console.warn('Table campaigns non disponible:', error.message)

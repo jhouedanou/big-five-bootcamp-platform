@@ -67,72 +67,85 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ groups: [] })
     }
 
-    // 2. Pour chaque demande, on récupère les campagnes manuellement rattachées
-    //    par l'admin via la table de liaison `brand_request_campaigns`.
-    const groups = await Promise.all(
-      requests.map(async (r: any) => {
-        const countries: string[] =
-          Array.isArray(r.countries) && r.countries.length > 0
-            ? r.countries
-            : r.country
-              ? [r.country]
-              : []
-        const sectors: string[] =
-          Array.isArray(r.sectors) && r.sectors.length > 0
-            ? r.sectors
-            : r.sector
-              ? [r.sector]
-              : []
-        const channels: string[] = Array.isArray(r.social_networks)
-          ? r.social_networks
-          : []
+    // 2. Récupération batchée : 1 requête pour tous les liens, 1 requête pour
+    //    toutes les campagnes — au lieu de 2*N queries en boucle.
+    const requestIds = requests.map((r: any) => r.id)
+    const { data: allLinks, error: linksErr } = await admin
+      .from('brand_request_campaigns')
+      .select('brand_request_id, campaign_id, added_at')
+      .in('brand_request_id', requestIds)
+      .order('added_at', { ascending: false })
 
-        const { data: links, error: linksErr } = await admin
-          .from('brand_request_campaigns')
-          .select('campaign_id, added_at')
-          .eq('brand_request_id', r.id)
-          .order('added_at', { ascending: false })
-          .limit(perGroupLimit)
+    if (linksErr) {
+      console.error('[brand-monitoring] links query failed:', linksErr)
+    }
 
-        if (linksErr) {
-          console.error('[brand-monitoring] links query failed:', linksErr)
-        }
+    // Groupement links par brand_request_id avec cap perGroupLimit par groupe
+    const linksByRequest = new Map<string, string[]>()
+    for (const link of (allLinks || [])) {
+      const arr = linksByRequest.get(link.brand_request_id) || []
+      if (arr.length < perGroupLimit) {
+        arr.push(link.campaign_id)
+        linksByRequest.set(link.brand_request_id, arr)
+      }
+    }
 
-        const ids = (links || []).map((l: any) => l.campaign_id)
-        let contents: any[] = []
-        if (ids.length > 0) {
-          const { data: campaigns } = await admin
-            .from('campaigns')
-            .select('*')
-            .in('id', ids)
-            .eq('status', 'Publié')
-          const byId = new Map((campaigns || []).map((c: any) => [c.id, c]))
-          contents = ids.map((cid) => byId.get(cid)).filter(Boolean)
-        }
+    // Charger toutes les campagnes liées en une seule requête
+    const allCampaignIds = Array.from(new Set(Array.from(linksByRequest.values()).flat()))
+    let campaignsById = new Map<string, any>()
+    if (allCampaignIds.length > 0) {
+      const { data: campaigns } = await admin
+        .from('campaigns')
+        .select(
+          'id, title, summary, description, thumbnail, platforms, country, category, format, tags, created_at, video_url, images, brand, agency, year, status, access_level, featured'
+        )
+        .in('id', allCampaignIds)
+        .eq('status', 'Publié')
+      campaignsById = new Map((campaigns || []).map((c: any) => [c.id, c]))
+    }
 
-        return {
-          requestId: r.id,
-          brandName: r.brand_name,
-          countries,
-          sectors,
-          channels,
-          nextRenewalAt: r.next_renewal_at || null,
-          autoRenew: r.auto_renew ?? null,
-          contents,
-          ...(debug
-            ? {
-                _debug: {
-                  linkedCount: ids.length,
-                  resolvedCount: contents.length,
-                  countries,
-                  sectors,
-                  channels,
-                },
-              }
-            : {}),
-        }
-      })
-    )
+    const groups = requests.map((r: any) => {
+      const countries: string[] =
+        Array.isArray(r.countries) && r.countries.length > 0
+          ? r.countries
+          : r.country
+            ? [r.country]
+            : []
+      const sectors: string[] =
+        Array.isArray(r.sectors) && r.sectors.length > 0
+          ? r.sectors
+          : r.sector
+            ? [r.sector]
+            : []
+      const channels: string[] = Array.isArray(r.social_networks)
+        ? r.social_networks
+        : []
+
+      const ids = linksByRequest.get(r.id) || []
+      const contents = ids.map((cid) => campaignsById.get(cid)).filter(Boolean)
+
+      return {
+        requestId: r.id,
+        brandName: r.brand_name,
+        countries,
+        sectors,
+        channels,
+        nextRenewalAt: r.next_renewal_at || null,
+        autoRenew: r.auto_renew ?? null,
+        contents,
+        ...(debug
+          ? {
+              _debug: {
+                linkedCount: ids.length,
+                resolvedCount: contents.length,
+                countries,
+                sectors,
+                channels,
+              },
+            }
+          : {}),
+      }
+    })
 
     // On masque les groupes sans contenu pour ne pas afficher des sous-blocs vides.
     const nonEmpty = groups.filter((g) => g.contents.length > 0)
@@ -153,7 +166,10 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    return NextResponse.json({ groups: nonEmpty })
+    return NextResponse.json(
+      { groups: nonEmpty },
+      { headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=120' } }
+    )
   } catch (e: any) {
     console.error('[brand-monitoring]', e)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

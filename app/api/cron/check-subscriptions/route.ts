@@ -45,33 +45,37 @@ export async function GET(request: NextRequest) {
         .not('pending_plan', 'is', null)
         .lte('pending_plan_starts_at', now);
 
-      for (const u of (pendingUsers || [])) {
-        const startsAt = new Date(u.pending_plan_starts_at);
-        const durationDays = u.pending_duration_days || 30;
-        const newEnd = new Date(startsAt.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
+      // Updates parallélisées (chaque user a sa propre date de fin calculée).
+      const results = await Promise.all(
+        (pendingUsers || []).map(async (u: any) => {
+          const startsAt = new Date(u.pending_plan_starts_at);
+          const durationDays = u.pending_duration_days || 30;
+          const newEnd = new Date(startsAt.getTime() + durationDays * 24 * 60 * 60 * 1000).toISOString();
 
-        const { error: applyErr } = await (supabaseAdmin as any)
-          .from('users')
-          .update({
-            plan: u.pending_plan,
-            subscription_status: 'active',
-            subscription_start_date: u.pending_plan_starts_at,
-            subscription_end_date: newEnd,
-            pending_plan: null,
-            pending_plan_starts_at: null,
-            pending_billing: null,
-            pending_duration_days: null,
-            updated_at: now,
-          })
-          .eq('id', u.id);
+          const { error: applyErr } = await (supabaseAdmin as any)
+            .from('users')
+            .update({
+              plan: u.pending_plan,
+              subscription_status: 'active',
+              subscription_start_date: u.pending_plan_starts_at,
+              subscription_end_date: newEnd,
+              pending_plan: null,
+              pending_plan_starts_at: null,
+              pending_billing: null,
+              pending_duration_days: null,
+              updated_at: now,
+            })
+            .eq('id', u.id);
 
-        if (applyErr) {
-          console.error('[cron/check-subscriptions] apply pending failed', u.id, applyErr);
-        } else {
-          pendingApplied++;
+          if (applyErr) {
+            console.error('[cron/check-subscriptions] apply pending failed', u.id, applyErr);
+            return false;
+          }
           console.log(`✅ Pending plan applied for ${u.email}: ${u.plan} → ${u.pending_plan}`);
-        }
-      }
+          return true;
+        })
+      );
+      pendingApplied = results.filter(Boolean).length;
     } catch (e) {
       console.error('[cron/check-subscriptions] pending plan apply error:', e);
     }
@@ -119,24 +123,26 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // 3. Créer des notifications d'expiration pour chaque utilisateur
-      for (const user of expiredUsers) {
-        try {
-          await (supabaseAdmin as any)
-            .from('notifications')
-            .insert({
-              user_id: user.id,
-              type: 'subscription_expired',
-              title: '⏰ Votre abonnement a expiré',
-              message: `Votre abonnement ${user.plan || 'Discovery'} a expiré. Renouvelez-le pour continuer à accéder à toutes les fonctionnalités.`,
-              metadata: {
-                subscription_end_date: user.subscription_end_date,
-                previous_plan: user.plan,
-              },
-            });
-        } catch (notifError) {
-          console.warn('⚠️ Erreur notification pour', user.email, ':', notifError);
+      // 3. Créer les notifications d'expiration en un seul batch insert.
+      try {
+        const notifications = expiredUsers.map((user: any) => ({
+          user_id: user.id,
+          type: 'subscription_expired',
+          title: '⏰ Votre abonnement a expiré',
+          message: `Votre abonnement ${user.plan || 'Discovery'} a expiré. Renouvelez-le pour continuer à accéder à toutes les fonctionnalités.`,
+          metadata: {
+            subscription_end_date: user.subscription_end_date,
+            previous_plan: user.plan,
+          },
+        }));
+        const { error: notifErr } = await (supabaseAdmin as any)
+          .from('notifications')
+          .insert(notifications);
+        if (notifErr) {
+          console.warn('⚠️ Erreur batch notifications:', notifErr.message);
         }
+      } catch (notifError) {
+        console.warn('⚠️ Erreur batch notifications:', notifError);
       }
     }
 
@@ -172,6 +178,7 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      const remindersToInsert: any[] = []
       for (const u of (expiringUsers || [])) {
         if (sentKeys.has(`${u.id}|${u.subscription_end_date}`)) continue
 
@@ -184,7 +191,7 @@ export async function GET(request: NextRequest) {
           : String(u.plan || '').toLowerCase() === 'basic' ? 'basic'
           : 'discovery'
 
-        await (supabaseAdmin as any).from('notifications').insert({
+        remindersToInsert.push({
           user_id: u.id,
           type: 'subscription_expiring',
           title: `Votre abonnement expire dans ${daysLeft} jour${daysLeft > 1 ? 's' : ''}`,
@@ -196,7 +203,16 @@ export async function GET(request: NextRequest) {
             days_left: daysLeft,
           },
         })
-        expiringRemindersSent++
+      }
+      if (remindersToInsert.length > 0) {
+        const { error: remErr } = await (supabaseAdmin as any)
+          .from('notifications')
+          .insert(remindersToInsert)
+        if (remErr) {
+          console.error('Erreur batch reminders:', remErr.message)
+        } else {
+          expiringRemindersSent = remindersToInsert.length
+        }
       }
       if (expiringRemindersSent > 0) {
         console.log(`Pre-expiry reminders sent: ${expiringRemindersSent}`)

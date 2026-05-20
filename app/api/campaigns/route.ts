@@ -21,6 +21,7 @@ export async function GET(request: NextRequest) {
       .from('campaigns')
       .select('*')
       .order('created_at', { ascending: false })
+      .limit(500)
 
     if (status) {
       query = query.eq('status', status)

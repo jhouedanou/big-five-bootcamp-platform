@@ -13,13 +13,20 @@ function getSupabaseAdmin() {
     return createClient(url, key)
 }
 
+// Colonnes nécessaires pour la liste admin (vue compacte)
+const CREATIVE_LIST_COLUMNS = 'id, title, slug, brand, category, status, thumbnail, platforms, created_at, featured, access_level'
+
+// Colonnes complètes pour la vue détail
+const CREATIVE_DETAIL_COLUMNS = 'id, title, slug, summary, description, thumbnail, platforms, country, category, format, tags, created_at, video_url, images, brand, agency, year, axe, analyse, how_to_use, status, access_level, featured, publication_url, campaign_date, temps_fort_slugs'
+
 export async function getCreatives() {
     try {
         const supabase = getSupabaseAdmin()
         const { data, error } = await supabase
             .from('campaigns')
-            .select('*')
+            .select(CREATIVE_LIST_COLUMNS)
             .order('created_at', { ascending: false })
+            .limit(500)
 
         if (error) throw error
         return { success: true, data }
@@ -33,7 +40,7 @@ export async function getCreativeById(id: string) {
         const supabase = getSupabaseAdmin()
         const { data, error } = await supabase
             .from('campaigns')
-            .select('*')
+            .select(CREATIVE_DETAIL_COLUMNS)
             .eq('id', id)
             .single()
 
@@ -51,7 +58,7 @@ export async function getCreativeByIdOrSlug(idOrSlug: string) {
 
         const { data, error } = await supabase
             .from('campaigns')
-            .select('*')
+            .select(CREATIVE_DETAIL_COLUMNS)
             .eq(isUUID ? 'id' : 'slug', idOrSlug)
             .single()
 
@@ -197,7 +204,7 @@ export async function getRelatedCampaigns(campaignId: string, tags: string[] | n
         if (tags && tags.length > 0) {
             const { data } = await supabase
                 .from('campaigns')
-                .select('*')
+                .select(CREATIVE_LIST_COLUMNS)
                 .neq('id', campaignId)
                 .eq('status', 'Publié')
                 .overlaps('tags', tags)
@@ -210,7 +217,7 @@ export async function getRelatedCampaigns(campaignId: string, tags: string[] | n
             const existingIds = [campaignId, ...related.map(r => r.id)]
             const { data } = await supabase
                 .from('campaigns')
-                .select('*')
+                .select(CREATIVE_LIST_COLUMNS)
                 .not('id', 'in', `(${existingIds.join(',')})`)
                 .eq('status', 'Publié')
                 .eq('category', category)
@@ -223,7 +230,7 @@ export async function getRelatedCampaigns(campaignId: string, tags: string[] | n
             const existingIds = [campaignId, ...related.map(r => r.id)]
             const { data } = await supabase
                 .from('campaigns')
-                .select('*')
+                .select(CREATIVE_LIST_COLUMNS)
                 .not('id', 'in', `(${existingIds.join(',')})`)
                 .eq('status', 'Publié')
                 .eq('brand', brand)
@@ -236,7 +243,7 @@ export async function getRelatedCampaigns(campaignId: string, tags: string[] | n
             const existingIds = [campaignId, ...related.map(r => r.id)]
             const { data } = await supabase
                 .from('campaigns')
-                .select('*')
+                .select(CREATIVE_LIST_COLUMNS)
                 .not('id', 'in', `(${existingIds.join(',')})`)
                 .eq('status', 'Publié')
                 .order('created_at', { ascending: false })

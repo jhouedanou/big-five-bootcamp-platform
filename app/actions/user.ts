@@ -2,6 +2,7 @@
 
 import { createClient } from "@supabase/supabase-js"
 import { revalidatePath } from "next/cache"
+import { checkAdmin } from "@/lib/admin-auth"
 
 function getSupabaseAdmin() {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -241,5 +242,182 @@ export async function resetUserViews(userId: string) {
     } catch (error) {
         console.error('Error resetting user views:', error)
         return { success: false, error: "Impossible de réinitialiser les vues" }
+    }
+}
+
+// ─── Bulk add users ──────────────────────────────────────────────────────────
+// Crée (ou met à jour si déjà existant) une liste d'utilisateurs avec un plan
+// + une durée d'abonnement. Conçu pour l'onboarding d'un bootcamp / cohorte.
+//
+// Format d'entrée : une liste d'objets { email, plan? }. Si `plan` absent, le
+// `defaultPlan` est utilisé. La durée s'applique à tous les comptes traités.
+// Un mot de passe par défaut est défini pour les comptes créés ; il peut être
+// surchargé par l'admin via `defaultPassword`.
+
+export type BulkUserPlan = 'Discovery' | 'Basic' | 'Pro'
+
+export interface BulkUserInput {
+    email: string
+    plan?: BulkUserPlan | null
+}
+
+export interface BulkUserResult {
+    email: string
+    status: 'created' | 'updated' | 'error'
+    plan?: BulkUserPlan
+    userId?: string
+    message?: string
+}
+
+function normalizePlan(raw: string | null | undefined): BulkUserPlan | null {
+    const p = String(raw || '').trim().toLowerCase()
+    if (p === 'pro') return 'Pro'
+    if (p === 'basic') return 'Basic'
+    if (p === 'discovery' || p === 'découverte' || p === 'decouverte') return 'Discovery'
+    return null
+}
+
+function nameFromEmail(email: string): string {
+    return email
+        .split('@')[0]
+        .replace(/[._-]+/g, ' ')
+        .replace(/\d+/g, '')
+        .trim()
+        .replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+export async function bulkCreateUsers(payload: {
+    users: BulkUserInput[]
+    defaultPlan: BulkUserPlan
+    durationDays: number
+    defaultPassword?: string
+}): Promise<{
+    success: boolean
+    results?: BulkUserResult[]
+    summary?: { created: number; updated: number; errors: number }
+    error?: string
+}> {
+    try {
+        const admin = await checkAdmin()
+        if (!admin) {
+            return { success: false, error: 'Accès refusé : admin requis' }
+        }
+
+        const days = Math.max(1, Math.min(3650, Math.floor(payload.durationDays || 30)))
+        const password = (payload.defaultPassword || 'Dein@hoinra125').trim()
+        if (password.length < 8) {
+            return { success: false, error: 'Mot de passe par défaut trop court (min 8 caractères)' }
+        }
+
+        const seen = new Set<string>()
+        const inputs: BulkUserInput[] = []
+        for (const u of payload.users || []) {
+            const email = String(u.email || '').trim().toLowerCase()
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) continue
+            if (seen.has(email)) continue
+            seen.add(email)
+            inputs.push({ email, plan: u.plan ?? payload.defaultPlan })
+        }
+        if (inputs.length === 0) {
+            return { success: false, error: 'Aucun email valide fourni' }
+        }
+
+        const supabase = getSupabaseAdmin()
+        const results: BulkUserResult[] = []
+        const now = new Date()
+        const end = new Date(now.getTime() + days * 24 * 60 * 60 * 1000)
+        const subscriptionPatch = {
+            subscription_status: 'active' as const,
+            subscription_start_date: now.toISOString(),
+            subscription_end_date: end.toISOString(),
+            updated_at: now.toISOString(),
+        }
+
+        for (const u of inputs) {
+            const plan = normalizePlan(u.plan) || payload.defaultPlan
+            const name = nameFromEmail(u.email)
+
+            try {
+                // 1) Créer le compte Auth, ou récupérer l'existant.
+                let userId: string | null = null
+                let isNew = false
+
+                const { data: created, error: createErr } =
+                    await supabase.auth.admin.createUser({
+                        email: u.email,
+                        password,
+                        email_confirm: true,
+                        user_metadata: { name },
+                    })
+
+                if (createErr) {
+                    const msg = createErr.message.toLowerCase()
+                    if (msg.includes('already') || msg.includes('exist') || msg.includes('registered')) {
+                        // Compte déjà créé : retrouver son id en paginant listUsers.
+                        let page = 1
+                        while (!userId) {
+                            const { data: list, error: listErr } =
+                                await supabase.auth.admin.listUsers({ page, perPage: 1000 })
+                            if (listErr) throw listErr
+                            const match = list.users.find(
+                                (x) => x.email?.toLowerCase() === u.email.toLowerCase()
+                            )
+                            if (match) {
+                                userId = match.id
+                                break
+                            }
+                            if (list.users.length < 1000) break
+                            page++
+                        }
+                        if (!userId) throw new Error('Compte existant introuvable via listUsers')
+                    } else {
+                        throw createErr
+                    }
+                } else {
+                    userId = created.user.id
+                    isNew = true
+                }
+
+                // 2) Upsert dans public.users avec plan + dates d'abonnement.
+                const { error: profileErr } = await supabase.from('users').upsert(
+                    {
+                        id: userId,
+                        email: u.email,
+                        name,
+                        role: 'user',
+                        status: 'active',
+                        plan,
+                        ...subscriptionPatch,
+                    },
+                    { onConflict: 'id' }
+                )
+                if (profileErr) throw profileErr
+
+                results.push({
+                    email: u.email,
+                    status: isNew ? 'created' : 'updated',
+                    plan,
+                    userId: userId!,
+                })
+            } catch (e: any) {
+                results.push({
+                    email: u.email,
+                    status: 'error',
+                    message: e?.message || String(e),
+                })
+            }
+        }
+
+        const summary = {
+            created: results.filter((r) => r.status === 'created').length,
+            updated: results.filter((r) => r.status === 'updated').length,
+            errors: results.filter((r) => r.status === 'error').length,
+        }
+
+        revalidatePath('/admin/users')
+        return { success: true, results, summary }
+    } catch (error: any) {
+        console.error('bulkCreateUsers error:', error)
+        return { success: false, error: error?.message || 'Erreur inconnue' }
     }
 }

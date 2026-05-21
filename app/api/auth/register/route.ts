@@ -100,6 +100,46 @@ export async function POST(request: Request) {
       )
     }
 
+    // ————————————————————————————————————————————————
+    // Vérification anti-doublon AVANT signUp.
+    // Supabase (avec "Confirm email" activé) ne renvoie PAS d'erreur si l'email
+    // existe déjà (anti-énumération) — il retourne un user avec identities: [].
+    // On lève donc nous-mêmes le 409 explicite via l'admin API.
+    // ————————————————————————————————————————————————
+    const supabaseAdminPreCheck = getSupabaseAdmin()
+    const normalizedEmail = email.toLowerCase().trim()
+    try {
+      const { data: existingByProfile } = await supabaseAdminPreCheck
+        .from('users')
+        .select('id, email')
+        .ilike('email', normalizedEmail)
+        .maybeSingle()
+
+      let existsInAuth = false
+      if (!existingByProfile) {
+        // listUsers permet de filtrer par email (pagination — on prend page 1 large)
+        const { data: authList } = await supabaseAdminPreCheck.auth.admin.listUsers({
+          page: 1,
+          perPage: 200,
+        })
+        existsInAuth = !!authList?.users?.some(u => (u.email || '').toLowerCase() === normalizedEmail)
+      }
+
+      if (existingByProfile || existsInAuth) {
+        return NextResponse.json(
+          {
+            error: "Un compte existe déjà avec cet email. Connectez-vous ou réinitialisez votre mot de passe.",
+            code: "email_already_registered",
+          },
+          { status: 409 }
+        )
+      }
+    } catch (preCheckErr) {
+      console.error("Pre-check existing user error:", preCheckErr)
+      // Non bloquant — on laisse signUp s'exécuter, la duplication sera rattrapée
+      // par signUpError ou par identities.length === 0 plus bas.
+    }
+
     // Création via supabase.auth.signUp (client anon).
     // → Supabase envoie automatiquement l'email de confirmation (si activé dans le projet).
     // → L'utilisateur n'a PAS de session tant qu'il n'a pas cliqué sur le lien.
@@ -154,6 +194,18 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Erreur lors de la création du compte" },
         { status: 500 }
+      )
+    }
+
+    // Filet de sécurité : si Supabase renvoie un user SANS identités, c'est que
+    // l'email existait déjà (comportement anti-énumération avec "Confirm email").
+    if (!signUpData.user.identities || signUpData.user.identities.length === 0) {
+      return NextResponse.json(
+        {
+          error: "Un compte existe déjà avec cet email. Connectez-vous ou réinitialisez votre mot de passe.",
+          code: "email_already_registered",
+        },
+        { status: 409 }
       )
     }
 

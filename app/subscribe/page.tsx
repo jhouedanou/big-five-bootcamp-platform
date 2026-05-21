@@ -320,6 +320,36 @@ export default function SubscribePage() {
     // Format international (sans “+”) : indicatif pays + numéro local
     const cleanedPhone = `${countryConfig.dialCode}${localDigits}`
 
+    // Fix 3 — auto-appliquer si l'utilisateur a tapé un code sans cliquer "Appliquer"
+    let resolvedPromoCode = appliedPromo?.code
+    if (promoInput.trim() && !appliedPromo) {
+      setPromoError(null)
+      try {
+        const code = promoInput.trim().toUpperCase()
+        const res = await fetch("/api/promo/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code, email: user.email || '' }),
+        })
+        const data = await res.json()
+        if (!res.ok || !data.valid) {
+          setPromoError(data.error || "Code promo invalide — vérifiez le code avant de payer")
+          return
+        }
+        resolvedPromoCode = code
+        setAppliedPromo({
+          code,
+          label: data.offer.label,
+          bonusPlanLabel: data.offer.bonusPlanLabel,
+          bonusDurationDays: data.offer.bonusDurationDays,
+          bonusDurationLabel: data.offer.bonusDurationLabel,
+        })
+      } catch {
+        setPromoError("Impossible de vérifier le code promo — réessayez ou retirez-le")
+        return
+      }
+    }
+
     setIsProcessing(true)
 
     try {
@@ -334,7 +364,8 @@ export default function SubscribePage() {
           phoneNumber: cleanedPhone,
           provider,
           currency: countryConfig.currency,
-          promoCode: appliedPromo?.code,
+          promoCode: resolvedPromoCode,
+          rawPromoInput: promoInput.trim() || undefined,
         }),
       })
 
@@ -883,6 +914,12 @@ export default function SubscribePage() {
               </div>
               {promoError && (
                 <p className="text-xs text-[#E11D48]">{promoError}</p>
+              )}
+              {!promoError && promoInput.trim() && !appliedPromo && !isCheckingPromo && (
+                <p className="text-xs text-[#a17320] flex items-center gap-1">
+                  <Tag className="h-3 w-3 shrink-0" />
+                  Code saisi mais pas encore appliqué — il sera validé automatiquement au paiement.
+                </p>
               )}
             </div>
           )}

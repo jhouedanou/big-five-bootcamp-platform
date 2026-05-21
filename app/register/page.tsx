@@ -111,6 +111,21 @@ export default function RegisterPage() {
       const data = await res.json()
 
       if (!res.ok) {
+        // Email déjà inscrit → CTA explicite vers connexion / reset password
+        if (res.status === 409 || data.code === "email_already_registered") {
+          const loginHref = redirectTo
+            ? `/login?redirect=${encodeURIComponent(redirectTo)}&email=${encodeURIComponent(email)}`
+            : `/login?email=${encodeURIComponent(email)}`
+          toast.error("Cet email a déjà un compte", {
+            description: "Connectez-vous ou réinitialisez votre mot de passe.",
+            duration: 10000,
+            action: {
+              label: "Se connecter",
+              onClick: () => router.push(loginHref),
+            },
+          })
+          return
+        }
         toast.error("Erreur lors de la création du compte", {
           description: data.error || "Veuillez réessayer.",
         })

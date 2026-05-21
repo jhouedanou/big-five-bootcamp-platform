@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { userEmail, userName, plan, billing, phoneNumber, provider, currency = 'XOF', promoCode } = body;
+    const { userEmail, userName, plan, billing, phoneNumber, provider, currency = 'XOF', promoCode, rawPromoInput } = body;
 
     if (!userEmail) {
       return NextResponse.json(
@@ -124,6 +124,10 @@ export async function POST(request: NextRequest) {
     // ————————————————————————————————————————————————
     let promoApplied: { code: string; registrationId: string; phases: PromoPhases } | null = null;
     const normalizedPromo = normalizePromoCode(promoCode);
+    // Fix 2 — détecter si un code brut a été envoyé sans avoir été appliqué côté client
+    if (!normalizedPromo && rawPromoInput) {
+      console.warn(`[subscribe] promoCode absent mais rawPromoInput="${rawPromoInput}" pour ${userEmail} — code non appliqué côté client`);
+    }
 
     if (normalizedPromo) {
       // Rate-limit : 5 tentatives / 5 min par (IP + email) pour bloquer le

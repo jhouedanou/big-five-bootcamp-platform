@@ -163,6 +163,59 @@ export async function POST(
             '[pawapay/check] Plan invalide ou manquant dans metadata, activation annulee',
             { paymentId: paymentData.id, rawPlan, metadata: paymentData.metadata }
           );
+        } else if (paymentData.metadata.promo_bonus) {
+          // Bonus LAVEIYE : aligne sur callback /pawapay/deposit. Trois cas
+          // (merged / before / after) — cf. lib/promo-codes.ts.
+          const bonus = paymentData.metadata.promo_bonus as {
+            kind: 'merged' | 'before' | 'after';
+            first_phase_plan: 'Basic' | 'Pro';
+            first_phase_duration_days: number;
+            bonus_phase?: { plan: string; duration_days: number; billing?: string } | null;
+          };
+          const now = new Date();
+          const firstEnd = new Date(
+            now.getTime() + bonus.first_phase_duration_days * 24 * 60 * 60 * 1000
+          ).toISOString();
+          const update: any = {
+            plan: bonus.first_phase_plan,
+            subscription_status: 'active',
+            subscription_start_date: now.toISOString(),
+            subscription_end_date: firstEnd,
+            updated_at: now.toISOString(),
+          };
+          if (bonus.kind !== 'merged' && bonus.bonus_phase) {
+            update.pending_plan = bonus.bonus_phase.plan;
+            update.pending_plan_starts_at = firstEnd;
+            update.pending_duration_days = bonus.bonus_phase.duration_days;
+            update.pending_billing = bonus.bonus_phase.billing || null;
+          } else {
+            update.pending_plan = null;
+            update.pending_plan_starts_at = null;
+            update.pending_duration_days = null;
+            update.pending_billing = null;
+          }
+          await supabase.from('users').update(update).eq('id', paymentData.metadata.userId);
+
+          if (paymentData.metadata.promo_code) {
+            await supabase
+              .from('keynote_registrations')
+              .update({
+                promo_redeemed_at: new Date().toISOString(),
+                promo_status: 'used',
+                promo_redeemed_by_user_id: paymentData.metadata.userId,
+                promo_redeemed_plan: bonus.first_phase_plan,
+                promo_redeemed_amount:
+                  typeof paymentData.amount === 'number' ? paymentData.amount : null,
+              } as any)
+              .eq('promo_code', paymentData.metadata.promo_code)
+              .is('promo_redeemed_at', null);
+          }
+          console.log(
+            '[pawapay/check] Subscription + bonus LAVEIYE activated for user:',
+            paymentData.metadata.userId,
+            '\u2014 first phase:',
+            bonus.first_phase_plan
+          );
         } else if (
           paymentData.metadata.is_downgrade === true &&
           paymentData.metadata.pending_starts_at
@@ -184,7 +237,14 @@ export async function POST(
           if (paymentData.metadata.promo_code) {
             await supabase
               .from('keynote_registrations')
-              .update({ promo_redeemed_at: new Date().toISOString() } as any)
+              .update({
+                promo_redeemed_at: new Date().toISOString(),
+                promo_status: 'used',
+                promo_redeemed_by_user_id: paymentData.metadata.userId,
+                promo_redeemed_plan: planName,
+                promo_redeemed_amount:
+                  typeof paymentData.amount === 'number' ? paymentData.amount : null,
+              } as any)
               .eq('promo_code', paymentData.metadata.promo_code)
               .is('promo_redeemed_at', null);
           }

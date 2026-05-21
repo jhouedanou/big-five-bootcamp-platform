@@ -380,6 +380,20 @@ function PaymentSuccessContent() {
               Plan actif : {payment.metadata.plan_label}
             </p>
           )}
+          {/* Bonus LAVEIYE — affiche le rappel "3 mois Basic offerts" sur le reçu. */}
+          {payment.metadata?.promo_bonus && (
+            <div className="mt-3 mx-auto max-w-md rounded-xl border-2 border-[#F2B33D]/40 bg-gradient-to-r from-[#FFFBEC] to-white p-3">
+              <p className="text-sm font-bold text-[#a17320]">
+                🎁 Bonus LAVEIYE appliqué
+              </p>
+              <p className="mt-1 text-xs text-[#0F0F0F]/70">
+                {payment.metadata.promo_bonus.label || '3 mois Basic offerts'} en supplément de votre abonnement.
+                {payment.metadata.promo_bonus.bonus_phase && (
+                  <> Le bonus {payment.metadata.promo_bonus.bonus_phase.plan} sera activé automatiquement à la fin de la première période.</>
+                )}
+              </p>
+            </div>
+          )}
         </div>
 
         <Card className="mb-6">

@@ -133,19 +133,17 @@ export default function SubscribePage() {
   const [country, setCountry] = useState<CountryCode>("CIV")
   const [provider, setProvider] = useState<string>("ORANGE_CIV")
 
-  // Code promo LAVEIYE (3 mois Basic à 10 000 FCFA)
+  // Code promo LAVEIYE — BONUS "3 mois Basic offerts", cumulable avec
+  // n'importe quel plan (cf. lib/promo-codes.ts).
   const [promoInput, setPromoInput] = useState("")
   const [isCheckingPromo, setIsCheckingPromo] = useState(false)
   const [promoError, setPromoError] = useState<string | null>(null)
   const [appliedPromo, setAppliedPromo] = useState<{
     code: string
-    plan: "basic" | "pro"
-    planLabel: string
-    price: number
-    originalPrice: number
-    durationDays: number
-    durationLabel: string
-    billing: string
+    label: string
+    bonusPlanLabel: string
+    bonusDurationDays: number
+    bonusDurationLabel: string
   } | null>(null)
 
   const countryConfig = COUNTRIES[country]
@@ -252,17 +250,14 @@ export default function SubscribePage() {
       }
       setAppliedPromo({
         code,
-        plan: data.offer.plan,
-        planLabel: data.offer.planLabel,
-        price: data.offer.price,
-        originalPrice: data.offer.originalPrice,
-        durationDays: data.offer.durationDays,
-        durationLabel: data.offer.durationLabel,
-        billing: data.offer.billing || 'promo3m',
+        label: data.offer.label,
+        bonusPlanLabel: data.offer.bonusPlanLabel,
+        bonusDurationDays: data.offer.bonusDurationDays,
+        bonusDurationLabel: data.offer.bonusDurationLabel,
       })
-      // Forcer la sélection du plan correspondant à l'offre promo
-      setSelectedPlan(data.offer.plan)
-      setIsAnnual(false)
+      // On ne touche PAS à selectedPlan / isAnnual : l'utilisateur garde
+      // le contrôle total. Le bonus 3 mois Basic s'ajoute automatiquement
+      // selon le plan choisi (cf. computePromoPhases côté API).
     } catch {
       setPromoError("Impossible de vérifier le code pour le moment")
     } finally {
@@ -282,18 +277,30 @@ export default function SubscribePage() {
     pro: { monthly: 9900, annual: 99000 },
   }
 
-  /** Montant à payer (override si code promo appliqué). */
-  const finalAmount = appliedPromo
-    ? appliedPromo.price
-    : isAnnual
-      ? PLAN_PRICES_MAP[selectedPlan].annual
-      : PLAN_PRICES_MAP[selectedPlan].monthly
+  /** Montant à payer : toujours celui du plan choisi (le bonus est gratuit). */
+  const finalAmount = isAnnual
+    ? PLAN_PRICES_MAP[selectedPlan].annual
+    : PLAN_PRICES_MAP[selectedPlan].monthly
 
   const finalAmountFormatted = new Intl.NumberFormat("fr-FR").format(finalAmount)
-  const finalDurationDays = appliedPromo ? appliedPromo.durationDays : (isAnnual ? 365 : 30)
-  const finalDurationLabel = appliedPromo
-    ? appliedPromo.durationLabel
-    : (isAnnual ? "1 an" : "1 mois")
+  // Durée de la PREMIÈRE phase d'accès effectif :
+  // - sans promo : durée standard du billing choisi
+  // - avec promo : merged (Basic) → plan + 90j, before (Discovery) → 90j, after (Pro) → durée plan
+  const planDurationDays = isAnnual ? 365 : 30
+  let finalDurationDays = planDurationDays
+  let finalDurationLabel = isAnnual ? "1 an" : "1 mois"
+  if (appliedPromo) {
+    if (selectedPlan === "basic") {
+      finalDurationDays = planDurationDays + appliedPromo.bonusDurationDays
+      finalDurationLabel = isAnnual ? "15 mois" : "4 mois"
+    } else if (selectedPlan === "discovery") {
+      finalDurationDays = appliedPromo.bonusDurationDays
+      finalDurationLabel = `${appliedPromo.bonusDurationLabel} Basic puis ${isAnnual ? "12" : "1"} mois Discovery`
+    } else {
+      // pro
+      finalDurationLabel = `${isAnnual ? "1 an" : "1 mois"} Pro puis ${appliedPromo.bonusDurationLabel} Basic`
+    }
+  }
 
   const handlePayment = async () => {
     if (!user?.email) {
@@ -323,7 +330,7 @@ export default function SubscribePage() {
           userEmail: user.email,
           userName: userProfile?.name || user.user_metadata?.name,
           plan: selectedPlan,
-          billing: appliedPromo ? appliedPromo.billing : (isAnnual ? 'annual' : 'monthly'),
+          billing: isAnnual ? 'annual' : 'monthly',
           phoneNumber: cleanedPhone,
           provider,
           currency: countryConfig.currency,
@@ -812,7 +819,7 @@ export default function SubscribePage() {
             </h3>
           </div>
           <p className="text-xs text-[#0F0F0F]/60 mb-3">
-            Code reçu lors de l'inscription au keynote. Donne droit à 3 mois d'accès Basic pour 10 000 FCFA TTC (au lieu de 14 700 FCFA).
+            Code reçu lors de l'inscription au keynote. Donne droit à 3 mois d'accès Basic offerts, cumulables avec n'importe quelle formule.
             <br />
             <span className="text-[#0F0F0F]/50">
               Le code n'est valable qu'avec l'email <strong>{user?.email}</strong> auquel il a été attribué.
@@ -828,8 +835,7 @@ export default function SubscribePage() {
                     {appliedPromo.code} appliqué
                   </p>
                   <p className="text-xs text-[#0F0F0F]/60">
-                    {appliedPromo.planLabel} — {appliedPromo.durationLabel} pour{" "}
-                    {new Intl.NumberFormat("fr-FR").format(appliedPromo.price)} FCFA
+                    {appliedPromo.label} — ajoutés à votre formule {PLANS[selectedPlan].name}
                   </p>
                 </div>
               </div>
@@ -933,9 +939,7 @@ export default function SubscribePage() {
           <div className="space-y-2 text-sm">
             <div className="flex items-center justify-between">
               <span className="text-[#0F0F0F]/60">
-                {appliedPromo
-                  ? `Offre LAVEIYE — ${appliedPromo.planLabel} (${appliedPromo.durationLabel})`
-                  : `${isDowngradeChoice ? "Changement programmé" : (isActive ? "Renouvellement" : "Abonnement")} Laveiye — ${plan.name} (${isAnnual ? 'Annuel' : 'Mensuel'})`}
+                {`${isDowngradeChoice ? "Changement programmé" : (isActive ? "Renouvellement" : "Abonnement")} Laveiye — ${plan.name} (${isAnnual ? 'Annuel' : 'Mensuel'})`}
               </span>
               <span className="font-medium text-[#0F0F0F]">
                 {finalAmountFormatted} XOF
@@ -943,9 +947,9 @@ export default function SubscribePage() {
             </div>
             {appliedPromo && (
               <div className="flex items-center justify-between text-[#10B981]">
-                <span>Réduction code promo</span>
+                <span>Bonus LAVEIYE</span>
                 <span className="font-medium">
-                  −{new Intl.NumberFormat("fr-FR").format(appliedPromo.originalPrice - appliedPromo.price)} XOF
+                  +{appliedPromo.bonusDurationLabel} {appliedPromo.bonusPlanLabel} offerts
                 </span>
               </div>
             )}

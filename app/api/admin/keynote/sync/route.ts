@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
   // Liste à synchroniser
   let query = supabase
     .from('keynote_registrations')
-    .select('id, email, first_name, last_name, country, promo_code, mailchimp_status')
+    .select('id, email, first_name, last_name, phone, country, promo_code, promo_status, promo_redeemed_at, mailchimp_status')
 
   if (Array.isArray(body.ids) && body.ids.length) {
     query = query.in('id', body.ids)
@@ -114,16 +114,25 @@ export async function POST(request: NextRequest) {
       continue
     }
 
+    // Statut promo exposé à Mailchimp pour segmentation : 'used' bloque
+    // les relances "votre code vous attend", 'active' les autorise.
+    const promoStatus =
+      (r as any).promo_status ||
+      ((r as any).promo_redeemed_at ? 'used' : 'active')
+    const statusTag = promoStatus === 'used' ? 'promo-utilise' : 'promo-actif'
+
     const res = await service.upsertMember({
       email: r.email,
       audienceId: effectiveAudienceId,
       mergeFields: {
         FNAME: r.first_name || '',
         LNAME: r.last_name || '',
+        PHONE: (r as any).phone || '',
         COUNTRY: r.country || '',
         PROMO: r.promo_code || '',
+        PROMOSTAT: promoStatus,
       },
-      tags: [keynoteTag, promoTag].filter(Boolean),
+      tags: [keynoteTag, promoTag, statusTag].filter(Boolean),
     })
 
     if (res.ok) {

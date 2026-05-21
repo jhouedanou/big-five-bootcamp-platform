@@ -2,10 +2,11 @@
  * API Route: POST /api/promo/validate
  *
  * Valide un code promo LAVEIYE distribué lors de l'inscription au keynote
- * et retourne les conditions de l'offre (3 mois Basic à 10 000 FCFA).
+ * et retourne le bonus associé : 3 mois Basic offerts, cumulable avec
+ * n'importe quel plan (Discovery / Basic / Pro, mensuel ou annuel).
  *
- * Body: { code: string }
- * Réponse OK : { valid: true, offer: { plan, price, originalPrice, durationDays, ... } }
+ * Body: { code: string, email: string }
+ * Réponse OK : { valid: true, offer: { kind:'bonus_basic', bonusDurationDays, ... } }
  * Réponse KO : { valid: false, error: string }
  */
 
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
   // connaître aussi l'email du destinataire d'origine.
   const { data, error } = await supabase
     .from('keynote_registrations')
-    .select('id, email, promo_code, promo_redeemed_at')
+    .select('id, email, promo_code, promo_redeemed_at, promo_status')
     .eq('promo_code', code)
     .eq('email', email)
     .maybeSingle()
@@ -88,7 +89,17 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  if (data.promo_redeemed_at) {
+  // promo_status est la source de vérité (active / used / expired).
+  // On garde le fallback sur promo_redeemed_at pour les lignes antérieures
+  // à la migration `scripts/keynote-registrations-promo-status.sql`.
+  const status = (data as any).promo_status as string | null | undefined
+  if (status === 'expired') {
+    return NextResponse.json(
+      { valid: false, error: 'Ce code promo a expiré.' },
+      { status: 410 }
+    )
+  }
+  if (status === 'used' || data.promo_redeemed_at) {
     return NextResponse.json(
       { valid: false, error: 'Ce code a déjà été utilisé' },
       { status: 409 }
@@ -98,13 +109,12 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({
     valid: true,
     offer: {
-      plan: KEYNOTE_PROMO_OFFER.plan,
-      planLabel: KEYNOTE_PROMO_OFFER.planLabel,
-      price: KEYNOTE_PROMO_OFFER.price,
-      originalPrice: KEYNOTE_PROMO_OFFER.originalPrice,
-      durationDays: KEYNOTE_PROMO_OFFER.durationDays,
-      durationLabel: KEYNOTE_PROMO_OFFER.durationLabel,
-      billing: KEYNOTE_PROMO_OFFER.billing,
+      kind: 'bonus_basic',
+      bonusPlan: KEYNOTE_PROMO_OFFER.bonusPlan,
+      bonusPlanLabel: KEYNOTE_PROMO_OFFER.bonusPlanLabel,
+      bonusDurationDays: KEYNOTE_PROMO_OFFER.bonusDurationDays,
+      bonusDurationLabel: KEYNOTE_PROMO_OFFER.bonusDurationLabel,
+      label: KEYNOTE_PROMO_OFFER.label,
     },
   })
 }

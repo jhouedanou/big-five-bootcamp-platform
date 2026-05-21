@@ -6,21 +6,98 @@
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // sans 0/O/1/I/L
 
 /**
- * Configuration de l'offre promo distribuée lors du keynote LAVEIYE :
- * 3 mois d'accès au plan Basic pour 10 000 FCFA TTC
- * (au lieu de 4 900 × 3 = 14 700 FCFA).
+ * Offre promo LAVEIYE distribuée lors du keynote :
+ *
+ *   "3 mois Basic offerts" — bonus cumulable avec n'importe quel plan
+ *   souscrit (Discovery / Basic / Pro, mensuel ou annuel). Le code n'agit
+ *   PAS sur le prix : il ajoute simplement 90 jours d'accès Basic au
+ *   parcours de l'utilisateur. La position de la phase Basic dépend du
+ *   plan choisi (cf. `computePromoPhases` ci-dessous).
+ *
+ *   - Discovery + promo  → 3 mois Basic, puis Discovery
+ *   - Basic + promo      → durée Basic + 3 mois Basic (phase continue)
+ *   - Pro + promo        → Pro, puis 3 mois Basic
  */
 export const KEYNOTE_PROMO_OFFER = {
-  plan: 'basic' as const,
-  planLabel: 'Basic',
-  price: 10000,
-  originalPrice: 14700,
-  durationDays: 90,
-  durationLabel: '3 mois',
-  billing: 'promo3m' as const,
+  /** Plan offert en bonus (toujours Basic). */
+  bonusPlan: 'Basic' as const,
+  bonusPlanLabel: 'Basic',
+  /** Durée du bonus en jours. */
+  bonusDurationDays: 90,
+  bonusDurationLabel: '3 mois',
+  /** Libellé court à afficher (profil, reçu, UI). */
+  label: '3 mois Basic offerts',
   prefix: 'LAVEIYE',
   /** Format attendu (regex) : LAVEIYE-XXXX (4 chars dans l'alphabet sans ambiguïté) */
   codeRegex: /^LAVEIYE-[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{4}$/,
+}
+
+/** Rang interne d'un plan, pour comparer où placer la phase bonus Basic. */
+function promoPlanRank(plan: string): number {
+  const p = plan.toLowerCase()
+  if (p === 'pro') return 3
+  if (p === 'basic') return 2
+  if (p === 'discovery') return 1
+  return 0
+}
+
+export type PromoPhases =
+  /** Discovery (rang < Basic) : 3 mois Basic d'abord, puis plan souscrit. */
+  | {
+      kind: 'before'
+      firstPlan: 'Basic'
+      firstDurationDays: number
+      secondPlan: 'Discovery' | 'Pro'
+      secondDurationDays: number
+    }
+  /** Basic : phase unique continue (Basic) = durée plan + 90 j bonus. */
+  | {
+      kind: 'merged'
+      firstPlan: 'Basic'
+      firstDurationDays: number
+    }
+  /** Pro (rang > Basic) : plan souscrit d'abord, puis 3 mois Basic. */
+  | {
+      kind: 'after'
+      firstPlan: 'Pro'
+      firstDurationDays: number
+      secondPlan: 'Basic'
+      secondDurationDays: number
+    }
+
+/**
+ * Calcule l'enchaînement des phases d'abonnement quand le code promo
+ * LAVEIYE est appliqué sur un plan acheté de durée `planDurationDays`.
+ *
+ *   planKey         : 'discovery' | 'basic' | 'pro' (canonique côté API)
+ *   planDurationDays: 30 (mensuel) ou 365 (annuel)
+ */
+export function computePromoPhases(
+  planKey: string,
+  planDurationDays: number
+): PromoPhases {
+  const bonus = KEYNOTE_PROMO_OFFER.bonusDurationDays
+  const rank = promoPlanRank(planKey)
+  if (rank === 2) {
+    return { kind: 'merged', firstPlan: 'Basic', firstDurationDays: planDurationDays + bonus }
+  }
+  if (rank > 2) {
+    return {
+      kind: 'after',
+      firstPlan: 'Pro',
+      firstDurationDays: planDurationDays,
+      secondPlan: 'Basic',
+      secondDurationDays: bonus,
+    }
+  }
+  // rank < 2 (Discovery)
+  return {
+    kind: 'before',
+    firstPlan: 'Basic',
+    firstDurationDays: bonus,
+    secondPlan: 'Discovery',
+    secondDurationDays: planDurationDays,
+  }
 }
 
 /** Normalise un code promo saisi par l'utilisateur (uppercase + trim). */

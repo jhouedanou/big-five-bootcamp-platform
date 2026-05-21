@@ -27,8 +27,10 @@ import {
 } from '@/lib/pawapay';
 import {
   KEYNOTE_PROMO_OFFER,
+  computePromoPhases,
   isPromoCodeFormatValid,
   normalizePromoCode,
+  type PromoPhases,
 } from '@/lib/promo-codes';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 
@@ -116,10 +118,11 @@ export async function POST(request: NextRequest) {
     }
 
     // ——————————————————————————————————————————————————
-    // Code promo LAVEIYE — valide UNIQUEMENT pour le plan Basic
-    // Override : prix = 10 000 FCFA, durée = 90 jours
-    // ——————————————————————————————————————————————————
-    let promoApplied: { code: string; registrationId: string } | null = null;
+    // Code promo LAVEIYE — BONUS "3 mois Basic offerts" cumulable avec
+    // n'importe quel plan. Les phases (avant/après/mergé) sont calculées
+    // ici puis appliquées à l'activation par le callback PawaPay.
+    // ————————————————————————————————————————————————
+    let promoApplied: { code: string; registrationId: string; phases: PromoPhases } | null = null;
     const normalizedPromo = normalizePromoCode(promoCode);
 
     if (normalizedPromo) {
@@ -145,7 +148,7 @@ export async function POST(request: NextRequest) {
       const promoEmail = (userEmail || '').toLowerCase().trim();
       const { data: regRow } = await supabaseAdmin
         .from('keynote_registrations')
-        .select('id, email, promo_code, promo_redeemed_at')
+        .select('id, email, promo_code, promo_redeemed_at, promo_status')
         .eq('promo_code', normalizedPromo)
         .eq('email', promoEmail)
         .maybeSingle();
@@ -156,14 +159,14 @@ export async function POST(request: NextRequest) {
           { status: 404 }
         );
       }
-      if ((regRow as any).promo_redeemed_at) {
-        return NextResponse.json({ error: 'Ce code a déjà été utilisé' }, { status: 409 });
+      // promo_status = source de vérité (fallback promo_redeemed_at pour les
+      // lignes antérieures à la migration promo-status).
+      const regStatus = (regRow as any).promo_status as string | null | undefined;
+      if (regStatus === 'expired') {
+        return NextResponse.json({ error: 'Ce code promo a expiré' }, { status: 410 });
       }
-      if (planKey !== KEYNOTE_PROMO_OFFER.plan) {
-        return NextResponse.json(
-          { error: `Ce code promo est réservé au plan ${KEYNOTE_PROMO_OFFER.planLabel}` },
-          { status: 400 }
-        );
+      if (regStatus === 'used' || (regRow as any).promo_redeemed_at) {
+        return NextResponse.json({ error: 'Ce code a déjà été utilisé' }, { status: 409 });
       }
 
       // Empêcher l'utilisation concurrente : refuser si un paiement
@@ -181,18 +184,29 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      promoApplied = { code: normalizedPromo, registrationId: (regRow as any).id };
+      // Calcul des phases selon le plan choisi par l'utilisateur.
+      const planDurationDaysForPromo = isAnnual
+        ? ANNUAL_SUBSCRIPTION_DURATION_DAYS
+        : SUBSCRIPTION_DURATION_DAYS;
+      const phases = computePromoPhases(planKey, planDurationDaysForPromo);
+
+      promoApplied = {
+        code: normalizedPromo,
+        registrationId: (regRow as any).id,
+        phases,
+      };
     }
 
-    const SUBSCRIPTION_PRICE = promoApplied
-      ? KEYNOTE_PROMO_OFFER.price
-      : (isAnnual ? planConfig.annualPrice : planConfig.price);
+    // Prix : strictement celui du plan choisi. Le bonus LAVEIYE est gratuit.
+    const SUBSCRIPTION_PRICE = isAnnual ? planConfig.annualPrice : planConfig.price;
+    // Durée de la PREMIÈRE phase d'accès :
+    // - sans promo : durée standard du billing choisi
+    // - avec promo : firstDurationDays calculé par computePromoPhases
+    //   (ex. "before" Discovery → 90 j Basic ; "merged" Basic → plan+90 j ; "after" Pro → durée plan)
     const durationDays = promoApplied
-      ? KEYNOTE_PROMO_OFFER.durationDays
+      ? promoApplied.phases.firstDurationDays
       : (isAnnual ? ANNUAL_SUBSCRIPTION_DURATION_DAYS : SUBSCRIPTION_DURATION_DAYS);
-    const billingLabel = promoApplied
-      ? KEYNOTE_PROMO_OFFER.durationLabel
-      : (isAnnual ? '1 an' : '1 mois');
+    const billingLabel = isAnnual ? '1 an' : '1 mois';
 
     // Verifier si l'utilisateur existe
     let { data: existingUser, error: userError } = await supabaseAdmin
@@ -267,6 +281,24 @@ export async function POST(request: NextRequest) {
     //   extension à partir de currentEndDate, ou démarrage immédiat).
     // - Si un downgrade est déjà en attente : refus pour éviter d'écraser.
     // ——————————————————————————————————————————————————
+    // Promo + abonnement déjà actif = combinaison non supportée pour MVP
+    // (compliquerait la fusion des phases avec le restant du plan en cours).
+    // L'utilisateur doit consommer son code après expiration.
+    if (promoApplied && (existingUser as any).subscription_status === 'active') {
+      const endDate = (existingUser as any).subscription_end_date
+        ? new Date((existingUser as any).subscription_end_date)
+        : null;
+      if (endDate && endDate > new Date()) {
+        return NextResponse.json(
+          {
+            error: "Le code promo n'est utilisable qu'à la souscription initiale. Votre abonnement actuel est encore actif jusqu'au " +
+              endDate.toLocaleDateString('fr-FR') + '.',
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     let isDowngrade = false;
     let pendingStartsAt: Date | null = null;
 
@@ -309,6 +341,12 @@ export async function POST(request: NextRequest) {
     ).slice(0, 22); // PawaPay : max 22 chars
 
     // Creer le paiement dans la base
+    // Plan effectivement servi en PREMIÈRE phase (peut différer du planKey
+    // acheté quand un promo est appliqué : ex. Discovery acheté → phase 1 = Basic).
+    const firstPhasePlanDbKey = promoApplied
+      ? promoApplied.phases.firstPlan // 'Basic' | 'Pro'
+      : planConfig.dbKey;
+
     const paymentInsert = {
       user_email: userEmail,
       amount: SUBSCRIPTION_PRICE,
@@ -322,7 +360,8 @@ export async function POST(request: NextRequest) {
         type: 'subscription',
         plan: planKey,
         plan_label: planConfig.label,
-        billing: promoApplied ? 'promo3m' : (isAnnual ? 'annual' : 'monthly'),
+        plan_db_key: planConfig.dbKey,
+        billing: isAnnual ? 'annual' : 'monthly',
         renewal: isCurrentlyActive,
         is_downgrade: isDowngrade,
         pending_starts_at: isDowngrade ? pendingStartsAt!.toISOString() : null,
@@ -330,7 +369,7 @@ export async function POST(request: NextRequest) {
         subscription_end_date: subscriptionEndDate.toISOString(),
         previous_end_date: isCurrentlyActive ? currentEndDate!.toISOString() : null,
         item_name: promoApplied
-          ? `Offre LAVEIYE — ${planConfig.label} ${billingLabel}`
+          ? `Abonnement Laveiye ${planConfig.label} ${billingLabel} + bonus LAVEIYE`
           : (isCurrentlyActive
               ? `Renouvellement Laveiye ${planConfig.label} - ${billingLabel}`
               : `Abonnement Laveiye ${planConfig.label} - ${billingLabel}`),
@@ -338,6 +377,31 @@ export async function POST(request: NextRequest) {
         userId: (existingUser as any).id,
         promo_code: promoApplied?.code || null,
         promo_registration_id: promoApplied?.registrationId || null,
+        // Bonus LAVEIYE : phases d'abonnement à dérouler dans le callback.
+        // - first_phase_plan : plan effectivement servi immédiatement
+        // - bonus_phase      : phase supplémentaire à placer en pending (si !merged)
+        promo_bonus: promoApplied
+          ? {
+              label: KEYNOTE_PROMO_OFFER.label,
+              kind: promoApplied.phases.kind,
+              first_phase_plan: firstPhasePlanDbKey,
+              first_phase_duration_days: promoApplied.phases.firstDurationDays,
+              bonus_phase:
+                promoApplied.phases.kind === 'merged'
+                  ? null
+                  : {
+                      plan:
+                        promoApplied.phases.kind === 'before'
+                          ? promoApplied.phases.secondPlan
+                          : promoApplied.phases.secondPlan,
+                      duration_days:
+                        promoApplied.phases.kind === 'before'
+                          ? promoApplied.phases.secondDurationDays
+                          : promoApplied.phases.secondDurationDays,
+                      billing: isAnnual ? 'annual' : 'monthly',
+                    },
+            }
+          : null,
       },
     };
 
@@ -373,7 +437,7 @@ export async function POST(request: NextRequest) {
           { ref_command },
           { type: 'subscription' },
           { plan: planKey },
-          { billing: promoApplied ? 'promo3m' : (isAnnual ? 'annual' : 'monthly') },
+          { billing: isAnnual ? 'annual' : 'monthly' },
           { user_id: String((existingUser as any).id) },
           { renewal: isCurrentlyActive ? 'true' : 'false' },
           ...(promoApplied ? [{ promo_code: promoApplied.code }] : []),
@@ -448,11 +512,12 @@ export async function POST(request: NextRequest) {
       currency,
       plan: planKey,
       plan_label: planConfig.label,
-      billing: promoApplied ? 'promo3m' : (isAnnual ? 'annual' : 'monthly'),
+      billing: isAnnual ? 'annual' : 'monthly',
       duration_days: durationDays,
       subscription_end_date: subscriptionEndDate.toISOString(),
       renewal: isCurrentlyActive,
       promo_code: promoApplied?.code || null,
+      promo_bonus_label: promoApplied ? KEYNOTE_PROMO_OFFER.label : null,
     });
 
   } catch (error) {

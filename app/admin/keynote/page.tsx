@@ -27,6 +27,9 @@ interface Registration {
   last_name: string | null;
   country: string | null;
   promo_code: string;
+  promo_status: 'active' | 'used' | 'expired' | null;
+  promo_redeemed_plan: string | null;
+  promo_redeemed_amount: number | null;
   mailchimp_status: string | null;
   mailchimp_synced_at: string | null;
   mailchimp_error: string | null;
@@ -404,6 +407,7 @@ export default function KeynoteAdminPage() {
                   <th className="text-left font-semibold px-4 py-3">Pays</th>
                   <th className="text-left font-semibold px-4 py-3">Code promo</th>
                   <th className="text-left font-semibold px-4 py-3">Mailchimp</th>
+                  <th className="text-left font-semibold px-4 py-3">Statut promo</th>
                   <th className="text-left font-semibold px-4 py-3">Utilisé</th>
                   <th className="text-left font-semibold px-4 py-3 w-10"></th>
                 </tr>
@@ -451,6 +455,33 @@ export default function KeynoteAdminPage() {
                           </span>
                         )}
                       </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs whitespace-nowrap">
+                      {(() => {
+                        const status =
+                          r.promo_status ||
+                          (r.promo_redeemed_at ? 'used' : 'active');
+                        if (status === 'used') {
+                          return (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-700 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded">
+                              Utilisé
+                              {r.promo_redeemed_plan ? ` · ${r.promo_redeemed_plan}` : ''}
+                            </span>
+                          );
+                        }
+                        if (status === 'expired') {
+                          return (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded">
+                              Expiré
+                            </span>
+                          );
+                        }
+                        return (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                            Actif
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
                       {r.promo_redeemed_at

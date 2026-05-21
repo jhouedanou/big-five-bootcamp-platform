@@ -7,7 +7,7 @@ import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { Mail, Check, ArrowRight, Loader2, Lock, AlertTriangle, Receipt, Download, FileText, RefreshCw, TrendingUp, CreditCard, Camera, KeyRound, Search as SearchIcon, Eye, EyeOff } from "lucide-react"
+import { Mail, Check, ArrowRight, Loader2, Lock, AlertTriangle, Receipt, Download, FileText, RefreshCw, TrendingUp, CreditCard, Camera, KeyRound, Search as SearchIcon, Eye, EyeOff, Sparkles, X } from "lucide-react"
 import { createClient } from "@/lib/supabase"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
@@ -26,6 +26,12 @@ interface UserProfile {
   pendingStartsAt?: string | null
   pendingDurationDays?: number | null
   pendingBilling?: string | null
+  // Code promo LAVEIYE associé à l'utilisateur (3 mois Basic offerts).
+  // États : 'active' (code reçu, encore utilisable), 'used' (déjà consommé),
+  // 'expired' (invalidé par l'admin), null (aucun code).
+  laveiyeCode?: string | null
+  laveiyeStatus?: 'active' | 'used' | 'expired' | null
+  laveiyeRedeemedAt?: string | null
 }
 
 interface PaymentRecord {
@@ -81,6 +87,9 @@ export default function ProfilePage() {
     pendingStartsAt: null,
     pendingDurationDays: null,
     pendingBilling: null,
+    laveiyeCode: null,
+    laveiyeStatus: null,
+    laveiyeRedeemedAt: null,
   })
 
   // Charger les données utilisateur depuis Supabase
@@ -144,6 +153,33 @@ export default function ProfilePage() {
 
       const userName = profile?.full_name || profile?.name || authUser.user_metadata?.full_name || authUser.email?.split("@")[0] || "Utilisateur"
       
+      // Récupérer le code LAVEIYE associé à l'email (qu'il soit actif ou déjà
+      // utilisé). On veut afficher trois états distincts dans le profil :
+      // "aucun code", "code disponible", "code utilisé".
+      const { data: keynoteRow } = await supabase
+        .from("keynote_registrations")
+        .select("promo_code, promo_redeemed_at, promo_status")
+        .eq("email", String(authUser.email).toLowerCase())
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      const rawStatus = (keynoteRow as any)?.promo_status as
+        | 'active'
+        | 'used'
+        | 'expired'
+        | null
+        | undefined
+      const redeemedAt = (keynoteRow as any)?.promo_redeemed_at as
+        | string
+        | null
+        | undefined
+      // Fallback pour les lignes antérieures à la migration promo_status :
+      // une date de redemption => 'used', sinon 'active'.
+      const laveiyeStatus = keynoteRow
+        ? rawStatus || (redeemedAt ? 'used' : 'active')
+        : null
+
       setUser({
         name: userName,
         email: authUser.email || "",
@@ -156,6 +192,9 @@ export default function ProfilePage() {
         pendingStartsAt: profile?.pending_plan_starts_at || null,
         pendingDurationDays: profile?.pending_duration_days || null,
         pendingBilling: profile?.pending_billing || null,
+        laveiyeCode: (keynoteRow as any)?.promo_code || null,
+        laveiyeStatus,
+        laveiyeRedeemedAt: redeemedAt || null,
       })
     } catch (error: any) {
       if (error?.name === 'AbortError') return
@@ -504,6 +543,11 @@ export default function ProfilePage() {
                   <div className="text-sm">
                     <p className="font-semibold text-foreground">
                       Prochain plan : {user.pendingPlan}
+                      {user.laveiyeCode && (
+                        <span className="ml-2 inline-block rounded-full bg-[#F2B33D]/20 px-2 py-0.5 text-[10px] font-bold text-[#a17320] align-middle">
+                          Bonus LAVEIYE
+                        </span>
+                      )}
                     </p>
                     <p className="mt-0.5 text-muted-foreground">
                       Activation le{" "}
@@ -516,6 +560,53 @@ export default function ProfilePage() {
                       . Vous restez sur <strong>{planName}</strong> jusqu'à cette date.
                     </p>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Bonus LAVEIYE actif sur la phase courante (cas "merged" Basic+90j */}
+            {/* ou "after" Pro avant Basic : pas de pending mais code consommé). */}
+            {user.laveiyeCode && user.laveiyeStatus === 'used' && !user.pendingPlan && (
+              <div className="mt-4 rounded-lg border border-[#F2B33D]/30 bg-[#FFFBEC] dark:bg-amber-950/30 p-3">
+                <div className="flex items-start gap-2">
+                  <Check className="h-4 w-4 text-[#a17320] mt-0.5 shrink-0" />
+                  <p className="text-sm text-foreground">
+                    <span className="font-semibold">Bonus LAVEIYE actif</span> — 3 mois Basic offerts inclus dans votre abonnement (code <code className="font-mono text-xs">{user.laveiyeCode}</code>).
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Code LAVEIYE encore disponible : l'utilisateur a un code mais ne */}
+            {/* l'a pas encore utilisé — on l'incite à l'appliquer à un abonnement. */}
+            {user.laveiyeCode && user.laveiyeStatus === 'active' && (
+              <div className="mt-4 rounded-lg border border-[#F2B33D]/30 bg-[#FFFBEC] dark:bg-amber-950/30 p-3">
+                <div className="flex items-start gap-2">
+                  <Sparkles className="h-4 w-4 text-[#a17320] mt-0.5 shrink-0" />
+                  <div className="text-sm">
+                    <p className="font-semibold text-foreground">
+                      Votre code promo LAVEIYE est disponible
+                    </p>
+                    <p className="mt-0.5 text-muted-foreground">
+                      Utilisez <code className="font-mono text-xs font-semibold text-[#a17320]">{user.laveiyeCode}</code> au moment du paiement pour
+                      ajouter <strong>3 mois Basic offerts</strong> à n'importe quel plan
+                      (cumulable avec l'offre annuelle « 2 mois offerts »).
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Code expiré : invalidé par l'admin — message neutre. */}
+            {user.laveiyeCode && user.laveiyeStatus === 'expired' && (
+              <div className="mt-4 rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 p-3">
+                <div className="flex items-start gap-2">
+                  <X className="h-4 w-4 text-red-600 mt-0.5 shrink-0" />
+                  <p className="text-sm text-foreground">
+                    <span className="font-semibold">Code promo expiré</span> — votre code
+                    <code className="font-mono text-xs mx-1">{user.laveiyeCode}</code>
+                    n'est plus utilisable. Contactez-nous si vous pensez qu'il s'agit d'une erreur.
+                  </p>
                 </div>
               </div>
             )}

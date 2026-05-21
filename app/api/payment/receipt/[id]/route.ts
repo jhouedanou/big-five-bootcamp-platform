@@ -80,12 +80,22 @@ export async function GET(
     const planLabel: string =
       meta.plan_label ||
       (meta.plan ? String(meta.plan).charAt(0).toUpperCase() + String(meta.plan).slice(1) : "Abonnement")
-    const billingLabel = meta.billing === 'annual'
-      ? 'annuel'
-      : meta.billing === 'promo3m'
-        ? '3 mois (offre)'
-        : 'mensuel'
+    const billingLabel = meta.billing === 'annual' ? 'annuel' : 'mensuel'
     const planDescription = `Abonnement ${planLabel} (${billingLabel})`
+
+    // Bonus LAVEIYE (3 mois Basic offerts) — affiché en ligne distincte
+    // pour que le reçu trace l'origine du déroulé d'accès du client.
+    const promoBonus = meta.promo_bonus as
+      | { label?: string; kind?: string; bonus_phase?: { plan?: string; duration_days?: number } | null }
+      | null
+      | undefined
+    const promoBonusLine = promoBonus
+      ? `${promoBonus.label || '3 mois Basic offerts'}${
+          promoBonus.bonus_phase
+            ? ` (puis ${promoBonus.bonus_phase.plan} à l'échéance)`
+            : ''
+        }`
+      : null
 
     const endDateRaw = meta.subscription_end_date || null
     const validityDate = endDateRaw
@@ -167,6 +177,10 @@ export async function GET(
       ${validityDate ? `<div class="row">
         <span class="label">Valable jusqu'au</span>
         <span class="value">${validityDate}</span>
+      </div>` : ''}
+      ${promoBonusLine ? `<div class="row" style="background:#FFFBEC;border-radius:8px;padding:10px 12px;margin-top:4px;">
+        <span class="label" style="color:#a17320;font-weight:700;">🎁 Bonus LAVEIYE</span>
+        <span class="value" style="color:#a17320;">${promoBonusLine}</span>
       </div>` : ''}
       <div class="total">
         <div class="row">

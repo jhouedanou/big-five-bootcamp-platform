@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from('keynote_registrations')
-    .select('id, email, first_name, last_name, country, promo_code, mailchimp_status, mailchimp_synced_at, mailchimp_error, promo_redeemed_at, created_at')
+    .select('id, email, first_name, last_name, country, promo_code, promo_status, promo_redeemed_plan, promo_redeemed_amount, mailchimp_status, mailchimp_synced_at, mailchimp_error, promo_redeemed_at, created_at')
     .order('created_at', { ascending: false })
     .limit(limit)
 

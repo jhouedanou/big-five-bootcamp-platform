@@ -3,11 +3,13 @@ import { Resend } from 'resend'
 import { getSupabaseAdmin } from '@/lib/supabase-server'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
-// Valeurs par défaut
-// IMPORTANT : Avec onboarding@resend.dev, Resend n'envoie qu'au propriétaire du compte.
-// Pour envoyer à d'autres destinataires, vérifiez un domaine sur resend.com/domains
-const DEFAULT_TO_EMAIL = process.env.CONTACT_TO_EMAIL || 'analyticsbigfive@gmail.com'
-const DEFAULT_FROM_EMAIL = process.env.CONTACT_FROM_EMAIL || 'Laveiye <onboarding@resend.dev>'
+// Valeurs par défaut.
+// - TO : support@laveiye.com, forwardé vers contacts@bigfiveabidjan.com via
+//   Cloudflare Email Routing (cf. RESEND_SUPPORT_EMAIL_SETUP.md).
+// - FROM : noreply@laveiye.com, domaine vérifié dans Resend (DKIM + SPF).
+const DEFAULT_TO_EMAIL = process.env.CONTACT_TO_EMAIL || 'support@laveiye.com'
+const DEFAULT_FROM_EMAIL =
+  process.env.CONTACT_FROM_EMAIL || 'Laveiye <noreply@laveiye.com>'
 
 // Récupérer les adresses email depuis Supabase (configurable depuis l'admin)
 async function getContactEmails() {

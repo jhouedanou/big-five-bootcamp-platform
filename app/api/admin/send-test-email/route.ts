@@ -1,5 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
+import { getSupabaseAdmin } from '@/lib/supabase-server'
+
+const DEFAULT_FROM_EMAIL =
+  process.env.CONTACT_FROM_EMAIL || 'Laveiye <support@laveiye.com>'
+
+async function getFromEmail() {
+  try {
+    const admin = getSupabaseAdmin()
+    const { data } = await admin
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'contact_from_email')
+      .maybeSingle<{ value: string | null }>()
+
+    return data?.value || DEFAULT_FROM_EMAIL
+  } catch {
+    return DEFAULT_FROM_EMAIL
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { data, error } = await resend.emails.send({
-      from: 'Laveiye <onboarding@resend.dev>',
+      from: await getFromEmail(),
       to: email,
       subject: 'Test - Laveiye',
       html: `

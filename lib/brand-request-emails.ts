@@ -11,7 +11,7 @@ import { Resend } from 'resend'
 import { getSupabaseAdmin } from './supabase-server'
 
 const DEFAULT_FROM_EMAIL =
-  process.env.CONTACT_FROM_EMAIL || 'Laveiye <onboarding@resend.dev>'
+  process.env.CONTACT_FROM_EMAIL || 'Laveiye <noreply@laveiye.com>'
 
 export type BrandEmailKind =
   | 'submission_received'

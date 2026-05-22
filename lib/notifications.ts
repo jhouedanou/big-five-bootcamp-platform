@@ -1,28 +1,25 @@
 /**
- * Notifications transactionnelles (Resend).
+ * Notifications transactionnelles via Gmail API (service account + DWD).
  *
  * 3 events:
- *   - notifyPaymentSuccess     : user paie un abonnement
- *   - notifyPromoCodeRedeemed  : user applique un code promo
- *   - notifyBrandRequestSubmitted : user envoie une demande de suivi de marque
+ *   - notifyPaymentSuccess
+ *   - notifyPromoCodeRedeemed
+ *   - notifyBrandRequestSubmitted
  *
  * Chaque event envoie :
- *   - 1 email au user (confirmation, opt-out respecté via email_unsubscribed)
- *   - 1 email à l'équipe interne (support@laveiye.com ou SUPPORT_EMAIL)
+ *   - 1 email au user (opt-out via email_unsubscribed)
+ *   - 1 email interne (SUPPORT_EMAIL, par défaut contacts@bigfiveabidjan.com)
  *
- * Tous les envois sont best-effort : pas de throw, échecs loggés.
+ * Best-effort : pas de throw, échecs loggés.
  */
 
-import { Resend } from 'resend'
+import { sendMail } from './gmail-sender'
 import { getSupabaseAdmin } from './supabase-server'
 
 const DEFAULT_FROM_EMAIL =
-  process.env.CONTACT_FROM_EMAIL || 'Laveiye <noreply@laveiye.com>'
+  process.env.GMAIL_FROM || process.env.CONTACT_FROM_EMAIL || 'Laveiye <support@laveiye.com>'
 
-// Mails internes (paiements, promos, demandes de marque) sont envoyés à
-// support@laveiye.com et peuvent être forwardés par Resend Inbound vers
-// l'adresse opérationnelle configurée (cf. RESEND_SUPPORT_EMAIL_SETUP.md).
-const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'support@laveiye.com'
+const SUPPORT_EMAIL = process.env.SUPPORT_EMAIL || 'contacts@bigfiveabidjan.com'
 
 function appUrl(): string {
   return (
@@ -88,21 +85,19 @@ async function send(args: {
   subject: string
   html: string
 }): Promise<void> {
-  if (!process.env.RESEND_API_KEY) {
-    console.warn('[notifications] RESEND_API_KEY missing, skip:', args.subject)
+  if (!process.env.GMAIL_PRIVATE_KEY) {
+    console.warn('[notifications] GMAIL_PRIVATE_KEY missing, skip:', args.subject)
     return
   }
-  try {
-    const resend = new Resend(process.env.RESEND_API_KEY)
-    const from = await getFromEmail()
-    await resend.emails.send({
-      from,
-      to: args.to,
-      subject: args.subject,
-      html: args.html,
-    })
-  } catch (e) {
-    console.error('[notifications] send failed:', args.subject, e)
+  const from = await getFromEmail()
+  const result = await sendMail({
+    from,
+    to: args.to,
+    subject: args.subject,
+    html: args.html,
+  })
+  if (!result.ok) {
+    console.error('[notifications] send failed:', args.subject, result.error)
   }
 }
 

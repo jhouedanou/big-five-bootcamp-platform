@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Resend } from 'resend'
-import { getSupabaseAdmin } from '@/lib/supabase-server'
+import { sendMail } from '@/lib/gmail-sender'
+import { getSupabaseAdmin, getSupabaseServer } from '@/lib/supabase-server'
+import { ADMIN_EMAILS } from '@/lib/admin-auth'
+
+async function ensureAdmin() {
+  const supabase = await getSupabaseServer()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return false
+  return user.user_metadata?.role === 'admin' || ADMIN_EMAILS.includes((user.email || '').toLowerCase())
+}
 
 const DEFAULT_FROM_EMAIL =
-  process.env.CONTACT_FROM_EMAIL || 'Laveiye <support@laveiye.com>'
+  process.env.GMAIL_FROM || process.env.CONTACT_FROM_EMAIL || 'Laveiye <support@laveiye.com>'
 
 async function getFromEmail() {
   try {
@@ -22,14 +30,17 @@ async function getFromEmail() {
 
 export async function POST(request: NextRequest) {
   try {
-    const resend = new Resend(process.env.RESEND_API_KEY)
+    if (!(await ensureAdmin())) {
+      return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
+    }
+
     const { email, name } = await request.json()
 
     if (!email) {
       return NextResponse.json({ error: 'Email requis' }, { status: 400 })
     }
 
-    const { data, error } = await resend.emails.send({
+    const result = await sendMail({
       from: await getFromEmail(),
       to: email,
       subject: 'Test - Laveiye',
@@ -43,10 +54,10 @@ export async function POST(request: NextRequest) {
             <h2 style="color: #0F0F0F; margin: 0 0 12px;">Salut ${name || 'there'} !</h2>
             <p style="color: #4b5563; line-height: 1.6;">
               Ceci est un email de test envoyé depuis l'administration Laveiye.
-              Si tu reçois cet email, Resend fonctionne correctement.
+              Si tu reçois cet email, le relais Gmail API fonctionne correctement.
             </p>
             <div style="background: #10B981; color: white; padding: 12px 20px; border-radius: 8px; text-align: center; margin: 20px 0; font-weight: bold;">
-              Resend OK
+              Gmail API OK
             </div>
             <p style="color: #9ca3af; font-size: 12px; margin: 16px 0 0;">
               Envoyé le ${new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
@@ -56,11 +67,11 @@ export async function POST(request: NextRequest) {
       `,
     })
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true, id: data?.id })
+    return NextResponse.json({ success: true, id: result.id })
   } catch (err) {
     console.error('Send test email error:', err)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })

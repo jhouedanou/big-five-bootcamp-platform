@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Save, Lock, Eye, EyeOff, Loader2, Mail, RotateCcw, Users, ShoppingCart, ExternalLink, AlertTriangle } from "lucide-react";
+import { Save, Lock, Eye, EyeOff, Loader2, Mail, ShoppingCart, ExternalLink, AlertTriangle, Send } from "lucide-react";
 import { toast } from "sonner";
 import { parseMaintenanceMode, serializeMaintenanceMode } from "@/lib/maintenance-mode";
 
@@ -165,23 +165,33 @@ export default function SettingsPage() {
     }
   };
 
-  // Reset vues Découverte
-  const [isResettingViews, setIsResettingViews] = useState(false);
-  const [resetResult, setResetResult] = useState<string | null>(null);
+  // Email test (Gmail API relay)
+  const [testEmailTo, setTestEmailTo] = useState("");
+  const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
+  const [testEmailResult, setTestEmailResult] = useState<string | null>(null);
 
-  const handleResetFreeViews = async () => {
-    setIsResettingViews(true);
-    setResetResult(null);
+  const handleSendTestEmail = async () => {
+    const target = testEmailTo.trim();
+    if (!EMAIL_RE.test(target)) {
+      toast.error("Adresse email invalide");
+      return;
+    }
+    setIsSendingTestEmail(true);
+    setTestEmailResult(null);
     try {
-      const res = await fetch("/api/admin/reset-free-views", { method: "POST" });
+      const res = await fetch("/api/admin/send-test-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: target, name: "Test admin" }),
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Erreur");
-      toast.success(data.message);
-      setResetResult(data.message);
+      toast.success(`Email envoyé à ${target}`);
+      setTestEmailResult(`Email envoyé à ${target} (ID: ${data.id || "n/a"})`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erreur lors de la réinitialisation");
+      toast.error(err instanceof Error ? err.message : "Erreur lors de l'envoi");
     } finally {
-      setIsResettingViews(false);
+      setIsSendingTestEmail(false);
     }
   };
 
@@ -639,47 +649,52 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Reset vues utilisateurs Découverte */}
+        {/* Email test (relais Gmail API) */}
         <Card className="bg-white border-gray-200 shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-500/10">
-                <RotateCcw className="h-5 w-5 text-red-600" />
+              <div className="p-2 rounded-lg bg-blue-500/10">
+                <Send className="h-5 w-5 text-blue-600" />
               </div>
               <div>
-                <CardTitle className="text-gray-900">Réinitialiser les vues (plan Découverte)</CardTitle>
+                <CardTitle className="text-gray-900">Test du relais email</CardTitle>
                 <CardDescription className="text-gray-600">
-                  Remet à zéro le compteur de consultations de campagnes de tous les utilisateurs en plan gratuit.
+                  Envoie un email de test via le relais Gmail API configuré.
                 </CardDescription>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
-              <p className="text-sm text-amber-800">
-                <strong>Attention :</strong> cette action est irréversible. Elle remet à zéro{" "}
-                <code className="rounded bg-amber-100 px-1">daily_click_count</code> et{" "}
-                <code className="rounded bg-amber-100 px-1">monthly_campaigns_explored</code> pour
-                tous les utilisateurs Découverte.
+          <CardContent className="space-y-4 max-w-lg">
+            <div>
+              <Label htmlFor="testEmailTo" className="text-gray-900">Destinataire</Label>
+              <p className="text-xs text-gray-500 mb-1.5">
+                L'adresse qui recevra l'email de test.
               </p>
+              <Input
+                id="testEmailTo"
+                type="email"
+                value={testEmailTo}
+                onChange={(e) => setTestEmailTo(e.target.value)}
+                placeholder="vous@example.com"
+              />
             </div>
-            {resetResult && (
-              <p className="text-sm text-green-700 font-medium">✓ {resetResult}</p>
+            {testEmailResult && (
+              <p className="text-sm text-green-700 font-medium">✓ {testEmailResult}</p>
             )}
             <Button
-              variant="destructive"
-              onClick={handleResetFreeViews}
-              disabled={isResettingViews}
+              onClick={handleSendTestEmail}
+              disabled={isSendingTestEmail || !testEmailTo}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              {isResettingViews ? (
+              {isSendingTestEmail ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Réinitialisation...
+                  Envoi...
                 </>
               ) : (
                 <>
-                  <Users className="h-4 w-4 mr-2" />
-                  Réinitialiser les vues Découverte
+                  <Send className="h-4 w-4 mr-2" />
+                  Envoyer un email test
                 </>
               )}
             </Button>

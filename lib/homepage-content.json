@@ -65,6 +65,7 @@
     "subtitle": "Ne perdez plus de temps sur des captures d'écran désorganisées. Notre dashboard unifié vous donne une vue d'ensemble sur le marché en temps réel.",
     "features": [
       "Sauvegardez vos favoris dans des collections",
+      "Générez un texte de campagne et une intention visuelle depuis vos favoris",
       "Partagez des collections avec vos clients",
       "Téléchargez les assets en haute qualité"
     ],
@@ -144,6 +145,7 @@
           "Campagnes consultables en illimité",
           "Favoris",
           "Collections personnalisées",
+          "Générateur de campagnes (favoris → texte + visuel)",
           "Téléchargement de visuels",
           "Alertes email hebdo",
           "30 recherches ou filtres / mois"
@@ -170,6 +172,7 @@
           "Campagnes consultables en illimité",
           "Favoris",
           "Collections personnalisées",
+          "Générateur de campagnes (favoris → texte + visuel)",
           "Téléchargement de visuels",
           "Alertes email hebdo",
           "Recherches ou filtres illimités",
@@ -193,6 +196,7 @@
         { "name": "Filtres avancés", "discovery": false, "basic": true, "pro": true },
         { "name": "Campagnes consultables", "discovery": "10 par mois", "basic": "Illimité", "pro": "Illimité" },
         { "name": "Collections personnalisées", "discovery": false, "basic": true, "pro": true },
+        { "name": "Générateur de campagnes", "discovery": false, "basic": true, "pro": true },
         { "name": "Téléchargement de visuels", "discovery": false, "basic": true, "pro": true },
         { "name": "Alertes email hebdo", "discovery": true, "basic": true, "pro": true },
         { "name": "Recherches ou filtres / mois", "discovery": "5 par mois", "basic": "30 par mois", "pro": "Illimité" },

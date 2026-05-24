@@ -3,6 +3,7 @@
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { PlayCircle, Maximize2, Heart, ExternalLink } from "lucide-react"
+import { toastCampaignShortcut } from "@/lib/campaign-shortcut-toast"
 import {
     Dialog,
     DialogContent,
@@ -109,9 +110,11 @@ export function CreativeCard({ creative, showFavoriteButton = true }: CreativeCa
             return
         }
         
+        const wasFavorite = isFavorite(creative.id)
         setIsToggling(true)
-        await toggleFavorite(creative.id)
+        const ok = await toggleFavorite(creative.id)
         setIsToggling(false)
+        if (ok && !wasFavorite) toastCampaignShortcut("Ajouté aux favoris")
     }
 
     return (

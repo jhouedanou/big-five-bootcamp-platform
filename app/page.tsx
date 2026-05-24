@@ -2,6 +2,9 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { HeroSection, FeaturesSection, PreviewSection, PricingTeaser } from "@/components/landing/hero-section"
 import { RgpdBottomSheet } from "@/components/rgpd-bottom-sheet"
+import { homeMetadata } from "./page.metadata"
+
+export const metadata = homeMetadata
 
 export default function HomePage() {
   return (

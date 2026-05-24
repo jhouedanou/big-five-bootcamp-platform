@@ -9,8 +9,8 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://laveiye.com'
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: 'Laveiye - La référence créative',
-  description: 'Benchmarkez, analysez et créez des concepts gagnants en quelques minutes.',
+  title: 'Laveiye | Bibliothèque de campagnes marketing africaines',
+  description: 'Analysez les campagnes publicitaires et social media en Afrique francophone. Benchmark, veille créative, inspirations et filtres par pays, secteur et marque.',
   icons: {
     icon: '/favicon_onglet.png',
     shortcut: '/favicon_onglet.png',
@@ -19,8 +19,8 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     siteName: 'Laveiye',
-    title: 'Laveiye - La référence créative',
-    description: 'Benchmarkez, analysez et créez des concepts gagnants en quelques minutes.',
+    title: 'Laveiye | Bibliothèque de campagnes marketing africaines',
+    description: 'Analysez les campagnes publicitaires et social media en Afrique francophone. Benchmark, veille créative, inspirations et filtres par pays, secteur et marque.',
     url: siteUrl,
     locale: 'fr_FR',
     images: [
@@ -34,8 +34,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Laveiye - La référence créative',
-    description: 'Benchmarkez, analysez et créez des concepts gagnants en quelques minutes.',
+    title: 'Laveiye | Bibliothèque de campagnes marketing africaines',
+    description: 'Analysez les campagnes publicitaires et social media en Afrique francophone. Benchmark, veille créative, inspirations et filtres par pays, secteur et marque.',
     images: ['/logo.png'],
   },
 }

@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { checkAdmin } from '@/lib/admin-auth'
 
 /**
  * GET /api/campaigns/[id]
@@ -42,6 +43,13 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Écriture admin uniquement : supabaseAdmin contourne RLS, donc on doit
+    // vérifier l'autorisation ici (le middleware n'intercepte pas /api).
+    const admin = await checkAdmin()
+    if (!admin) {
+      return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
+    }
+
     // Dans Next.js 15+, params est une Promise
     const { id } = await params;
     const body = await request.json()
@@ -74,9 +82,15 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Suppression admin uniquement (supabaseAdmin contourne RLS).
+    const admin = await checkAdmin()
+    if (!admin) {
+      return NextResponse.json({ error: 'Accès réservé aux administrateurs' }, { status: 403 })
+    }
+
     // Dans Next.js 15+, params est une Promise
     const { id } = await params;
-    
+
     const { error } = await (supabaseAdmin as any)
       .from('campaigns')
       .delete()

@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import {
   isAllowedPawaPayIP,
+  checkPayoutStatus,
   type PawaPayPayoutCallback,
 } from '@/lib/pawapay'
 
@@ -56,21 +57,36 @@ export async function POST(request: NextRequest) {
       return new NextResponse('OK', { status: 200 })
     }
 
-    const internalStatus = mapPayoutStatus(payload.status)
+    // SÉCURITÉ : les callbacks PawaPay ne sont pas signés. On revérifie le
+    // statut réel via l'API authentifiée plutôt que de faire confiance au body.
+    let verified: PawaPayPayoutCallback
+    try {
+      const result = await checkPayoutStatus(payload.payoutId)
+      if (result.status === 'NOT_FOUND' || !result.data) {
+        console.warn(`⚠️ payout ${payload.payoutId} introuvable chez PawaPay — callback ignoré`)
+        return new NextResponse('OK', { status: 200 })
+      }
+      verified = result.data
+    } catch (e) {
+      console.error('❌ Vérification PawaPay (payout) impossible, callback non appliqué:', e)
+      return new NextResponse('OK', { status: 200 })
+    }
+
+    const internalStatus = mapPayoutStatus(verified.status)
 
     await (supabaseAdmin as any)
       .from('payouts')
       .update({
         status: internalStatus,
-        provider: payload.recipient?.accountDetails?.provider || null,
-        phone_number: payload.recipient?.accountDetails?.phoneNumber || null,
-        amount: payload.amount ? Number(payload.amount) : undefined,
-        currency: payload.currency || null,
-        country: payload.country || null,
-        provider_transaction_id: payload.providerTransactionId || null,
-        failure_code: payload.failureReason?.failureCode || null,
-        failure_message: payload.failureReason?.failureMessage || null,
-        callback_data: payload as any,
+        provider: verified.recipient?.accountDetails?.provider || null,
+        phone_number: verified.recipient?.accountDetails?.phoneNumber || null,
+        amount: verified.amount ? Number(verified.amount) : undefined,
+        currency: verified.currency || null,
+        country: verified.country || null,
+        provider_transaction_id: verified.providerTransactionId || null,
+        failure_code: verified.failureReason?.failureCode || null,
+        failure_message: verified.failureReason?.failureMessage || null,
+        callback_data: verified as any,
         completed_at:
           internalStatus === 'completed' ? new Date().toISOString() : undefined,
       })

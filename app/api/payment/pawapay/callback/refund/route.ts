@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import {
   isAllowedPawaPayIP,
+  checkRefundStatus,
   type PawaPayRefundCallback,
 } from '@/lib/pawapay'
 
@@ -36,6 +37,24 @@ export async function POST(request: NextRequest) {
       return new NextResponse('OK', { status: 200 })
     }
 
+    // SÉCURITÉ : callbacks non signés → on revérifie le statut réel via l'API
+    // authentifiée. Un refund forgé pourrait sinon marquer abusivement un
+    // paiement légitime comme "refunded" (et dégrader l'accès de l'utilisateur).
+    let verified: PawaPayRefundCallback
+    try {
+      const result = await checkRefundStatus(payload.refundId)
+      if (result.status === 'NOT_FOUND' || !result.data) {
+        console.warn(`⚠️ refund ${payload.refundId} introuvable chez PawaPay — callback ignoré`)
+        return new NextResponse('OK', { status: 200 })
+      }
+      verified = result.data
+    } catch (e) {
+      console.error('❌ Vérification PawaPay (refund) impossible, callback non appliqué:', e)
+      return new NextResponse('OK', { status: 200 })
+    }
+
+    const depositId = verified.depositId || payload.depositId
+
     // 1. Rechercher d'abord dans une table `refunds` dédiée
     const { data: refund } = await (supabaseAdmin as any)
       .from('refunds')
@@ -43,7 +62,7 @@ export async function POST(request: NextRequest) {
       .eq('refund_id', payload.refundId)
       .maybeSingle()
 
-    const internalStatus = mapRefundStatus(payload.status)
+    const internalStatus = mapRefundStatus(verified.status)
 
     if (refund) {
       // Idempotence
@@ -55,13 +74,13 @@ export async function POST(request: NextRequest) {
         .from('refunds')
         .update({
           status: internalStatus,
-          amount: payload.amount ? Number(payload.amount) : undefined,
-          currency: payload.currency || null,
-          country: payload.country || null,
-          provider_transaction_id: payload.providerTransactionId || null,
-          failure_code: payload.failureReason?.failureCode || null,
-          failure_message: payload.failureReason?.failureMessage || null,
-          callback_data: payload as any,
+          amount: verified.amount ? Number(verified.amount) : undefined,
+          currency: verified.currency || null,
+          country: verified.country || null,
+          provider_transaction_id: verified.providerTransactionId || null,
+          failure_code: verified.failureReason?.failureCode || null,
+          failure_message: verified.failureReason?.failureMessage || null,
+          callback_data: verified as any,
           completed_at:
             internalStatus === 'completed'
               ? new Date().toISOString()
@@ -70,7 +89,7 @@ export async function POST(request: NextRequest) {
         .eq('id', refund.id)
 
       // Si le refund est complet → marquer le paiement original comme "refunded"
-      if (payload.status === 'COMPLETED' && refund.payment_id) {
+      if (verified.status === 'COMPLETED' && refund.payment_id) {
         await (supabaseAdmin as any)
           .from('payments')
           .update({
@@ -84,15 +103,15 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Fallback : pas de table refunds → on met quand même à jour le paiement original
-    if (payload.depositId && payload.status === 'COMPLETED') {
+    if (depositId && verified.status === 'COMPLETED') {
       await (supabaseAdmin as any)
         .from('payments')
         .update({
           status: 'refunded',
           refunded_at: new Date().toISOString(),
-          ipn_data: payload as any,
+          ipn_data: verified as any,
         })
-        .eq('ref_command', payload.depositId)
+        .eq('ref_command', depositId)
 
       return new NextResponse('OK', { status: 200 })
     }

@@ -2,46 +2,67 @@ export const dynamic = 'force-dynamic';
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { getAuthenticatedUser } from '@/lib/supabase-server'
+import { getViewerAccess, projectCampaign } from '@/lib/content-access'
 
 /**
  * GET /api/campaigns/[id]
- * Récupérer une campagne par son ID
+ * Récupérer une campagne par son ID.
+ * Authentification requise : le contenu n'est jamais servi à un visiteur anonyme.
+ * Les non-admins ne voient que les campagnes publiées et sans champs premium.
  */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const viewer = await getViewerAccess()
+    if (!viewer.isAuthenticated) {
+      return NextResponse.json({ error: 'Authentification requise' }, { status: 401 })
+    }
+
     // Dans Next.js 15+, params est une Promise
     const { id } = await params;
-    
+
     const { data, error } = await (supabaseAdmin as any)
       .from('campaigns')
       .select('*')
       .eq('id', id)
       .single()
 
-    if (error) throw error
+    if (error || !data) {
+      return NextResponse.json({ error: 'Campagne introuvable' }, { status: 404 })
+    }
 
-    return NextResponse.json(data)
+    // Les non-admins ne peuvent pas accéder aux brouillons / contenus non publiés.
+    if (!viewer.isAdmin && data.status !== 'Publié') {
+      return NextResponse.json({ error: 'Campagne introuvable' }, { status: 404 })
+    }
+
+    return NextResponse.json(projectCampaign(data, viewer))
   } catch (error: any) {
     console.error('Error fetching campaign:', error)
     return NextResponse.json(
-      { error: error.message },
-      { status: 404 }
+      { error: 'Erreur serveur' },
+      { status: 500 }
     )
   }
 }
 
 /**
  * PATCH /api/campaigns/[id]
- * Mettre à jour une campagne
+ * Mettre à jour une campagne (admin uniquement).
  */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const currentUser = await getAuthenticatedUser()
+    if (!currentUser?.isAdmin) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    }
+
     // Dans Next.js 15+, params est une Promise
     const { id } = await params;
     const body = await request.json()
@@ -59,7 +80,7 @@ export async function PATCH(
   } catch (error: any) {
     console.error('Error updating campaign:', error)
     return NextResponse.json(
-      { error: error.message },
+      { error: 'Erreur serveur' },
       { status: 500 }
     )
   }
@@ -67,16 +88,21 @@ export async function PATCH(
 
 /**
  * DELETE /api/campaigns/[id]
- * Supprimer une campagne
+ * Supprimer une campagne (admin uniquement).
  */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const currentUser = await getAuthenticatedUser()
+    if (!currentUser?.isAdmin) {
+      return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+    }
+
     // Dans Next.js 15+, params est une Promise
     const { id } = await params;
-    
+
     const { error } = await (supabaseAdmin as any)
       .from('campaigns')
       .delete()
@@ -88,7 +114,7 @@ export async function DELETE(
   } catch (error: any) {
     console.error('Error deleting campaign:', error)
     return NextResponse.json(
-      { error: error.message },
+      { error: 'Erreur serveur' },
       { status: 500 }
     )
   }

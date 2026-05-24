@@ -1,30 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase, supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase'
 import { getAuthenticatedUser } from '@/lib/supabase-server'
+import { getViewerAccess, projectCampaigns } from '@/lib/content-access'
 
 export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/campaigns
- * Récupère toutes les campagnes
+ * Récupère les campagnes. Authentification requise : le contenu n'est jamais
+ * servi à un visiteur anonyme. Les non-admins ne voient que les campagnes
+ * publiées, et les champs premium sont retirés sans abonnement payant.
  * Query params:
- * - status: 'Publié' | 'Brouillon' | 'En attente'
+ * - status: 'Publié' | 'Brouillon' | 'En attente' (admin uniquement)
  * - author_id: UUID de l'auteur
  */
 export async function GET(request: NextRequest) {
   try {
+    const viewer = await getViewerAccess()
+    if (!viewer.isAuthenticated) {
+      return NextResponse.json({ error: 'Authentification requise' }, { status: 401 })
+    }
+
     const searchParams = request.nextUrl.searchParams
     const status = searchParams.get('status')
     const authorId = searchParams.get('author_id')
 
-    let query = (supabase as any)
+    let query = (supabaseAdmin as any)
       .from('campaigns')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(500)
 
-    if (status) {
-      query = query.eq('status', status)
+    if (viewer.isAdmin) {
+      // Seul un admin peut filtrer/voir des statuts autres que "Publié".
+      if (status) query = query.eq('status', status)
+    } else {
+      query = query.eq('status', 'Publié')
     }
 
     if (authorId) {
@@ -35,11 +46,11 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error
 
-    return NextResponse.json(data)
+    return NextResponse.json(projectCampaigns(data || [], viewer))
   } catch (error: any) {
     console.error('Error fetching campaigns:', error)
     return NextResponse.json(
-      { error: error.message },
+      { error: 'Erreur serveur' },
       { status: 500 }
     )
   }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { getAuthenticatedUser, getSupabaseAdmin } from "@/lib/supabase-server"
+import { getViewerAccess, projectCampaigns } from "@/lib/content-access"
 import { z } from "zod"
 
 export const dynamic = 'force-dynamic';
@@ -36,9 +37,10 @@ export async function GET(request: Request) {
       .order('created_at', { ascending: false })
       .range((page - 1) * limit, page * limit - 1)
 
-    // Vérifier si admin ou non
-    const currentUser = await getAuthenticatedUser()
-    if (!currentUser || !currentUser.isAdmin) {
+    // Niveau d'accès du visiteur : anonyme = champs carte uniquement,
+    // non-payant = champs premium retirés, admin = accès complet.
+    const viewer = await getViewerAccess()
+    if (!viewer.isAdmin) {
       query = query.eq('status', 'Publié')
     } else if (status) {
       query = query.eq('status', status)
@@ -62,7 +64,7 @@ export async function GET(request: Request) {
     if (error) throw error
 
     return NextResponse.json({
-      contents: contents || [],
+      contents: projectCampaigns(contents || [], viewer),
       pagination: {
         page,
         limit,

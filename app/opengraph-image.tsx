@@ -139,7 +139,7 @@ export default function OpenGraphImage() {
             <div
               style={{
                 display: "flex",
-                width: "fit-content",
+                alignSelf: "flex-start",
                 borderRadius: 999,
                 background: "rgba(242,179,61,0.22)",
                 color: "#704B08",

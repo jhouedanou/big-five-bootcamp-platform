@@ -4,11 +4,13 @@ import { getAuthenticatedUser } from "@/lib/supabase-server"
 import { getSupabaseAdmin } from "@/lib/supabase"
 import { canAccessPremiumContent } from "@/lib/pricing"
 import {
+  extractInsights,
   generateCampaign,
   type CampaignBrief,
   type GeneratedCampaign,
   type GeneratorCampaign,
 } from "@/lib/campaign-generator"
+import { generateCampaignWithGroq } from "@/lib/groq-campaign"
 
 // Champs "carte" exposés au client pour afficher les sources (aucun champ premium).
 const SOURCE_CARD_COLUMNS = "id, title, brand, category, thumbnail, slug"
@@ -120,7 +122,7 @@ export interface GenerateInput {
 }
 
 export type GenerateResult =
-  | { success: true; data: GeneratedCampaign }
+  | { success: true; data: GeneratedCampaign & { source: "groq" | "heuristic" } }
   | { success: false; error: string }
 
 /**
@@ -177,6 +179,19 @@ export async function generateCampaignFromSources(
 
   if (error) return { success: false, error: "Erreur lors du chargement des favoris." }
 
-  const result = generateCampaign((data || []) as GeneratorCampaign[], input.brief)
-  return { success: true, data: result }
+  const campaigns = (data || []) as GeneratorCampaign[]
+  const insights = extractInsights(campaigns)
+
+  // Tentative IA (Groq, gratuit) — fallback heuristique si indisponible.
+  const aiResult = await generateCampaignWithGroq({
+    campaigns,
+    brief: input.brief,
+    insights,
+  })
+  if (aiResult) {
+    return { success: true, data: aiResult }
+  }
+
+  const heuristic = generateCampaign(campaigns, input.brief)
+  return { success: true, data: { ...heuristic, source: "heuristic" } }
 }

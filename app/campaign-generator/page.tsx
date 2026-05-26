@@ -15,6 +15,8 @@ import {
   type SourceCampaign,
 } from "@/app/actions/campaign-generator"
 import type { GeneratedCampaign } from "@/lib/campaign-generator"
+
+type GeneratedCampaignWithSource = GeneratedCampaign & { source: "groq" | "heuristic" }
 import { toast } from "sonner"
 import {
   Sparkles,
@@ -97,7 +99,7 @@ function CampaignGeneratorContent() {
   const [tone, setTone] = useState("inspirant")
 
   const [generating, setGenerating] = useState(false)
-  const [result, setResult] = useState<GeneratedCampaign | null>(null)
+  const [result, setResult] = useState<GeneratedCampaignWithSource | null>(null)
 
   useEffect(() => {
     if (subChecking || subLocked || !isAuthenticated) return
@@ -147,7 +149,11 @@ function CampaignGeneratorContent() {
       })
       if (res.success) {
         setResult(res.data)
-        toast.success("Campagne générée")
+        toast.success(
+          res.data.source === "groq"
+            ? "Campagne générée par IA"
+            : "Campagne générée",
+        )
       } else {
         toast.error(res.error)
       }
@@ -427,8 +433,24 @@ function CampaignGeneratorContent() {
                 )}
 
                 <div className="rounded-2xl border border-black/5 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#1a1a1a]">
-                  <div className="mb-3 flex items-center justify-between">
-                    <h3 className="font-bold">Texte de campagne</h3>
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold">Texte de campagne</h3>
+                      <span
+                        className={
+                          result.source === "groq"
+                            ? "rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-500/30 dark:text-emerald-300"
+                            : "rounded-full bg-slate-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-700 ring-1 ring-slate-500/30 dark:text-slate-300"
+                        }
+                        title={
+                          result.source === "groq"
+                            ? "Généré par Llama 3.3 70B via Groq"
+                            : "Généré par moteur heuristique local (fallback)"
+                        }
+                      >
+                        {result.source === "groq" ? "IA" : "Heuristique"}
+                      </span>
+                    </div>
                     <CopyButton text={result.campaignText} label="Copier" />
                   </div>
                   <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-foreground">

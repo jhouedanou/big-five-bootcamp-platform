@@ -27,6 +27,40 @@ function isMaintenanceBypassPath(pathname: string) {
   )
 }
 
+function shouldNoIndexPath(pathname: string) {
+  return (
+    pathname === '/maintenance' ||
+    pathname === '/library' ||
+    pathname === '/community' ||
+    pathname === '/demo' ||
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/favorites') ||
+    pathname.startsWith('/profile') ||
+    pathname.startsWith('/settings') ||
+    pathname.startsWith('/subscribe') ||
+    pathname.startsWith('/pay') ||
+    pathname.startsWith('/payment') ||
+    pathname.startsWith('/paywall') ||
+    pathname.startsWith('/notifications') ||
+    pathname.startsWith('/decrypte') ||
+    pathname.startsWith('/temps-forts') ||
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/register') ||
+    pathname.startsWith('/forgot-password') ||
+    pathname.startsWith('/update-password') ||
+    pathname.startsWith('/auth')
+  )
+}
+
+function withRobotsHeader(response: NextResponse, pathname: string) {
+  if (shouldNoIndexPath(pathname)) {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+  }
+
+  return response
+}
+
 async function isMaintenanceModeEnabled() {
   const envOverride = process.env.MAINTENANCE_MODE
   if (typeof envOverride === 'string' && envOverride.trim()) {
@@ -81,16 +115,16 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/maintenance'
     url.search = ''
-    return NextResponse.redirect(url)
+    return withRobotsHeader(NextResponse.redirect(url), pathname)
   }
 
   if (shouldRunAuthMiddleware(pathname)) {
-    return await updateSession(request)
+    return withRobotsHeader(await updateSession(request), pathname)
   }
 
-  return NextResponse.next({
+  return withRobotsHeader(NextResponse.next({
     request: { headers: request.headers },
-  })
+  }), pathname)
 }
 
 export const config = {
@@ -106,4 +140,3 @@ export const config = {
     '/((?!api|_next/static|_next/image|.*\\.(?:png|jpg|jpeg|gif|webp|svg|ico|css|js|mjs|map|txt|xml|json|woff|woff2|ttf|otf)$).*)',
   ],
 }
-

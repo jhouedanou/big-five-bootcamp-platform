@@ -1,6 +1,23 @@
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { Users, Target, Rocket, Heart } from "lucide-react"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+    title: "À propos de Laveiye | Intelligence créative africaine",
+    description:
+        "Découvrez Laveiye, la plateforme de veille créative pensée pour aider les professionnels du marketing à analyser les meilleures campagnes africaines.",
+    alternates: {
+        canonical: "/about",
+    },
+    openGraph: {
+        title: "À propos de Laveiye | Intelligence créative africaine",
+        description:
+            "Découvrez Laveiye, la plateforme de veille créative pensée pour aider les professionnels du marketing à analyser les meilleures campagnes africaines.",
+        url: "/about",
+        type: "website",
+    },
+}
 
 export default function AboutPage() {
     return (

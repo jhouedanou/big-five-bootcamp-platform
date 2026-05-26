@@ -12,18 +12,54 @@ export const createClient = () => {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // During static prerendering env vars may not be available — return a no-op proxy
+  // During static prerendering or when env vars are missing in production
+  // (e.g. NEXT_PUBLIC_* not set in Cloudflare Pages build env) — return a
+  // chainable no-op proxy so calls like `.from('x').select().eq(...)` don't
+  // throw "select is not a function" client-side.
   if (!url || !key) {
+    if (typeof window !== 'undefined') {
+      // eslint-disable-next-line no-console
+      console.error(
+        '[Supabase] NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY is missing at build time. Set them in your Cloudflare Pages build environment variables.'
+      )
+    }
+
+    const emptyResult = { data: null, error: null }
+    const makeChain = (): any => {
+      const thenable = {
+        then: (resolve: any) => resolve(emptyResult),
+        catch: () => thenable,
+        finally: (cb: any) => {
+          cb?.()
+          return thenable
+        },
+      }
+      return new Proxy(function noop() {} as any, {
+        get(_t, prop) {
+          if (prop === 'then') return thenable.then
+          if (prop === 'catch') return thenable.catch
+          if (prop === 'finally') return thenable.finally
+          return makeChain()
+        },
+        apply() {
+          return makeChain()
+        },
+      })
+    }
+
     return new Proxy({} as ReturnType<typeof createBrowserClient>, {
       get(_target, prop) {
         if (prop === 'auth') {
           return {
             getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+            getSession: () => Promise.resolve({ data: { session: null }, error: null }),
             onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
             signOut: () => Promise.resolve({ error: null }),
+            signInWithPassword: () => Promise.resolve({ data: { user: null, session: null }, error: null }),
+            signUp: () => Promise.resolve({ data: { user: null, session: null }, error: null }),
           }
         }
-        return () => Promise.resolve({ data: null, error: null })
+        return makeChain()
       },
     })
   }

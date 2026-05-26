@@ -19,6 +19,10 @@ function isUUID(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 }
 
+function isPublished(status: string | null | undefined): boolean {
+  return status === "Publié" || status === "PubliÃ©";
+}
+
 /**
  * Récupère une campagne par slug ou par UUID, avec timeout pour éviter
  * que la page ne bloque indéfiniment si Supabase ne répond pas.
@@ -44,9 +48,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   try {
     const campaign = await getCampaignByIdOrSlug(id);
 
-    if (!campaign) {
+    if (!campaign || !isPublished(campaign.status)) {
       return {
         title: "Campagne introuvable | Laveiye",
+        robots: {
+          index: false,
+          follow: false,
+        },
       };
     }
 

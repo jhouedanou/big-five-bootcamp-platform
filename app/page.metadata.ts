@@ -22,7 +22,7 @@ export const homeMetadata: Metadata = {
     locale: "fr_FR",
     images: [
       {
-        url: "/opengraph-image",
+        url: "/logo.png",
         width: 1200,
         height: 630,
         alt: homePreview.imageAlt,
@@ -35,7 +35,7 @@ export const homeMetadata: Metadata = {
     description: homePreview.description,
     images: [
       {
-        url: "/twitter-image",
+        url: "/logo.png",
         alt: homePreview.imageAlt,
       },
     ],

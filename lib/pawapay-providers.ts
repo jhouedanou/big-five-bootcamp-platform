@@ -1,16 +1,17 @@
 /**
  * Liste centralisée des opérateurs Mobile Money supportés via PawaPay.
  *
- * ⚠️ Wave est volontairement traité hors de cette liste dans le parcours
- * produit actuel. Si vous activez WAVE_CIV/WAVE_SEN côté PawaPay, ajoutez-les
- * ici et vérifiez le flow REDIRECT_AUTH.
+ * ⚠️  La source de vérité runtime est l'API `/v2/active-conf` (cf.
+ *     `app/api/payment/pawapay/providers/route.ts` + `hooks/use-pawapay-providers.ts`).
+ *     Cette liste statique sert UNIQUEMENT de fallback (rendu initial, panne API).
+ *     Quand l'API renvoie 200, c'est elle qui est utilisée dans l'UI.
  *
- * Source : configuration officielle PawaPay (https://docs.pawapay.io)
- * + matrice opérateurs / pays / devises fournie par la direction produit.
+ * Wave reste volontairement hors liste : si tu actives WAVE_CIV/WAVE_SEN côté
+ * PawaPay, vérifie d'abord le flow REDIRECT_AUTH.
  *
- * Pour chaque pays nous listons les opérateurs effectivement activés sur
- * notre compte marchand PawaPay. Si vous activez un nouveau MMO dans le
- * Dashboard PawaPay (Configuration → Active correspondents), ajoutez-le ici.
+ * Pour ajouter un MMO, le geste opérationnel se passe désormais côté Dashboard
+ * PawaPay (Configuration → Active correspondents) — pas besoin de modifier ce
+ * fichier sauf pour ajuster le fallback hors-ligne ou les préfixes de détection.
  */
 
 export type PawaPayCountryCode =
@@ -56,43 +57,30 @@ export interface PawaPayProvider {
 }
 
 /**
- * Liste effective des providers PawaPay activés.
+ * Liste effective des providers PawaPay activés sur notre compte marchand.
  *
- * Wave est **volontairement exclu** du parcours produit courant. PawaPay
- * expose désormais des providers Wave en REDIRECT_AUTH : ne les ajoutez ici
- * que si ce flow est activé et testé.
+ * Strictement aligné sur le Dashboard PawaPay (Configuration → Active
+ * correspondents). Les pays présents dans `PAWAPAY_COUNTRIES` mais sans
+ * provider listé ici (BFA, MLI, TGO, NER) ne sont pas activés et seront
+ * automatiquement masqués dans l'UI grâce au hook `usePawaPayProviders`.
+ *
+ * Wave est **volontairement exclu** : flow REDIRECT_AUTH non testé.
  */
 export const PAWAPAY_PROVIDERS: PawaPayProvider[] = [
-  // Côte d'Ivoire (XOF)
+  // Côte d'Ivoire (XOF) — Moov non activé chez le marchand.
   { value: 'MTN_MOMO_CIV', label: 'MTN Mobile Money — Côte d’Ivoire', country: 'CIV', currency: 'XOF' },
   { value: 'ORANGE_CIV',   label: 'Orange Money — Côte d’Ivoire',     country: 'CIV', currency: 'XOF' },
-  { value: 'MOOV_CIV',     label: 'Moov Money — Côte d’Ivoire',       country: 'CIV', currency: 'XOF' },
 
-  // Sénégal (XOF) — Wave reste traité hors de cette liste.
+  // Sénégal (XOF)
   { value: 'ORANGE_SEN',   label: 'Orange Money — Sénégal',           country: 'SEN', currency: 'XOF' },
   { value: 'FREE_SEN',     label: 'Free Money — Sénégal',             country: 'SEN', currency: 'XOF' },
-
-  // Burkina Faso (XOF)
-  { value: 'ORANGE_BFA',   label: 'Orange Money — Burkina Faso',      country: 'BFA', currency: 'XOF' },
-  { value: 'MOOV_BFA',     label: 'Moov Money — Burkina Faso',        country: 'BFA', currency: 'XOF' },
 
   // Bénin (XOF)
   { value: 'MTN_MOMO_BEN', label: 'MTN Mobile Money — Bénin',         country: 'BEN', currency: 'XOF' },
   { value: 'MOOV_BEN',     label: 'Moov Money — Bénin',               country: 'BEN', currency: 'XOF' },
 
-  // Mali (XOF)
-  { value: 'ORANGE_MLI',   label: 'Orange Money — Mali',              country: 'MLI', currency: 'XOF' },
-  { value: 'MOOV_MLI',     label: 'Moov Money — Mali',                country: 'MLI', currency: 'XOF' },
-
-  // Togo (XOF)
-  { value: 'MOOV_TGO',     label: 'Moov Money — Togo',                country: 'TGO', currency: 'XOF' },
-
-  // Cameroun (XAF)
+  // Cameroun (XAF) — Orange non activé chez le marchand.
   { value: 'MTN_MOMO_CMR', label: 'MTN Mobile Money — Cameroun',      country: 'CMR', currency: 'XAF' },
-  { value: 'ORANGE_CMR',   label: 'Orange Money — Cameroun',          country: 'CMR', currency: 'XAF' },
-
-  // Niger (XOF)
-  { value: 'MOOV_NER',     label: 'Moov Money — Niger',               country: 'NER', currency: 'XOF' },
 ]
 
 /** Retourne les providers disponibles pour un pays donné. */

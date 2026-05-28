@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { getPlanConfig } from "@/lib/pricing"
+import { DevicesSection } from "@/components/profile/devices-section"
 
 interface UserProfile {
   name: string
@@ -921,6 +922,8 @@ export default function ProfilePage() {
             </Button>
           </form>
         </section>
+
+        <DevicesSection />
       </div>
       )}
     </div>

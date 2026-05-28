@@ -15,9 +15,14 @@ interface LocalDeposit {
   client_phone: string | null
   user_email: string | null
   provider_transaction_id: string | null
+  failure_code: string | null
+  failure_message: string | null
   created_at: string
   completed_at: string | null
 }
+
+// Statuts pour lesquels on affiche la raison de l'échec.
+const FAILED_STATUSES = new Set(['failed', 'rejected', 'canceled', 'in_reconciliation'])
 
 function fmtDate(iso?: string | null) {
   if (!iso) return "—"
@@ -176,9 +181,25 @@ export function LiveDeposits() {
                     <span title={d.ref_command}>{d.ref_command.substring(0, 18)}…</span>
                   </td>
                   <td className="px-3 py-2">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusClass(d.status)}`}>
-                      {statusLabel(d.status)}
-                    </span>
+                    <div className="flex flex-col gap-1">
+                      <span className={`inline-flex w-fit items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusClass(d.status)}`}>
+                        {statusLabel(d.status)}
+                      </span>
+                      {FAILED_STATUSES.has(d.status) && (d.failure_code || d.failure_message) && (
+                        <span
+                          className="text-[11px] text-red-700 max-w-[220px] truncate"
+                          title={
+                            d.failure_message
+                              ? `${d.failure_code ? `[${d.failure_code}] ` : ''}${d.failure_message}`
+                              : d.failure_code || ''
+                          }
+                        >
+                          {d.failure_code ? <span className="font-mono">{d.failure_code}</span> : null}
+                          {d.failure_code && d.failure_message ? ' · ' : ''}
+                          {d.failure_message || ''}
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-3 py-2 font-semibold">
                     {(d.final_amount ?? d.amount)?.toLocaleString("fr-FR")} {d.currency}

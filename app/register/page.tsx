@@ -5,7 +5,7 @@ import React from "react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Eye, EyeOff, Mail, Lock, Check, Shield, User } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, Check, Shield, User, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { toast } from "sonner"
 import { LegalModal } from "@/components/legal-modal"
 import { createClient } from "@/lib/supabase"
+import { PhoneInput, isValidPhone, type PhoneInputValue } from "@/components/phone-input"
 
 function formatNumber(n: number): string {
   if (n >= 1000) {
@@ -43,6 +44,11 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [website, setWebsite] = useState("")
+  const [phone, setPhone] = useState<PhoneInputValue>({
+    country: "CIV",
+    localDigits: "",
+    e164: "",
+  })
   const [formStartedAt] = useState(() => Date.now())
   const [stats, setStats] = useState({ users: 0, campaigns: 0, brands: 0, countries: 0 })
   const [avatars, setAvatars] = useState<{ url: string; name: string }[]>([])
@@ -93,6 +99,14 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!isValidPhone(phone)) {
+      toast.error("Numéro de téléphone invalide", {
+        description: "Vérifie l'indicatif et la longueur du numéro.",
+      })
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -104,6 +118,8 @@ export default function RegisterPage() {
           email,
           password,
           website,
+          phoneCountry: phone.country,
+          phoneE164: phone.e164,
           elapsedMs: Date.now() - formStartedAt,
         }),
       })
@@ -316,6 +332,24 @@ export default function RegisterPage() {
                     required
                   />
                 </div>
+              </div>
+
+              <div>
+                <Label htmlFor="phone-input" className="text-sm font-medium text-foreground">
+                  Téléphone
+                </Label>
+                <div className="mt-1.5">
+                  <PhoneInput
+                    id="phone-input"
+                    value={phone}
+                    onChange={setPhone}
+                    required
+                    disabled={isLoading}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Choisis ton indicatif pays puis saisis ton numéro local.
+                </p>
               </div>
 
               <div>

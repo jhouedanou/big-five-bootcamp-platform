@@ -20,10 +20,10 @@ import { SubscribeCampaignsCarousel } from "@/components/subscribe-campaigns-car
 import { getOperatorLogo } from "@/lib/operator-logos"
 import {
   PAWAPAY_COUNTRIES,
-  PAWAPAY_PROVIDERS,
   detectProviderFromPhone,
   type PawaPayCountryCode,
 } from "@/lib/pawapay-providers"
+import { usePawaPayProviders } from "@/hooks/use-pawapay-providers"
 
 type PlanChoice = "basic" | "pro" | "discovery"
 
@@ -143,6 +143,7 @@ export default function SubscribePage() {
   const [phoneNumber, setPhoneNumber] = useState("")
   const [country, setCountry] = useState<CountryCode>("CIV")
   const [provider, setProvider] = useState<string>("ORANGE_CIV")
+  const { providers: pawaPayProviders, isLoading: pawaPayProvidersLoading } = usePawaPayProviders()
 
   // Code promo LAVEIYE — BONUS "3 mois Basic offerts", cumulable avec
   // n'importe quel plan (cf. lib/promo-codes.ts).
@@ -158,15 +159,29 @@ export default function SubscribePage() {
   } | null>(null)
 
   const countryConfig = COUNTRIES[country]
-  const providersForCountry = PAWAPAY_PROVIDERS.filter(p => p.country === country)
+  const providersForCountry = pawaPayProviders.filter(p => p.country === country)
   const maxLocalDigits = countryConfig.localLength
   const cleanLocal = phoneNumber.replace(/\D/g, '')
   const isPhoneValid = cleanLocal.length === maxLocalDigits
+  // N'affiche dans le select pays que ceux qui ont au moins un opérateur actif
+  // (côté API PawaPay ou fallback). Évite l'écran "pas d'opérateur" après sélection.
+  const availableCountryCodes = (Object.keys(COUNTRIES) as CountryCode[]).filter((code) =>
+    pawaPayProviders.some((p) => p.country === code),
+  )
+
+  // Si le provider courant n'existe plus pour le pays après chargement de l'API,
+  // on retombe sur le premier provider disponible (évite un POST avec un code invalide).
+  useEffect(() => {
+    if (providersForCountry.length === 0) return
+    if (!providersForCountry.some((p) => p.value === provider)) {
+      setProvider(providersForCountry[0].value)
+    }
+  }, [providersForCountry, provider])
 
   /** Quand on change de pays, reset l'opérateur et le numéro. */
   const handleCountryChange = (next: CountryCode) => {
     setCountry(next)
-    const firstProvider = PAWAPAY_PROVIDERS.find(p => p.country === next)
+    const firstProvider = pawaPayProviders.find(p => p.country === next)
     if (firstProvider) setProvider(firstProvider.value)
     setPhoneNumber("")
   }
@@ -801,7 +816,7 @@ export default function SubscribePage() {
                 <SelectValue placeholder="Choisissez votre pays" />
               </SelectTrigger>
               <SelectContent>
-                {(Object.keys(COUNTRIES) as CountryCode[]).map((code) => (
+                {availableCountryCodes.map((code) => (
                   <SelectItem key={code} value={code}>
                     <span className="mr-2">{COUNTRIES[code].flag}</span>
                     {COUNTRIES[code].name}
@@ -814,9 +829,9 @@ export default function SubscribePage() {
 
           <div className="space-y-2">
             <Label htmlFor="pawapay-provider">Opérateur</Label>
-            <Select value={provider} onValueChange={setProvider}>
+            <Select value={provider} onValueChange={setProvider} disabled={pawaPayProvidersLoading}>
               <SelectTrigger id="pawapay-provider">
-                <SelectValue placeholder="Choisissez votre opérateur" />
+                <SelectValue placeholder={pawaPayProvidersLoading ? 'Chargement…' : 'Choisissez votre opérateur'} />
               </SelectTrigger>
               <SelectContent>
                 {providersForCountry.map((p) => {

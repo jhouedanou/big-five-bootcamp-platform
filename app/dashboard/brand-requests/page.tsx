@@ -32,7 +32,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { PAWAPAY_PROVIDERS as PAWAPAY_PROVIDERS_FULL } from "@/lib/pawapay-providers"
+import { usePawaPayProviders } from "@/hooks/use-pawapay-providers"
 
 // ---------------------------------------------------------------------------
 // Types & constants
@@ -247,10 +247,7 @@ export default function BrandRequestsPage() {
   const [payLoading, setPayLoading] = useState(false)
   const [payError, setPayError] = useState<string | null>(null)
 
-  const PAWAPAY_PROVIDERS = PAWAPAY_PROVIDERS_FULL.map((p) => ({
-    value: p.value,
-    label: p.label,
-  }))
+  const { providers: PAWAPAY_PROVIDERS, isLoading: pawaPayProvidersLoading } = usePawaPayProviders()
 
   const openPayment = (req: BrandRequest) => {
     setPayRequest(req)
@@ -1984,7 +1981,7 @@ export default function BrandRequestsPage() {
                   id="pay-provider"
                   value={payProvider}
                   onChange={(e) => setPayProvider(e.target.value)}
-                  disabled={payLoading}
+                  disabled={payLoading || pawaPayProvidersLoading}
                   className="w-full rounded-lg border border-[#F5F5F5] px-3 py-2 text-sm outline-none focus:border-[#F2B33D] disabled:opacity-50"
                 >
                   {PAWAPAY_PROVIDERS.map((p) => (

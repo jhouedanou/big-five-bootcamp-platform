@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   let query = (supabase as any)
     .from('payments')
     .select(
-      'id, ref_command, amount, final_amount, currency, status, payment_method, client_phone, user_email, provider_transaction_id, created_at, completed_at'
+      'id, ref_command, amount, final_amount, currency, status, payment_method, client_phone, user_email, provider_transaction_id, failure_code, failure_message, created_at, completed_at'
     )
     .like('payment_method', 'pawapay%')
     .gte('created_at', since)

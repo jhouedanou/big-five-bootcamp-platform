@@ -5,11 +5,21 @@ import { z } from "zod"
 import { createClient } from '@supabase/supabase-js'
 import { isDisposableEmail } from '@/lib/disposable-emails'
 
+// Liste des codes pays acceptés à l'inscription. Doit rester aligné avec
+// `PHONE_COUNTRIES` dans `components/phone-input.tsx`.
+const PHONE_COUNTRY_CODES = ['CIV', 'SEN', 'BEN', 'CMR', 'BFA', 'TGO', 'MLI', 'FRA'] as const
+
 const registerSchema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
   email: z.string().email("Email invalide"),
   password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
   website: z.string().optional(),
+  phoneCountry: z.enum(PHONE_COUNTRY_CODES, {
+    errorMap: () => ({ message: "Indicatif pays invalide" }),
+  }),
+  phoneE164: z
+    .string()
+    .regex(/^\+[1-9][0-9]{5,14}$/, "Numéro de téléphone invalide"),
   elapsedMs: z.number().optional(),
 })
 
@@ -64,7 +74,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { name, email, password, website, elapsedMs } = validation.data
+    const { name, email, password, website, phoneCountry, phoneE164, elapsedMs } = validation.data
 
     // Refuser les domaines d'emails jetables / temporaires
     if (isDisposableEmail(email)) {
@@ -223,6 +233,8 @@ export async function POST(request: Request) {
         plan: null,
         status: 'active',
         subscription_status: 'none',
+        phone_country: phoneCountry,
+        phone_e164: phoneE164,
       }, { onConflict: 'id' })
 
     if (profileError) {

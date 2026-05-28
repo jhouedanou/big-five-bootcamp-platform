@@ -1,6 +1,29 @@
 
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import {
+  MAX_SESSIONS_PER_USER,
+  getSessionIdFromAccessToken,
+  listActiveSessions,
+} from '@/lib/sessions'
+
+// Cache cookie : si l'utilisateur a été vérifié récemment (et qu'il est dans
+// la fenêtre des 3 sessions les plus récentes), on évite un appel DB sur
+// chaque navigation. Le cookie est invalidé naturellement à expiration.
+const DEVICE_CHECK_COOKIE = 'lvy-dev-ok'
+const DEVICE_CHECK_TTL_SECONDS = 60
+
+function shouldEnforceDeviceLimit(pathname: string): boolean {
+  // On bloque l'accès aux espaces authentifiés. Pas sur les pages publiques,
+  // ni sur la page /auth/device-limit (sinon boucle), ni sur /admin (les admins
+  // ne sont pas concernés par la limite).
+  return (
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/favorites') ||
+    pathname.startsWith('/profile') ||
+    pathname.startsWith('/subscribe')
+  )
+}
 
 export async function updateSession(request: NextRequest) {
     // Supabase redirige les erreurs d'auth (OTP expiré, lien invalide)
@@ -122,6 +145,56 @@ export async function updateSession(request: NextRequest) {
             url.pathname = '/dashboard'
             return NextResponse.redirect(url)
         }
+    }
+
+    // Enforcement de la limite multi-appareils (hard block).
+    // Skip si pas connecté, si pas une route concernée, ou si le cookie cache
+    // confirme une vérif récente.
+    if (
+      user &&
+      shouldEnforceDeviceLimit(pathname) &&
+      !request.cookies.has(DEVICE_CHECK_COOKIE)
+    ) {
+      try {
+        // getSession() lit le JWT depuis les cookies sans round-trip Auth.
+        const { data: { session } } = await supabase.auth.getSession()
+        const currentSessionId = getSessionIdFromAccessToken(session?.access_token)
+
+        if (currentSessionId) {
+          const topSessions = await listActiveSessions(user.id, MAX_SESSIONS_PER_USER + 1)
+
+          if (topSessions.length <= MAX_SESSIONS_PER_USER) {
+            response.cookies.set(DEVICE_CHECK_COOKIE, '1', {
+              maxAge: DEVICE_CHECK_TTL_SECONDS,
+              httpOnly: true,
+              sameSite: 'lax',
+              path: '/',
+            })
+          } else {
+            const allowedIds = topSessions
+              .slice(0, MAX_SESSIONS_PER_USER)
+              .map((s) => s.id)
+
+            if (allowedIds.includes(currentSessionId)) {
+              response.cookies.set(DEVICE_CHECK_COOKIE, '1', {
+                maxAge: DEVICE_CHECK_TTL_SECONDS,
+                httpOnly: true,
+                sameSite: 'lax',
+                path: '/',
+              })
+            } else {
+              const url = request.nextUrl.clone()
+              url.pathname = '/auth/device-limit'
+              url.search = ''
+              return NextResponse.redirect(url)
+            }
+          }
+        }
+      } catch (err) {
+        // Non bloquant : si Supabase est indisponible on laisse passer pour
+        // ne pas casser toute la navigation. Le post-login check rattrape.
+        console.error('[device-limit] middleware check failed:', err)
+      }
     }
 
     return response

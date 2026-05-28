@@ -32,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { usePawaPayProviders } from '@/hooks/use-pawapay-providers';
 
 interface PaymentButtonProps {
   sessionId: string;
@@ -41,21 +42,6 @@ interface PaymentButtonProps {
   onSuccess?: () => void;
   className?: string;
 }
-
-/** Liste non exhaustive des providers PawaPay les plus utilises en Afrique de l'Ouest. */
-const PAWAPAY_PROVIDERS = [
-  { value: 'MTN_MOMO_CIV', label: 'MTN Mobile Money — Côte d’Ivoire' },
-  { value: 'ORANGE_CIV', label: 'Orange Money — Côte d’Ivoire' },
-  { value: 'MOOV_CIV', label: 'Moov Money — Côte d’Ivoire' },
-  { value: 'WAVE_CIV', label: 'Wave — Côte d’Ivoire' },
-  { value: 'WAVE_SEN', label: 'Wave — Sénégal' },
-  { value: 'ORANGE_SEN', label: 'Orange Money — Sénégal' },
-  { value: 'FREE_SEN', label: 'Free Money — Sénégal' },
-  { value: 'ORANGE_BFA', label: 'Orange Money — Burkina Faso' },
-  { value: 'MOOV_BFA', label: 'Moov Money — Burkina Faso' },
-  { value: 'MTN_MOMO_BEN', label: 'MTN Mobile Money — Bénin' },
-  { value: 'MOOV_BEN', label: 'Moov Money — Bénin' },
-];
 
 export default function PaymentButton({
   sessionId,
@@ -69,6 +55,7 @@ export default function PaymentButton({
   const [isProcessing, setIsProcessing] = useState(false);
   const [phoneNumber, setPhoneNumber] = useState('');
   const [provider, setProvider] = useState<string>('ORANGE_CIV');
+  const { providers: pawaPayProviders, isLoading: providersLoading } = usePawaPayProviders();
 
   const handlePayment = async () => {
     const cleanedPhone = phoneNumber.replace(/\D/g, '');
@@ -154,12 +141,12 @@ export default function PaymentButton({
         <div className="space-y-4 py-2">
           <div className="space-y-2">
             <Label htmlFor="pawapay-provider">Opérateur Mobile Money</Label>
-            <Select value={provider} onValueChange={setProvider}>
+            <Select value={provider} onValueChange={setProvider} disabled={providersLoading}>
               <SelectTrigger id="pawapay-provider">
-                <SelectValue placeholder="Choisissez votre opérateur" />
+                <SelectValue placeholder={providersLoading ? 'Chargement…' : 'Choisissez votre opérateur'} />
               </SelectTrigger>
               <SelectContent>
-                {PAWAPAY_PROVIDERS.map((p) => (
+                {pawaPayProviders.map((p) => (
                   <SelectItem key={p.value} value={p.value}>
                     {p.label}
                   </SelectItem>

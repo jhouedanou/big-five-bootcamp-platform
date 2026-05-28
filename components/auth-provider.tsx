@@ -18,6 +18,10 @@ export interface UserProfile {
   monthly_click_count?: number
   monthly_campaigns_explored?: number
   monthly_click_reset?: string
+  /** Code pays interne (ISO Alpha-3, ex: 'CIV'). Voir `components/phone-input.tsx`. */
+  phone_country?: string | null
+  /** Numéro complet en E.164, ex: '+2250707123456'. */
+  phone_e164?: string | null
   [key: string]: any
 }
 

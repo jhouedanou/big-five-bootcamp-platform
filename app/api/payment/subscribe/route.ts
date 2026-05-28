@@ -454,12 +454,16 @@ export async function POST(request: NextRequest) {
     } catch (pawapayError) {
       console.error('PawaPay initialization error:', pawapayError);
 
+      const errorMsg = pawapayError instanceof Error ? pawapayError.message : 'Erreur PawaPay';
+
       await (supabaseAdmin as any)
         .from('payments')
-        .update({ status: 'failed' })
+        .update({
+          status: 'failed',
+          failure_code: 'INITIATION_ERROR',
+          failure_message: errorMsg,
+        })
         .eq('id', (payment as any).id);
-
-      const errorMsg = pawapayError instanceof Error ? pawapayError.message : 'Erreur PawaPay';
       return NextResponse.json(
         { error: 'Le service de paiement est temporairement indisponible. Veuillez reessayer.', details: errorMsg },
         { status: 502 }

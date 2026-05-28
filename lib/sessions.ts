@@ -44,22 +44,15 @@ export async function listActiveSessions(
   limit?: number,
 ): Promise<SessionInfo[]> {
   const admin = getSupabaseAdmin()
-  let query = admin
-    .schema('auth')
-    .from('sessions')
-    .select('id, user_id, created_at, updated_at, not_after, refreshed_at, user_agent, ip')
-    .eq('user_id', userId)
-    // not_after est nullable ; quand renseigné, doit être dans le futur.
-    .or(`not_after.is.null,not_after.gt.${new Date().toISOString()}`)
-    .order('refreshed_at', { ascending: false, nullsFirst: false })
-
-  if (typeof limit === 'number' && limit > 0) {
-    query = query.limit(limit)
-  }
-
-  const { data, error } = await query
+  const { data, error } = await admin.rpc('list_user_sessions', {
+    p_user_id: userId,
+  })
   if (error) throw error
-  return (data ?? []) as SessionInfo[]
+  const rows = (data ?? []) as SessionInfo[]
+  if (typeof limit === 'number' && limit > 0) {
+    return rows.slice(0, limit)
+  }
+  return rows
 }
 
 /**
@@ -68,16 +61,12 @@ export async function listActiveSessions(
  */
 export async function revokeSession(sessionId: string, userId: string): Promise<boolean> {
   const admin = getSupabaseAdmin()
-  const { data, error } = await admin
-    .schema('auth')
-    .from('sessions')
-    .delete()
-    .eq('id', sessionId)
-    .eq('user_id', userId)
-    .select('id')
-
+  const { data, error } = await admin.rpc('revoke_user_session', {
+    p_session_id: sessionId,
+    p_user_id: userId,
+  })
   if (error) throw error
-  return (data?.length ?? 0) > 0
+  return data === true
 }
 
 /**

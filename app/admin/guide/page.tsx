@@ -150,10 +150,10 @@ export default function GuidePage() {
     <div className="p-6 lg:p-8 space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-[family-name:var(--font-heading)]">
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground font-[family-name:var(--font-heading)]">
           Guide d&apos;utilisation
         </h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-gray-600 dark:text-gray-400 mt-1">
           Comment mettre à jour les exemples de campagnes et formations sur la plateforme
         </p>
       </div>
@@ -166,13 +166,13 @@ export default function GuidePage() {
               <AlertCircle className="h-5 w-5 text-[#FF6B35]" />
             </div>
             <div>
-              <h3 className="text-gray-900 font-semibold mb-1">Informations de connexion</h3>
-              <p className="text-gray-600 text-sm">
-                <strong className="text-gray-900">Email :</strong> jeffrey@bigfive.com
+              <h3 className="text-foreground font-semibold mb-1">Informations de connexion</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                <strong className="text-foreground">Email :</strong> jeffrey@bigfive.com
                 <br />
-                <strong className="text-gray-900">Mot de passe :</strong> admin2014!k
+                <strong className="text-foreground">Mot de passe :</strong> admin2014!k
                 <br />
-                <strong className="text-gray-900">URL :</strong> /admin/login
+                <strong className="text-foreground">URL :</strong> /admin/login
               </p>
             </div>
           </div>
@@ -181,18 +181,18 @@ export default function GuidePage() {
 
       {/* Steps */}
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-gray-900 font-[family-name:var(--font-heading)]">
+        <h2 className="text-xl font-semibold text-foreground font-[family-name:var(--font-heading)]">
           Étapes détaillées
         </h2>
         {steps.map((step) => (
-          <Card key={step.id} className="bg-white border-gray-200 shadow-sm">
+          <Card key={step.id} className="bg-white dark:bg-card border-gray-200 shadow-sm">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-3 text-gray-900">
+              <CardTitle className="flex items-center gap-3 text-foreground">
                 <div className={`w-10 h-10 rounded-lg ${step.bgColor} flex items-center justify-center flex-shrink-0`}>
                   <step.icon className={`h-5 w-5 ${step.color}`} />
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                  <span className="text-xs font-normal text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-full">
                     Étape {step.id}
                   </span>
                   <span className="text-base">{step.title}</span>
@@ -202,7 +202,7 @@ export default function GuidePage() {
             <CardContent className="pt-0 pl-[4.5rem]">
               <ul className="space-y-2">
                 {step.content.map((line, idx) => (
-                  <li key={idx} className="flex items-start gap-2 text-sm text-gray-600">
+                  <li key={idx} className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
                     {line.startsWith("  -") ? (
                       <>
                         <span className="text-[#FF6B35] mt-0.5 ml-4">-</span>
@@ -224,18 +224,18 @@ export default function GuidePage() {
 
       {/* Tips */}
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-gray-900 font-[family-name:var(--font-heading)]">
+        <h2 className="text-xl font-semibold text-foreground font-[family-name:var(--font-heading)]">
           Conseils pratiques
         </h2>
         <div className="grid md:grid-cols-3 gap-4">
           {tips.map((tip) => (
-            <Card key={tip.title} className="bg-white border-gray-200 shadow-sm">
+            <Card key={tip.title} className="bg-white dark:bg-card border-gray-200 shadow-sm">
               <CardContent className="p-5">
-                <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center mb-3">
+                <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-3">
                   <tip.icon className="h-5 w-5 text-[#FF6B35]" />
                 </div>
-                <h3 className="text-gray-900 font-medium mb-2">{tip.title}</h3>
-                <p className="text-gray-600 text-sm">{tip.description}</p>
+                <h3 className="text-foreground font-medium mb-2">{tip.title}</h3>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">{tip.description}</p>
               </CardContent>
             </Card>
           ))}
@@ -243,9 +243,9 @@ export default function GuidePage() {
       </div>
 
       {/* Structure Explanation */}
-      <Card className="bg-white border-gray-200 shadow-sm">
+      <Card className="bg-white dark:bg-card border-gray-200 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-gray-900 flex items-center gap-2">
+          <CardTitle className="text-foreground flex items-center gap-2">
             <CheckCircle className="h-5 w-5 text-green-500" />
             Structure d&apos;une campagne
           </CardTitle>
@@ -255,74 +255,74 @@ export default function GuidePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 pr-4 text-gray-600 font-medium">Champ</th>
-                  <th className="text-left py-3 pr-4 text-gray-600 font-medium">Obligatoire</th>
-                  <th className="text-left py-3 text-gray-600 font-medium">Description</th>
+                  <th className="text-left py-3 pr-4 text-gray-600 dark:text-gray-400 font-medium">Champ</th>
+                  <th className="text-left py-3 pr-4 text-gray-600 dark:text-gray-400 font-medium">Obligatoire</th>
+                  <th className="text-left py-3 text-gray-600 dark:text-gray-400 font-medium">Description</th>
                 </tr>
               </thead>
-              <tbody className="text-gray-600">
+              <tbody className="text-gray-600 dark:text-gray-400">
                 <tr className="border-b border-gray-100">
-                  <td className="py-2.5 pr-4 text-gray-900">Titre</td>
+                  <td className="py-2.5 pr-4 text-foreground">Titre</td>
                   <td className="py-2.5 pr-4 text-green-600">Oui</td>
                   <td className="py-2.5">Nom complet de la campagne</td>
                 </tr>
                 <tr className="border-b border-gray-100">
-                  <td className="py-2.5 pr-4 text-gray-900">Description</td>
+                  <td className="py-2.5 pr-4 text-foreground">Description</td>
                   <td className="py-2.5 pr-4">Non</td>
                   <td className="py-2.5">Description détaillée de la campagne</td>
                 </tr>
                 <tr className="border-b border-gray-100">
-                  <td className="py-2.5 pr-4 text-gray-900">Marque</td>
+                  <td className="py-2.5 pr-4 text-foreground">Marque</td>
                   <td className="py-2.5 pr-4">Non</td>
                   <td className="py-2.5">Nom de la marque annonceur</td>
                 </tr>
                 <tr className="border-b border-gray-100">
-                  <td className="py-2.5 pr-4 text-gray-900">Agence</td>
+                  <td className="py-2.5 pr-4 text-foreground">Agence</td>
                   <td className="py-2.5 pr-4">Non</td>
                   <td className="py-2.5">Nom de l&apos;agence de communication</td>
                 </tr>
                 <tr className="border-b border-gray-100">
-                  <td className="py-2.5 pr-4 text-gray-900">Image URL</td>
+                  <td className="py-2.5 pr-4 text-foreground">Image URL</td>
                   <td className="py-2.5 pr-4">Non</td>
                   <td className="py-2.5">Lien vers l&apos;image illustrative</td>
                 </tr>
                 <tr className="border-b border-gray-100">
-                  <td className="py-2.5 pr-4 text-gray-900">Plateforme</td>
+                  <td className="py-2.5 pr-4 text-foreground">Plateforme</td>
                   <td className="py-2.5 pr-4 text-green-600">Oui</td>
                   <td className="py-2.5">Réseau social principal</td>
                 </tr>
                 <tr className="border-b border-gray-100">
-                  <td className="py-2.5 pr-4 text-gray-900">Pays</td>
+                  <td className="py-2.5 pr-4 text-foreground">Pays</td>
                   <td className="py-2.5 pr-4 text-green-600">Oui</td>
                   <td className="py-2.5">Pays de diffusion</td>
                 </tr>
                 <tr className="border-b border-gray-100">
-                  <td className="py-2.5 pr-4 text-gray-900">Secteur</td>
+                  <td className="py-2.5 pr-4 text-foreground">Secteur</td>
                   <td className="py-2.5 pr-4 text-green-600">Oui</td>
                   <td className="py-2.5">Secteur d&apos;activité</td>
                 </tr>
                 <tr className="border-b border-gray-100">
-                  <td className="py-2.5 pr-4 text-gray-900">Format</td>
+                  <td className="py-2.5 pr-4 text-foreground">Format</td>
                   <td className="py-2.5 pr-4 text-green-600">Oui</td>
                   <td className="py-2.5">Type de contenu publicitaire</td>
                 </tr>
                 <tr className="border-b border-gray-100">
-                  <td className="py-2.5 pr-4 text-gray-900">Date</td>
+                  <td className="py-2.5 pr-4 text-foreground">Date</td>
                   <td className="py-2.5 pr-4">Non</td>
                   <td className="py-2.5">Mois et année de publication</td>
                 </tr>
                 <tr className="border-b border-gray-100">
-                  <td className="py-2.5 pr-4 text-gray-900">Année</td>
+                  <td className="py-2.5 pr-4 text-foreground">Année</td>
                   <td className="py-2.5 pr-4">Non</td>
                   <td className="py-2.5">Année de la campagne</td>
                 </tr>
                 <tr className="border-b border-gray-100">
-                  <td className="py-2.5 pr-4 text-gray-900">Vidéo</td>
+                  <td className="py-2.5 pr-4 text-foreground">Vidéo</td>
                   <td className="py-2.5 pr-4">Non</td>
                   <td className="py-2.5">Indique si la campagne inclut une vidéo</td>
                 </tr>
                 <tr>
-                  <td className="py-2.5 pr-4 text-gray-900">Tags</td>
+                  <td className="py-2.5 pr-4 text-foreground">Tags</td>
                   <td className="py-2.5 pr-4">Non</td>
                   <td className="py-2.5">Mots-clés pour le filtrage</td>
                 </tr>

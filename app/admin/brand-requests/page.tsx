@@ -390,15 +390,15 @@ export default function AdminBrandRequestsPage() {
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center gap-3">
-        <Link href="/admin" className="rounded-lg p-2 hover:bg-gray-100 transition-colors">
-          <ArrowLeft className="h-5 w-5 text-gray-600" />
+        <Link href="/admin" className="rounded-lg p-2 hover:bg-gray-100 dark:bg-gray-800 transition-colors">
+          <ArrowLeft className="h-5 w-5 text-gray-600 dark:text-gray-400" />
         </Link>
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#F2B33D] to-[#a855f7]">
           <Building2 className="h-5 w-5 text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Demandes de veille concurrentielle</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="text-2xl font-bold text-foreground">Demandes de veille concurrentielle</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             {pendingCount} en attente · {inProgressCount} en cours · {requests.length} total
           </p>
         </div>
@@ -413,13 +413,13 @@ export default function AdminBrandRequestsPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Filtrer par marque, client, email ou statut…"
-            className="w-full rounded-lg border border-gray-200 bg-white pl-9 pr-9 py-2 text-sm outline-none focus:border-[#F2B33D]"
+            className="w-full rounded-lg border border-gray-200 bg-white dark:bg-card pl-9 pr-9 py-2 text-sm outline-none focus:border-[#F2B33D]"
           />
           {searchQuery && (
             <button
               type="button"
               onClick={() => setSearchQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-400 hover:text-gray-600"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-gray-400 hover:text-gray-600 dark:text-gray-400"
               aria-label="Effacer le filtre"
             >
               <X className="h-3.5 w-3.5" />
@@ -437,7 +437,7 @@ export default function AdminBrandRequestsPage() {
           <Users className="h-3.5 w-3.5 mr-1.5" />
           {groupByClient ? 'Groupé par client' : 'Grouper par client'}
         </Button>
-        <span className="text-xs text-gray-500 shrink-0">
+        <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">
           {filteredRequests.length} / {requests.length} demande{requests.length > 1 ? 's' : ''}
         </span>
       </div>
@@ -483,12 +483,12 @@ export default function AdminBrandRequestsPage() {
           <Loader2 className="h-8 w-8 animate-spin text-[#F2B33D]" />
         </div>
       ) : filteredRequests.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-12 text-center">
+        <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 dark:bg-gray-900/40 p-12 text-center">
           <Building2 className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-bold text-gray-900">
+          <h3 className="text-lg font-bold text-foreground">
             {requests.length === 0 ? 'Aucune demande' : 'Aucun résultat'}
           </h3>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {requests.length === 0
               ? 'Les demandes de veille concurrentielle apparaîtront ici.'
               : 'Aucune demande ne correspond à votre filtre.'}
@@ -505,8 +505,8 @@ export default function AdminBrandRequestsPage() {
             return (
               <div
                 key={req.id}
-                className={`rounded-xl border bg-white p-5 shadow-sm transition-all ${
-                  isSelected ? 'border-[#80368D]/40 ring-2 ring-[#80368D]/20' : 'border-gray-200'
+                className={`rounded-xl border bg-white dark:bg-card p-5 shadow-sm transition-all ${
+                  isSelected ? 'border-[#80368D]/40 ring-2 ring-[#80368D]/20' : 'border-gray-200 dark:border-slate-800'
                 }`}
               >
                 <div className="flex items-start justify-between gap-4">
@@ -526,12 +526,12 @@ export default function AdminBrandRequestsPage() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <h3 className="text-lg font-bold text-gray-900">{req.brand_name}</h3>
+                      <h3 className="text-lg font-bold text-foreground">{req.brand_name}</h3>
                       <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${currentStatus.color}`}>
                         {currentStatus.label}
                       </span>
                       {req.user ? (
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
                           par <strong>{req.user.name || req.user.email}</strong> ({req.user.plan})
                         </span>
                       ) : req.user_id ? (
@@ -546,7 +546,7 @@ export default function AdminBrandRequestsPage() {
                       )}
                     </div>
 
-                    <div className="flex flex-wrap gap-3 text-xs text-gray-500 mb-2">
+                    <div className="flex flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-400 mb-2">
                       {req.brand_country && <span>📍 {req.brand_country}</span>}
                       {req.brand_sector && <span>🏷️ {req.brand_sector}</span>}
                       <span>📅 {new Date(req.created_at).toLocaleDateString('fr-FR')}</span>
@@ -587,7 +587,7 @@ export default function AdminBrandRequestsPage() {
                     })()}
 
                     {req.notes && (
-                      <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 mb-3">{req.notes}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3 mb-3">{req.notes}</p>
                     )}
 
                     {req.admin_notes && !isEditing && (
@@ -595,7 +595,7 @@ export default function AdminBrandRequestsPage() {
                         <p className="text-xs font-semibold text-[#F2B33D]/60 mb-1">Note admin :</p>
                         {/* admin_notes peut être du HTML (RichTextEditor Tiptap) ou du texte simple */}
                         <div
-                          className="prose prose-sm max-w-none text-sm text-gray-700"
+                          className="prose prose-sm max-w-none text-sm text-gray-700 dark:text-gray-300"
                           dangerouslySetInnerHTML={{ __html: sanitizeHtml(req.admin_notes) }}
                         />
                       </div>
@@ -625,7 +625,7 @@ export default function AdminBrandRequestsPage() {
                             Paiement non approuvé
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 dark:bg-gray-800 px-3 py-1 text-xs font-semibold text-gray-700 dark:text-gray-300">
                             <CreditCard className="h-3.5 w-3.5" />
                             Paiement à recevoir
                           </span>
@@ -634,7 +634,7 @@ export default function AdminBrandRequestsPage() {
                     )}
 
                     {!isEditing && (req.devis_amount || req.next_renewal_at) && (
-                      <div className="rounded-lg bg-gray-50 border border-gray-200 p-3 mb-3 text-xs text-gray-700 space-y-0.5">
+                      <div className="rounded-lg bg-gray-50 dark:bg-gray-900/40 border border-gray-200 p-3 mb-3 text-xs text-gray-700 dark:text-gray-300 space-y-0.5">
                         {req.devis_amount != null && (
                           <p>
                             <strong>Devis :</strong>{' '}
@@ -648,7 +648,7 @@ export default function AdminBrandRequestsPage() {
                         {req.payment_reference && (
                           <p>
                             <strong>Réf. paiement :</strong> {req.payment_reference}
-                            {req.payment_method && <> · <span className="text-gray-500">{req.payment_method}</span></>}
+                            {req.payment_method && <> · <span className="text-gray-500 dark:text-gray-400">{req.payment_method}</span></>}
                           </p>
                         )}
                         {req.next_renewal_at && (
@@ -664,21 +664,21 @@ export default function AdminBrandRequestsPage() {
                       <div className="mt-3 space-y-4 rounded-lg border border-[#F2B33D]/20 p-4 bg-[#F2B33D]/5">
                         {/* Note utilisateur — éditeur WYSIWYG (Tiptap) */}
                         <div>
-                          <label className="block text-xs font-semibold text-gray-600 mb-1">
+                          <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
                             Note pour l'utilisateur
                           </label>
                           <RichTextEditor
                             content={adminNotes}
                             onChange={setAdminNotes}
                             placeholder="Note visible par l'utilisateur (mise en forme possible)..."
-                            className="bg-white"
+                            className="bg-white dark:bg-card"
                           />
                         </div>
 
                         {/* Champs Devis */}
                         <div className="grid gap-3 sm:grid-cols-2">
                           <div>
-                            <label htmlFor={`devis-amount-${req.id}`} className="block text-xs font-semibold text-gray-600 mb-1">
+                            <label htmlFor={`devis-amount-${req.id}`} className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
                               Montant du devis (XOF)
                             </label>
                             <input
@@ -689,13 +689,13 @@ export default function AdminBrandRequestsPage() {
                               value={devisAmount}
                               onChange={(e) => setDevisAmount(e.target.value)}
                               placeholder="Ex : 250000"
-                              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#F2B33D]"
+                              className="w-full rounded-lg border border-gray-200 bg-white dark:bg-card px-3 py-2 text-sm outline-none focus:border-[#F2B33D]"
                             />
                           </div>
 
                           {/* Upload PDF du devis */}
                           <div>
-                            <label className="block text-xs font-semibold text-gray-600 mb-1">
+                            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
                               Devis (PDF)
                             </label>
                             <input
@@ -716,7 +716,7 @@ export default function AdminBrandRequestsPage() {
                                 variant="outline"
                                 disabled={uploadingPdf}
                                 onClick={() => pdfInputRef.current?.click()}
-                                className="bg-white"
+                                className="bg-white dark:bg-card"
                               >
                                 {uploadingPdf
                                   ? <Loader2 className="h-3 w-3 animate-spin mr-1" />
@@ -751,7 +751,7 @@ export default function AdminBrandRequestsPage() {
                           </div>
 
                           <div>
-                            <label htmlFor={`renewal-${req.id}`} className="block text-xs font-semibold text-gray-600 mb-1">
+                            <label htmlFor={`renewal-${req.id}`} className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
                               Prochain renouvellement
                             </label>
                             <input
@@ -759,7 +759,7 @@ export default function AdminBrandRequestsPage() {
                               type="date"
                               value={nextRenewalAt}
                               onChange={(e) => setNextRenewalAt(e.target.value)}
-                              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#F2B33D]"
+                              className="w-full rounded-lg border border-gray-200 bg-white dark:bg-card px-3 py-2 text-sm outline-none focus:border-[#F2B33D]"
                             />
                           </div>
                         </div>
@@ -786,13 +786,13 @@ export default function AdminBrandRequestsPage() {
                                   readOnly
                                   value={paymentLink}
                                   onFocus={(e) => e.currentTarget.select()}
-                                  className="flex-1 min-w-0 rounded-lg border border-[#10B981]/20 bg-white px-3 py-2 text-xs font-mono text-gray-700 outline-none"
+                                  className="flex-1 min-w-0 rounded-lg border border-[#10B981]/20 bg-white dark:bg-card px-3 py-2 text-xs font-mono text-gray-700 dark:text-gray-300 outline-none"
                                 />
                                 <Button
                                   type="button"
                                   size="sm"
                                   variant="outline"
-                                  className="shrink-0 bg-white"
+                                  className="shrink-0 bg-white dark:bg-card"
                                   onClick={() => copyToClipboard(linkKey, paymentLink)}
                                   title="Copier le lien"
                                 >
@@ -807,12 +807,12 @@ export default function AdminBrandRequestsPage() {
                                   rel="noopener noreferrer"
                                   title="Ouvrir le lien"
                                 >
-                                  <Button type="button" size="sm" variant="outline" className="shrink-0 bg-white">
+                                  <Button type="button" size="sm" variant="outline" className="shrink-0 bg-white dark:bg-card">
                                     Ouvrir
                                   </Button>
                                 </a>
                               </div>
-                              <p className="mt-1.5 text-[11px] text-gray-600">
+                              <p className="mt-1.5 text-[11px] text-gray-600 dark:text-gray-400">
                                 Envoyez ce lien au client. Une fois le paiement validé par PawaPay, la
                                 demande passera automatiquement en « Disponible ».
                               </p>
@@ -822,7 +822,7 @@ export default function AdminBrandRequestsPage() {
 
                         {/* Référence de paiement — copiable / éditable pour suivi manuel */}
                         <div>
-                          <label htmlFor={`payref-${req.id}`} className="block text-xs font-semibold text-gray-600 mb-1">
+                          <label htmlFor={`payref-${req.id}`} className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
                             Référence de paiement
                           </label>
                           <div className="flex items-center gap-2">
@@ -832,14 +832,14 @@ export default function AdminBrandRequestsPage() {
                               value={paymentReference}
                               onChange={(e) => setPaymentReference(e.target.value)}
                               placeholder="Renseignée automatiquement après paiement PawaPay"
-                              className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-mono outline-none focus:border-[#F2B33D]"
+                              className="flex-1 rounded-lg border border-gray-200 bg-white dark:bg-card px-3 py-2 text-sm font-mono outline-none focus:border-[#F2B33D]"
                             />
                             {paymentReference && (
                               <Button
                                 type="button"
                                 size="sm"
                                 variant="outline"
-                                className="shrink-0 bg-white"
+                                className="shrink-0 bg-white dark:bg-card"
                                 onClick={() => copyToClipboard(`ref-${req.id}`, paymentReference)}
                               >
                                 {copiedKey === `ref-${req.id}`
@@ -965,9 +965,9 @@ export default function AdminBrandRequestsPage() {
                     <Users className="h-4 w-4 text-[#80368D]" />
                     <h2 className="text-sm font-bold text-[#80368D]">{g.label}</h2>
                     {g.sublabel && (
-                      <span className="text-xs text-gray-500">· {g.sublabel}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">· {g.sublabel}</span>
                     )}
-                    <span className="ml-auto text-xs text-gray-500">
+                    <span className="ml-auto text-xs text-gray-500 dark:text-gray-400">
                       {g.items.length} demande{g.items.length > 1 ? 's' : ''}
                     </span>
                   </header>

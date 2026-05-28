@@ -58,7 +58,7 @@ export default async function AdminPaymentsPage({
   let paymentsQuery = (supabase as any)
     .from('payments')
     .select(
-      'id, ref_command, user_email, amount, final_amount, currency, status, payment_method, provider_transaction_id, client_phone, completed_at, created_at'
+      'id, ref_command, user_email, amount, final_amount, currency, status, payment_method, provider_transaction_id, client_phone, failure_code, failure_message, completed_at, created_at'
     )
     .gte('created_at', since)
   if (until) paymentsQuery = paymentsQuery.lt('created_at', until)
@@ -154,7 +154,7 @@ export default async function AdminPaymentsPage({
       <LiveDeposits />
 
       <div>
-        <p className="text-xs uppercase tracking-wide text-slate-500 font-medium mb-2">
+        <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium mb-2">
           Vue interne (depuis la base, hors frais PawaPay)
           {selectedMonth && ` — ${selectedMonth}`}
         </p>
@@ -170,7 +170,7 @@ export default async function AdminPaymentsPage({
         month={selectedMonth}
       />
 
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">
         Données mises en cache 60 secondes. Pour forcer un rafraîchissement, recharger
         la page après expiration.
       </p>

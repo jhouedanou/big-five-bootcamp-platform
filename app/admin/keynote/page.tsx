@@ -211,7 +211,7 @@ export default function KeynoteAdminPage() {
         </span>
       );
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-600 bg-gray-50 border border-gray-200 px-2 py-0.5 rounded">
+      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/40 border border-gray-200 px-2 py-0.5 rounded">
         <Clock className="h-3 w-3" /> En attente
       </span>
     );
@@ -221,10 +221,10 @@ export default function KeynoteAdminPage() {
     <div className="p-6 lg:p-10 space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 font-heading">
+          <h1 className="text-2xl lg:text-3xl font-bold text-foreground font-heading">
             Keynote — 21 mai 2026
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             Inscriptions, codes promo de pré-lancement et synchronisation Mailchimp.
           </p>
         </div>
@@ -388,10 +388,10 @@ export default function KeynoteAdminPage() {
               <Loader2 className="h-6 w-6 animate-spin text-amber-500" />
             </div>
           ) : rows.length === 0 ? (
-            <div className="py-16 text-center text-sm text-gray-500">Aucune inscription pour l&apos;instant.</div>
+            <div className="py-16 text-center text-sm text-gray-500 dark:text-gray-400">Aucune inscription pour l&apos;instant.</div>
           ) : (
             <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500">
+              <thead className="bg-slate-50 dark:bg-slate-900/40 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 <tr>
                   <th className="px-3 py-3 w-10">
                     <input
@@ -414,7 +414,7 @@ export default function KeynoteAdminPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {rows.map((r) => (
-                  <tr key={r.id} className="hover:bg-slate-50">
+                  <tr key={r.id} className="hover:bg-slate-50 dark:bg-slate-900/40">
                     <td className="px-3 py-3">
                       <input
                         type="checkbox"
@@ -423,7 +423,7 @@ export default function KeynoteAdminPage() {
                         aria-label={`Sélectionner ${r.email}`}
                       />
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                    <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       {new Date(r.created_at).toLocaleDateString("fr-FR", {
                         day: "2-digit",
                         month: "short",
@@ -431,11 +431,11 @@ export default function KeynoteAdminPage() {
                         minute: "2-digit",
                       })}
                     </td>
-                    <td className="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">
+                    <td className="px-4 py-3 font-medium text-foreground whitespace-nowrap">
                       {[r.first_name, r.last_name].filter(Boolean).join(" ") || "—"}
                     </td>
-                    <td className="px-4 py-3 text-slate-600">{r.email}</td>
-                    <td className="px-4 py-3 text-slate-600 whitespace-nowrap">{r.country || "—"}</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{r.email}</td>
+                    <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">{r.country || "—"}</td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => copyCode(r.promo_code)}
@@ -463,7 +463,7 @@ export default function KeynoteAdminPage() {
                           (r.promo_redeemed_at ? 'used' : 'active');
                         if (status === 'used') {
                           return (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-700 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded">
+                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 border border-gray-200 px-2 py-0.5 rounded">
                               Utilisé
                               {r.promo_redeemed_plan ? ` · ${r.promo_redeemed_plan}` : ''}
                             </span>
@@ -483,7 +483,7 @@ export default function KeynoteAdminPage() {
                         );
                       })()}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                    <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
                       {r.promo_redeemed_at
                         ? new Date(r.promo_redeemed_at).toLocaleDateString("fr-FR")
                         : "—"}

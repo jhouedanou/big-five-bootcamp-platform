@@ -166,6 +166,7 @@ export function LiveDeposits() {
               <tr className="bg-muted/50 text-left">
                 <th className="px-3 py-2 font-medium text-muted-foreground">Référence</th>
                 <th className="px-3 py-2 font-medium text-muted-foreground">Statut</th>
+                <th className="px-3 py-2 font-medium text-muted-foreground">Raison échec</th>
                 <th className="px-3 py-2 font-medium text-muted-foreground">Montant</th>
                 <th className="px-3 py-2 font-medium text-muted-foreground">Email</th>
                 <th className="px-3 py-2 font-medium text-muted-foreground">Téléphone</th>
@@ -181,25 +182,30 @@ export function LiveDeposits() {
                     <span title={d.ref_command}>{d.ref_command.substring(0, 18)}…</span>
                   </td>
                   <td className="px-3 py-2">
-                    <div className="flex flex-col gap-1">
-                      <span className={`inline-flex w-fit items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusClass(d.status)}`}>
-                        {statusLabel(d.status)}
-                      </span>
-                      {FAILED_STATUSES.has(d.status) && (d.failure_code || d.failure_message) && (
-                        <span
-                          className="text-[11px] text-red-700 max-w-[220px] truncate"
-                          title={
-                            d.failure_message
-                              ? `${d.failure_code ? `[${d.failure_code}] ` : ''}${d.failure_message}`
-                              : d.failure_code || ''
-                          }
-                        >
-                          {d.failure_code ? <span className="font-mono">{d.failure_code}</span> : null}
-                          {d.failure_code && d.failure_message ? ' · ' : ''}
-                          {d.failure_message || ''}
-                        </span>
-                      )}
-                    </div>
+                    <span className={`inline-flex w-fit items-center px-2 py-0.5 rounded-full text-xs font-medium ${statusClass(d.status)}`}>
+                      {statusLabel(d.status)}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 max-w-[260px]">
+                    {FAILED_STATUSES.has(d.status) && (d.failure_code || d.failure_message) ? (
+                      <div className="flex flex-col gap-0.5">
+                        {d.failure_code && (
+                          <span className="font-mono text-[11px] text-red-700 dark:text-red-400 font-semibold">
+                            {d.failure_code}
+                          </span>
+                        )}
+                        {d.failure_message && (
+                          <span
+                            className="text-[11px] text-red-600 dark:text-red-300 truncate"
+                            title={d.failure_message}
+                          >
+                            {d.failure_message}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    )}
                   </td>
                   <td className="px-3 py-2 font-semibold">
                     {(d.final_amount ?? d.amount)?.toLocaleString("fr-FR")} {d.currency}

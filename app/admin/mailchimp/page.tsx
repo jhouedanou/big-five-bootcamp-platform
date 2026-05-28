@@ -227,32 +227,32 @@ export default function MailchimpSettingsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-[family-name:var(--font-heading)]">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground font-[family-name:var(--font-heading)]">
             Configuration Mailchimp
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
             Gérez l'intégration avec Mailchimp pour les campagnes email
           </p>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="flex items-center gap-2 text-gray-500 py-8 justify-center">
+        <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 py-8 justify-center">
           <Loader2 className="h-5 w-5 animate-spin" />
           <span>Chargement de la configuration...</span>
         </div>
       ) : (
         <div className="grid gap-6">
           {/* Configuration API */}
-          <Card className="bg-white border-gray-200 shadow-sm">
+          <Card className="bg-white dark:bg-card border-gray-200 shadow-sm">
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-orange-500/10">
                   <Mail className="h-5 w-5 text-orange-600" />
                 </div>
                 <div>
-                  <CardTitle className="text-gray-900">Paramètres API</CardTitle>
-                  <CardDescription className="text-gray-600">
+                  <CardTitle className="text-foreground">Paramètres API</CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-400">
                     Configurez la connexion à votre compte Mailchimp
                   </CardDescription>
                 </div>
@@ -261,10 +261,10 @@ export default function MailchimpSettingsPage() {
             <CardContent className="space-y-4 max-w-lg">
               {/* Clé API */}
               <div>
-                <Label htmlFor="mc-api-key" className="text-gray-900">
+                <Label htmlFor="mc-api-key" className="text-foreground">
                   Clé API Mailchimp *
                 </Label>
-                <p className="text-xs text-gray-500 mb-1.5">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">
                   Trouvez-la dans Mailchimp → Account → Extras → API Keys
                 </p>
                 <div className="relative">
@@ -282,7 +282,7 @@ export default function MailchimpSettingsPage() {
                   <button
                     type="button"
                     onClick={() => setShowApiKey(!showApiKey)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-400"
                   >
                     {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -291,10 +291,10 @@ export default function MailchimpSettingsPage() {
 
               {/* ID Audience */}
               <div>
-                <Label htmlFor="mc-audience-id" className="text-gray-900">
+                <Label htmlFor="mc-audience-id" className="text-foreground">
                   ID de l'audience/liste *
                 </Label>
-                <p className="text-xs text-gray-500 mb-1.5">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">
                   Mailchimp → Audience → Settings → Audience name and defaults
                 </p>
                 <Input
@@ -307,7 +307,7 @@ export default function MailchimpSettingsPage() {
 
               {/* Nom expéditeur */}
               <div>
-                <Label htmlFor="mc-from-name" className="text-gray-900">
+                <Label htmlFor="mc-from-name" className="text-foreground">
                   Nom de l'expéditeur
                 </Label>
                 <Input
@@ -320,7 +320,7 @@ export default function MailchimpSettingsPage() {
 
               {/* Email expéditeur */}
               <div>
-                <Label htmlFor="mc-from-email" className="text-gray-900">
+                <Label htmlFor="mc-from-email" className="text-foreground">
                   Email de l'expéditeur
                 </Label>
                 <Input
@@ -334,10 +334,10 @@ export default function MailchimpSettingsPage() {
 
               {/* Tag par défaut */}
               <div>
-                <Label htmlFor="mc-default-tag" className="text-gray-900">
+                <Label htmlFor="mc-default-tag" className="text-foreground">
                   Tag par défaut (optionnel)
                 </Label>
-                <p className="text-xs text-gray-500 mb-1.5">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">
                   Tag appliqué automatiquement aux contacts synchronisés
                 </p>
                 <Input
@@ -425,15 +425,15 @@ export default function MailchimpSettingsPage() {
           </Card>
 
           {/* Audience Keynote (séparée) */}
-          <Card className="bg-white border-gray-200 shadow-sm">
+          <Card className="bg-white dark:bg-card border-gray-200 shadow-sm">
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-purple-500/10">
                   <Mail className="h-5 w-5 text-purple-600" />
                 </div>
                 <div>
-                  <CardTitle className="text-gray-900">Audience Keynote (LAVEIYE)</CardTitle>
-                  <CardDescription className="text-gray-600">
+                  <CardTitle className="text-foreground">Audience Keynote (LAVEIYE)</CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-400">
                     Audience Mailchimp dédiée aux inscriptions keynote et codes promo. Séparée des emails marketing classiques.
                   </CardDescription>
                 </div>
@@ -441,10 +441,10 @@ export default function MailchimpSettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4 max-w-lg">
               <div>
-                <Label htmlFor="mc-keynote-audience-id" className="text-gray-900">
+                <Label htmlFor="mc-keynote-audience-id" className="text-foreground">
                   ID de l'audience keynote
                 </Label>
-                <p className="text-xs text-gray-500 mb-1.5">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">
                   ID de la liste Mailchimp recevant les inscriptions à la keynote (ex : <code>e799f1a2ee</code>). Si vide, l'audience principale est utilisée.
                 </p>
                 <Input
@@ -456,10 +456,10 @@ export default function MailchimpSettingsPage() {
               </div>
 
               <div>
-                <Label htmlFor="mc-keynote-tag" className="text-gray-900">
+                <Label htmlFor="mc-keynote-tag" className="text-foreground">
                   Tag inscription keynote
                 </Label>
-                <p className="text-xs text-gray-500 mb-1.5">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">
                   Tag appliqué aux contacts inscrits à la keynote
                 </p>
                 <Input
@@ -471,10 +471,10 @@ export default function MailchimpSettingsPage() {
               </div>
 
               <div>
-                <Label htmlFor="mc-keynote-promo-tag" className="text-gray-900">
+                <Label htmlFor="mc-keynote-promo-tag" className="text-foreground">
                   Tag code promo
                 </Label>
-                <p className="text-xs text-gray-500 mb-1.5">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">
                   Tag appliqué pour la synchronisation des codes promo générés
                 </p>
                 <Input
@@ -498,15 +498,15 @@ export default function MailchimpSettingsPage() {
           </Card>
 
           {/* Audience #BigFiveDecrypte */}
-          <Card className="bg-white border-gray-200 shadow-sm">
+          <Card className="bg-white dark:bg-card border-gray-200 shadow-sm">
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-amber-500/10">
                   <Mail className="h-5 w-5 text-amber-600" />
                 </div>
                 <div>
-                  <CardTitle className="text-gray-900">Audience #BigFiveDecrypte</CardTitle>
-                  <CardDescription className="text-gray-600">
+                  <CardTitle className="text-foreground">Audience #BigFiveDecrypte</CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-400">
                     Audience dédiée aux inscriptions Pro à la session mensuelle de debrief. Les demandes envoyées depuis <code>/decrypte</code> sont automatiquement ajoutées à cette audience.
                   </CardDescription>
                 </div>
@@ -514,10 +514,10 @@ export default function MailchimpSettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4 max-w-lg">
               <div>
-                <Label htmlFor="mc-decrypte-audience-id" className="text-gray-900">
+                <Label htmlFor="mc-decrypte-audience-id" className="text-foreground">
                   ID de l'audience Decrypte
                 </Label>
-                <p className="text-xs text-gray-500 mb-1.5">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">
                   ID de la liste Mailchimp recevant les inscriptions #BigFiveDecrypte. Si vide, l'audience principale est utilisée.
                 </p>
                 <Input
@@ -529,10 +529,10 @@ export default function MailchimpSettingsPage() {
               </div>
 
               <div>
-                <Label htmlFor="mc-decrypte-tag" className="text-gray-900">
+                <Label htmlFor="mc-decrypte-tag" className="text-foreground">
                   Tag Decrypte
                 </Label>
-                <p className="text-xs text-gray-500 mb-1.5">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">
                   Tag appliqué aux inscrits (par défaut : <code>bigfive-decrypte</code>). Un tag complémentaire <code>decrypte-YYYY-MM</code> est ajouté automatiquement.
                 </p>
                 <Input
@@ -558,22 +558,22 @@ export default function MailchimpSettingsPage() {
           </Card>
 
           {/* Synchronisation utilisateurs */}
-          <Card className="bg-white border-gray-200 shadow-sm">
+          <Card className="bg-white dark:bg-card border-gray-200 shadow-sm">
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-[#F2B33D]/10">
                   <Users className="h-5 w-5 text-[#0F0F0F]" />
                 </div>
                 <div>
-                  <CardTitle className="text-gray-900">Synchronisation des utilisateurs</CardTitle>
-                  <CardDescription className="text-gray-600">
+                  <CardTitle className="text-foreground">Synchronisation des utilisateurs</CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-400">
                     Synchronisez les utilisateurs inscrits avec votre audience Mailchimp
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Cette action va ajouter ou mettre à jour tous les utilisateurs de la plateforme
                 dans votre audience Mailchimp. Les informations synchronisées incluent le nom,
                 l'email et le plan d'abonnement.
@@ -637,22 +637,22 @@ export default function MailchimpSettingsPage() {
           </Card>
 
           {/* Métadonnées Creative Library */}
-          <Card className="bg-white border-gray-200 shadow-sm">
+          <Card className="bg-white dark:bg-card border-gray-200 shadow-sm">
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-cyan-500/10">
                   <BarChart3 className="h-5 w-5 text-cyan-600" />
                 </div>
                 <div>
-                  <CardTitle className="text-gray-900">Métadonnées Creative Library</CardTitle>
-                  <CardDescription className="text-gray-600">
+                  <CardTitle className="text-foreground">Métadonnées Creative Library</CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-400">
                     Données disponibles pour les campagnes email Mailchimp
                   </CardDescription>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Ces métadonnées peuvent être incluses dans vos campagnes email Mailchimp
                 pour informer vos abonnés du contenu de la bibliothèque.
               </p>
@@ -677,24 +677,24 @@ export default function MailchimpSettingsPage() {
               </Button>
 
               {metadata && (
-                <div className="bg-gray-50 rounded-lg p-4 space-y-3">
+                <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-4 space-y-3">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-gray-500">Campagnes publiées :</span>
-                      <span className="ml-2 font-semibold text-gray-900">
+                      <span className="text-gray-500 dark:text-gray-400">Campagnes publiées :</span>
+                      <span className="ml-2 font-semibold text-foreground">
                         {metadata.totalCampaigns}
                       </span>
                     </div>
                     <div>
-                      <span className="text-gray-500">Période :</span>
-                      <span className="ml-2 font-semibold text-gray-900">
+                      <span className="text-gray-500 dark:text-gray-400">Période :</span>
+                      <span className="ml-2 font-semibold text-foreground">
                         {metadata.period.from} — {metadata.period.to}
                       </span>
                     </div>
                   </div>
 
                   <div className="text-sm">
-                    <span className="text-gray-500">Marques ({metadata.brands.length}) :</span>
+                    <span className="text-gray-500 dark:text-gray-400">Marques ({metadata.brands.length}) :</span>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {metadata.brands.slice(0, 15).map((b) => (
                         <span
@@ -705,7 +705,7 @@ export default function MailchimpSettingsPage() {
                         </span>
                       ))}
                       {metadata.brands.length > 15 && (
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
                           +{metadata.brands.length - 15} autres
                         </span>
                       )}
@@ -713,7 +713,7 @@ export default function MailchimpSettingsPage() {
                   </div>
 
                   <div className="text-sm">
-                    <span className="text-gray-500">Secteurs ({metadata.sectors.length}) :</span>
+                    <span className="text-gray-500 dark:text-gray-400">Secteurs ({metadata.sectors.length}) :</span>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {metadata.sectors.map((s) => (
                         <span
@@ -727,7 +727,7 @@ export default function MailchimpSettingsPage() {
                   </div>
 
                   <div className="text-sm">
-                    <span className="text-gray-500">Pays ({metadata.countries.length}) :</span>
+                    <span className="text-gray-500 dark:text-gray-400">Pays ({metadata.countries.length}) :</span>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {metadata.countries.map((c) => (
                         <span
@@ -741,7 +741,7 @@ export default function MailchimpSettingsPage() {
                   </div>
 
                   <div className="text-sm">
-                    <span className="text-gray-500">Axes créatifs ({metadata.axes.length}) :</span>
+                    <span className="text-gray-500 dark:text-gray-400">Axes créatifs ({metadata.axes.length}) :</span>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {metadata.axes.map((a) => (
                         <span
@@ -755,7 +755,7 @@ export default function MailchimpSettingsPage() {
                   </div>
 
                   <div className="text-sm pt-2 border-t">
-                    <span className="text-gray-500">Lien plateforme :</span>
+                    <span className="text-gray-500 dark:text-gray-400">Lien plateforme :</span>
                     <a
                       href={metadata.platformUrl}
                       target="_blank"
@@ -768,8 +768,8 @@ export default function MailchimpSettingsPage() {
 
                   {/* Créneau d'envoi recommandé */}
                   <div className="text-sm pt-2 border-t">
-                    <span className="text-gray-500">🕐 Créneau d'envoi recommandé :</span>
-                    <span className="ml-2 font-semibold text-gray-900">
+                    <span className="text-gray-500 dark:text-gray-400">🕐 Créneau d'envoi recommandé :</span>
+                    <span className="ml-2 font-semibold text-foreground">
                       {metadata.recommendedSendTime}
                     </span>
                   </div>
@@ -777,20 +777,20 @@ export default function MailchimpSettingsPage() {
                   {/* Dernières campagnes ajoutées */}
                   {metadata.latestCampaigns && metadata.latestCampaigns.length > 0 && (
                     <div className="text-sm pt-2 border-t">
-                      <span className="text-gray-500 font-medium">
+                      <span className="text-gray-500 dark:text-gray-400 font-medium">
                         🆕 Dernières campagnes ajoutées ({metadata.latestCampaigns.length}) :
                       </span>
                       <div className="mt-2 space-y-2">
                         {metadata.latestCampaigns.map((campaign, i) => (
                           <div
                             key={i}
-                            className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-2.5"
+                            className="flex items-center justify-between bg-white dark:bg-card border border-gray-200 rounded-lg p-2.5"
                           >
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-gray-900 truncate">
+                              <p className="font-medium text-foreground truncate">
                                 {campaign.title}
                               </p>
-                              <p className="text-xs text-gray-500">
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
                                 {campaign.brand} · {campaign.sector}
                               </p>
                             </div>

@@ -210,8 +210,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         initialCheckDone.current = true
-      } catch (err) {
-        console.error("AuthProvider: erreur init", err)
+      } catch (err: any) {
+        // "Refresh Token Not Found" / "Invalid Refresh Token" = utilisateur non
+        // connecté ou session expirée. Cas attendu, pas une vraie erreur.
+        const msg = err?.message || String(err)
+        if (!/refresh.token/i.test(msg) && !/not authenticated/i.test(msg)) {
+          console.error("AuthProvider: erreur init", err)
+        }
         initialCheckDone.current = true
       } finally {
         if (mounted) setLoading(false)

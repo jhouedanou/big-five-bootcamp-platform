@@ -135,26 +135,26 @@ export default function BrandingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-[family-name:var(--font-heading)]">
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground font-[family-name:var(--font-heading)]">
           Branding & Logo
         </h1>
-        <p className="text-gray-500 mt-1">
+        <p className="text-gray-500 dark:text-gray-400 mt-1">
           Personnalisez le logo et l{"'"}identité visuelle de la plateforme
         </p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Logo principal */}
-        <Card className="bg-white border-gray-200 shadow-sm">
+        <Card className="bg-white dark:bg-card border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-gray-900 text-lg">Logo principal</CardTitle>
+            <CardTitle className="text-foreground text-lg">Logo principal</CardTitle>
             <CardDescription>
               Affiché dans la navbar et sur les pages publiques (fond clair).
               <span className="block text-xs mt-1 text-gray-400">Formats : SVG, PNG, WEBP · Max 2 Mo</span>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-center h-32 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50">
+            <div className="flex items-center justify-center h-32 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 dark:bg-gray-900/40">
               {settings.logo_url ? (
                 <div className="relative w-48 h-20">
                   <Image
@@ -175,7 +175,7 @@ export default function BrandingPage() {
             <div className="flex gap-2">
               <Label
                 htmlFor="logo-upload"
-                className="flex-1 flex items-center justify-center gap-2 h-10 px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 text-sm font-medium cursor-pointer hover:bg-gray-50 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 h-10 px-4 py-2 rounded-md border border-gray-300 bg-white dark:bg-card text-gray-700 dark:text-gray-300 text-sm font-medium cursor-pointer hover:bg-gray-50 transition-colors"
               >
                 {uploading === "logo_url" ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -207,7 +207,7 @@ export default function BrandingPage() {
               )}
             </div>
             <div className="space-y-1">
-              <Label htmlFor="logo-url" className="text-xs text-gray-500">
+              <Label htmlFor="logo-url" className="text-xs text-gray-500 dark:text-gray-400">
                 Ou coller une URL
               </Label>
               <Input
@@ -215,16 +215,16 @@ export default function BrandingPage() {
                 value={settings.logo_url}
                 onChange={(e) => setSettings((prev) => ({ ...prev, logo_url: e.target.value }))}
                 placeholder="https://..."
-                className="text-sm bg-white border-gray-300"
+                className="text-sm bg-white dark:bg-card border-gray-300"
               />
             </div>
           </CardContent>
         </Card>
 
         {/* Logo dark mode */}
-        <Card className="bg-white border-gray-200 shadow-sm">
+        <Card className="bg-white dark:bg-card border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-gray-900 text-lg">Logo mode sombre</CardTitle>
+            <CardTitle className="text-foreground text-lg">Logo mode sombre</CardTitle>
             <CardDescription>
               Affiché sur les fonds sombres (optionnel).
               <span className="block text-xs mt-1 text-gray-400">Formats : SVG, PNG, WEBP · Max 2 Mo</span>
@@ -243,7 +243,7 @@ export default function BrandingPage() {
                   />
                 </div>
               ) : (
-                <div className="text-center text-gray-500">
+                <div className="text-center text-gray-500 dark:text-gray-400">
                   <ImagePlus className="h-8 w-8 mx-auto mb-2" />
                   <p className="text-sm">Aucun logo sombre</p>
                 </div>
@@ -252,7 +252,7 @@ export default function BrandingPage() {
             <div className="flex gap-2">
               <Label
                 htmlFor="logo-dark-upload"
-                className="flex-1 flex items-center justify-center gap-2 h-10 px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 text-sm font-medium cursor-pointer hover:bg-gray-50 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 h-10 px-4 py-2 rounded-md border border-gray-300 bg-white dark:bg-card text-gray-700 dark:text-gray-300 text-sm font-medium cursor-pointer hover:bg-gray-50 transition-colors"
               >
                 {uploading === "logo_dark_url" ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -284,7 +284,7 @@ export default function BrandingPage() {
               )}
             </div>
             <div className="space-y-1">
-              <Label htmlFor="logo-dark-url" className="text-xs text-gray-500">
+              <Label htmlFor="logo-dark-url" className="text-xs text-gray-500 dark:text-gray-400">
                 Ou coller une URL
               </Label>
               <Input
@@ -292,23 +292,23 @@ export default function BrandingPage() {
                 value={settings.logo_dark_url}
                 onChange={(e) => setSettings((prev) => ({ ...prev, logo_dark_url: e.target.value }))}
                 placeholder="https://..."
-                className="text-sm bg-white border-gray-300"
+                className="text-sm bg-white dark:bg-card border-gray-300"
               />
             </div>
           </CardContent>
         </Card>
 
         {/* Favicon */}
-        <Card className="bg-white border-gray-200 shadow-sm">
+        <Card className="bg-white dark:bg-card border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-gray-900 text-lg">Favicon</CardTitle>
+            <CardTitle className="text-foreground text-lg">Favicon</CardTitle>
             <CardDescription>
               Petite icône affichée dans l{"'"}onglet du navigateur (32x32 ou 64x64).
               <span className="block text-xs mt-1 text-gray-400">Formats : SVG, PNG, WEBP · Max 2 Mo</span>
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-center h-32 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50">
+            <div className="flex items-center justify-center h-32 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 dark:bg-gray-900/40">
               {settings.favicon_url ? (
                 <div className="relative w-16 h-16">
                   <Image
@@ -329,7 +329,7 @@ export default function BrandingPage() {
             <div className="flex gap-2">
               <Label
                 htmlFor="favicon-upload"
-                className="flex-1 flex items-center justify-center gap-2 h-10 px-4 py-2 rounded-md border border-gray-300 bg-white text-gray-700 text-sm font-medium cursor-pointer hover:bg-gray-50 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 h-10 px-4 py-2 rounded-md border border-gray-300 bg-white dark:bg-card text-gray-700 dark:text-gray-300 text-sm font-medium cursor-pointer hover:bg-gray-50 transition-colors"
               >
                 {uploading === "favicon_url" ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -361,7 +361,7 @@ export default function BrandingPage() {
               )}
             </div>
             <div className="space-y-1">
-              <Label htmlFor="favicon-url-input" className="text-xs text-gray-500">
+              <Label htmlFor="favicon-url-input" className="text-xs text-gray-500 dark:text-gray-400">
                 Ou coller une URL
               </Label>
               <Input
@@ -369,23 +369,23 @@ export default function BrandingPage() {
                 value={settings.favicon_url}
                 onChange={(e) => setSettings((prev) => ({ ...prev, favicon_url: e.target.value }))}
                 placeholder="https://..."
-                className="text-sm bg-white border-gray-300"
+                className="text-sm bg-white dark:bg-card border-gray-300"
               />
             </div>
           </CardContent>
         </Card>
 
         {/* Nom du site */}
-        <Card className="bg-white border-gray-200 shadow-sm">
+        <Card className="bg-white dark:bg-card border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-gray-900 text-lg">Nom du site</CardTitle>
+            <CardTitle className="text-foreground text-lg">Nom du site</CardTitle>
             <CardDescription>
               Affiché dans la navbar et les emails
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="site-name" className="text-gray-700">
+              <Label htmlFor="site-name" className="text-gray-700 dark:text-gray-300">
                 Nom de la plateforme
               </Label>
               <Input
@@ -393,11 +393,11 @@ export default function BrandingPage() {
                 value={settings.site_name}
                 onChange={(e) => setSettings((prev) => ({ ...prev, site_name: e.target.value }))}
                 placeholder="Laveiye"
-                className="bg-white border-gray-300 text-gray-900"
+                className="bg-white dark:bg-card border-gray-300 text-foreground"
               />
             </div>
-            <div className="rounded-lg bg-gray-50 p-3 border border-gray-200">
-              <p className="text-xs text-gray-500 mb-1">Aperçu navbar :</p>
+            <div className="rounded-lg bg-gray-50 dark:bg-gray-900/40 p-3 border border-gray-200">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Aperçu navbar :</p>
               <div className="flex items-center gap-2">
                 {settings.logo_url ? (
                   <div className="relative w-8 h-8">
@@ -414,7 +414,7 @@ export default function BrandingPage() {
                     <span className="text-white text-xs font-bold">BF</span>
                   </div>
                 )}
-                <span className="font-[family-name:var(--font-heading)] font-bold text-gray-900">
+                <span className="font-[family-name:var(--font-heading)] font-bold text-foreground">
                   {settings.site_name || "Laveiye"}
                 </span>
               </div>

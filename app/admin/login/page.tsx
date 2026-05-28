@@ -77,7 +77,7 @@ export default function AdminLoginPage() {
           </div>
         </div>
 
-        <Card className="w-full bg-white/5 backdrop-blur-xl border-white/10 shadow-2xl">
+        <Card className="w-full bg-white dark:bg-card/5 backdrop-blur-xl border-white/10 shadow-2xl">
           <CardHeader className="space-y-1 flex flex-col items-center pt-10 pb-6">
             <div className="relative mb-6">
               <div className="absolute inset-0 pointer-events-none"></div>
@@ -89,7 +89,7 @@ export default function AdminLoginPage() {
               </div>
             </div>
             <CardTitle className="text-2xl font-bold text-white">Administration</CardTitle>
-            <CardDescription className="text-slate-400 text-center">
+            <CardDescription className="text-slate-400 dark:text-slate-500 dark:text-slate-400 text-center">
               Connectez-vous pour accéder au back-office Laveiye
             </CardDescription>
           </CardHeader>
@@ -100,14 +100,14 @@ export default function AdminLoginPage() {
                   Adresse email
                 </Label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-slate-400" />
                   <Input
                     id="email"
                     type="email"
                     placeholder="admin@laveiye.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-11 h-12 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-orange-500/50 focus:ring-orange-500/20 rounded-xl"
+                    className="pl-11 h-12 bg-white dark:bg-card/5 border-white/10 text-white placeholder:text-slate-500 dark:text-slate-400 focus:border-orange-500/50 focus:ring-orange-500/20 rounded-xl"
                     required
                   />
                 </div>
@@ -117,20 +117,20 @@ export default function AdminLoginPage() {
                   Mot de passe
                 </Label>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 dark:text-slate-400" />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-11 pr-11 h-12 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-orange-500/50 focus:ring-orange-500/20 rounded-xl"
+                    className="pl-11 pr-11 h-12 bg-white dark:bg-card/5 border-white/10 text-white placeholder:text-slate-500 dark:text-slate-400 focus:border-orange-500/50 focus:ring-orange-500/20 rounded-xl"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 dark:text-slate-400 hover:text-slate-300 transition-colors"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -157,7 +157,7 @@ export default function AdminLoginPage() {
             
             {/* Footer */}
             <div className="mt-8 pt-6 border-t border-white/5">
-              <p className="text-center text-xs text-slate-500">
+              <p className="text-center text-xs text-slate-500 dark:text-slate-400">
                 Accès réservé aux administrateurs Laveiye
               </p>
             </div>

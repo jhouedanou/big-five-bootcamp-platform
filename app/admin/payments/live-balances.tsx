@@ -73,8 +73,8 @@ export function LiveBalances() {
             <Wallet className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="font-bold text-slate-900">Solde PawaPay (live)</h2>
-            <p className="text-xs text-slate-500">
+            <h2 className="font-bold text-foreground">Solde PawaPay (live)</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
               Source officielle — API PawaPay /v2/wallet-balances.{' '}
               {data?.cached
                 ? `Cache ${Math.round((data.ageMs || 0) / 1000)}s.`
@@ -85,7 +85,7 @@ export function LiveBalances() {
         <button
           onClick={load}
           disabled={loading}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-white dark:bg-card border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           Actualiser
@@ -102,7 +102,7 @@ export function LiveBalances() {
       {!error && loading && !data && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-20 rounded-xl bg-slate-100 animate-pulse" />
+            <div key={i} className="h-20 rounded-xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
           ))}
         </div>
       )}
@@ -125,11 +125,11 @@ export function LiveBalances() {
           )}
 
           {balances.length === 0 ? (
-            <p className="text-sm text-slate-400 italic">Aucun wallet retourné.</p>
+            <p className="text-sm text-slate-400 dark:text-slate-500 dark:text-slate-400 italic">Aucun wallet retourné.</p>
           ) : (
             <div className="overflow-x-auto -mx-1">
               <table className="w-full text-sm">
-                <thead className="text-slate-500 text-xs">
+                <thead className="text-slate-500 dark:text-slate-400 text-xs">
                   <tr>
                     <th className="text-left px-2 py-1.5 font-medium">Pays</th>
                     <th className="text-left px-2 py-1.5 font-medium">Provider</th>
@@ -139,9 +139,9 @@ export function LiveBalances() {
                 <tbody>
                   {balances.map((b, i) => (
                     <tr key={`${b.country}-${b.provider}-${i}`} className="border-t border-emerald-100">
-                      <td className="px-2 py-1.5 text-slate-700">{b.country}</td>
-                      <td className="px-2 py-1.5 text-slate-700">{b.provider}</td>
-                      <td className="px-2 py-1.5 text-right font-medium text-slate-900 whitespace-nowrap">
+                      <td className="px-2 py-1.5 text-slate-700 dark:text-slate-200">{b.country}</td>
+                      <td className="px-2 py-1.5 text-slate-700 dark:text-slate-200">{b.provider}</td>
+                      <td className="px-2 py-1.5 text-right font-medium text-foreground whitespace-nowrap">
                         {fmtAmount(b.balance, b.currency)}
                       </td>
                     </tr>

@@ -15,7 +15,7 @@
  * ⚠️ La clé API doit rester côté serveur uniquement.
  */
 
-import { generateRefCommand } from '@/lib/feexpay'
+import { generateRefCommand } from '@/lib/pawapay'
 
 // ============================================================================
 // Configuration
@@ -58,16 +58,18 @@ export const PUBLIC_BASE_URL = getPublicBaseUrl()
 export const CHARIOW_PULSE_URL = `${PUBLIC_BASE_URL}/api/payment/chariow/pulse`
 
 /**
- * Map code pays interne (3 lettres) → ISO 3166-1 alpha-2 attendu par le
- * champ `phone.country_code` du checkout Chariow.
+ * Map code pays interne (3 lettres, cf. lib/pawapay-providers) → ISO 3166-1
+ * alpha-2 attendu par le champ `phone.country_code` du checkout Chariow.
  */
 export const COUNTRY_ISO: Record<string, string> = {
   CIV: 'CI',
   SEN: 'SN',
   BFA: 'BF',
   BEN: 'BJ',
+  MLI: 'ML',
   TGO: 'TG',
-  COG: 'CG',
+  CMR: 'CM',
+  NER: 'NE',
 }
 
 /**

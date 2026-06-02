@@ -18,16 +18,16 @@ import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
 import { LegalModal } from "@/components/legal-modal"
 import { SubscribeCampaignsCarousel } from "@/components/subscribe-campaigns-carousel"
 import {
-  FEEXPAY_COUNTRIES,
-  type FeexPayCountryCode,
-} from "@/lib/feexpay-providers"
+  PAWAPAY_COUNTRIES,
+  type PawaPayCountryCode,
+} from "@/lib/pawapay-providers"
 
 type PlanChoice = "basic" | "pro" | "discovery"
 
 /** Configuration par pays : indicatif, longueur locale attendue, masque d'affichage. */
-type CountryCode = FeexPayCountryCode
+type CountryCode = PawaPayCountryCode
 
-const COUNTRIES = FEEXPAY_COUNTRIES
+const COUNTRIES = PAWAPAY_COUNTRIES
 
 /** Formate des chiffres bruts selon un masque (groupes séparés par espaces). */
 function formatPhoneMask(digits: string, mask: number[]): string {

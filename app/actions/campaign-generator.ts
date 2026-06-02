@@ -11,12 +11,16 @@ import {
   type GeneratorCampaign,
 } from "@/lib/campaign-generator"
 import { generateCampaignWithGroq } from "@/lib/groq-campaign"
+import { getGoogleDriveImageUrl } from "@/lib/utils"
 
 // Champs "carte" exposés au client pour afficher les sources (aucun champ premium).
 const SOURCE_CARD_COLUMNS = "id, title, brand, category, thumbnail, slug"
 // Champs texte complets pour l'analyse — restent côté serveur, jamais renvoyés au client.
 const SOURCE_TEXT_COLUMNS =
-  "id, title, summary, description, analyse, how_to_use, brand, category, axe, tags, platforms, format, country, year"
+  "id, title, summary, description, analyse, how_to_use, brand, category, axe, tags, platforms, format, country, year, thumbnail"
+
+// Limites pour le visuel envoyé au LLM (vision) : 1 image, max ~4 Mo encodés.
+const MAX_IMAGE_BYTES = 4 * 1024 * 1024
 
 export interface SourceCampaign {
   id: string
@@ -123,6 +127,31 @@ export async function getGeneratorSources(): Promise<GeneratorSources> {
 export interface GenerateInput {
   campaignIds: string[]
   brief: CampaignBrief
+  /** Si vrai, on joint le visuel de la 1re campagne sélectionnée au LLM (vision). */
+  useVisuals?: boolean
+}
+
+/**
+ * Récupère un visuel (thumbnail) et le convertit en data URL base64 pour
+ * l'envoyer au modèle vision. Renvoie null si indisponible / trop lourd /
+ * non-image. Les URLs Google Drive sont normalisées en lien direct.
+ */
+async function fetchImageAsDataUrl(rawUrl?: string | null): Promise<string | null> {
+  const url = (rawUrl || "").trim()
+  if (!url) return null
+  try {
+    const direct = getGoogleDriveImageUrl(url)
+    const res = await fetch(direct, { redirect: "follow" })
+    if (!res.ok) return null
+    const contentType = res.headers.get("content-type") || ""
+    if (!contentType.startsWith("image/")) return null
+    const buf = await res.arrayBuffer()
+    if (buf.byteLength === 0 || buf.byteLength > MAX_IMAGE_BYTES) return null
+    const base64 = Buffer.from(buf).toString("base64")
+    return `data:${contentType};base64,${base64}`
+  } catch {
+    return null
+  }
 }
 
 export type GenerateResult =
@@ -186,11 +215,21 @@ export async function generateCampaignFromSources(
   const campaigns = (data || []) as GeneratorCampaign[]
   const insights = extractInsights(campaigns)
 
+  // Visuel optionnel : thumbnail de la 1re campagne sélectionnée (ordre demandé).
+  let imageDataUrl: string | null = null
+  if (input.useVisuals) {
+    const byId = new Map(campaigns.map((c) => [c.id as string, c]))
+    const firstWithThumb =
+      ids.map((id) => byId.get(id)).find((c) => !!c?.thumbnail) || campaigns[0]
+    imageDataUrl = await fetchImageAsDataUrl(firstWithThumb?.thumbnail)
+  }
+
   // Tentative IA (Groq, gratuit) — fallback heuristique si indisponible.
   const aiResult = await generateCampaignWithGroq({
     campaigns,
     brief: input.brief,
     insights,
+    imageDataUrl,
   })
   if (aiResult) {
     return { success: true, data: aiResult }

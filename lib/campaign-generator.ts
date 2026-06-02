@@ -28,11 +28,14 @@ export interface GeneratorCampaign {
   format?: string | null
   country?: string | null
   year?: number | null
+  thumbnail?: string | null
 }
 
 export interface CampaignBrief {
   brand?: string
   product?: string
+  /** Description libre de la marque / du service, saisie par l'utilisateur. */
+  description?: string
   objective?: string
   channel?: string
   audience?: string
@@ -217,6 +220,7 @@ export function generateCampaign(
 
   const brand = (brief.brand || '').trim() || 'votre marque'
   const product = (brief.product || '').trim()
+  const description = (brief.description || '').trim()
   const subject = product ? `${brand} — ${product}` : brand
   const audience = (brief.audience || '').trim()
   const tone = TONES[(brief.tone || '').toLowerCase()] || TONES.inspirant
@@ -267,6 +271,7 @@ export function generateCampaign(
     ``,
     `📝 MESSAGE CLÉ`,
     `${capitalize(subject)} prend la parole sur ${channel} avec un ton ${tone.adj}. ` +
+      (description ? `${description} ` : '') +
       `On s'appuie sur ce qui fonctionne dans vos références — ${themes} — ` +
       `pour ${objective.angle}${audiencePart}.`,
     ``,

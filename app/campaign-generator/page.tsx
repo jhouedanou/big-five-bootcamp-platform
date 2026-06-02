@@ -177,10 +177,12 @@ function CampaignGeneratorContent() {
 
   const [brand, setBrand] = useState("")
   const [product, setProduct] = useState("")
+  const [description, setDescription] = useState("")
   const [objective, setObjective] = useState("notoriete")
   const [channel, setChannel] = useState("Instagram")
   const [audience, setAudience] = useState("")
   const [tone, setTone] = useState("inspirant")
+  const [useVisuals, setUseVisuals] = useState(false)
 
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState<GeneratedCampaignWithSource | null>(null)
@@ -259,7 +261,8 @@ function CampaignGeneratorContent() {
     try {
       const res = await generateCampaignFromSources({
         campaignIds: Array.from(selectedIds),
-        brief: { brand, product, objective, channel, audience, tone },
+        brief: { brand, product, description, objective, channel, audience, tone },
+        useVisuals,
       })
       if (res.success) {
         setResult(res.data)

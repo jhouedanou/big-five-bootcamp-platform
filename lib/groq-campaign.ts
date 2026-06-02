@@ -19,7 +19,11 @@ import type {
 
 const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 const GROQ_MODEL = "llama-3.3-70b-versatile"
+// Modèle multimodal (vision) utilisé quand un visuel de campagne est joint.
+const GROQ_VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 const REQUEST_TIMEOUT_MS = 12_000
+// La vision est plus lente : marge supplémentaire avant l'abandon.
+const VISION_TIMEOUT_MS = 22_000
 const MAX_SOURCE_SAMPLES = 6
 const MAX_TEXT_CHARS = 380
 
@@ -99,6 +103,7 @@ function buildUserPrompt(args: {
       {
         marque: brief.brand || null,
         produit: brief.product || null,
+        description: brief.description || null,
         objectif: brief.objective || null,
         canal: channel,
         audience: brief.audience || null,
@@ -221,6 +226,9 @@ export async function generateCampaignWithGroq(args: {
   campaigns: GeneratorCampaign[]
   brief: CampaignBrief
   insights: CampaignInsights
+  /** Visuel d'une campagne de référence en data URL (data:image/...;base64,…).
+   *  Si fourni, on bascule sur le modèle multimodal pour analyser l'image. */
+  imageDataUrl?: string | null
 }): Promise<(GeneratedCampaign & { source: "groq" }) | null> {
   const apiKey = process.env.GROQ_API_KEY
   if (!apiKey) return null
@@ -237,8 +245,24 @@ export async function generateCampaignWithGroq(args: {
     channel,
   })
 
+  const hasImage = !!args.imageDataUrl
+  // Avec image : on ajoute une consigne explicite + on construit un message
+  // multimodal (texte + image) attendu par le modèle vision.
+  const textPart = hasImage
+    ? `${userPrompt}\n\nUN VISUEL DE RÉFÉRENCE EST JOINT : analyse-le (style, palette, composition, ton) et inspire-t'en pour l'intention visuelle, sans le copier.`
+    : userPrompt
+  const userContent: unknown = hasImage
+    ? [
+        { type: "text", text: textPart },
+        { type: "image_url", image_url: { url: args.imageDataUrl } },
+      ]
+    : userPrompt
+
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  const timer = setTimeout(
+    () => controller.abort(),
+    hasImage ? VISION_TIMEOUT_MS : REQUEST_TIMEOUT_MS,
+  )
 
   try {
     const res = await fetch(GROQ_ENDPOINT, {
@@ -248,14 +272,14 @@ export async function generateCampaignWithGroq(args: {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: GROQ_MODEL,
+        model: hasImage ? GROQ_VISION_MODEL : GROQ_MODEL,
         temperature: 0.8,
         top_p: 0.9,
         max_tokens: 1400,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: userPrompt },
+          { role: "user", content: userContent },
         ],
       }),
       signal: controller.signal,

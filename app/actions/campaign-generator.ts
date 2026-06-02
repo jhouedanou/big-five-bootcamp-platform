@@ -131,18 +131,66 @@ export interface GenerateInput {
   useVisuals?: boolean
 }
 
+// Anti-SSRF : on ne fetch QUE des hôtes d'images Google connus. `thumbnail`
+// vient de la base mais reste une donnée non fiable (admin / import) : un
+// thumbnail pointant vers une IP interne (169.254.169.254, 10.x, localhost…)
+// permettrait sinon une SSRF côté serveur. Allowlist par hostname exact.
+function isAllowedImageHost(hostname: string): boolean {
+  const h = hostname.toLowerCase()
+  return (
+    h === "drive.google.com" ||
+    h === "script.google.com" ||
+    h === "script.googleusercontent.com" ||
+    h === "googleusercontent.com" ||
+    h.endsWith(".googleusercontent.com") ||
+    h.endsWith(".googleapis.com")
+  )
+}
+
+/** Valide une URL : protocole https + hôte dans l'allowlist. */
+function safeImageUrl(raw: string): URL | null {
+  let u: URL
+  try {
+    u = new URL(raw)
+  } catch {
+    return null
+  }
+  if (u.protocol !== "https:") return null
+  if (!isAllowedImageHost(u.hostname)) return null
+  return u
+}
+
 /**
  * Récupère un visuel (thumbnail) et le convertit en data URL base64 pour
  * l'envoyer au modèle vision. Renvoie null si indisponible / trop lourd /
- * non-image. Les URLs Google Drive sont normalisées en lien direct.
+ * non-image / hôte non autorisé. Les URLs Google Drive sont normalisées en
+ * lien direct, puis chaque saut de redirection est re-validé (anti-SSRF).
  */
 async function fetchImageAsDataUrl(rawUrl?: string | null): Promise<string | null> {
   const url = (rawUrl || "").trim()
   if (!url) return null
   try {
-    const direct = getGoogleDriveImageUrl(url)
-    const res = await fetch(direct, { redirect: "follow" })
-    if (!res.ok) return null
+    let current = safeImageUrl(getGoogleDriveImageUrl(url))
+    if (!current) return null
+
+    // Redirections en mode manuel : on re-valide l'hôte à chaque saut pour
+    // empêcher un rebond vers une cible interne.
+    let res: Response | null = null
+    for (let hop = 0; hop < 4; hop++) {
+      res = await fetch(current.toString(), { redirect: "manual" })
+      if (res.status >= 300 && res.status < 400) {
+        const loc = res.headers.get("location")
+        if (!loc) return null
+        const next = safeImageUrl(new URL(loc, current).toString())
+        if (!next) return null
+        current = next
+        res = null
+        continue
+      }
+      break
+    }
+    if (!res || !res.ok) return null
+
     const contentType = res.headers.get("content-type") || ""
     if (!contentType.startsWith("image/")) return null
     const buf = await res.arrayBuffer()

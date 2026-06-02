@@ -18,7 +18,7 @@ export function Footer() {
       .select("value")
       .eq("key", "logo_url")
       .single()
-      .then(({ data }) => {
+      .then(({ data }: { data: { value: string } | null }) => {
         if (data?.value) setLogoUrl(data.value)
       })
   }, [])
@@ -82,28 +82,28 @@ export function Footer() {
             <div>
               <h3 className="text-sm font-semibold uppercase tracking-wider text-foreground">Legal</h3>
               <nav className="mt-4 flex flex-col gap-3">
-                <LegalModal 
+                <LegalModal
                   defaultTab="cgu"
                   trigger={
-                    <button className="group flex items-center text-sm text-muted-foreground transition-colors hover:text-[#F2B33D] text-left">
+                    <button suppressHydrationWarning className="group flex items-center text-sm text-muted-foreground transition-colors hover:text-[#F2B33D] text-left">
                       CGU
                       <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                     </button>
                   }
                 />
-                <LegalModal 
+                <LegalModal
                   defaultTab="cgv"
                   trigger={
-                    <button className="group flex items-center text-sm text-muted-foreground transition-colors hover:text-[#F2B33D] text-left">
+                    <button suppressHydrationWarning className="group flex items-center text-sm text-muted-foreground transition-colors hover:text-[#F2B33D] text-left">
                       CGV
                       <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                     </button>
                   }
                 />
-                <LegalModal 
+                <LegalModal
                   defaultTab="privacy"
                   trigger={
-                    <button className="group flex items-center text-sm text-muted-foreground transition-colors hover:text-[#F2B33D] text-left">
+                    <button suppressHydrationWarning className="group flex items-center text-sm text-muted-foreground transition-colors hover:text-[#F2B33D] text-left">
                       Confidentialité
                       <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                     </button>

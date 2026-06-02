@@ -28,6 +28,7 @@ import {
   Webhook,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { useState } from "react";
 import Image from "next/image";
 
@@ -98,7 +99,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated || !isAdmin) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-        <div className="text-center bg-white/5 backdrop-blur-xl rounded-2xl p-8 border border-white/10 max-w-md">
+        <div className="text-center bg-white dark:bg-card/5 backdrop-blur-xl rounded-2xl p-8 border border-white/10 max-w-md">
           <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-red-500/20 flex items-center justify-center">
             <ShieldAlert className="h-8 w-8 text-red-400" />
           </div>
@@ -121,7 +122,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
       {/* Mobile header */}
       <div className="lg:hidden bg-gradient-to-r from-slate-900 to-slate-800 p-4 flex items-center justify-between text-white shadow-lg">
         <Link href="/admin" className="flex items-center gap-3">
@@ -139,14 +140,17 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             <span className="text-xs text-white/60 block">Admin Panel</span>
           </div>
         </Link>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="text-white hover:bg-white/10 rounded-xl"
-        >
-          {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </Button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="text-white hover:bg-white dark:bg-card/10 rounded-xl"
+          >
+            {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </Button>
+        </div>
       </div>
 
       <div className="flex">
@@ -274,15 +278,16 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         {/* Main content */}
         <main className="flex-1 min-h-screen">
           {/* Top bar */}
-          <div className="hidden lg:flex items-center justify-between px-8 py-4 border-b border-slate-200 bg-white/80 backdrop-blur-xl sticky top-0 z-20">
+          <div className="hidden lg:flex items-center justify-between px-8 py-4 border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl sticky top-0 z-20">
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 text-sm text-slate-600">
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                 <TrendingUp className="w-4 h-4 text-green-500" />
                 <span>Plateforme active</span>
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" className="relative rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100">
+              <ThemeToggle />
+              <Button variant="ghost" size="icon" className="relative rounded-xl text-slate-600 dark:text-slate-400 hover:text-foreground dark:hover:text-slate-100 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-800">
                 <Bell className="w-5 h-5" />
                 <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-orange-500 rounded-full"></span>
               </Button>

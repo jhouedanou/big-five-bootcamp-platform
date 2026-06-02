@@ -14,9 +14,13 @@ export type PaymentRow = {
   payment_method: string | null
   provider_transaction_id: string | null
   client_phone: string | null
+  failure_code: string | null
+  failure_message: string | null
   completed_at: string | null
   created_at: string | null
 }
+
+const FAILED_STATUSES = new Set(['failed', 'rejected', 'canceled', 'in_reconciliation'])
 
 export type PayoutRow = {
   id: string
@@ -129,14 +133,14 @@ export function PaymentsTable({
   }, [payouts, search, status])
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
-      <div className="border-b border-slate-200 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
-        <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
+      <div className="border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+        <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl w-fit">
           <button
             type="button"
             onClick={() => setTab('payments')}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${
-              tab === 'payments' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+              tab === 'payments' ? 'bg-white dark:bg-slate-700 text-foreground dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400'
             }`}
           >
             Paiements ({payments.length})
@@ -145,7 +149,7 @@ export function PaymentsTable({
             type="button"
             onClick={() => setTab('payouts')}
             className={`px-4 py-1.5 rounded-lg text-sm font-medium transition ${
-              tab === 'payouts' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'
+              tab === 'payouts' ? 'bg-white dark:bg-slate-700 text-foreground dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400'
             }`}
           >
             Payouts ({payouts.length})
@@ -153,12 +157,12 @@ export function PaymentsTable({
         </div>
         <div className="flex gap-2 items-center">
           <div className="relative">
-            <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 dark:text-slate-400" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Recherche..."
-              className="pl-8 pr-3 py-1.5 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/30"
+              className="pl-8 pr-3 py-1.5 text-sm border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-foreground dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500/30"
             />
           </div>
           <select
@@ -166,7 +170,7 @@ export function PaymentsTable({
             title="Filtrer par statut"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="text-sm border border-slate-200 rounded-lg px-2 py-1.5 bg-white"
+            className="text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-800 text-foreground dark:text-slate-100"
           >
             <option value="">Tous statuts</option>
             <option value="completed">Complété</option>
@@ -183,10 +187,11 @@ export function PaymentsTable({
       <div className="overflow-x-auto">
         {tab === 'payments' ? (
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-600">
+            <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Date</th>
                 <th className="text-left px-4 py-2 font-medium">Email</th>
+                <th className="text-left px-4 py-2 font-medium">Téléphone</th>
                 <th className="text-right px-4 py-2 font-medium">Montant</th>
                 <th className="text-left px-4 py-2 font-medium">Méthode</th>
                 <th className="text-left px-4 py-2 font-medium">Référence</th>
@@ -196,28 +201,45 @@ export function PaymentsTable({
             <tbody>
               {filteredPayments.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-slate-400">
+                  <td colSpan={6} className="text-center py-8 text-slate-400 dark:text-slate-500 dark:text-slate-400">
                     Aucun paiement
                   </td>
                 </tr>
               ) : (
                 filteredPayments.map((p) => (
-                  <tr key={p.id} className="border-t border-slate-100 hover:bg-slate-50/50">
-                    <td className="px-4 py-2 text-slate-600 whitespace-nowrap">
+                  <tr key={p.id} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:bg-slate-900/40/50 dark:hover:bg-slate-800/30">
+                    <td className="px-4 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap">
                       {fmtDate(p.completed_at || p.created_at)}
                     </td>
-                    <td className="px-4 py-2 text-slate-900">{p.user_email || '—'}</td>
-                    <td className="px-4 py-2 text-right font-medium text-slate-900 whitespace-nowrap">
+                    <td className="px-4 py-2 text-foreground dark:text-slate-100">{p.user_email || '—'}</td>
+                    <td className="px-4 py-2 font-mono text-xs text-slate-600 dark:text-slate-400">{p.client_phone || '—'}</td>
+                    <td className="px-4 py-2 text-right font-medium text-foreground dark:text-slate-100 whitespace-nowrap">
                       {fmtAmount(p.final_amount ?? p.amount, p.currency)}
                     </td>
-                    <td className="px-4 py-2 text-slate-600">{p.payment_method || '—'}</td>
-                    <td className="px-4 py-2 text-slate-500 font-mono text-xs">
+                    <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{p.payment_method || '—'}</td>
+                    <td className="px-4 py-2 text-slate-500 dark:text-slate-500 font-mono text-xs">
                       <span title={p.ref_command || ''}>
                         {p.ref_command ? p.ref_command.slice(0, 12) + '…' : '—'}
                       </span>
                     </td>
                     <td className="px-4 py-2">
-                      <StatusBadge status={p.status} />
+                      <div className="flex flex-col gap-1">
+                        <StatusBadge status={p.status} />
+                        {FAILED_STATUSES.has(p.status || '') && (p.failure_code || p.failure_message) && (
+                          <span
+                            className="text-[11px] text-red-700 dark:text-red-400 max-w-[220px] truncate"
+                            title={
+                              p.failure_message
+                                ? `${p.failure_code ? `[${p.failure_code}] ` : ''}${p.failure_message}`
+                                : p.failure_code || ''
+                            }
+                          >
+                            {p.failure_code ? <span className="font-mono">{p.failure_code}</span> : null}
+                            {p.failure_code && p.failure_message ? ' · ' : ''}
+                            {p.failure_message || ''}
+                          </span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -226,7 +248,7 @@ export function PaymentsTable({
           </table>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-slate-50 text-slate-600">
+            <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400">
               <tr>
                 <th className="text-left px-4 py-2 font-medium">Date</th>
                 <th className="text-left px-4 py-2 font-medium">Téléphone</th>
@@ -239,22 +261,22 @@ export function PaymentsTable({
             <tbody>
               {filteredPayouts.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-8 text-slate-400">
+                  <td colSpan={6} className="text-center py-8 text-slate-400 dark:text-slate-500 dark:text-slate-400">
                     Aucun payout
                   </td>
                 </tr>
               ) : (
                 filteredPayouts.map((p) => (
-                  <tr key={p.id} className="border-t border-slate-100 hover:bg-slate-50/50">
-                    <td className="px-4 py-2 text-slate-600 whitespace-nowrap">
+                  <tr key={p.id} className="border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:bg-slate-900/40/50 dark:hover:bg-slate-800/30">
+                    <td className="px-4 py-2 text-slate-600 dark:text-slate-400 whitespace-nowrap">
                       {fmtDate(p.completed_at || p.created_at)}
                     </td>
-                    <td className="px-4 py-2 text-slate-900">{p.phone_number || '—'}</td>
-                    <td className="px-4 py-2 text-right font-medium text-slate-900 whitespace-nowrap">
+                    <td className="px-4 py-2 text-foreground dark:text-slate-100">{p.phone_number || '—'}</td>
+                    <td className="px-4 py-2 text-right font-medium text-foreground dark:text-slate-100 whitespace-nowrap">
                       {fmtAmount(p.amount, p.currency)}
                     </td>
-                    <td className="px-4 py-2 text-slate-600">{p.provider || '—'}</td>
-                    <td className="px-4 py-2 text-slate-500 font-mono text-xs">
+                    <td className="px-4 py-2 text-slate-600 dark:text-slate-400">{p.provider || '—'}</td>
+                    <td className="px-4 py-2 text-slate-500 dark:text-slate-500 font-mono text-xs">
                       <span title={p.payout_id || ''}>
                         {p.payout_id ? p.payout_id.slice(0, 12) + '…' : '—'}
                       </span>
@@ -271,16 +293,16 @@ export function PaymentsTable({
       </div>
 
       {tab === 'payments' && (
-        <div className="border-t border-slate-200 px-4 py-3 flex items-center justify-between">
-          <p className="text-xs text-slate-500">
+        <div className="border-t border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Page {page} · {pageSize} par page
           </p>
           <div className="flex gap-2">
             <a
               href={`?page=${Math.max(1, page - 1)}${monthQs}`}
               aria-disabled={page <= 1 ? 'true' : 'false'}
-              className={`px-3 py-1.5 text-sm rounded-lg border border-slate-200 ${
-                page <= 1 ? 'pointer-events-none opacity-40' : 'hover:bg-slate-50'
+              className={`px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 ${
+                page <= 1 ? 'pointer-events-none opacity-40' : 'hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
             >
               ← Précédent
@@ -288,8 +310,8 @@ export function PaymentsTable({
             <a
               href={`?page=${page + 1}${monthQs}`}
               aria-disabled={!hasMore ? 'true' : 'false'}
-              className={`px-3 py-1.5 text-sm rounded-lg border border-slate-200 ${
-                !hasMore ? 'pointer-events-none opacity-40' : 'hover:bg-slate-50'
+              className={`px-3 py-1.5 text-sm rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 ${
+                !hasMore ? 'pointer-events-none opacity-40' : 'hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
             >
               Suivant →

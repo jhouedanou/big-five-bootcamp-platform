@@ -129,7 +129,7 @@ export default function AdminDashboardPage() {
       <div>
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="w-5 h-5 text-orange-500" />
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Actions rapides</h2>
+          <h2 className="text-lg font-semibold text-foreground dark:text-white">Actions rapides</h2>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
           {quickActions.map((action) => (
@@ -141,10 +141,10 @@ export default function AdminDashboardPage() {
                       <action.icon className="h-6 w-6" />
                     </div>
                     <div className="flex-1">
-                      <p className="font-semibold text-slate-900 dark:text-white">{action.label}</p>
+                      <p className="font-semibold text-foreground dark:text-white">{action.label}</p>
                       <p className="text-sm text-slate-500 dark:text-slate-400">{action.description}</p>
                     </div>
-                    <ArrowRight className="h-5 w-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-white group-hover:translate-x-1 transition-all" />
+                    <ArrowRight className="h-5 w-5 text-slate-400 dark:text-slate-500 dark:text-slate-400 group-hover:text-slate-600 dark:text-slate-300 dark:group-hover:text-white group-hover:translate-x-1 transition-all" />
                   </div>
                 </CardContent>
               </Card>
@@ -157,7 +157,7 @@ export default function AdminDashboardPage() {
       <div>
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="w-5 h-5 text-blue-500" />
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Statistiques en temps réel</h2>
+          <h2 className="text-lg font-semibold text-foreground dark:text-white">Statistiques en temps réel</h2>
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {statsCards.map((stat, index) => (
@@ -175,9 +175,9 @@ export default function AdminDashboardPage() {
                     {isLoading ? (
                       <div className="h-9 w-16 bg-slate-200 dark:bg-slate-700 rounded animate-pulse"></div>
                     ) : (
-                      <p className="text-3xl font-bold text-slate-900 dark:text-white">{stat.value}</p>
+                      <p className="text-3xl font-bold text-foreground dark:text-white">{stat.value}</p>
                     )}
-                    <p className="text-sm font-medium text-slate-900 dark:text-white mt-1">{stat.title}</p>
+                    <p className="text-sm font-medium text-foreground dark:text-white mt-1">{stat.title}</p>
                     <p className="text-xs text-slate-500 dark:text-slate-400">{stat.description}</p>
                   </div>
                 </div>
@@ -194,13 +194,13 @@ export default function AdminDashboardPage() {
       <div>
         <div className="flex items-center gap-2 mb-4">
           <Eye className="w-5 h-5 text-[#0F0F0F]" />
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Activité récente</h2>
+          <h2 className="text-lg font-semibold text-foreground dark:text-white">Activité récente</h2>
         </div>
         {campaigns.length === 0 ? (
           <Card className="border-0 bg-white dark:bg-slate-800/50">
             <CardContent className="p-8 text-center">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center">
-                <Activity className="w-8 h-8 text-slate-400" />
+                <Activity className="w-8 h-8 text-slate-400 dark:text-slate-500 dark:text-slate-400" />
               </div>
               <p className="text-slate-600 dark:text-slate-400 mb-4">
                 Aucune campagne pour le moment.
@@ -218,19 +218,19 @@ export default function AdminDashboardPage() {
             <CardContent className="p-4">
               <div className="space-y-3">
                 {campaigns.slice(0, 5).map((campaign) => (
-                  <div key={campaign.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                  <div key={campaign.id} className="flex items-center gap-4 p-3 rounded-lg hover:bg-slate-50 dark:bg-slate-900/40 dark:hover:bg-slate-700/50 transition-colors">
                     <div className="p-2 rounded-lg bg-gradient-to-br from-orange-500/10 to-amber-500/10">
                       <Megaphone className="w-4 h-4 text-orange-600" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-slate-900 dark:text-white truncate">
+                      <p className="font-medium text-foreground dark:text-white truncate">
                         {campaign.title}
                       </p>
                       <p className="text-sm text-slate-500 dark:text-slate-400">
                         {campaign.brand || "Sans marque"} {campaign.sector ? `· ${campaign.sector}` : ""}
                       </p>
                     </div>
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">
                       {campaign.date ? new Date(campaign.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : ''}
                     </div>
                   </div>

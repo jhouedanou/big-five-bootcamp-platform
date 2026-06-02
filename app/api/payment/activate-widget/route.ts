@@ -18,7 +18,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { getAuthenticatedUser } from '@/lib/supabase-server';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
-import { CHARIOW_CONFIG, generateRefCommand, getSale } from '@/lib/chariow';
+import { CHARIOW_API_KEY, generateRefCommand, getSale } from '@/lib/chariow';
 import { PLAN_BASIC, PLAN_PRO } from '@/lib/pricing';
 import { computeSubscriptionEnd } from '@/lib/subscription';
 
@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
     let saleData: any = null;
     let verifiedAmount = 0;
 
-    if (CHARIOW_CONFIG.API_KEY && purchaseId) {
+    if (CHARIOW_API_KEY && purchaseId) {
       try {
         saleData = await getSale(purchaseId);
         verifiedAmount = saleData?.amount?.value || 0;

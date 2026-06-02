@@ -1,9 +1,13 @@
 /**
  * API Route: POST /api/payment/subscribe
  *
- * Cree une demande de paiement PawaPay pour un abonnement.
+ * Crée une demande de paiement Chariow (checkout hébergé) pour un abonnement.
  * Plans supportés : Découverte (1 000 XOF), Basic (4 900 XOF), Pro (9 900 XOF).
  * Supporte le renouvellement anticipé : les jours restants sont conservés.
+ *
+ * Retourne un `checkout_url` Chariow ; le front redirige l'utilisateur dessus.
+ * L'activation se fait ensuite via le Pulse `successful.sale`
+ * (cf. /api/payment/chariow/pulse).
  *
  * Body:
  * - userEmail    : Email de l'utilisateur
@@ -11,7 +15,7 @@
  * - plan         : "discovery" | "basic" | "pro"
  * - billing      : "monthly" | "annual"
  * - phoneNumber  : MSISDN du client (ex. "2250707123456")
- * - provider     : Code provider PawaPay (ex. "ORANGE_CIV", "MTN_MOMO_CIV", "MOOV_CIV" — Wave non supporté)
+ * - country?     : Code pays interne (ex. "CIV") → ISO pour le checkout Chariow
  * - currency?    : Devise (defaut "XOF")
  * - promoCode?   : Code promo (ex. KEYNOTE)
  */
@@ -19,10 +23,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import {
-  initiateDeposit,
+  initCheckout,
+  productIdForPlan,
   generateRefCommand,
-} from '@/lib/feexpay';
-import { toReseau } from '@/lib/feexpay-providers';
+  getPublicBaseUrl,
+  COUNTRY_ISO,
+} from '@/lib/chariow';
 import {
   KEYNOTE_PROMO_OFFER,
   computePromoPhases,
@@ -78,7 +84,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { userEmail, userName, plan, billing, phoneNumber, provider, currency = 'XOF', promoCode, rawPromoInput } = body;
+    const { userEmail, userName, plan, billing, phoneNumber, country, provider, currency = 'XOF', promoCode, rawPromoInput } = body;
 
     if (!userEmail) {
       return NextResponse.json(
@@ -96,9 +102,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!phoneNumber || !provider) {
+    if (!phoneNumber) {
       return NextResponse.json(
-        { error: 'phoneNumber et provider sont requis (ex. provider: "ORANGE_CIV").' },
+        { error: 'phoneNumber est requis.' },
         { status: 400 }
       );
     }
@@ -341,11 +347,6 @@ export async function POST(request: NextRequest) {
     const ref_command = generateRefCommand('SUB');
     const customerName = userName || (existingUser as any).name || userEmail.split('@')[0];
 
-    const customerMessage = (isCurrentlyActive
-      ? `Renouv ${planConfig.label}`
-      : `Abo ${planConfig.label}`
-    ).slice(0, 50);
-
     // Creer le paiement dans la base
     // Plan effectivement servi en PREMIÈRE phase (peut différer du planKey
     // acheté quand un promo est appliqué : ex. Discovery acheté → phase 1 = Basic).
@@ -358,8 +359,8 @@ export async function POST(request: NextRequest) {
       amount: SUBSCRIPTION_PRICE,
       currency,
       status: 'pending',
-      payment_method: 'feexpay',
-      provider,
+      payment_method: 'chariow',
+      provider: provider || null,
       client_phone: phoneNumber,
       ref_command,
       metadata: {
@@ -425,75 +426,78 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initier la collecte FeexPay
-    let feexpayResponse;
+    // Initier le checkout Chariow (hébergé). Le PRIX réel facturé est celui du
+    // produit Chariow (CHARIOW_PRODUCT_<PLAN>_<BILLING>) ; il doit correspondre
+    // au prix du plan. `custom_metadata.ref_command` permet au Pulse de
+    // retrouver ce paiement.
+    // Nom : Chariow exige first_name ET last_name non vides (≤ 50 car. chacun).
+    const nameParts = String(customerName).trim().split(/\s+/);
+    const firstName = nameParts[0] || (userEmail.split('@')[0] || 'Client');
+    const lastName = nameParts.slice(1).join(' ') || firstName;
+    const countryIso = (country && COUNTRY_ISO[country]) || 'CI';
+
+    let checkout;
     try {
-      feexpayResponse = await initiateDeposit({
-        refCommand: ref_command,
-        amount: SUBSCRIPTION_PRICE,
-        currency,
-        phoneNumber,
-        reseau: toReseau(provider),
-        description: customerMessage,
-        firstName: customerName,
+      const productId = productIdForPlan(planKey, isAnnual ? 'annual' : 'monthly');
+      checkout = await initCheckout({
+        productId,
         email: userEmail,
-        // Echo dans le webhook : on y place tout ce dont le callback a besoin.
-        callbackInfo: {
-          ref_command,
-          type: 'subscription',
-          plan: planKey,
-          billing: isAnnual ? 'annual' : 'monthly',
-          user_id: String((existingUser as any).id),
-          renewal: isCurrentlyActive ? 'true' : 'false',
-          ...(promoApplied ? { promo_code: promoApplied.code } : {}),
-        },
+        firstName,
+        lastName,
+        phone: { number: phoneNumber, country_code: countryIso },
+        redirectUrl: `${getPublicBaseUrl()}/payment/success?ref_command=${encodeURIComponent(ref_command)}`,
+        customMetadata: { ref_command },
+        paymentCurrency: currency,
       });
-    } catch (feexpayError) {
-      console.error('FeexPay initialization error:', feexpayError);
+    } catch (chariowError) {
+      console.error('Chariow checkout error:', chariowError);
 
       await (supabaseAdmin as any)
         .from('payments')
         .update({ status: 'failed' })
         .eq('id', (payment as any).id);
 
-      const errorMsg = feexpayError instanceof Error ? feexpayError.message : 'Erreur FeexPay';
+      const errorMsg = chariowError instanceof Error ? chariowError.message : 'Erreur Chariow';
       return NextResponse.json(
-        { error: 'Le service de paiement est temporairement indisponible. Veuillez reessayer.', details: errorMsg },
+        { error: 'Le service de paiement est temporairement indisponible. Veuillez réessayer.', details: errorMsg },
         { status: 502 }
       );
     }
 
-    // Si FAILED dès l'init, marquer le paiement et retourner l'erreur.
-    if (feexpayResponse.status === 'FAILED') {
+    if (!checkout.checkoutUrl) {
+      // Pas d'URL de paiement (produit gratuit mal configuré, ou réponse
+      // inattendue) → on ne peut pas faire payer l'utilisateur.
       await (supabaseAdmin as any)
         .from('payments')
         .update({ status: 'failed' })
         .eq('id', (payment as any).id);
 
       return NextResponse.json(
-        { success: false, error: 'Paiement refusé par FeexPay' },
-        { status: 400 }
+        { success: false, error: "Impossible d'initier le paiement Chariow (URL de checkout absente)." },
+        { status: 502 }
       );
     }
 
-    // Stocker la reference FeexPay (clé de polling) dans le paiement.
-    if (feexpayResponse.reference) {
-      await (supabaseAdmin as any)
-        .from('payments')
-        .update({
-          metadata: { ...paymentInsert.metadata, feexpay_reference: feexpayResponse.reference },
-        })
-        .eq('id', (payment as any).id);
-    }
+    // Stocker l'identifiant de vente Chariow (clé de rapprochement du Pulse).
+    // `chariow_sale_id` est une colonne dédiée (cf. activate-widget).
+    await (supabaseAdmin as any)
+      .from('payments')
+      .update({
+        chariow_sale_id: checkout.saleId || null,
+        metadata: {
+          ...paymentInsert.metadata,
+          chariow_transaction_id: checkout.transactionId || null,
+        },
+      })
+      .eq('id', (payment as any).id);
 
     return NextResponse.json({
       success: true,
       payment_id: (payment as any).id,
       ref_command,
-      reference: feexpayResponse.reference,
-      status: feexpayResponse.status || 'PENDING',
-      // Le frontend affiche "verifiez votre telephone" et polle cet endpoint.
-      pollingUrl: `/api/payment/feexpay/status/${encodeURIComponent(feexpayResponse.reference || '')}`,
+      // Le frontend redirige l'utilisateur vers ce checkout hébergé Chariow.
+      checkout_url: checkout.checkoutUrl,
+      status: 'PENDING',
       amount: SUBSCRIPTION_PRICE,
       currency,
       plan: planKey,

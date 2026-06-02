@@ -16,10 +16,8 @@ import { supabaseAdmin } from '@/lib/supabase';
 import {
   initiateDeposit,
   generateRefCommand,
-  getReturnUrl,
-  getFailedUrl,
-  checkDepositStatus,
-} from '@/lib/pawapay';
+} from '@/lib/feexpay';
+import { toReseau } from '@/lib/feexpay-providers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -91,7 +89,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Generer la reference (UUIDv4 pour PawaPay)
+    // 3. Generer la reference (UUIDv4 — customId FeexPay)
     const ref_command = generateRefCommand('BOOTCAMP');
 
     // 4. Enregistrer le paiement
@@ -108,9 +106,10 @@ export async function POST(request: NextRequest) {
         user_email: userEmail,
         item_name: `${bootcamp.title} - Session ${new Date(session.start_date).toLocaleDateString('fr-FR')}`,
         item_description: bootcamp.tagline,
-        payment_method: 'pawapay',
+        payment_method: 'feexpay',
         provider,
         client_phone: phoneNumber,
+        metadata: { ref_command, type: 'bootcamp', session_id: String(sessionId), bootcamp_slug: String(bootcamp.slug) },
       })
       .select()
       .single();
@@ -123,90 +122,75 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Initier le depot PawaPay
-    const customerMessage = `Bootcamp ${String(bootcamp.title || '').slice(0, 12)}`.slice(0, 22);
+    // 5. Initier la collecte FeexPay
+    const customerMessage = `Bootcamp ${String(bootcamp.title || '').slice(0, 30)}`.slice(0, 50);
 
-    let pawapayResponse;
+    let feexpayResponse;
     try {
-      pawapayResponse = await initiateDeposit({
-        depositId: ref_command,
-        amount: String(bootcamp.price),
+      feexpayResponse = await initiateDeposit({
+        refCommand: ref_command,
+        amount: bootcamp.price,
         currency,
-        payer: {
-          type: 'MMO',
-          accountDetails: { phoneNumber, provider },
+        phoneNumber,
+        reseau: toReseau(provider),
+        description: customerMessage,
+        email: userEmail,
+        callbackInfo: {
+          ref_command,
+          type: 'bootcamp',
+          session_id: String(sessionId),
+          bootcamp_slug: String(bootcamp.slug),
         },
-        customerMessage,
-        successfulUrl: getReturnUrl(ref_command),
-        failedUrl: getFailedUrl(ref_command),
-        metadata: [
-          { ref_command },
-          { type: 'bootcamp' },
-          { session_id: String(sessionId) },
-          { bootcamp_slug: String(bootcamp.slug) },
-        ],
       });
-    } catch (pawapayError) {
-      console.error('PawaPay initialization error:', pawapayError);
+    } catch (feexpayError) {
+      console.error('FeexPay initialization error:', feexpayError);
       await (supabaseAdmin as any)
         .from('payments')
         .update({ status: 'failed' })
         .eq('id', payment.id);
 
-      const errorMsg = pawapayError instanceof Error ? pawapayError.message : 'Erreur PawaPay';
+      const errorMsg = feexpayError instanceof Error ? feexpayError.message : 'Erreur FeexPay';
       return NextResponse.json(
         { error: 'Le service de paiement est temporairement indisponible.', details: errorMsg },
         { status: 502 }
       );
     }
 
-    if (pawapayResponse.status === 'REJECTED') {
+    if (feexpayResponse.status === 'FAILED') {
       await (supabaseAdmin as any)
         .from('payments')
-        .update({
-          status: 'rejected',
-          failure_code: pawapayResponse.failureReason?.failureCode,
-          failure_message: pawapayResponse.failureReason?.failureMessage,
-        })
+        .update({ status: 'failed' })
         .eq('id', payment.id);
 
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Paiement rejete par PawaPay',
-          failureReason: pawapayResponse.failureReason,
-        },
+        { success: false, error: 'Paiement refusé par FeexPay' },
         { status: 400 }
       );
     }
 
-    // Flow Wave : recuperer authorizationUrl
-    let authorizationUrl: string | undefined;
-    if (pawapayResponse.nextStep === 'GET_AUTH_URL') {
-      for (let i = 0; i < 3; i++) {
-        await new Promise((r) => setTimeout(r, 2000));
-        try {
-          const check = await checkDepositStatus(ref_command);
-          if (check.data?.authorizationUrl) {
-            authorizationUrl = check.data.authorizationUrl;
-            break;
-          }
-        } catch {
-          // ignore
-        }
-      }
+    // Stocker la reference FeexPay (clé de polling).
+    if (feexpayResponse.reference) {
+      await (supabaseAdmin as any)
+        .from('payments')
+        .update({
+          metadata: {
+            ref_command,
+            type: 'bootcamp',
+            session_id: String(sessionId),
+            bootcamp_slug: String(bootcamp.slug),
+            feexpay_reference: feexpayResponse.reference,
+          },
+        })
+        .eq('id', payment.id);
     }
 
     return NextResponse.json({
       success: true,
       paymentId: payment.id,
       ref_command,
-      depositId: ref_command,
-      status: pawapayResponse.status,
-      nextStep: pawapayResponse.nextStep,
-      redirect_url: authorizationUrl,
-      authorizationUrl,
-      pollingUrl: `/api/payment/pawapay/status/deposit/${ref_command}`,
+      reference: feexpayResponse.reference,
+      status: feexpayResponse.status || 'PENDING',
+      pollingUrl: `/api/payment/feexpay/status/${encodeURIComponent(feexpayResponse.reference || '')}`,
     });
 
   } catch (error) {

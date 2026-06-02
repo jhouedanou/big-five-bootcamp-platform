@@ -21,10 +21,8 @@ import { supabaseAdmin } from '@/lib/supabase';
 import {
   initiateDeposit,
   generateRefCommand,
-  getReturnUrl,
-  getFailedUrl,
-  checkDepositStatus,
-} from '@/lib/pawapay';
+} from '@/lib/feexpay';
+import { toReseau } from '@/lib/feexpay-providers';
 import {
   KEYNOTE_PROMO_OFFER,
   computePromoPhases,
@@ -346,7 +344,7 @@ export async function POST(request: NextRequest) {
     const customerMessage = (isCurrentlyActive
       ? `Renouv ${planConfig.label}`
       : `Abo ${planConfig.label}`
-    ).slice(0, 22); // PawaPay : max 22 chars
+    ).slice(0, 50);
 
     // Creer le paiement dans la base
     // Plan effectivement servi en PREMIÈRE phase (peut différer du planKey
@@ -360,7 +358,7 @@ export async function POST(request: NextRequest) {
       amount: SUBSCRIPTION_PRICE,
       currency,
       status: 'pending',
-      payment_method: 'pawapay',
+      payment_method: 'feexpay',
       provider,
       client_phone: phoneNumber,
       ref_command,
@@ -427,95 +425,75 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initier le depot PawaPay
-    let pawapayResponse;
+    // Initier la collecte FeexPay
+    let feexpayResponse;
     try {
-      pawapayResponse = await initiateDeposit({
-        depositId: ref_command,
-        amount: String(SUBSCRIPTION_PRICE),
+      feexpayResponse = await initiateDeposit({
+        refCommand: ref_command,
+        amount: SUBSCRIPTION_PRICE,
         currency,
-        payer: {
-          type: 'MMO',
-          accountDetails: { phoneNumber, provider },
+        phoneNumber,
+        reseau: toReseau(provider),
+        description: customerMessage,
+        firstName: customerName,
+        email: userEmail,
+        // Echo dans le webhook : on y place tout ce dont le callback a besoin.
+        callbackInfo: {
+          ref_command,
+          type: 'subscription',
+          plan: planKey,
+          billing: isAnnual ? 'annual' : 'monthly',
+          user_id: String((existingUser as any).id),
+          renewal: isCurrentlyActive ? 'true' : 'false',
+          ...(promoApplied ? { promo_code: promoApplied.code } : {}),
         },
-        customerMessage,
-        successfulUrl: getReturnUrl(ref_command),
-        failedUrl: getFailedUrl(ref_command),
-        metadata: [
-          { ref_command },
-          { type: 'subscription' },
-          { plan: planKey },
-          { billing: isAnnual ? 'annual' : 'monthly' },
-          { user_id: String((existingUser as any).id) },
-          { renewal: isCurrentlyActive ? 'true' : 'false' },
-          ...(promoApplied ? [{ promo_code: promoApplied.code }] : []),
-        ],
       });
-    } catch (pawapayError) {
-      console.error('PawaPay initialization error:', pawapayError);
+    } catch (feexpayError) {
+      console.error('FeexPay initialization error:', feexpayError);
 
       await (supabaseAdmin as any)
         .from('payments')
         .update({ status: 'failed' })
         .eq('id', (payment as any).id);
 
-      const errorMsg = pawapayError instanceof Error ? pawapayError.message : 'Erreur PawaPay';
+      const errorMsg = feexpayError instanceof Error ? feexpayError.message : 'Erreur FeexPay';
       return NextResponse.json(
         { error: 'Le service de paiement est temporairement indisponible. Veuillez reessayer.', details: errorMsg },
         { status: 502 }
       );
     }
 
-    // Si REJECTED, marquer le paiement et retourner l'erreur
-    if (pawapayResponse.status === 'REJECTED') {
+    // Si FAILED dès l'init, marquer le paiement et retourner l'erreur.
+    if (feexpayResponse.status === 'FAILED') {
       await (supabaseAdmin as any)
         .from('payments')
-        .update({
-          status: 'rejected',
-          failure_code: pawapayResponse.failureReason?.failureCode,
-          failure_message: pawapayResponse.failureReason?.failureMessage,
-        })
+        .update({ status: 'failed' })
         .eq('id', (payment as any).id);
 
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Paiement rejete par PawaPay',
-          failureReason: pawapayResponse.failureReason,
-        },
+        { success: false, error: 'Paiement refusé par FeexPay' },
         { status: 400 }
       );
     }
 
-    // Flow avec redirection (Wave SEN/CIV) : attendre que l'URL d'auth soit disponible
-    let authorizationUrl: string | undefined;
-    if (pawapayResponse.nextStep === 'GET_AUTH_URL') {
-      for (let i = 0; i < 3; i++) {
-        await new Promise((r) => setTimeout(r, 2000));
-        try {
-          const check = await checkDepositStatus(ref_command);
-          if (check.data?.authorizationUrl) {
-            authorizationUrl = check.data.authorizationUrl;
-            break;
-          }
-        } catch {
-          // ignorer, le frontend pourra poller
-        }
-      }
+    // Stocker la reference FeexPay (clé de polling) dans le paiement.
+    if (feexpayResponse.reference) {
+      await (supabaseAdmin as any)
+        .from('payments')
+        .update({
+          metadata: { ...paymentInsert.metadata, feexpay_reference: feexpayResponse.reference },
+        })
+        .eq('id', (payment as any).id);
     }
 
     return NextResponse.json({
       success: true,
       payment_id: (payment as any).id,
       ref_command,
-      depositId: ref_command,
-      status: pawapayResponse.status,
-      nextStep: pawapayResponse.nextStep,
-      // Si on a une URL d'auth (Wave SEN/CIV), on la propose comme redirect_url
-      redirect_url: authorizationUrl,
-      authorizationUrl,
-      // Sinon le frontend affiche "verifiez votre telephone" et polle cet endpoint
-      pollingUrl: `/api/payment/pawapay/status/deposit/${ref_command}`,
+      reference: feexpayResponse.reference,
+      status: feexpayResponse.status || 'PENDING',
+      // Le frontend affiche "verifiez votre telephone" et polle cet endpoint.
+      pollingUrl: `/api/payment/feexpay/status/${encodeURIComponent(feexpayResponse.reference || '')}`,
       amount: SUBSCRIPTION_PRICE,
       currency,
       plan: planKey,

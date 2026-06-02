@@ -3,20 +3,7 @@
 import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-
-const PAWAPAY_PROVIDERS = [
-  { value: 'MTN_MOMO_CIV', label: 'MTN Mobile Money — Côte d\'Ivoire' },
-  { value: 'ORANGE_CIV',   label: 'Orange Money — Côte d\'Ivoire' },
-  { value: 'MOOV_CIV',     label: 'Moov Money — Côte d\'Ivoire' },
-  { value: 'WAVE_CIV',     label: 'Wave — Côte d\'Ivoire' },
-  { value: 'WAVE_SEN',     label: 'Wave — Sénégal' },
-  { value: 'ORANGE_SEN',   label: 'Orange Money — Sénégal' },
-  { value: 'FREE_SEN',     label: 'Free Money — Sénégal' },
-  { value: 'ORANGE_BFA',   label: 'Orange Money — Burkina Faso' },
-  { value: 'MOOV_BFA',     label: 'Moov Money — Burkina Faso' },
-  { value: 'MTN_MOMO_BEN', label: 'MTN Mobile Money — Bénin' },
-  { value: 'MOOV_BEN',     label: 'Moov Money — Bénin' },
-]
+import { FEEXPAY_PROVIDERS } from '@/lib/feexpay-providers'
 
 interface Props {
   brandRequestId: string
@@ -76,7 +63,7 @@ export function BrandRequestPaymentForm({ brandRequestId, amount, currency }: Pr
           onChange={(e) => setProvider(e.target.value)}
           className="w-full rounded-lg border border-[#F5F5F5] bg-white px-3 py-2 text-sm outline-none focus:border-[#F2B33D]"
         >
-          {PAWAPAY_PROVIDERS.map((p) => (
+          {FEEXPAY_PROVIDERS.map((p) => (
             <option key={p.value} value={p.value}>{p.label}</option>
           ))}
         </select>

@@ -3,7 +3,7 @@
 /**
  * Page: /payment/pending?ref_command=...
  *
- * Affichée après qu'un dépôt PawaPay ait été initié (flow PIN).
+ * Affichée après qu'une collecte FeexPay ait été initiée (flow PIN).
  * Le client saisit son code PIN sur son téléphone — on polle l'API jusqu'à
  * recevoir un statut final (COMPLETED / FAILED / REJECTED).
  */
@@ -25,7 +25,7 @@ function PaymentPendingInner() {
   const refCommand = searchParams.get("ref_command") || ""
 
   const [status, setStatus] = useState<Status>("pending")
-  const [pawapayStatus, setPawapayStatus] = useState<string | undefined>()
+  const [feexpayStatus, setFeexpayStatus] = useState<string | undefined>()
   const [failureMessage, setFailureMessage] = useState<string | undefined>()
   const [authUrl, setAuthUrl] = useState<string | undefined>()
   const [elapsed, setElapsed] = useState(0)
@@ -46,7 +46,7 @@ function PaymentPendingInner() {
 
         const s = data?.payment?.status as Status | undefined
         if (s) setStatus(s)
-        if (data?.payment?.pawapay_status) setPawapayStatus(data.payment.pawapay_status)
+        if (data?.payment?.feexpay_status) setFeexpayStatus(data.payment.feexpay_status)
         if (data?.payment?.authorizationUrl) setAuthUrl(data.payment.authorizationUrl)
         if (data?.payment?.failureReason?.failureMessage) {
           setFailureMessage(data.payment.failureReason.failureMessage)
@@ -118,9 +118,9 @@ function PaymentPendingInner() {
               <Loader2 className="h-4 w-4 animate-spin" />
               Vérification en cours... ({Math.round(elapsed / 1000)}s)
             </div>
-            {pawapayStatus && (
+            {feexpayStatus && (
               <p className="mt-2 text-xs text-[#0F0F0F]/40">
-                Statut PawaPay : {pawapayStatus}
+                Statut FeexPay : {feexpayStatus}
               </p>
             )}
             {authUrl && (

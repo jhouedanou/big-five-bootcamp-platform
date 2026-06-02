@@ -8,7 +8,7 @@
  *  - Marque `renewal_reminder_sent_at` pour éviter les doublons.
  *
  * Le déclenchement automatique du paiement n'est PAS effectué ici :
- * il dépend du gateway (PawaPay/PayTech) et nécessite la mise en place
+ * il dépend du gateway (FeexPay) et nécessite la mise en place
  * d'un mandat de prélèvement. Le rappel J-7 invite l'utilisateur à
  * confirmer/payer manuellement depuis son espace.
  *

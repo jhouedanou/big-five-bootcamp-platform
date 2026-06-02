@@ -32,7 +32,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { PAWAPAY_PROVIDERS as PAWAPAY_PROVIDERS_FULL } from "@/lib/pawapay-providers"
+import { FEEXPAY_PROVIDERS } from "@/lib/feexpay-providers"
 
 // ---------------------------------------------------------------------------
 // Types & constants
@@ -247,7 +247,7 @@ export default function BrandRequestsPage() {
   const [payLoading, setPayLoading] = useState(false)
   const [payError, setPayError] = useState<string | null>(null)
 
-  const PAWAPAY_PROVIDERS = PAWAPAY_PROVIDERS_FULL.map((p) => ({
+  const PROVIDERS = FEEXPAY_PROVIDERS.map((p) => ({
     value: p.value,
     label: p.label,
   }))
@@ -1736,7 +1736,7 @@ export default function BrandRequestsPage() {
                                       Payer le devis maintenant
                                     </Button>
                                     <p className="text-[11px] text-indigo-800 mt-1">
-                                      Paiement sécurisé par Mobile Money (PawaPay).
+                                      Paiement sécurisé par Mobile Money (FeexPay).
                                     </p>
                                   </div>
                                 )}
@@ -1987,7 +1987,7 @@ export default function BrandRequestsPage() {
                   disabled={payLoading}
                   className="w-full rounded-lg border border-[#F5F5F5] px-3 py-2 text-sm outline-none focus:border-[#F2B33D] disabled:opacity-50"
                 >
-                  {PAWAPAY_PROVIDERS.map((p) => (
+                  {PROVIDERS.map((p) => (
                     <option key={p.value} value={p.value}>{p.label}</option>
                   ))}
                 </select>

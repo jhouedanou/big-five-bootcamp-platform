@@ -113,7 +113,7 @@ export async function PATCH(request: NextRequest) {
       paymentMethod,
       // Bouton "Approuver" : force status=completed + paid_at=now()
       // + payment_method='admin_override'. Distingue les approbations manuelles
-      // des paiements PawaPay (payment_method LIKE 'pawapay/%') côté SQL.
+      // des paiements FeexPay (payment_method LIKE 'feexpay/%') côté SQL.
       forceApprove,
     } = body
 
@@ -147,7 +147,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            'Impossible de marquer la demande Disponible : aucun paiement confirmé (paid_at vide). Utilisez « Approuver » ou passez par le flow PawaPay.',
+            'Impossible de marquer la demande Disponible : aucun paiement confirmé (paid_at vide). Utilisez « Approuver » ou passez par le flow FeexPay.',
         },
         { status: 400 }
       )

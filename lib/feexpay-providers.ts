@@ -1,29 +1,26 @@
 /**
- * Liste centralisée des opérateurs Mobile Money supportés via PawaPay.
+ * Liste centralisée des opérateurs Mobile Money supportés via FeexPay.
  *
- * ⚠️ Wave est volontairement traité hors de cette liste dans le parcours
- * produit actuel. Si vous activez WAVE_CIV/WAVE_SEN côté PawaPay, ajoutez-les
- * ici et vérifiez le flow REDIRECT_AUTH.
+ * On conserve un code interne stable par opérateur (ex. "ORANGE_CIV") pour
+ * l'UI, la détection par préfixe et le stockage. `toReseau()` traduit ce code
+ * vers la chaîne attendue par l'API FeexPay (ex. "ORANGE CI").
  *
- * Source : configuration officielle PawaPay (https://docs.pawapay.io)
- * + matrice opérateurs / pays / devises fournie par la direction produit.
+ * Source : SDK officiel FeexPay (@feexpay/react-sdk) — mapping `reseau`.
  *
- * Pour chaque pays nous listons les opérateurs effectivement activés sur
- * notre compte marchand PawaPay. Si vous activez un nouveau MMO dans le
- * Dashboard PawaPay (Configuration → Active correspondents), ajoutez-le ici.
+ * Pays/opérateurs effectivement activés sur notre compte marchand FeexPay.
+ * Si vous activez un nouvel opérateur dans le dashboard FeexPay, ajoutez-le
+ * ici ET dans FEEXPAY_RESEAU.
  */
 
-export type PawaPayCountryCode =
+export type FeexPayCountryCode =
   | 'CIV' // Côte d'Ivoire
   | 'SEN' // Sénégal
   | 'BFA' // Burkina Faso
   | 'BEN' // Bénin
-  | 'MLI' // Mali
   | 'TGO' // Togo
-  | 'CMR' // Cameroun
-  | 'NER' // Niger
+  | 'COG' // Congo Brazzaville
 
-export interface PawaPayCountryConfig {
+export interface FeexPayCountryConfig {
   name: string
   flag: string
   dialCode: string      // sans le +
@@ -33,42 +30,68 @@ export interface PawaPayCountryConfig {
   currency: 'XOF' | 'XAF'
 }
 
-export const PAWAPAY_COUNTRIES: Record<PawaPayCountryCode, PawaPayCountryConfig> = {
+export const FEEXPAY_COUNTRIES: Record<FeexPayCountryCode, FeexPayCountryConfig> = {
   CIV: { name: "Côte d’Ivoire", flag: "🇨🇮", dialCode: "225", localLength: 10, mask: [2, 2, 2, 2, 2], placeholder: "07 07 12 34 56", currency: 'XOF' },
   SEN: { name: "Sénégal",       flag: "🇸🇳", dialCode: "221", localLength: 9,  mask: [2, 3, 2, 2],    placeholder: "77 123 45 67",    currency: 'XOF' },
   BFA: { name: "Burkina Faso",  flag: "🇧🇫", dialCode: "226", localLength: 8,  mask: [2, 2, 2, 2],    placeholder: "70 12 34 56",     currency: 'XOF' },
   BEN: { name: "Bénin",         flag: "🇧🇯", dialCode: "229", localLength: 10, mask: [2, 2, 2, 2, 2], placeholder: "01 90 12 34 56",  currency: 'XOF' },
-  MLI: { name: "Mali",          flag: "🇲🇱", dialCode: "223", localLength: 8,  mask: [2, 2, 2, 2],    placeholder: "70 12 34 56",     currency: 'XOF' },
   TGO: { name: "Togo",          flag: "🇹🇬", dialCode: "228", localLength: 8,  mask: [2, 2, 2, 2],    placeholder: "90 12 34 56",     currency: 'XOF' },
-  CMR: { name: "Cameroun",      flag: "🇨🇲", dialCode: "237", localLength: 9,  mask: [3, 3, 3],       placeholder: "6 70 12 34 56",   currency: 'XAF' },
-  NER: { name: "Niger",         flag: "🇳🇪", dialCode: "227", localLength: 8,  mask: [2, 2, 2, 2],    placeholder: "90 12 34 56",     currency: 'XOF' },
+  COG: { name: "Congo",         flag: "🇨🇬", dialCode: "242", localLength: 9,  mask: [3, 3, 3],       placeholder: "06 123 45 67",    currency: 'XAF' },
 }
 
-export interface PawaPayProvider {
-  /** Code provider PawaPay (ex. "ORANGE_CIV"). */
+export interface FeexPayProvider {
+  /** Code interne stable (ex. "ORANGE_CIV"). */
   value: string
   /** Libellé affiché dans l'UI. */
   label: string
-  /** Code pays ISO interne. */
-  country: PawaPayCountryCode
+  /** Code pays interne. */
+  country: FeexPayCountryCode
   /** Devise utilisée par ce provider. */
   currency: 'XOF' | 'XAF'
 }
 
 /**
- * Liste effective des providers PawaPay activés.
- *
- * Wave est **volontairement exclu** du parcours produit courant. PawaPay
- * expose désormais des providers Wave en REDIRECT_AUTH : ne les ajoutez ici
- * que si ce flow est activé et testé.
+ * Map code interne → chaîne `reseau` attendue par l'API FeexPay.
+ * Source : @feexpay/react-sdk (objet de mapping réseau).
  */
-export const PAWAPAY_PROVIDERS: PawaPayProvider[] = [
-  // Côte d'Ivoire (XOF)
+export const FEEXPAY_RESEAU: Record<string, string> = {
+  // Côte d'Ivoire
+  MTN_MOMO_CIV: 'MTN CI',
+  MOOV_CIV: 'MOOV CI',
+  ORANGE_CIV: 'ORANGE CI',
+  WAVE_CIV: 'WAVE CI',
+  // Sénégal
+  ORANGE_SEN: 'ORANGE SN',
+  FREE_SEN: 'FREE SN',
+  // Burkina Faso
+  MOOV_BFA: 'MOOV BF',
+  ORANGE_BFA: 'ORANGE BF',
+  // Bénin
+  MTN_MOMO_BEN: 'MTN',
+  MOOV_BEN: 'MOOV',
+  CELTIIS_BEN: 'CELTIIS BJ',
+  CORIS_BEN: 'CORIS',
+  // Togo
+  TOGOCOM_TGO: 'TOGOCOM TG',
+  MOOV_TGO: 'MOOV TG',
+  // Congo Brazzaville
+  MTN_COG: 'MTN CG',
+}
+
+/** Traduit un code interne vers la chaîne `reseau` FeexPay. */
+export function toReseau(value: string): string {
+  return FEEXPAY_RESEAU[value] || value
+}
+
+/** Liste effective des providers FeexPay activés. */
+export const FEEXPAY_PROVIDERS: FeexPayProvider[] = [
+  // Côte d'Ivoire (XOF) — Wave supporté par FeexPay.
   { value: 'MTN_MOMO_CIV', label: 'MTN Mobile Money — Côte d’Ivoire', country: 'CIV', currency: 'XOF' },
   { value: 'ORANGE_CIV',   label: 'Orange Money — Côte d’Ivoire',     country: 'CIV', currency: 'XOF' },
   { value: 'MOOV_CIV',     label: 'Moov Money — Côte d’Ivoire',       country: 'CIV', currency: 'XOF' },
+  { value: 'WAVE_CIV',     label: 'Wave — Côte d’Ivoire',             country: 'CIV', currency: 'XOF' },
 
-  // Sénégal (XOF) — Wave reste traité hors de cette liste.
+  // Sénégal (XOF)
   { value: 'ORANGE_SEN',   label: 'Orange Money — Sénégal',           country: 'SEN', currency: 'XOF' },
   { value: 'FREE_SEN',     label: 'Free Money — Sénégal',             country: 'SEN', currency: 'XOF' },
 
@@ -79,35 +102,28 @@ export const PAWAPAY_PROVIDERS: PawaPayProvider[] = [
   // Bénin (XOF)
   { value: 'MTN_MOMO_BEN', label: 'MTN Mobile Money — Bénin',         country: 'BEN', currency: 'XOF' },
   { value: 'MOOV_BEN',     label: 'Moov Money — Bénin',               country: 'BEN', currency: 'XOF' },
-
-  // Mali (XOF)
-  { value: 'ORANGE_MLI',   label: 'Orange Money — Mali',              country: 'MLI', currency: 'XOF' },
-  { value: 'MOOV_MLI',     label: 'Moov Money — Mali',                country: 'MLI', currency: 'XOF' },
+  { value: 'CELTIIS_BEN',  label: 'Celtiis — Bénin',                  country: 'BEN', currency: 'XOF' },
 
   // Togo (XOF)
+  { value: 'TOGOCOM_TGO',  label: 'TogoCom — Togo',                   country: 'TGO', currency: 'XOF' },
   { value: 'MOOV_TGO',     label: 'Moov Money — Togo',                country: 'TGO', currency: 'XOF' },
 
-  // Cameroun (XAF)
-  { value: 'MTN_MOMO_CMR', label: 'MTN Mobile Money — Cameroun',      country: 'CMR', currency: 'XAF' },
-  { value: 'ORANGE_CMR',   label: 'Orange Money — Cameroun',          country: 'CMR', currency: 'XAF' },
-
-  // Niger (XOF)
-  { value: 'MOOV_NER',     label: 'Moov Money — Niger',               country: 'NER', currency: 'XOF' },
+  // Congo Brazzaville (XAF)
+  { value: 'MTN_COG',      label: 'MTN Mobile Money — Congo',         country: 'COG', currency: 'XAF' },
 ]
 
 /** Retourne les providers disponibles pour un pays donné. */
-export function getProvidersForCountry(country: PawaPayCountryCode): PawaPayProvider[] {
-  return PAWAPAY_PROVIDERS.filter((p) => p.country === country)
+export function getProvidersForCountry(country: FeexPayCountryCode): FeexPayProvider[] {
+  return FEEXPAY_PROVIDERS.filter((p) => p.country === country)
 }
 
 /**
- * Map préfixes locaux → code provider PawaPay.
+ * Map préfixes locaux → code provider interne.
  *
- * Ces préfixes reflètent l'attribution d'origine des plans nationaux
- * (ARCEP/ARTP/ARTCI/ART/UIT). Avec la portabilité des numéros, ils restent
- * une aide de pré-sélection et ne remplacent pas une vérification opérateur.
+ * Aide de pré-sélection (la portabilité des numéros la rend non fiable à 100 %).
+ * Wave (CI) partage les préfixes des autres opérateurs → sélection manuelle.
  */
-const PHONE_PREFIX_MAP: Record<PawaPayCountryCode, Array<[string, string]>> = {
+const PHONE_PREFIX_MAP: Record<FeexPayCountryCode, Array<[string, string]>> = {
   CIV: [
     ['01', 'MOOV_CIV'],
     ['05', 'MTN_MOMO_CIV'],
@@ -138,54 +154,34 @@ const PHONE_PREFIX_MAP: Record<PawaPayCountryCode, Array<[string, string]>> = {
     ['60', 'MOOV_BEN'], ['63', 'MOOV_BEN'], ['64', 'MOOV_BEN'], ['65', 'MOOV_BEN'], ['68', 'MOOV_BEN'],
     ['94', 'MOOV_BEN'], ['95', 'MOOV_BEN'], ['98', 'MOOV_BEN'], ['99', 'MOOV_BEN'],
   ],
-  MLI: [
-    ['70', 'ORANGE_MLI'], ['71', 'ORANGE_MLI'], ['72', 'ORANGE_MLI'], ['73', 'ORANGE_MLI'], ['74', 'ORANGE_MLI'],
-    ['75', 'ORANGE_MLI'], ['76', 'ORANGE_MLI'], ['77', 'ORANGE_MLI'], ['78', 'ORANGE_MLI'], ['79', 'ORANGE_MLI'],
-    ['60', 'MOOV_MLI'], ['61', 'MOOV_MLI'], ['62', 'MOOV_MLI'], ['63', 'MOOV_MLI'], ['64', 'MOOV_MLI'],
-    ['65', 'MOOV_MLI'], ['66', 'MOOV_MLI'], ['67', 'MOOV_MLI'], ['68', 'MOOV_MLI'], ['69', 'MOOV_MLI'],
-  ],
   TGO: [
     ['797', 'MOOV_TGO'], ['798', 'MOOV_TGO'], ['799', 'MOOV_TGO'],
     ['96', 'MOOV_TGO'], ['97', 'MOOV_TGO'], ['98', 'MOOV_TGO'], ['99', 'MOOV_TGO'],
+    ['90', 'TOGOCOM_TGO'], ['91', 'TOGOCOM_TGO'], ['92', 'TOGOCOM_TGO'], ['93', 'TOGOCOM_TGO'],
   ],
-  CMR: [
-    ['650', 'MTN_MOMO_CMR'], ['651', 'MTN_MOMO_CMR'], ['652', 'MTN_MOMO_CMR'],
-    ['653', 'MTN_MOMO_CMR'], ['654', 'MTN_MOMO_CMR'],
-    ['670', 'MTN_MOMO_CMR'], ['671', 'MTN_MOMO_CMR'], ['672', 'MTN_MOMO_CMR'],
-    ['673', 'MTN_MOMO_CMR'], ['674', 'MTN_MOMO_CMR'], ['675', 'MTN_MOMO_CMR'],
-    ['676', 'MTN_MOMO_CMR'], ['677', 'MTN_MOMO_CMR'], ['678', 'MTN_MOMO_CMR'], ['679', 'MTN_MOMO_CMR'],
-    ['680', 'MTN_MOMO_CMR'], ['681', 'MTN_MOMO_CMR'], ['682', 'MTN_MOMO_CMR'], ['683', 'MTN_MOMO_CMR'],
-    ['655', 'ORANGE_CMR'], ['656', 'ORANGE_CMR'], ['657', 'ORANGE_CMR'],
-    ['658', 'ORANGE_CMR'], ['659', 'ORANGE_CMR'],
-    ['686', 'ORANGE_CMR'], ['687', 'ORANGE_CMR'], ['688', 'ORANGE_CMR'],
-    ['690', 'ORANGE_CMR'], ['691', 'ORANGE_CMR'], ['692', 'ORANGE_CMR'],
-    ['693', 'ORANGE_CMR'], ['694', 'ORANGE_CMR'], ['695', 'ORANGE_CMR'],
-    ['696', 'ORANGE_CMR'], ['697', 'ORANGE_CMR'], ['698', 'ORANGE_CMR'], ['699', 'ORANGE_CMR'],
-  ],
-  NER: [
-    ['74', 'MOOV_NER'], ['84', 'MOOV_NER'], ['85', 'MOOV_NER'],
-    ['94', 'MOOV_NER'], ['95', 'MOOV_NER'],
+  COG: [
+    ['06', 'MTN_COG'], ['05', 'MTN_COG'],
   ],
 }
 
 function normalizeDigitsForPrefixLookup(
   digits: string,
-  country: PawaPayCountryCode
+  country: FeexPayCountryCode
 ): string {
   // Depuis le 30/11/2024, le Bénin ajoute "01" devant les anciens numéros.
   return country === 'BEN' && digits.startsWith('01') ? digits.slice(2) : digits
 }
 
 /**
- * Détecte le provider PawaPay depuis les premiers chiffres du numéro local.
+ * Détecte le provider interne depuis les premiers chiffres du numéro local.
  *
  * @param localDigits  Numéro local (sans indicatif pays), chiffres uniquement.
- * @param country      Code pays PawaPay.
+ * @param country      Code pays interne.
  * @returns            Code provider (ex. "MTN_MOMO_CIV") ou null si inconnu.
  */
 export function detectProviderFromPhone(
   localDigits: string,
-  country: PawaPayCountryCode
+  country: FeexPayCountryCode
 ): string | null {
   const digits = localDigits.replace(/\D/g, '')
   if (digits.length < 2) return null

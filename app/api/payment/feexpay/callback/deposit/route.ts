@@ -1,146 +1,153 @@
 /**
- * Callback URL : POST /api/payment/pawapay/callback/deposit
+ * Callback URL : POST /api/payment/feexpay/callback/deposit
  *
- * Reçoit les callbacks PawaPay pour les dépôts (collectes de paiement).
- * Doc : https://docs.pawapay.io/v2/docs/what_to_know#callbacks
+ * Reçoit les webhooks FeexPay pour les collectes (requesttopay).
+ * Doc : https://docs.feexpay.me/?section=api-rest-integrations
  *
  * Règles :
- *   - Endpoint idempotent (PawaPay peut renvoyer plusieurs fois le même callback)
- *   - Toujours retourner HTTP 200 OK (sinon PawaPay réessaiera pendant 15 min)
- *   - Aucune authentification applicative — whitelist par IP optionnelle
+ *   - Endpoint idempotent (FeexPay peut renvoyer plusieurs fois le même webhook)
+ *   - Toujours retourner HTTP 200 OK
+ *   - La forme du payload n'est pas garantie : on ne fait JAMAIS confiance au
+ *     `status` du corps. On retrouve la transaction (par customId/ref_command
+ *     ou par reference) puis on re-vérifie le statut réel via l'API FeexPay
+ *     authentifiée avant tout effet de bord.
  *
- * URL à déclarer dans le Dashboard PawaPay :
- *   {PUBLIC_BASE_URL}/api/payment/pawapay/callback/deposit
+ * URL à déclarer dans le Dashboard FeexPay :
+ *   {PUBLIC_BASE_URL}/api/payment/feexpay/callback/deposit
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import {
-  isAllowedPawaPayIP,
+  isAllowedFeexPayIP,
   checkDepositStatus,
-  type PawaPayDepositCallback,
-} from '@/lib/pawapay'
+  type FeexPayDepositCallback,
+  type FeexPayStatusResponse,
+} from '@/lib/feexpay'
 import { computeSubscriptionEnd } from '@/lib/subscription'
 import {
   notifyPaymentSuccess,
   notifyPromoCodeRedeemed,
 } from '@/lib/notifications'
 
-// PawaPay doit pouvoir accéder à cette route sans auth. On désactive aussi
-// le cache et on force un rendu dynamique pour ne rien louper.
+// FeexPay doit pouvoir accéder à cette route sans auth applicative. On désactive
+// aussi le cache et on force un rendu dynamique.
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 export async function POST(request: NextRequest) {
   try {
-    // 1. Vérification IP (obligatoire en production, cf. isAllowedPawaPayIP).
-    // On renvoie 401 — PawaPay réessaiera depuis la bonne IP si problème
-    // réseau, mais un acteur tiers sera bloqué.
-    if (!isAllowedPawaPayIP(request)) {
-      const ip = request.headers.get('x-forwarded-for') || 'unknown'
-      console.warn(`⚠️ PawaPay deposit callback IP refusée: ${ip}`)
+    if (!isAllowedFeexPayIP(request)) {
       return new NextResponse('Unauthorized source', { status: 401 })
     }
 
-    const payload = (await request.json()) as PawaPayDepositCallback
+    const payload = (await request.json().catch(() => ({}))) as FeexPayDepositCallback
 
-    console.log('📥 PawaPay deposit callback:', {
-      depositId: payload.depositId,
+    // FeexPay nous renvoie nos `callback_info`. On y a placé `ref_command`.
+    const callbackInfo = (payload.callback_info || {}) as Record<string, unknown>
+    const refCommand =
+      (typeof callbackInfo.ref_command === 'string' && callbackInfo.ref_command) ||
+      undefined
+    const feexReference =
+      (typeof payload.reference === 'string' && payload.reference) || undefined
+
+    console.log('📥 FeexPay deposit callback:', {
+      reference: feexReference,
+      refCommand,
       status: payload.status,
       amount: payload.amount,
-      currency: payload.currency,
-      provider: payload.payer?.accountDetails?.provider,
     })
 
-    if (!payload.depositId) {
-      // Payload invalide — on log mais on renvoie 200 pour ne pas retenter
-      console.error('❌ deposit callback sans depositId', payload)
+    if (!refCommand && !feexReference) {
+      console.error('❌ FeexPay callback sans reference ni ref_command', payload)
       return new NextResponse('OK', { status: 200 })
     }
 
-    // 2. Récupérer le paiement (idempotence : on ne met à jour que si le statut change)
-    const { data: payment, error: fetchError } = await (supabaseAdmin as any)
-      .from('payments')
-      .select('id, status, metadata, user_email, amount, currency, ref_command')
-      .eq('ref_command', payload.depositId)
-      .maybeSingle()
-
-    if (fetchError) {
-      console.error('❌ Supabase select payment error:', fetchError)
+    // 1. Récupérer le paiement. Clé primaire = notre ref_command (customId).
+    // Fallback : la reference FeexPay stockée dans metadata.feexpay_reference.
+    let payment: any = null
+    if (refCommand) {
+      const { data } = await (supabaseAdmin as any)
+        .from('payments')
+        .select('id, status, metadata, user_email, amount, currency, ref_command')
+        .eq('ref_command', refCommand)
+        .maybeSingle()
+      payment = data
+    }
+    if (!payment && feexReference) {
+      const { data } = await (supabaseAdmin as any)
+        .from('payments')
+        .select('id, status, metadata, user_email, amount, currency, ref_command')
+        .eq('metadata->>feexpay_reference', feexReference)
+        .maybeSingle()
+      payment = data
     }
 
     if (!payment) {
       console.warn(
-        `⚠️ Aucun paiement trouvé pour depositId=${payload.depositId} — stockage d'un callback orphelin`
+        `⚠️ Aucun paiement trouvé (ref_command=${refCommand}, reference=${feexReference}) — webhook orphelin`
       )
-      await storeOrphanCallback('deposit', payload)
+      await storeOrphanCallback(payload)
       return new NextResponse('OK', { status: 200 })
     }
 
-    // Idempotence : si déjà final, on ignore
-    const finalStatuses = ['completed', 'failed', 'refunded', 'canceled']
+    // Idempotence : si déjà final, on ignore.
+    const finalStatuses = ['completed', 'failed', 'refunded', 'canceled', 'rejected']
     if (finalStatuses.includes(payment.status)) {
       console.log(
-        `ℹ️ Paiement ${payload.depositId} déjà en statut final (${payment.status}), callback ignoré`
+        `ℹ️ Paiement ${payment.ref_command} déjà en statut final (${payment.status}), webhook ignoré`
       )
       return new NextResponse('OK', { status: 200 })
     }
 
-    // 3. SÉCURITÉ : les callbacks PawaPay ne sont pas signés. On ne fait
-    // JAMAIS confiance au statut présent dans le corps de la requête — un
-    // tiers qui atteindrait cet endpoint (ex. spoofing d'IP) pourrait sinon
-    // forger un "COMPLETED" et s'offrir un abonnement gratuit. On revérifie
-    // donc systématiquement le statut réel auprès de l'API PawaPay
-    // authentifiée (Bearer token) avant tout effet de bord.
-    let verified: PawaPayDepositCallback
-    try {
-      const result = await checkDepositStatus(payload.depositId)
-      if (result.status === 'NOT_FOUND' || !result.data) {
-        console.warn(
-          `⚠️ deposit ${payload.depositId} introuvable chez PawaPay — callback ignoré`
-        )
-        return new NextResponse('OK', { status: 200 })
-      }
-      verified = result.data
-    } catch (e) {
-      // Échec de la vérification (réseau / token) : on n'active rien sur la
-      // foi du body. Le polling /api/payment/check (qui vérifie aussi via
-      // l'API) prendra le relais côté client.
-      console.error('❌ Vérification PawaPay impossible, callback non appliqué:', e)
+    // 2. SÉCURITÉ : re-vérification du statut réel via l'API FeexPay
+    // authentifiée. On polle par la `reference` FeexPay (jamais par le statut
+    // du corps). La reference est soit dans le payload, soit stockée chez nous.
+    const reference =
+      feexReference ||
+      ((payment.metadata || {}).feexpay_reference as string | undefined)
+
+    if (!reference) {
+      console.warn(
+        `⚠️ Pas de reference FeexPay pour ${payment.ref_command} — vérification impossible`
+      )
       return new NextResponse('OK', { status: 200 })
     }
 
-    // 4. Mapping statut réel (vérifié) → statut interne
-    const internalStatus = mapDepositStatus(verified.status)
+    let verified: FeexPayStatusResponse
+    try {
+      verified = await checkDepositStatus(reference)
+    } catch (e) {
+      // Échec de vérification (réseau / token) : on n'active rien sur la foi du
+      // body. Le polling /api/payment/check prendra le relais côté client.
+      console.error('❌ Vérification FeexPay impossible, webhook non appliqué:', e)
+      return new NextResponse('OK', { status: 200 })
+    }
+
+    // 3. Mapping statut réel (vérifié) → statut interne.
+    const internalStatus = mapFeexPayStatus(verified.status)
 
     const { error: updateError } = await (supabaseAdmin as any)
       .from('payments')
       .update({
         status: internalStatus,
-        payment_method: verified.payer?.accountDetails?.provider || 'pawapay',
-        client_phone: verified.payer?.accountDetails?.phoneNumber || null,
         final_amount: verified.amount ? Number(verified.amount) : undefined,
         completed_at:
           internalStatus === 'completed' ? new Date().toISOString() : undefined,
         ipn_data: verified as any,
-        provider_transaction_id: verified.providerTransactionId || null,
-        failure_code: verified.failureReason?.failureCode || null,
-        failure_message: verified.failureReason?.failureMessage || null,
-        authorization_url: verified.authorizationUrl || null,
       })
       .eq('id', payment.id)
 
     if (updateError) {
       console.error('❌ Supabase update payment error:', updateError)
-      // On renvoie 200 quand même — on pourra rejouer le callback manuellement
       return new NextResponse('OK', { status: 200 })
     }
 
-    // 5. Side-effects métier lorsque le paiement est réellement complété
-    if (verified.status === 'COMPLETED') {
+    // 4. Side-effects métier lorsque le paiement est réellement complété.
+    if (verified.status === 'SUCCESSFUL') {
       const metadata = (payment.metadata || {}) as any
       if (metadata.type === 'brand_request') {
-        await activateBrandRequest(payment, verified)
+        await activateBrandRequest(payment)
       } else {
         await activateUserSubscription(payment)
       }
@@ -148,14 +155,12 @@ export async function POST(request: NextRequest) {
 
     return new NextResponse('OK', { status: 200 })
   } catch (error) {
-    console.error('❌ PawaPay deposit callback error:', error)
-    // On renvoie 200 pour éviter les retries infinis sur une erreur de parsing
+    console.error('❌ FeexPay deposit callback error:', error)
     return new NextResponse('OK', { status: 200 })
   }
 }
 
-// Doc : "Your endpoint needs to allow us to POST the callback."
-// On ajoute GET/HEAD pour que PawaPay puisse tester l'URL depuis le dashboard.
+// FeexPay peut tester l'URL depuis le dashboard.
 export async function GET() {
   return NextResponse.json({ ok: true, kind: 'deposit' })
 }
@@ -164,37 +169,26 @@ export async function GET() {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function mapDepositStatus(status: PawaPayDepositCallback['status']): string {
+function mapFeexPayStatus(status: FeexPayStatusResponse['status']): string {
   switch (status) {
-    case 'COMPLETED':
+    case 'SUCCESSFUL':
       return 'completed'
     case 'FAILED':
       return 'failed'
-    case 'REJECTED':
-      return 'rejected'
-    case 'PROCESSING':
-    case 'ACCEPTED':
-      return 'processing'
-    case 'IN_RECONCILIATION':
-      return 'in_reconciliation'
-    case 'ENQUEUED':
-      return 'enqueued'
+    case 'PENDING':
     default:
       return 'pending'
   }
 }
 
-async function storeOrphanCallback(
-  kind: 'deposit' | 'payout' | 'refund',
-  payload: unknown
-) {
+async function storeOrphanCallback(payload: unknown) {
   try {
     await (supabaseAdmin as any).from('pawapay_orphan_callbacks').insert({
-      kind,
+      kind: 'deposit',
       payload: payload as any,
     })
   } catch (e) {
-    // La table n'existe peut-être pas encore — on log seulement
+    // La table n'existe peut-être pas — on log seulement.
     console.error('Could not persist orphan callback', e)
   }
 }
@@ -209,7 +203,6 @@ async function activateUserSubscription(payment: {
     if (metadata.type !== 'subscription' || !metadata.userId) return
 
     // Plan strict — pas de fallback silencieux vers Pro.
-    // Si la métadonnée est absente/invalide, on log et on n'active pas (sécurité).
     const rawPlan = String(metadata.plan || '').toLowerCase().trim()
     let planName: 'Discovery' | 'Basic' | 'Pro'
     if (rawPlan === 'basic') {
@@ -220,7 +213,7 @@ async function activateUserSubscription(payment: {
       planName = 'Discovery'
     } else {
       console.error(
-        '[pawapay/deposit] Plan invalide ou manquant dans metadata, activation annul\u00e9e',
+        '[feexpay/deposit] Plan invalide ou manquant dans metadata, activation annulée',
         { paymentId: payment.id, rawPlan, metadata }
       )
       return
@@ -228,16 +221,7 @@ async function activateUserSubscription(payment: {
 
     // ——————————————————————————————————————————————————————————————
     // Bonus LAVEIYE : déroule les phases d'abonnement calculées au moment
-    // du paiement. Trois cas (cf. lib/promo-codes.ts → computePromoPhases) :
-    //
-    //   - merged : phase unique Basic (durée = plan + 90 j)
-    //               → plan='Basic', pas de pending
-    //   - before : Basic 90 j AVANT le plan acheté (Discovery)
-    //               → plan='Basic', subscription_end = now+90j
-    //                 pending_plan='Discovery' à partir de cette date
-    //   - after  : plan acheté AVANT le bonus (Pro)
-    //               → plan='Pro', subscription_end = now+30/365j
-    //                 pending_plan='Basic' à partir de cette date pour 90j
+    // du paiement (merged / before / after). Cf. lib/promo-codes.ts.
     // ——————————————————————————————————————————————————————————————
     const bonus = metadata.promo_bonus as
       | {
@@ -274,14 +258,13 @@ async function activateUserSubscription(payment: {
         update.pending_duration_days = bonus.bonus_phase.duration_days
         update.pending_billing = bonus.bonus_phase.billing || null
       } else {
-        // Pas de pending : on s'assure de ne pas en laisser un ancien traîner.
         update.pending_plan = null
         update.pending_plan_starts_at = null
         update.pending_duration_days = null
         update.pending_billing = null
       }
 
-      console.log('[pawapay/deposit] Activation abonnement + bonus LAVEIYE', {
+      console.log('[feexpay/deposit] Activation abonnement + bonus LAVEIYE', {
         userId: metadata.userId,
         kind: bonus.kind,
         firstPlan,
@@ -292,9 +275,6 @@ async function activateUserSubscription(payment: {
       await (supabaseAdmin as any).from('users').update(update).eq('id', metadata.userId)
 
       if (metadata.promo_code) {
-        // Marquer le code consommé + tracer qui / quel plan / quel montant.
-        // Le filtre `eq('promo_status','active').is('promo_redeemed_at',null)`
-        // évite tout double-claim si deux callbacks arrivent en parallèle.
         await (supabaseAdmin as any)
           .from('keynote_registrations')
           .update({
@@ -309,13 +289,12 @@ async function activateUserSubscription(payment: {
       }
 
       console.log(
-        '\u2705 Subscription activated with LAVEIYE bonus for user:',
+        '✅ Subscription activated with LAVEIYE bonus for user:',
         metadata.userId,
-        '\u2014 first phase:',
+        '— first phase:',
         firstPlan
       )
 
-      // Notifications transactionnelles (best-effort)
       const refId = (payment as any).ref_command || payment.id
       void notifyPaymentSuccess({
         userId: metadata.userId,
@@ -343,10 +322,10 @@ async function activateUserSubscription(payment: {
       metadata.subscription_end_date ||
       computeSubscriptionEnd(new Date(), { billing: metadata.billing }).toISOString()
 
-    // Downgrade différé : on stocke en `pending_plan` au lieu d'écraser
-    // le plan courant. Le cron `apply-pending-plans` basculera à expiration.
+    // Downgrade différé : on stocke en `pending_plan` au lieu d'écraser le plan
+    // courant. Le cron `apply-pending-plans` basculera à expiration.
     if (metadata.is_downgrade === true && metadata.pending_starts_at) {
-      console.log('[pawapay/deposit] Downgrade programmé', {
+      console.log('[feexpay/deposit] Downgrade programmé', {
         userId: metadata.userId,
         pendingPlan: planName,
         startsAt: metadata.pending_starts_at,
@@ -359,8 +338,6 @@ async function activateUserSubscription(payment: {
           pending_plan: planName,
           pending_plan_starts_at: metadata.pending_starts_at,
           pending_billing: metadata.billing || null,
-          // null → le cron applique une période calendaire selon le billing
-          // (un downgrade standard n'a pas de durée promo explicite).
           pending_duration_days: null,
           updated_at: new Date().toISOString(),
         })
@@ -370,7 +347,7 @@ async function activateUserSubscription(payment: {
       return
     }
 
-    console.log('[pawapay/deposit] Activation abonnement', {
+    console.log('[feexpay/deposit] Activation abonnement', {
       userId: metadata.userId,
       plan: planName,
       end,
@@ -387,9 +364,8 @@ async function activateUserSubscription(payment: {
       })
       .eq('id', metadata.userId)
 
-    console.log('✅ Subscription activated (pawapay) for user:', metadata.userId, '— plan:', planName)
+    console.log('✅ Subscription activated (feexpay) for user:', metadata.userId, '— plan:', planName)
 
-    // Notification transactionnelle (best-effort)
     const refId = (payment as any).ref_command || payment.id
     void notifyPaymentSuccess({
       userId: metadata.userId,
@@ -400,32 +376,32 @@ async function activateUserSubscription(payment: {
       billingPeriod: metadata.billing,
     })
   } catch (e) {
-    console.error('Error activating subscription from pawapay callback:', e)
+    console.error('Error activating subscription from feexpay callback:', e)
   }
 }
 
 /**
  * Active une demande de suivi de marque payée :
- *  - status → completed (« Disponible » : auto-approbation sur paiement OK)
+ *  - status → completed (auto-approbation sur paiement OK)
  *  - paid_at = now
- *  - payment_reference = depositId
- *  - payment_method = "pawapay/<provider>"
+ *  - payment_reference = ref_command
+ *  - payment_method = "feexpay/<provider>"
  *  - next_renewal_at = paid_at + 1 mois (si non déjà défini)
- *  - envoie l'email "payment_confirmed" puis "completed"
+ *  - envoie les emails "payment_confirmed" puis "completed"
  */
-async function activateBrandRequest(
-  payment: { id: string; metadata?: any; ref_command?: string },
-  payload: PawaPayDepositCallback,
-) {
+async function activateBrandRequest(payment: {
+  id: string
+  metadata?: any
+  ref_command?: string
+}) {
   try {
     const metadata = payment.metadata || {}
     const brandRequestId: string | undefined = metadata.brand_request_id
     if (!brandRequestId) {
-      console.warn('[pawapay/deposit] brand_request payment sans brand_request_id', metadata)
+      console.warn('[feexpay/deposit] brand_request payment sans brand_request_id', metadata)
       return
     }
 
-    // Charger la demande pour décider next_renewal_at
     const { data: req } = await (supabaseAdmin as any)
       .from('brand_requests')
       .select('id, status, paid_at, next_renewal_at, devis_amount')
@@ -433,31 +409,29 @@ async function activateBrandRequest(
       .maybeSingle()
 
     if (!req) {
-      console.warn('[pawapay/deposit] brand_request introuvable', brandRequestId)
+      console.warn('[feexpay/deposit] brand_request introuvable', brandRequestId)
       return
     }
 
     // Idempotence : déjà payée
     if (req.paid_at && (req.status === 'in_production' || req.status === 'completed')) {
-      console.log('[pawapay/deposit] brand_request déjà active, callback ignoré', brandRequestId)
+      console.log('[feexpay/deposit] brand_request déjà active, webhook ignoré', brandRequestId)
       return
     }
 
     const now = new Date()
     const nextRenewal =
       req.next_renewal_at || new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString()
-    const provider = payload.payer?.accountDetails?.provider || 'pawapay'
-    const depositId = (payment as any).ref_command || payload.depositId
+    const provider = (metadata.provider as string) || 'feexpay'
+    const depositId = (payment as any).ref_command
 
     const { error: updateError } = await (supabaseAdmin as any)
       .from('brand_requests')
       .update({
-        // Paiement OK = approbation automatique : la demande devient "Disponible"
-        // immédiatement, ce qui débloque l'affichage des contenus côté dashboard.
         status: 'completed',
         paid_at: now.toISOString(),
         payment_reference: depositId,
-        payment_method: `pawapay/${provider}`,
+        payment_method: `feexpay/${provider}`,
         next_renewal_at: nextRenewal,
         auto_renew: true,
         updated_at: now.toISOString(),
@@ -465,11 +439,10 @@ async function activateBrandRequest(
       .eq('id', brandRequestId)
 
     if (updateError) {
-      console.error('[pawapay/deposit] update brand_request failed', updateError)
+      console.error('[feexpay/deposit] update brand_request failed', updateError)
       return
     }
 
-    // Envoi des emails / notifications (non bloquant)
     try {
       const { sendBrandRequestEmail, createBrandRequestNotification } = await import(
         '@/lib/brand-request-emails'
@@ -488,11 +461,11 @@ async function activateBrandRequest(
         ])
       }
     } catch (e) {
-      console.error('[pawapay/deposit] notif/email brand_request failed', e)
+      console.error('[feexpay/deposit] notif/email brand_request failed', e)
     }
 
-    console.log('✅ brand_request activée (pawapay):', brandRequestId)
+    console.log('✅ brand_request activée (feexpay):', brandRequestId)
   } catch (e) {
-    console.error('Error activating brand_request from pawapay callback:', e)
+    console.error('Error activating brand_request from feexpay callback:', e)
   }
 }

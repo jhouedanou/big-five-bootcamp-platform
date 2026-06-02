@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { checkAdmin } from '@/lib/admin-auth'
 import { getSupabaseAdmin } from '@/lib/supabase-server'
-import { getWalletBalances } from '@/lib/pawapay'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -10,7 +9,7 @@ const LIVE_SINCE =
   process.env.NEXT_PUBLIC_PAYMENTS_LIVE_SINCE || '2026-05-18T00:00:00Z'
 
 // Shared in-memory cache. 60s TTL covers most admin reloads without
-// hammering PawaPay or Supabase.
+// hammering Supabase.
 let cache: { at: number; data: any } | null = null
 const TTL_MS = 60_000
 
@@ -27,18 +26,12 @@ export async function GET() {
 
   const supabase = getSupabaseAdmin()
 
-  const totalsPromise = (supabase as any).rpc('admin_payment_totals', {
+  // FeexPay n'expose pas d'API de solde de wallet : les totaux sont calculés
+  // localement à partir de la table `payments`.
+  const totalsRes = await (supabase as any).rpc('admin_payment_totals', {
     live_since: LIVE_SINCE,
     live_until: null,
   })
-
-  // PawaPay call wrapped — if it fails (token, network), we still return totals.
-  const balancesPromise = getWalletBalances().catch((e: any) => {
-    console.warn('[admin/payments/summary] wallet balances failed', e?.message)
-    return null
-  })
-
-  const [totalsRes, balancesRes] = await Promise.all([totalsPromise, balancesPromise])
 
   if (totalsRes.error) {
     console.error('[admin/payments/summary] totals RPC error', {
@@ -59,7 +52,7 @@ export async function GET() {
 
   const data = {
     totals: totalsRow,
-    balances: balancesRes?.balances || null,
+    balances: null,
     live_since: LIVE_SINCE,
   }
 

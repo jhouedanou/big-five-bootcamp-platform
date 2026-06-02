@@ -19,18 +19,18 @@ import { LegalModal } from "@/components/legal-modal"
 import { SubscribeCampaignsCarousel } from "@/components/subscribe-campaigns-carousel"
 import { getOperatorLogo } from "@/lib/operator-logos"
 import {
-  PAWAPAY_COUNTRIES,
-  PAWAPAY_PROVIDERS,
+  FEEXPAY_COUNTRIES,
+  FEEXPAY_PROVIDERS,
   detectProviderFromPhone,
-  type PawaPayCountryCode,
-} from "@/lib/pawapay-providers"
+  type FeexPayCountryCode,
+} from "@/lib/feexpay-providers"
 
 type PlanChoice = "basic" | "pro" | "discovery"
 
 /** Configuration par pays : indicatif, longueur locale attendue, masque d'affichage. */
-type CountryCode = PawaPayCountryCode
+type CountryCode = FeexPayCountryCode
 
-const COUNTRIES = PAWAPAY_COUNTRIES
+const COUNTRIES = FEEXPAY_COUNTRIES
 
 /** Formate des chiffres bruts selon un masque (groupes séparés par espaces). */
 function formatPhoneMask(digits: string, mask: number[]): string {
@@ -158,7 +158,7 @@ export default function SubscribePage() {
   } | null>(null)
 
   const countryConfig = COUNTRIES[country]
-  const providersForCountry = PAWAPAY_PROVIDERS.filter(p => p.country === country)
+  const providersForCountry = FEEXPAY_PROVIDERS.filter(p => p.country === country)
   const maxLocalDigits = countryConfig.localLength
   const cleanLocal = phoneNumber.replace(/\D/g, '')
   const isPhoneValid = cleanLocal.length === maxLocalDigits
@@ -166,7 +166,7 @@ export default function SubscribePage() {
   /** Quand on change de pays, reset l'opérateur et le numéro. */
   const handleCountryChange = (next: CountryCode) => {
     setCountry(next)
-    const firstProvider = PAWAPAY_PROVIDERS.find(p => p.country === next)
+    const firstProvider = FEEXPAY_PROVIDERS.find(p => p.country === next)
     if (firstProvider) setProvider(firstProvider.value)
     setPhoneNumber("")
   }

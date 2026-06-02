@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/hooks/use-auth"
 import { useAuthContext } from "@/components/auth-provider"
 import { useFavorites } from "@/hooks/use-favorites"
+import { toastCampaignShortcut } from "@/lib/campaign-shortcut-toast"
 import { cn, getGoogleDriveImageUrl } from "@/lib/utils"
 import { detectVideoPlatform } from "@/lib/video-utils"
 import { canAccessPremiumContent } from "@/lib/pricing"
@@ -95,9 +96,11 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
       window.location.href = '/login?redirect=/dashboard'
       return
     }
+    const wasFavorite = isFavorite(content.id)
     setIsToggling(true)
-    await toggleFavorite(content.id)
+    const ok = await toggleFavorite(content.id)
     setIsToggling(false)
+    if (ok && !wasFavorite) toastCampaignShortcut("Ajouté aux favoris")
   }
 
   const handleClick = async (e: React.MouseEvent) => {

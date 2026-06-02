@@ -587,7 +587,18 @@ export default function ContentDetailClient({ id }: { id: string }) {
     try {
       const ok = await toggleFavorite(content.id);
       if (ok) {
-        toast.success(shouldFavorite ? "Campagne sauvegardée" : "Campagne retirée des favoris");
+        if (shouldFavorite) {
+          toast.success("Campagne sauvegardée", {
+            action: {
+              label: "Générer une campagne",
+              onClick: () => {
+                window.location.href = "/campaign-generator";
+              },
+            },
+          });
+        } else {
+          toast.success("Campagne retirée des favoris");
+        }
       }
     } finally {
       setIsToggling(false);

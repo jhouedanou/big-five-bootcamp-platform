@@ -277,6 +277,15 @@ export function DashboardNavbar({
                 Collections
               </Link>
             )}
+            {isPremium && (
+              <Link
+                href="/campaign-generator"
+                className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground flex items-center gap-1"
+              >
+                <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+                Générateur
+              </Link>
+            )}
             <Link
               href="/dashboard/brand-requests"
               className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground flex items-center gap-1"
@@ -755,6 +764,16 @@ export function DashboardNavbar({
               >
                 <FolderOpen className="h-4 w-4" aria-hidden="true" />
                 Collections
+              </Link>
+            )}
+            {isPremium && (
+              <Link
+                href="/campaign-generator"
+                className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground flex items-center gap-1.5"
+                onClick={() => setIsOpen(false)}
+              >
+                <Sparkles className="h-4 w-4" aria-hidden="true" />
+                Générateur de campagnes
               </Link>
             )}
             {/* Bouton abonnement mobile */}

@@ -260,7 +260,12 @@ function FavoritesPageContent() {
           }
           return c
         }))
-        toast.success(`Ajouté à la collection « ${colName} »`)
+        toast.success(`Ajouté à la collection « ${colName} »`, {
+          action: {
+            label: "Générer une campagne",
+            onClick: () => { window.location.href = "/campaign-generator" },
+          },
+        })
       } else if (res.status === 409) {
         toast.info(`Déjà dans « ${colName} »`)
       } else {

@@ -8,6 +8,7 @@ import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { useAuthContext } from "@/components/auth-provider"
 import { useRequireActiveSubscription } from "@/hooks/use-require-active-subscription"
+import { getGoogleDriveImageUrl } from "@/lib/utils"
 import {
   getGeneratorSources,
   generateCampaignFromSources,
@@ -28,6 +29,11 @@ import {
   Loader2,
   Lock,
   ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  ImageOff,
+  Images,
+  RotateCcw,
 } from "lucide-react"
 
 const OBJECTIVES = [
@@ -56,6 +62,12 @@ const TONES = [
   { value: "premium", label: "Premium / élégant" },
   { value: "proche", label: "Proche / authentique" },
   { value: "ludique", label: "Ludique" },
+]
+
+const STEPS = [
+  { n: 1, label: "Sources" },
+  { n: 2, label: "Brief" },
+  { n: 3, label: "Génération" },
 ]
 
 function CopyButton({ text, label }: { text: string; label: string }) {
@@ -104,11 +116,69 @@ function Shell({
   )
 }
 
-/**
- * Groupe de sélection (Favoris ou une collection) : un en-tête avec case
- * "tout cocher" + une case par campagne.
- */
-function SourceGroup({
+/** Vignette cliquable d'une campagne avec état sélectionné. */
+function ThumbCard({
+  campaign,
+  selected,
+  onToggle,
+}: {
+  campaign: SourceCampaign
+  selected: boolean
+  onToggle: () => void
+}) {
+  const [imgError, setImgError] = useState(false)
+  const src = campaign.thumbnail ? getGoogleDriveImageUrl(campaign.thumbnail) : null
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      title={campaign.title || "Campagne"}
+      className={`group relative overflow-hidden rounded-xl border text-left transition-all ${
+        selected
+          ? "border-[#F2B33D] ring-2 ring-[#F2B33D]/40"
+          : "border-black/10 hover:border-[#F2B33D]/50 dark:border-white/10"
+      }`}
+    >
+      <div className="relative aspect-square w-full bg-slate-100 dark:bg-white/5">
+        {src && !imgError ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={src}
+            alt={campaign.title || "Campagne"}
+            loading="lazy"
+            onError={() => setImgError(true)}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-slate-300 dark:text-white/20">
+            <ImageOff className="h-7 w-7" />
+          </div>
+        )}
+        {/* Voile + check si sélectionné */}
+        <div
+          className={`absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 transition-all ${
+            selected
+              ? "border-white bg-[#F2B33D] text-white"
+              : "border-white/80 bg-black/20 text-transparent group-hover:bg-black/30"
+          }`}
+        >
+          <Check className="h-3.5 w-3.5" />
+        </div>
+      </div>
+      <div className="p-2">
+        <p className="line-clamp-1 text-xs font-medium text-foreground">
+          {campaign.title || "Campagne"}
+        </p>
+        {campaign.brand && (
+          <p className="line-clamp-1 text-[11px] text-muted-foreground">{campaign.brand}</p>
+        )}
+      </div>
+    </button>
+  )
+}
+
+/** Section de vignettes (Favoris ou une collection) avec bouton tout/aucun. */
+function ThumbSection({
   icon,
   title,
   campaigns,
@@ -125,43 +195,81 @@ function SourceGroup({
 }) {
   const selectedCount = campaigns.filter((c) => selectedIds.has(c.id)).length
   const allSelected = selectedCount === campaigns.length && campaigns.length > 0
-
   return (
     <div>
-      <label className="flex cursor-pointer select-none items-center gap-2 py-1 text-xs font-semibold">
-        <input
-          type="checkbox"
-          checked={allSelected}
-          ref={(el) => {
-            if (el) el.indeterminate = selectedCount > 0 && !allSelected
-          }}
-          onChange={(e) => onToggleAll(e.target.checked)}
-          className="h-3.5 w-3.5 rounded border-input"
-        />
+      <div className="mb-2 flex items-center gap-2">
         {icon}
-        <span className="truncate">{title}</span>
-        <span className="ml-auto shrink-0 font-normal text-muted-foreground">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        <span className="text-xs text-muted-foreground">
           {selectedCount}/{campaigns.length}
         </span>
-      </label>
-      <ul className="ml-5 mt-0.5 space-y-0.5 border-l border-black/5 pl-2 dark:border-white/10">
+        <button
+          type="button"
+          onClick={() => onToggleAll(!allSelected)}
+          className="ml-auto text-xs font-medium text-[#F2B33D] hover:underline"
+        >
+          {allSelected ? "Tout désélectionner" : "Tout sélectionner"}
+        </button>
+      </div>
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
         {campaigns.map((c) => (
-          <li key={c.id}>
-            <label className="flex cursor-pointer select-none items-center gap-2 py-0.5 text-xs">
-              <input
-                type="checkbox"
-                checked={selectedIds.has(c.id)}
-                onChange={() => onToggleId(c.id)}
-                className="h-3.5 w-3.5 rounded border-input"
-              />
-              <span className="line-clamp-1">{c.title || "Campagne"}</span>
-              {c.brand && (
-                <span className="shrink-0 text-muted-foreground">· {c.brand}</span>
-              )}
-            </label>
-          </li>
+          <ThumbCard
+            key={c.id}
+            campaign={c}
+            selected={selectedIds.has(c.id)}
+            onToggle={() => onToggleId(c.id)}
+          />
         ))}
-      </ul>
+      </div>
+    </div>
+  )
+}
+
+/** En-tête d'étapes (stepper) cliquable. */
+function Stepper({
+  step,
+  onGo,
+  canGo,
+}: {
+  step: number
+  onGo: (n: number) => void
+  canGo: (n: number) => boolean
+}) {
+  return (
+    <div className="mb-6 flex items-center gap-2">
+      {STEPS.map((s, i) => {
+        const active = s.n === step
+        const done = s.n < step
+        const reachable = canGo(s.n)
+        return (
+          <div key={s.n} className="flex flex-1 items-center gap-2">
+            <button
+              type="button"
+              disabled={!reachable}
+              onClick={() => reachable && onGo(s.n)}
+              className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed ${
+                active
+                  ? "bg-[#F2B33D] text-white"
+                  : done
+                    ? "bg-[#F2B33D]/15 text-[#0F0F0F] dark:text-white"
+                    : "bg-black/5 text-muted-foreground dark:bg-white/5"
+              }`}
+            >
+              <span
+                className={`flex h-5 w-5 items-center justify-center rounded-full text-xs ${
+                  active || done ? "bg-white/30" : "bg-black/10 dark:bg-white/10"
+                }`}
+              >
+                {done ? <Check className="h-3 w-3" /> : s.n}
+              </span>
+              {s.label}
+            </button>
+            {i < STEPS.length - 1 && (
+              <div className="h-px flex-1 bg-black/10 dark:bg-white/10" />
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -172,8 +280,9 @@ function CampaignGeneratorContent() {
 
   const [sources, setSources] = useState<GeneratorSources | null>(null)
   const [loadingSources, setLoadingSources] = useState(true)
-  // Sélection granulaire : ids de campagnes cochées (favoris + collections).
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+
+  const [step, setStep] = useState(1)
 
   const [brand, setBrand] = useState("")
   const [product, setProduct] = useState("")
@@ -196,7 +305,6 @@ function CampaignGeneratorContent() {
         const data = await getGeneratorSources()
         if (!cancelled) {
           setSources(data)
-          // Présélection : tous les favoris cochés par défaut.
           setSelectedIds(new Set(data.favorites.map((f) => f.id)))
         }
       } finally {
@@ -208,14 +316,12 @@ function CampaignGeneratorContent() {
     }
   }, [subChecking, subLocked, isAuthenticated])
 
-  // Carte d'accès rapide id → campagne (favoris + items de collections).
   const cardById = useMemo(() => {
     const m = new Map<string, SourceCampaign>()
     if (sources) for (const c of sources.campaigns) m.set(c.id, c)
     return m
   }, [sources])
 
-  // Campagnes cochées, ordre stable (favoris d'abord puis collections).
   const selectedCampaigns: SourceCampaign[] = useMemo(() => {
     if (!sources) return []
     const seen = new Set<string>()
@@ -223,7 +329,10 @@ function CampaignGeneratorContent() {
     const push = (id: string) => {
       if (selectedIds.has(id) && !seen.has(id)) {
         const c = cardById.get(id)
-        if (c) { seen.add(id); ordered.push(c) }
+        if (c) {
+          seen.add(id)
+          ordered.push(c)
+        }
       }
     }
     sources.favorites.forEach((f) => push(f.id))
@@ -239,7 +348,6 @@ function CampaignGeneratorContent() {
     })
   }
 
-  // Coche/décoche en bloc toutes les campagnes (connues) d'une liste d'ids.
   const setManySelected = (ids: string[], selected: boolean) => {
     setSelectedIds((prev) => {
       const next = new Set(prev)
@@ -251,9 +359,16 @@ function CampaignGeneratorContent() {
     })
   }
 
+  // Une étape est atteignable si toutes les précédentes sont valides.
+  const canGo = (n: number) => {
+    if (n <= 1) return true
+    if (selectedIds.size === 0) return false // étape 1 requise pour 2 et 3
+    return true
+  }
+
   const handleGenerate = async () => {
     if (selectedIds.size === 0) {
-      toast.error("Sélectionnez au moins une campagne (favoris ou collections).")
+      toast.error("Sélectionnez au moins une campagne.")
       return
     }
     setGenerating(true)
@@ -267,9 +382,7 @@ function CampaignGeneratorContent() {
       if (res.success) {
         setResult(res.data)
         toast.success(
-          res.data.source === "groq"
-            ? "Campagne générée par IA"
-            : "Campagne générée",
+          res.data.source === "groq" ? "Campagne générée par IA" : "Campagne générée",
         )
       } else {
         toast.error(res.error)
@@ -297,7 +410,9 @@ function CampaignGeneratorContent() {
         <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
           <Lock className="h-10 w-10 text-[#F2B33D]" />
           <h1 className="mt-4 text-2xl font-bold">Connexion requise</h1>
-          <p className="mt-2 text-muted-foreground">Connectez-vous pour utiliser le générateur de campagnes.</p>
+          <p className="mt-2 text-muted-foreground">
+            Connectez-vous pour utiliser le générateur de campagnes.
+          </p>
           <Button asChild className="mt-6 bg-[#F2B33D] text-white hover:bg-[#F2B33D]/90">
             <Link href="/login?redirect=/campaign-generator">Se connecter</Link>
           </Button>
@@ -315,8 +430,8 @@ function CampaignGeneratorContent() {
           </div>
           <h1 className="text-2xl font-bold">Générateur de campagnes</h1>
           <p className="mt-3 text-muted-foreground">
-            Disponible avec un abonnement <strong>Basic</strong> ou <strong>Pro</strong>. Sauvegardez vos
-            campagnes préférées et transformez-les en idées prêtes à diffuser.
+            Disponible avec un abonnement <strong>Basic</strong> ou <strong>Pro</strong>.
+            Sauvegardez vos campagnes préférées et transformez-les en idées prêtes à diffuser.
           </p>
           <Button asChild className="mt-6 bg-[#F2B33D] text-white hover:bg-[#F2B33D]/90">
             <Link href="/subscribe?plan=basic">Passer à Basic</Link>
@@ -326,11 +441,14 @@ function CampaignGeneratorContent() {
     )
   }
 
-  const noSources = !loadingSources && (sources?.favorites.length ?? 0) === 0 && (sources?.collections.length ?? 0) === 0
+  const noSources =
+    !loadingSources &&
+    (sources?.favorites.length ?? 0) === 0 &&
+    (sources?.collections.length ?? 0) === 0
 
   return (
     <Shell isAuthenticated={isAuthenticated}>
-      <header className="mb-8">
+      <header className="mb-6">
         <div className="inline-flex items-center gap-2 rounded-full bg-[#F2B33D]/15 px-3 py-1 text-sm font-semibold text-[#0F0F0F] ring-1 ring-[#F2B33D]/30 dark:text-white">
           <Sparkles className="h-4 w-4 text-[#F2B33D]" />
           Générateur de campagnes
@@ -338,10 +456,6 @@ function CampaignGeneratorContent() {
         <h1 className="mt-4 font-[family-name:var(--font-heading)] text-3xl font-extrabold tracking-tight sm:text-4xl">
           De vos favoris à votre campagne
         </h1>
-        <p className="mt-2 max-w-2xl text-muted-foreground">
-          On analyse les campagnes que vous avez sauvegardées, on croise avec votre brief, et on vous
-          propose un texte de campagne + une intention visuelle à coller dans un générateur d'images.
-        </p>
       </header>
 
       {noSources ? (
@@ -358,249 +472,311 @@ function CampaignGeneratorContent() {
             </Link>
           </Button>
         </div>
-      ) : (
-        <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
-          {/* Formulaire */}
-          <div className="space-y-5 rounded-2xl border border-black/5 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#1a1a1a]">
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold">Sources d'inspiration</label>
-              <p className="mb-2 text-xs text-muted-foreground">
-                Cochez plusieurs collections et choisissez les campagnes à analyser.
-              </p>
-              <div className="max-h-72 space-y-3 overflow-y-auto rounded-lg border border-input bg-background p-3">
-                {/* Groupe favoris */}
-                {(sources?.favorites.length ?? 0) > 0 && (
-                  <SourceGroup
-                    icon={<Heart className="h-3.5 w-3.5 text-[#F2B33D]" />}
-                    title="Favoris"
-                    campaigns={sources!.favorites}
-                    selectedIds={selectedIds}
-                    onToggleId={toggleId}
-                    onToggleAll={(sel) =>
-                      setManySelected(sources!.favorites.map((f) => f.id), sel)
-                    }
-                  />
-                )}
-                {/* Groupes collections */}
-                {sources?.collections.map((col) => {
-                  const cards = col.campaignIds
-                    .map((id) => cardById.get(id))
-                    .filter((c): c is SourceCampaign => !!c)
-                  if (cards.length === 0) return null
-                  return (
-                    <SourceGroup
-                      key={col.id}
-                      icon={<FolderOpen className="h-3.5 w-3.5 text-[#F2B33D]" />}
-                      title={col.name}
-                      campaigns={cards}
-                      selectedIds={selectedIds}
-                      onToggleId={toggleId}
-                      onToggleAll={(sel) => setManySelected(cards.map((c) => c.id), sel)}
-                    />
-                  )
-                })}
-              </div>
-              <p className="mt-1.5 text-xs text-muted-foreground">
-                {selectedIds.size} campagne(s) sélectionnée(s)
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold">Marque</label>
-                <input
-                  value={brand}
-                  onChange={(e) => setBrand(e.target.value)}
-                  placeholder="Votre marque"
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-semibold">Produit (option.)</label>
-                <input
-                  value={product}
-                  onChange={(e) => setProduct(e.target.value)}
-                  placeholder="Produit / service"
-                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold">Objectif</label>
-              <select
-                value={objective}
-                onChange={(e) => setObjective(e.target.value)}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+      ) : result ? (
+        /* ---------- Résultat ---------- */
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-xl font-bold">Votre campagne</h2>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => { setResult(null); setStep(2) }}>
+                Modifier le brief
+              </Button>
+              <Button
+                className="gap-1.5 bg-[#F2B33D] text-white hover:bg-[#F2B33D]/90"
+                onClick={() => { setResult(null); setStep(1) }}
               >
-                {OBJECTIVES.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
+                <RotateCcw className="h-4 w-4" /> Nouvelle génération
+              </Button>
             </div>
-
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold">Canal de diffusion</label>
-              <select
-                value={channel}
-                onChange={(e) => setChannel(e.target.value)}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              >
-                {CHANNELS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold">Audience cible</label>
-              <input
-                value={audience}
-                onChange={(e) => setAudience(e.target.value)}
-                placeholder="Ex. jeunes urbains 18-30 ans"
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-sm font-semibold">Ton</label>
-              <select
-                value={tone}
-                onChange={(e) => setTone(e.target.value)}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              >
-                {TONES.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <Button
-              onClick={handleGenerate}
-              disabled={generating || loadingSources || selectedIds.size === 0}
-              className="w-full gap-2 bg-[#F2B33D] text-white hover:bg-[#F2B33D]/90"
-            >
-              {generating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Wand2 className="h-4 w-4" />
-              )}
-              Générer ma campagne
-            </Button>
-
-            {selectedCampaigns.length > 0 && (
-              <div className="border-t border-black/5 pt-4 dark:border-white/10">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  Basé sur
-                </p>
-                <ul className="space-y-1.5">
-                  {selectedCampaigns.slice(0, 6).map((c) => (
-                    <li key={c.id} className="flex items-center gap-2 text-sm">
-                      <span className="line-clamp-1">{c.title || "Campagne"}</span>
-                      {c.brand && (
-                        <span className="shrink-0 text-xs text-muted-foreground">· {c.brand}</span>
-                      )}
-                    </li>
-                  ))}
-                  {selectedCampaigns.length > 6 && (
-                    <li className="text-xs text-muted-foreground">
-                      +{selectedCampaigns.length - 6} autre(s)
-                    </li>
-                  )}
-                </ul>
-              </div>
-            )}
           </div>
 
-          {/* Résultats */}
-          <div className="space-y-6">
-            {!result && !generating && (
-              <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border border-dashed border-black/10 bg-white/50 p-8 text-center dark:border-white/10 dark:bg-white/5">
-                <Sparkles className="h-10 w-10 text-[#F2B33D]/70" />
-                <p className="mt-3 max-w-sm text-muted-foreground">
-                  Remplissez le brief à gauche puis cliquez sur « Générer ma campagne ».
+          {result.insights.topKeywords.length > 0 && (
+            <div className="rounded-2xl border border-black/5 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#1a1a1a]">
+              <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
+                Ce qu'on a repéré dans vos sources
+              </h3>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {result.insights.topKeywords.slice(0, 10).map((k) => (
+                  <span
+                    key={k}
+                    className="rounded-full bg-[#F2B33D]/10 px-3 py-1 text-xs font-medium text-[#0F0F0F] ring-1 ring-[#F2B33D]/20 dark:text-white"
+                  >
+                    {k}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-2xl border border-black/5 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#1a1a1a]">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold">Texte de campagne</h3>
+                <span
+                  className={
+                    result.source === "groq"
+                      ? "rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-500/30 dark:text-emerald-300"
+                      : "rounded-full bg-slate-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-700 ring-1 ring-slate-500/30 dark:text-slate-300"
+                  }
+                  title={
+                    result.source === "groq"
+                      ? "Généré par IA via Groq"
+                      : "Généré par moteur heuristique local (fallback)"
+                  }
+                >
+                  {result.source === "groq" ? "IA" : "Heuristique"}
+                </span>
+              </div>
+              <CopyButton text={result.campaignText} label="Copier" />
+            </div>
+            <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-foreground">
+              {result.campaignText}
+            </pre>
+          </div>
+
+          <div className="rounded-2xl border border-[#F2B33D]/30 bg-[#F2B33D]/5 p-5 shadow-sm">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="font-bold">Intention visuelle</h3>
+              <CopyButton text={result.visualIntent} label="Copier le prompt" />
+            </div>
+            <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-foreground">
+              {result.visualIntent}
+            </pre>
+          </div>
+        </div>
+      ) : (
+        /* ---------- Wizard ---------- */
+        <div className="rounded-2xl border border-black/5 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#1a1a1a] sm:p-6">
+          <Stepper step={step} onGo={setStep} canGo={canGo} />
+
+          {/* Étape 1 — Sources (vignettes) */}
+          {step === 1 && (
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-lg font-bold">Choisissez vos sources d'inspiration</h2>
+                <p className="text-sm text-muted-foreground">
+                  Cliquez sur les visuels des campagnes à analyser (favoris et collections).
                 </p>
               </div>
-            )}
+              {loadingSources ? (
+                <div className="flex justify-center py-10">
+                  <Loader2 className="h-6 w-6 animate-spin text-[#F2B33D]" />
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {(sources?.favorites.length ?? 0) > 0 && (
+                    <ThumbSection
+                      icon={<Heart className="h-4 w-4 text-[#F2B33D]" />}
+                      title="Favoris"
+                      campaigns={sources!.favorites}
+                      selectedIds={selectedIds}
+                      onToggleId={toggleId}
+                      onToggleAll={(sel) =>
+                        setManySelected(sources!.favorites.map((f) => f.id), sel)
+                      }
+                    />
+                  )}
+                  {sources?.collections.map((col) => {
+                    const cards = col.campaignIds
+                      .map((id) => cardById.get(id))
+                      .filter((c): c is SourceCampaign => !!c)
+                    if (cards.length === 0) return null
+                    return (
+                      <ThumbSection
+                        key={col.id}
+                        icon={<FolderOpen className="h-4 w-4 text-[#F2B33D]" />}
+                        title={col.name}
+                        campaigns={cards}
+                        selectedIds={selectedIds}
+                        onToggleId={toggleId}
+                        onToggleAll={(sel) => setManySelected(cards.map((c) => c.id), sel)}
+                      />
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
-            {generating && (
-              <div className="flex min-h-[300px] items-center justify-center rounded-2xl border border-black/10 bg-white dark:border-white/10 dark:bg-[#1a1a1a]">
-                <Loader2 className="h-8 w-8 animate-spin text-[#F2B33D]" />
+          {/* Étape 2 — Brief */}
+          {step === 2 && (
+            <div className="max-w-2xl space-y-5">
+              <div>
+                <h2 className="text-lg font-bold">Votre brief</h2>
+                <p className="text-sm text-muted-foreground">
+                  Décrivez votre marque et votre objectif pour orienter la génération.
+                </p>
               </div>
-            )}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold">Marque</label>
+                  <input
+                    value={brand}
+                    onChange={(e) => setBrand(e.target.value)}
+                    placeholder="Votre marque"
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold">Produit (option.)</label>
+                  <input
+                    value={product}
+                    onChange={(e) => setProduct(e.target.value)}
+                    placeholder="Produit / service"
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-semibold">
+                  Description de la marque / du service
+                </label>
+                <p className="mb-1.5 text-xs text-muted-foreground">
+                  Positionnement, valeurs, ce qui vous distingue. Utilisé dans l'analyse envoyée au modèle.
+                </p>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={4}
+                  placeholder="Ex. Marque de cosmétiques naturels made in Côte d'Ivoire, positionnée premium, valeurs : authenticité, durabilité…"
+                  className="w-full resize-y rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold">Objectif</label>
+                  <select
+                    value={objective}
+                    onChange={(e) => setObjective(e.target.value)}
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    {OBJECTIVES.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold">Canal de diffusion</label>
+                  <select
+                    value={channel}
+                    onChange={(e) => setChannel(e.target.value)}
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    {CHANNELS.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold">Audience cible</label>
+                  <input
+                    value={audience}
+                    onChange={(e) => setAudience(e.target.value)}
+                    placeholder="Ex. jeunes urbains 18-30 ans"
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold">Ton</label>
+                  <select
+                    value={tone}
+                    onChange={(e) => setTone(e.target.value)}
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    {TONES.map((t) => (
+                      <option key={t.value} value={t.value}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
 
-            {result && (
-              <>
-                {result.insights.topKeywords.length > 0 && (
-                  <div className="rounded-2xl border border-black/5 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#1a1a1a]">
-                    <h3 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
-                      Ce qu'on a repéré dans vos favoris
-                    </h3>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {result.insights.topKeywords.slice(0, 10).map((k) => (
-                        <span
-                          key={k}
-                          className="rounded-full bg-[#F2B33D]/10 px-3 py-1 text-xs font-medium text-[#0F0F0F] ring-1 ring-[#F2B33D]/20 dark:text-white"
-                        >
-                          {k}
-                        </span>
-                      ))}
-                    </div>
-                    {(result.insights.topAxes.length > 0 || result.insights.topPlatforms.length > 0) && (
-                      <p className="mt-3 text-xs text-muted-foreground">
-                        {result.insights.topAxes.length > 0 && (
-                          <>Axes : {result.insights.topAxes.join(", ")}. </>
-                        )}
-                        {result.insights.topPlatforms.length > 0 && (
-                          <>Plateformes : {result.insights.topPlatforms.join(", ")}.</>
-                        )}
-                      </p>
-                    )}
-                  </div>
+          {/* Étape 3 — Génération */}
+          {step === 3 && (
+            <div className="max-w-2xl space-y-5">
+              <div>
+                <h2 className="text-lg font-bold">Prêt à générer</h2>
+                <p className="text-sm text-muted-foreground">
+                  Vérifiez le récapitulatif puis lancez la génération.
+                </p>
+              </div>
+
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-input bg-background p-4">
+                <input
+                  type="checkbox"
+                  checked={useVisuals}
+                  onChange={(e) => setUseVisuals(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 rounded border-input"
+                />
+                <span className="flex-1">
+                  <span className="flex items-center gap-1.5 text-sm font-semibold">
+                    <Images className="h-4 w-4 text-[#F2B33D]" />
+                    Analyser aussi le visuel
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Envoie le visuel de la 1re campagne sélectionnée au modèle (vision) pour une
+                    intention visuelle plus ancrée. Génération un peu plus lente.
+                  </span>
+                </span>
+              </label>
+
+              <div className="rounded-xl border border-black/5 bg-black/[0.02] p-4 text-sm dark:border-white/10 dark:bg-white/5">
+                <p>
+                  <span className="font-semibold">{selectedIds.size}</span> campagne(s)
+                  sélectionnée(s)
+                </p>
+                <p className="mt-1 text-muted-foreground">
+                  {brand || "Marque non renseignée"}
+                  {product ? ` · ${product}` : ""} · {channel} ·{" "}
+                  {TONES.find((t) => t.value === tone)?.label}
+                </p>
+              </div>
+
+              <Button
+                onClick={handleGenerate}
+                disabled={generating || selectedIds.size === 0}
+                className="w-full gap-2 bg-[#F2B33D] text-white hover:bg-[#F2B33D]/90"
+              >
+                {generating ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Wand2 className="h-4 w-4" />
                 )}
+                Générer ma campagne
+              </Button>
+            </div>
+          )}
 
-                <div className="rounded-2xl border border-black/5 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#1a1a1a]">
-                  <div className="mb-3 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold">Texte de campagne</h3>
-                      <span
-                        className={
-                          result.source === "groq"
-                            ? "rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-500/30 dark:text-emerald-300"
-                            : "rounded-full bg-slate-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-700 ring-1 ring-slate-500/30 dark:text-slate-300"
-                        }
-                        title={
-                          result.source === "groq"
-                            ? "Généré par Llama 3.3 70B via Groq"
-                            : "Généré par moteur heuristique local (fallback)"
-                        }
-                      >
-                        {result.source === "groq" ? "IA" : "Heuristique"}
-                      </span>
-                    </div>
-                    <CopyButton text={result.campaignText} label="Copier" />
-                  </div>
-                  <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-foreground">
-                    {result.campaignText}
-                  </pre>
-                </div>
-
-                <div className="rounded-2xl border border-[#F2B33D]/30 bg-[#F2B33D]/5 p-5 shadow-sm">
-                  <div className="mb-3 flex items-center justify-between">
-                    <h3 className="font-bold">Intention visuelle</h3>
-                    <CopyButton text={result.visualIntent} label="Copier le prompt" />
-                  </div>
-                  <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-foreground">
-                    {result.visualIntent}
-                  </pre>
-                </div>
-              </>
+          {/* Navigation wizard */}
+          <div className="mt-8 flex items-center justify-between border-t border-black/5 pt-5 dark:border-white/10">
+            <Button
+              variant="outline"
+              onClick={() => setStep((s) => Math.max(1, s - 1))}
+              disabled={step === 1}
+              className="gap-1.5"
+            >
+              <ChevronLeft className="h-4 w-4" /> Précédent
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {step === 1 && `${selectedIds.size} sélectionnée(s)`}
+            </span>
+            {step < 3 ? (
+              <Button
+                onClick={() => setStep((s) => Math.min(3, s + 1))}
+                disabled={step === 1 && selectedIds.size === 0}
+                className="gap-1.5 bg-[#F2B33D] text-white hover:bg-[#F2B33D]/90"
+              >
+                Suivant <ChevronRight className="h-4 w-4" />
+              </Button>
+            ) : (
+              <span />
             )}
           </div>
         </div>

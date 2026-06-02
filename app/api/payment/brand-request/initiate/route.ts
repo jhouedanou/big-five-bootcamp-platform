@@ -1,36 +1,40 @@
 /**
  * Route : POST /api/payment/brand-request/initiate
  *
- * Initie un paiement Mobile Money (PawaPay) pour le devis d'une demande de
- * suivi de marque. L'admin a au préalable défini `devis_amount`/`devis_url`
- * et passé la demande en statut `quote_sent`. L'utilisateur a ensuite
- * accepté le devis (statut → `quote_accepted`).
+ * Initie un paiement Chariow pour le devis d'une demande de suivi de marque.
+ * L'admin a au préalable défini `devis_amount`/`devis_url` et passé la demande
+ * en statut `quote_sent`. L'utilisateur a ensuite accepté le devis
+ * (statut → `quote_accepted`).
  *
  * Body :
  * {
  *   brandRequestId: string  // UUID de la brand_request
- *   phoneNumber: string     // MSISDN complet, ex. "22507xxxxxxxx"
- *   provider: string        // ex. "ORANGE_CIV", "MTN_MOMO_BEN", "FREE_SEN" (Wave non supporté par PawaPay)
  * }
  *
- * Retour : { depositId, status, nextStep, authorizationUrl?, ref_command }
+ * Retour : { success, ref_command, checkoutUrl }
  *
  * Effets :
  *  - Insère un paiement dans `payments` avec metadata.type = 'brand_request'
  *  - Bascule la demande en statut `in_payment`
- *  - Le callback PawaPay (deposit) finalisera : `in_production` + `paid_at`
+ *  - Le webhook Chariow finalisera : `completed` + `paid_at`
  *    + `next_renewal_at = paid_at + 1 month`.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { randomUUID } from 'crypto'
 import { getSupabaseServer } from '@/lib/supabase-server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { initiateDeposit } from '@/lib/feexpay'
-import { toReseau } from '@/lib/feexpay-providers'
+import { buildCheckoutUrl, generateRefCommand, CHARIOW_CONFIG } from '@/lib/chariow'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
+
+function resolveBaseUrl(): string {
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.NODE_ENV === 'production' ? 'https://laveiye.com' : 'http://localhost:3000')
+  )
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -44,23 +48,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json().catch(() => ({}))
-    const { brandRequestId, phoneNumber, provider } = body as {
-      brandRequestId?: string
-      phoneNumber?: string
-      provider?: string
-    }
+    const { brandRequestId } = body as { brandRequestId?: string }
 
-    if (!brandRequestId || !phoneNumber || !provider) {
+    if (!brandRequestId) {
       return NextResponse.json(
-        {
-          error:
-            'Champs requis manquants : brandRequestId, phoneNumber, provider',
-        },
+        { error: 'Champ requis manquant : brandRequestId' },
         { status: 400 }
       )
     }
 
-    // 1. Récupérer la demande et vérifier la propriété + état autorisé
     const { data: req, error: reqError } = await (supabaseAdmin as any)
       .from('brand_requests')
       .select(
@@ -100,31 +96,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 2. Préparer le deposit
-    const depositId = randomUUID()
-    const cleanedPhone = String(phoneNumber).replace(/\D/g, '')
-    const amountStr = String(Math.round(Number(req.devis_amount)))
+    const ref_command = generateRefCommand('BRAND')
+    const amount = Math.round(Number(req.devis_amount))
     const currency = req.devis_currency || 'XOF'
 
-    // 3. Stocker le paiement avant l'appel PawaPay (idempotence)
     const { error: insertError } = await (supabaseAdmin as any)
       .from('payments')
       .insert({
-        ref_command: depositId,
-        amount: Number(amountStr),
+        ref_command,
+        amount,
         currency,
         status: 'pending',
-        payment_method: 'feexpay',
-        provider,
-        client_phone: cleanedPhone,
+        payment_method: 'chariow',
         user_email: user.email || null,
         metadata: {
           type: 'brand_request',
           brand_request_id: req.id,
           brand_name: req.brand_name,
           user_id: user.id,
-          ref_command: depositId,
-          provider,
+          ref_command,
+          gateway: 'chariow',
         },
         created_at: new Date().toISOString(),
       })
@@ -133,7 +124,6 @@ export async function POST(request: NextRequest) {
       console.error('[brand-request/initiate] insert payment failed', insertError)
     }
 
-    // 4. Bascule de la demande en `in_payment` (best-effort)
     await (supabaseAdmin as any)
       .from('brand_requests')
       .update({
@@ -142,59 +132,34 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', req.id)
 
-    // 5. Appel FeexPay
-    const customerMessage = `Devis ${String(req.brand_name || '').slice(0, 30)}`.slice(0, 50)
-    const response = await initiateDeposit({
-      refCommand: depositId,
-      amount: amountStr,
-      currency,
-      phoneNumber: cleanedPhone,
-      reseau: toReseau(provider),
-      description: customerMessage,
-      email: user.email || undefined,
-      callbackInfo: {
-        ref_command: depositId,
-        type: 'brand_request',
-        brand_request_id: req.id,
-      },
-    })
-
-    // 6. Si refus immédiat, on remet le paiement en `failed`.
-    if (response.status === 'FAILED') {
-      await (supabaseAdmin as any)
-        .from('payments')
-        .update({ status: 'failed' })
-        .eq('ref_command', depositId)
-
+    if (!CHARIOW_CONFIG.API_KEY || !CHARIOW_CONFIG.PRODUCT_ID) {
       return NextResponse.json(
-        { error: 'Paiement refusé par FeexPay', status: 'FAILED', ref_command: depositId },
-        { status: 400 }
+        { error: 'Chariow non configuré (API_KEY/PRODUCT_ID manquants).' },
+        { status: 500 }
       )
     }
 
-    // Stocker la reference FeexPay (clé de polling).
-    if (response.reference) {
-      await (supabaseAdmin as any)
-        .from('payments')
-        .update({
-          metadata: {
-            type: 'brand_request',
-            brand_request_id: req.id,
-            brand_name: req.brand_name,
-            user_id: user.id,
-            ref_command: depositId,
-            provider,
-            feexpay_reference: response.reference,
-          },
-        })
-        .eq('ref_command', depositId)
+    const baseUrl = resolveBaseUrl()
+    let checkoutUrl: string
+    try {
+      checkoutUrl = buildCheckoutUrl({
+        refCommand: ref_command,
+        email: user.email || undefined,
+        successUrl: `${baseUrl}/payment/success?ref_command=${encodeURIComponent(ref_command)}`,
+        cancelUrl: `${baseUrl}/payment/failed?ref_command=${encodeURIComponent(ref_command)}`,
+      })
+    } catch (e: any) {
+      console.error('[brand-request/initiate] buildCheckoutUrl error:', e)
+      return NextResponse.json(
+        { error: 'Impossible de construire l\'URL Chariow', details: e?.message },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({
       success: true,
-      ref_command: depositId,
-      reference: response.reference,
-      status: response.status || 'PENDING',
+      ref_command,
+      checkoutUrl,
     })
   } catch (error: any) {
     console.error('[brand-request/initiate] error', error)

@@ -3,9 +3,8 @@
 /**
  * Page: /payment/pending?ref_command=...
  *
- * Affichée après qu'une collecte FeexPay ait été initiée (flow PIN).
- * Le client saisit son code PIN sur son téléphone — on polle l'API jusqu'à
- * recevoir un statut final (COMPLETED / FAILED / REJECTED).
+ * Page d'attente affichée pendant qu'un paiement Chariow est en cours.
+ * Poll l'API jusqu'à recevoir un statut final.
  */
 
 import { Suspense, useEffect, useRef, useState } from "react"
@@ -25,7 +24,7 @@ function PaymentPendingInner() {
   const refCommand = searchParams.get("ref_command") || ""
 
   const [status, setStatus] = useState<Status>("pending")
-  const [feexpayStatus, setFeexpayStatus] = useState<string | undefined>()
+  const [gatewayStatus, setGatewayStatus] = useState<string | undefined>()
   const [failureMessage, setFailureMessage] = useState<string | undefined>()
   const [authUrl, setAuthUrl] = useState<string | undefined>()
   const [elapsed, setElapsed] = useState(0)
@@ -46,7 +45,9 @@ function PaymentPendingInner() {
 
         const s = data?.payment?.status as Status | undefined
         if (s) setStatus(s)
-        if (data?.payment?.feexpay_status) setFeexpayStatus(data.payment.feexpay_status)
+        if (data?.payment?.chariow_status || data?.payment?.gateway_status) {
+          setGatewayStatus(data.payment.chariow_status || data.payment.gateway_status)
+        }
         if (data?.payment?.authorizationUrl) setAuthUrl(data.payment.authorizationUrl)
         if (data?.payment?.failureReason?.failureMessage) {
           setFailureMessage(data.payment.failureReason.failureMessage)
@@ -108,19 +109,19 @@ function PaymentPendingInner() {
               <Smartphone className="h-10 w-10 text-[#F2B33D]" />
             </div>
             <h1 className="text-2xl font-bold text-[#0F0F0F]">
-              Confirmez sur votre téléphone
+              Paiement en cours
             </h1>
             <p className="mt-3 text-[#0F0F0F]/70">
-              Un message vous a été envoyé sur votre mobile. Saisissez votre
-              code PIN Mobile Money pour valider le paiement.
+              Finalisez votre paiement sur la page Chariow. Cette page
+              se mettra à jour automatiquement après confirmation.
             </p>
             <div className="mt-8 flex items-center justify-center gap-2 text-sm text-[#0F0F0F]/60">
               <Loader2 className="h-4 w-4 animate-spin" />
               Vérification en cours... ({Math.round(elapsed / 1000)}s)
             </div>
-            {feexpayStatus && (
+            {gatewayStatus && (
               <p className="mt-2 text-xs text-[#0F0F0F]/40">
-                Statut FeexPay : {feexpayStatus}
+                Statut Chariow : {gatewayStatus}
               </p>
             )}
             {authUrl && (

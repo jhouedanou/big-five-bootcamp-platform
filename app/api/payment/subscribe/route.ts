@@ -1,7 +1,7 @@
 /**
  * API Route: POST /api/payment/subscribe
  *
- * Cree une demande de paiement PawaPay pour un abonnement.
+ * Crée une demande de paiement Chariow pour un abonnement.
  * Plans supportés : Découverte (1 000 XOF), Basic (4 900 XOF), Pro (9 900 XOF).
  * Supporte le renouvellement anticipé : les jours restants sont conservés.
  *
@@ -10,19 +10,17 @@
  * - userName?    : Nom de l'utilisateur
  * - plan         : "discovery" | "basic" | "pro"
  * - billing      : "monthly" | "annual"
- * - phoneNumber  : MSISDN du client (ex. "2250707123456")
- * - provider     : Code provider PawaPay (ex. "ORANGE_CIV", "MTN_MOMO_CIV", "MOOV_CIV" — Wave non supporté)
  * - currency?    : Devise (defaut "XOF")
- * - promoCode?   : Code promo (ex. KEYNOTE)
+ * - promoCode?   : Code promo (ex. LAVEIYE-XXXX)
+ *
+ * Réponse: { success, ref_command, checkoutUrl, … }
+ * Le frontend redirige `window.location.href = checkoutUrl`. Le webhook Chariow
+ * (`/api/webhook/chariow`) finalise l'activation à la confirmation du paiement.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import {
-  initiateDeposit,
-  generateRefCommand,
-} from '@/lib/feexpay';
-import { toReseau } from '@/lib/feexpay-providers';
+import { buildCheckoutUrl, generateRefCommand, CHARIOW_CONFIG } from '@/lib/chariow';
 import {
   KEYNOTE_PROMO_OFFER,
   computePromoPhases,
@@ -43,16 +41,8 @@ const SUBSCRIPTION_DURATION_DAYS = 30;
 const ANNUAL_SUBSCRIPTION_DURATION_DAYS = 365;
 
 /**
- * Fenêtre de renouvellement (en jours avant `subscription_end_date`).
- * À l'intérieur de cette fenêtre, l'utilisateur peut souscrire à un plan
- * inférieur (downgrade). En dehors, le downgrade reste bloqué pour éviter
- * que l'utilisateur ne perde inutilement des jours déjà payés.
- */
-const RENEWAL_WINDOW_DAYS = 7;
-
-/**
  * Rang d'un plan pour interdire les downgrades quand l'abonnement
- * est encore actif. Le tier "Free" a été déprécié. Découverte < Basic < Pro.
+ * est encore actif. Découverte < Basic < Pro.
  */
 const PLAN_RANK: Record<string, number> = {
   discovery: 1,
@@ -63,6 +53,14 @@ const PLAN_RANK: Record<string, number> = {
 function planRank(dbKeyOrSlug: string | null | undefined): number {
   if (!dbKeyOrSlug) return 0;
   return PLAN_RANK[String(dbKeyOrSlug).toLowerCase()] ?? 0;
+}
+
+function resolveBaseUrl(): string {
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.NODE_ENV === 'production' ? 'https://laveiye.com' : 'http://localhost:3000')
+  );
 }
 
 export async function POST(request: NextRequest) {
@@ -78,7 +76,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { userEmail, userName, plan, billing, phoneNumber, provider, currency = 'XOF', promoCode, rawPromoInput } = body;
+    const { userEmail, userName, plan, billing, currency = 'XOF', promoCode, rawPromoInput } = body;
 
     if (!userEmail) {
       return NextResponse.json(
@@ -96,15 +94,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!phoneNumber || !provider) {
-      return NextResponse.json(
-        { error: 'phoneNumber et provider sont requis (ex. provider: "ORANGE_CIV").' },
-        { status: 400 }
-      );
-    }
-
     // Plan strict — aucun fallback silencieux vers Pro.
-    // Le client DOIT envoyer un plan valide ("discovery" | "basic" | "pro").
     const planKey = String(plan || '').toLowerCase().trim();
     const planConfig = PLAN_PRICES[planKey];
     const isAnnual = billing === 'annual';
@@ -119,18 +109,15 @@ export async function POST(request: NextRequest) {
     // ——————————————————————————————————————————————————
     // Code promo LAVEIYE — BONUS "3 mois Basic offerts" cumulable avec
     // n'importe quel plan. Les phases (avant/après/mergé) sont calculées
-    // ici puis appliquées à l'activation par le callback PawaPay.
+    // ici puis appliquées à l'activation par le webhook Chariow.
     // ————————————————————————————————————————————————
     let promoApplied: { code: string; registrationId: string; phases: PromoPhases } | null = null;
     const normalizedPromo = normalizePromoCode(promoCode);
-    // Fix 2 — détecter si un code brut a été envoyé sans avoir été appliqué côté client
     if (!normalizedPromo && rawPromoInput) {
       console.warn(`[subscribe] promoCode absent mais rawPromoInput="${rawPromoInput}" pour ${userEmail} — code non appliqué côté client`);
     }
 
     if (normalizedPromo) {
-      // Rate-limit : 5 tentatives / 5 min par (IP + email) pour bloquer le
-      // brute-force sur les codes promo.
       const ip = getClientIp(request);
       const rl = rateLimit(`promo:${ip}:${(userEmail || '').toLowerCase()}`, 5, 5 * 60_000);
       if (!rl.allowed) {
@@ -145,9 +132,6 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         );
       }
-      // Validation par couple (code, email) — le code seul ne suffit pas :
-      // l'email connecté DOIT correspondre à celui de l'inscription keynote
-      // qui a reçu le code. Empêche un tiers d'utiliser un code intercepté.
       const promoEmail = (userEmail || '').toLowerCase().trim();
       const { data: regRow } = await supabaseAdmin
         .from('keynote_registrations')
@@ -162,8 +146,6 @@ export async function POST(request: NextRequest) {
           { status: 404 }
         );
       }
-      // promo_status = source de vérité (fallback promo_redeemed_at pour les
-      // lignes antérieures à la migration promo-status).
       const regStatus = (regRow as any).promo_status as string | null | undefined;
       if (regStatus === 'expired') {
         return NextResponse.json({ error: 'Ce code promo a expiré' }, { status: 410 });
@@ -172,8 +154,6 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Ce code a déjà été utilisé' }, { status: 409 });
       }
 
-      // Empêcher l'utilisation concurrente : refuser si un paiement
-      // est déjà en attente (pending/processing) avec le même code.
       const { data: pendingPayments } = await supabaseAdmin
         .from('payments')
         .select('id, status, created_at')
@@ -187,7 +167,6 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Calcul des phases selon le plan choisi par l'utilisateur.
       const planDurationDaysForPromo = isAnnual
         ? ANNUAL_SUBSCRIPTION_DURATION_DAYS
         : SUBSCRIPTION_DURATION_DAYS;
@@ -200,12 +179,7 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    // Prix : strictement celui du plan choisi. Le bonus LAVEIYE est gratuit.
     const SUBSCRIPTION_PRICE = isAnnual ? planConfig.annualPrice : planConfig.price;
-    // Durée de la PREMIÈRE phase d'accès :
-    // - sans promo : durée standard du billing choisi
-    // - avec promo : firstDurationDays calculé par computePromoPhases
-    //   (ex. "before" Discovery → 90 j Basic ; "merged" Basic → plan+90 j ; "after" Pro → durée plan)
     const durationDays = promoApplied
       ? promoApplied.phases.firstDurationDays
       : (isAnnual ? ANNUAL_SUBSCRIPTION_DURATION_DAYS : SUBSCRIPTION_DURATION_DAYS);
@@ -218,8 +192,6 @@ export async function POST(request: NextRequest) {
       .eq('email', userEmail)
       .single();
 
-    // Erreur DB inattendue (schema manquant, colonne inconnue…) — ne pas tenter
-    // d'upsert car cela pourrait écraser le plan de l'utilisateur avec 'Discovery'.
     if (userError && userError.code !== 'PGRST116') {
       console.error('[subscribe] user lookup error:', userError);
       return NextResponse.json(
@@ -228,12 +200,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Si l'utilisateur n'existe pas (PGRST116 = no row), le créer
     if (!existingUser) {
       const { data: authListData } = await supabaseAdmin.auth.admin.listUsers() as any;
-      const authUser = authListData?.users?.find((u: any) => u.email === userEmail);
+      const newAuthUser = authListData?.users?.find((u: any) => u.email === userEmail);
 
-      if (!authUser) {
+      if (!newAuthUser) {
         return NextResponse.json(
           { error: 'Utilisateur non trouve. Veuillez vous inscrire d\'abord.' },
           { status: 404 }
@@ -243,9 +214,9 @@ export async function POST(request: NextRequest) {
       const { data: newUser, error: createError } = await (supabaseAdmin as any)
         .from('users')
         .upsert({
-          id: authUser.id,
-          email: authUser.email!,
-          name: authUser.user_metadata?.name || authUser.email!.split('@')[0],
+          id: newAuthUser.id,
+          email: newAuthUser.email!,
+          name: newAuthUser.user_metadata?.name || newAuthUser.email!.split('@')[0],
           role: 'user',
           plan: 'Discovery',
           status: 'active',
@@ -263,7 +234,6 @@ export async function POST(request: NextRequest) {
       existingUser = newUser;
     }
 
-    // Calculer la date de fin
     const now = new Date();
     const currentEndDate = (existingUser as any).subscription_end_date
       ? new Date((existingUser as any).subscription_end_date)
@@ -273,20 +243,6 @@ export async function POST(request: NextRequest) {
       && currentEndDate
       && currentEndDate > now;
 
-    // ——————————————————————————————————————————————————
-    // Downgrade différé : le user paie maintenant un plan inférieur, mais son
-    // plan actuel reste actif jusqu'à `subscription_end_date`. À cette date,
-    // un cron applique le `pending_plan` et démarre la durée achetée.
-    //
-    // - Si downgrade : on flag `is_downgrade=true`, on stocke `pending_starts_at`
-    //   (= currentEndDate) et on n'étend PAS l'abonnement courant.
-    // - Si même plan ou upgrade : comportement historique (renouvellement /
-    //   extension à partir de currentEndDate, ou démarrage immédiat).
-    // - Si un downgrade est déjà en attente : refus pour éviter d'écraser.
-    // ——————————————————————————————————————————————————
-    // Promo + abonnement déjà actif = combinaison non supportée pour MVP
-    // (compliquerait la fusion des phases avec le restant du plan en cours).
-    // L'utilisateur doit consommer son code après expiration.
     if (promoApplied && (existingUser as any).subscription_status === 'active') {
       const endDate = (existingUser as any).subscription_end_date
         ? new Date((existingUser as any).subscription_end_date)
@@ -312,7 +268,6 @@ export async function POST(request: NextRequest) {
         isDowngrade = true;
         pendingStartsAt = currentEndDate;
 
-        // Bloquer si un downgrade est déjà programmé (pour éviter empilement).
         if ((existingUser as any).pending_plan) {
           return NextResponse.json(
             {
@@ -326,14 +281,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Pour un downgrade différé : la durée s'applique à partir de la date
-    // d'activation différée, pas du moment du paiement. Pour les autres cas,
-    // logique historique (extension depuis currentEndDate si actif, sinon now).
     const baseDate = isDowngrade
       ? pendingStartsAt!
       : (isCurrentlyActive ? currentEndDate : now);
-    // Calendaire pour un abonnement standard (mensuel = longueur réelle du mois,
-    // annuel = 1 an) ; durée explicite en jours pour les phases promo.
     const subscriptionEndDate = promoApplied
       ? addDays(baseDate!, durationDays)
       : computeSubscriptionEnd(baseDate!, { billing: isAnnual ? 'annual' : 'monthly' });
@@ -341,16 +291,8 @@ export async function POST(request: NextRequest) {
     const ref_command = generateRefCommand('SUB');
     const customerName = userName || (existingUser as any).name || userEmail.split('@')[0];
 
-    const customerMessage = (isCurrentlyActive
-      ? `Renouv ${planConfig.label}`
-      : `Abo ${planConfig.label}`
-    ).slice(0, 50);
-
-    // Creer le paiement dans la base
-    // Plan effectivement servi en PREMIÈRE phase (peut différer du planKey
-    // acheté quand un promo est appliqué : ex. Discovery acheté → phase 1 = Basic).
     const firstPhasePlanDbKey = promoApplied
-      ? promoApplied.phases.firstPlan // 'Basic' | 'Pro'
+      ? promoApplied.phases.firstPlan
       : planConfig.dbKey;
 
     const paymentInsert = {
@@ -358,9 +300,7 @@ export async function POST(request: NextRequest) {
       amount: SUBSCRIPTION_PRICE,
       currency,
       status: 'pending',
-      payment_method: 'feexpay',
-      provider,
-      client_phone: phoneNumber,
+      payment_method: 'chariow',
       ref_command,
       metadata: {
         type: 'subscription',
@@ -381,11 +321,9 @@ export async function POST(request: NextRequest) {
               : `Abonnement Laveiye ${planConfig.label} - ${billingLabel}`),
         customer_name: customerName,
         userId: (existingUser as any).id,
+        gateway: 'chariow',
         promo_code: promoApplied?.code || null,
         promo_registration_id: promoApplied?.registrationId || null,
-        // Bonus LAVEIYE : phases d'abonnement à dérouler dans le callback.
-        // - first_phase_plan : plan effectivement servi immédiatement
-        // - bonus_phase      : phase supplémentaire à placer en pending (si !merged)
         promo_bonus: promoApplied
           ? {
               label: KEYNOTE_PROMO_OFFER.label,
@@ -425,75 +363,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Initier la collecte FeexPay
-    let feexpayResponse;
+    // Construire l'URL de checkout Chariow
+    if (!CHARIOW_CONFIG.API_KEY || !CHARIOW_CONFIG.PRODUCT_ID) {
+      await (supabaseAdmin as any)
+        .from('payments')
+        .update({ status: 'failed' })
+        .eq('id', (payment as any).id);
+      return NextResponse.json(
+        { error: 'Chariow non configuré (API_KEY/PRODUCT_ID manquants).' },
+        { status: 500 }
+      );
+    }
+
+    const baseUrl = resolveBaseUrl();
+    let checkoutUrl: string;
     try {
-      feexpayResponse = await initiateDeposit({
+      checkoutUrl = buildCheckoutUrl({
         refCommand: ref_command,
-        amount: SUBSCRIPTION_PRICE,
-        currency,
-        phoneNumber,
-        reseau: toReseau(provider),
-        description: customerMessage,
-        firstName: customerName,
         email: userEmail,
-        // Echo dans le webhook : on y place tout ce dont le callback a besoin.
-        callbackInfo: {
-          ref_command,
-          type: 'subscription',
-          plan: planKey,
-          billing: isAnnual ? 'annual' : 'monthly',
-          user_id: String((existingUser as any).id),
-          renewal: isCurrentlyActive ? 'true' : 'false',
-          ...(promoApplied ? { promo_code: promoApplied.code } : {}),
-        },
+        successUrl: `${baseUrl}/payment/success?ref_command=${encodeURIComponent(ref_command)}`,
+        cancelUrl: `${baseUrl}/payment/failed?ref_command=${encodeURIComponent(ref_command)}`,
       });
-    } catch (feexpayError) {
-      console.error('FeexPay initialization error:', feexpayError);
-
+    } catch (e: any) {
       await (supabaseAdmin as any)
         .from('payments')
         .update({ status: 'failed' })
         .eq('id', (payment as any).id);
-
-      const errorMsg = feexpayError instanceof Error ? feexpayError.message : 'Erreur FeexPay';
+      console.error('[subscribe] buildCheckoutUrl error:', e);
       return NextResponse.json(
-        { error: 'Le service de paiement est temporairement indisponible. Veuillez reessayer.', details: errorMsg },
-        { status: 502 }
+        { error: 'Impossible de construire l\'URL Chariow', details: e?.message },
+        { status: 500 }
       );
-    }
-
-    // Si FAILED dès l'init, marquer le paiement et retourner l'erreur.
-    if (feexpayResponse.status === 'FAILED') {
-      await (supabaseAdmin as any)
-        .from('payments')
-        .update({ status: 'failed' })
-        .eq('id', (payment as any).id);
-
-      return NextResponse.json(
-        { success: false, error: 'Paiement refusé par FeexPay' },
-        { status: 400 }
-      );
-    }
-
-    // Stocker la reference FeexPay (clé de polling) dans le paiement.
-    if (feexpayResponse.reference) {
-      await (supabaseAdmin as any)
-        .from('payments')
-        .update({
-          metadata: { ...paymentInsert.metadata, feexpay_reference: feexpayResponse.reference },
-        })
-        .eq('id', (payment as any).id);
     }
 
     return NextResponse.json({
       success: true,
       payment_id: (payment as any).id,
       ref_command,
-      reference: feexpayResponse.reference,
-      status: feexpayResponse.status || 'PENDING',
-      // Le frontend affiche "verifiez votre telephone" et polle cet endpoint.
-      pollingUrl: `/api/payment/feexpay/status/${encodeURIComponent(feexpayResponse.reference || '')}`,
+      checkoutUrl,
       amount: SUBSCRIPTION_PRICE,
       currency,
       plan: planKey,
@@ -512,7 +419,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: 'Internal server error',
-        // En prod : pas de fuite. En dev : on garde pour debug.
         ...(process.env.NODE_ENV !== 'production' ? { message: devMessage } : {}),
       },
       { status: 500 }

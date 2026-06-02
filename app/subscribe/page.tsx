@@ -3,47 +3,14 @@
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, Check, Lock, Sparkles, Loader2, Calendar, Star, Zap, Phone, Tag, X } from "lucide-react"
+import { ArrowLeft, Check, Lock, Sparkles, Loader2, Calendar, Tag, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
 import { LegalModal } from "@/components/legal-modal"
 import { SubscribeCampaignsCarousel } from "@/components/subscribe-campaigns-carousel"
-import { getOperatorLogo } from "@/lib/operator-logos"
-import {
-  FEEXPAY_COUNTRIES,
-  FEEXPAY_PROVIDERS,
-  detectProviderFromPhone,
-  type FeexPayCountryCode,
-} from "@/lib/feexpay-providers"
 
 type PlanChoice = "basic" | "pro" | "discovery"
-
-/** Configuration par pays : indicatif, longueur locale attendue, masque d'affichage. */
-type CountryCode = FeexPayCountryCode
-
-const COUNTRIES = FEEXPAY_COUNTRIES
-
-/** Formate des chiffres bruts selon un masque (groupes séparés par espaces). */
-function formatPhoneMask(digits: string, mask: number[]): string {
-  const clean = digits.replace(/\D/g, '')
-  const parts: string[] = []
-  let cursor = 0
-  for (const groupSize of mask) {
-    if (cursor >= clean.length) break
-    parts.push(clean.slice(cursor, cursor + groupSize))
-    cursor += groupSize
-  }
-  return parts.join(' ')
-}
 
 const PLANS = {
   discovery: {
@@ -140,9 +107,6 @@ export default function SubscribePage() {
   }, [])
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [phoneNumber, setPhoneNumber] = useState("")
-  const [country, setCountry] = useState<CountryCode>("CIV")
-  const [provider, setProvider] = useState<string>("ORANGE_CIV")
 
   // Code promo LAVEIYE — BONUS "3 mois Basic offerts", cumulable avec
   // n'importe quel plan (cf. lib/promo-codes.ts).
@@ -156,27 +120,6 @@ export default function SubscribePage() {
     bonusDurationDays: number
     bonusDurationLabel: string
   } | null>(null)
-
-  const countryConfig = COUNTRIES[country]
-  const providersForCountry = FEEXPAY_PROVIDERS.filter(p => p.country === country)
-  const maxLocalDigits = countryConfig.localLength
-  const cleanLocal = phoneNumber.replace(/\D/g, '')
-  const isPhoneValid = cleanLocal.length === maxLocalDigits
-
-  /** Quand on change de pays, reset l'opérateur et le numéro. */
-  const handleCountryChange = (next: CountryCode) => {
-    setCountry(next)
-    const firstProvider = FEEXPAY_PROVIDERS.find(p => p.country === next)
-    if (firstProvider) setProvider(firstProvider.value)
-    setPhoneNumber("")
-  }
-
-  const handlePhoneChange = (raw: string) => {
-    const digits = raw.replace(/\D/g, '').slice(0, maxLocalDigits)
-    setPhoneNumber(formatPhoneMask(digits, countryConfig.mask))
-    const detected = detectProviderFromPhone(digits, country)
-    if (detected) setProvider(detected)
-  }
 
   useEffect(() => {
     if (!loading && !user) {
@@ -337,18 +280,6 @@ export default function SubscribePage() {
       return
     }
 
-    const localDigits = phoneNumber.replace(/\D/g, '')
-    if (localDigits.length !== countryConfig.localLength) {
-      alert(`Le numéro doit comporter ${countryConfig.localLength} chiffres pour ${countryConfig.name}.`)
-      return
-    }
-    if (!provider) {
-      alert("Veuillez choisir votre opérateur Mobile Money.")
-      return
-    }
-    // Format international (sans “+”) : indicatif pays + numéro local
-    const cleanedPhone = `${countryConfig.dialCode}${localDigits}`
-
     // Fix 3 — auto-appliquer si l'utilisateur a tapé un code sans cliquer "Appliquer"
     let resolvedPromoCode = appliedPromo?.code
     if (promoInput.trim() && !appliedPromo) {
@@ -390,9 +321,6 @@ export default function SubscribePage() {
           userName: userProfile?.name || user.user_metadata?.name,
           plan: selectedPlan,
           billing: isAnnual ? 'annual' : 'monthly',
-          phoneNumber: cleanedPhone,
-          provider,
-          currency: countryConfig.currency,
           promoCode: resolvedPromoCode,
           rawPromoInput: promoInput.trim() || undefined,
         }),
@@ -401,22 +329,19 @@ export default function SubscribePage() {
       const data = await response.json()
 
       if (!response.ok || !data.success) {
-        const failure = data.failureReason
-          ? `${data.failureReason.failureCode}: ${data.failureReason.failureMessage}`
-          : null
-        const message = [data.error, failure, data.details].filter(Boolean).join(" — ")
+        const message = [data.error, data.details].filter(Boolean).join(" — ")
         throw new Error(message || "Erreur lors de la création du paiement")
       }
 
       sessionStorage.setItem("payment_ref", data.ref_command)
 
-      // Flow Wave : redirection vers authorizationUrl
-      if (data.authorizationUrl || data.redirect_url) {
-        window.location.href = data.authorizationUrl || data.redirect_url
+      // Redirection vers le checkout Chariow
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl
         return
       }
 
-      // Flow PIN : redirection vers la page d'attente qui polle le statut
+      // Fallback (ne devrait pas arriver) : page d'attente
       window.location.href = `/payment/pending?ref_command=${encodeURIComponent(data.ref_command)}`
     } catch (error) {
       console.error("Erreur de paiement:", error)
@@ -788,86 +713,14 @@ export default function SubscribePage() {
           </aside>
         </div>
 
-        {/* Mobile Money — details de paiement PawaPay */}
-        <div className="mt-6 rounded-xl border border-[#F5F5F5] bg-white p-5 space-y-4">
-          <h3 className="text-sm font-semibold text-[#0F0F0F]">
-            Paiement Mobile Money
+        {/* Paiement Chariow — info redirection */}
+        <div className="mt-6 rounded-xl border border-[#F5F5F5] bg-white p-5">
+          <h3 className="text-sm font-semibold text-[#0F0F0F] mb-1.5">
+            Paiement sécurisé
           </h3>
-
-          <div className="space-y-2">
-            <Label htmlFor="pawapay-country">Pays</Label>
-            <Select value={country} onValueChange={(v) => handleCountryChange(v as CountryCode)}>
-              <SelectTrigger id="pawapay-country">
-                <SelectValue placeholder="Choisissez votre pays" />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(COUNTRIES) as CountryCode[]).map((code) => (
-                  <SelectItem key={code} value={code}>
-                    <span className="mr-2">{COUNTRIES[code].flag}</span>
-                    {COUNTRIES[code].name}
-                    <span className="ml-2 text-xs text-[#0F0F0F]/50">+{COUNTRIES[code].dialCode}</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="pawapay-provider">Opérateur</Label>
-            <Select value={provider} onValueChange={setProvider}>
-              <SelectTrigger id="pawapay-provider">
-                <SelectValue placeholder="Choisissez votre opérateur" />
-              </SelectTrigger>
-              <SelectContent>
-                {providersForCountry.map((p) => {
-                  const logo = getOperatorLogo(p.value)
-                  return (
-                    <SelectItem key={p.value} value={p.value}>
-                      <span className="flex items-center gap-2">
-                        {logo && (
-                          <img
-                            src={logo.src}
-                            alt={logo.alt}
-                            className="h-5 w-5 rounded-sm object-contain bg-white"
-                          />
-                        )}
-                        {p.label}
-                      </span>
-                    </SelectItem>
-                  )
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="pawapay-phone">Numéro de téléphone</Label>
-            <div className="relative flex items-stretch overflow-hidden rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-0">
-              <span className="flex select-none items-center gap-1.5 border-r border-input bg-[#F5F5F5]/60 px-3 text-sm text-[#0F0F0F]/70">
-                <span>{countryConfig.flag}</span>
-                <span className="font-medium">+{countryConfig.dialCode}</span>
-              </span>
-              <div className="relative flex-1">
-                <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="pawapay-phone"
-                  type="tel"
-                  inputMode="numeric"
-                  autoComplete="tel-national"
-                  placeholder={countryConfig.placeholder}
-                  value={phoneNumber}
-                  onChange={(e) => handlePhoneChange(e.target.value)}
-                  className="border-0 pl-9 focus-visible:ring-0 focus-visible:ring-offset-0"
-                  disabled={isProcessing}
-                  aria-invalid={phoneNumber.length > 0 && !isPhoneValid}
-                />
-              </div>
-            </div>
-            <p className="text-xs text-[#0F0F0F]/50">
-              Saisissez votre numéro local ({countryConfig.localLength} chiffres). L’indicatif <strong>+{countryConfig.dialCode}</strong> est ajouté automatiquement.
-              Vous recevrez une notification sur votre téléphone pour confirmer avec votre code PIN.
-            </p>
-          </div>
+          <p className="text-xs text-[#0F0F0F]/60">
+            Vous serez redirigé vers la plateforme sécurisée Chariow pour finaliser votre paiement (carte bancaire, Mobile Money, Wave…). À la fin de la transaction, vous reviendrez automatiquement sur Laveiye.
+          </p>
         </div>
 
         {/* Code promo LAVEIYE */}

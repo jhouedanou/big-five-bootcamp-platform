@@ -1,18 +1,15 @@
 /**
  * API Route: /api/webhook (DEPRECATED)
  *
- * Ancien webhook de paiement deprecie. Utiliser le callback FeexPay :
- *   - POST /api/payment/feexpay/callback/deposit
- *
- * On renvoie 410 Gone pour signaler que cette ressource n'existe plus.
+ * Ancien webhook deprecie. Utiliser le webhook Chariow :
+ *   - POST /api/webhook/chariow
  */
 
 import { NextResponse } from 'next/server';
 
 const GONE_BODY = {
   error: 'Gone',
-  message:
-    'This endpoint has been replaced by FeexPay. Use /api/payment/feexpay/callback/deposit.',
+  message: 'This endpoint has been replaced. Use /api/webhook/chariow.',
 };
 
 export async function POST() {

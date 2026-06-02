@@ -12,6 +12,14 @@ import {
 } from "@/lib/campaign-generator"
 import { generateCampaignWithGroq } from "@/lib/groq-campaign"
 import { getGoogleDriveImageUrl } from "@/lib/utils"
+import {
+  buildSlots,
+  clampParams,
+  generateEditorialCalendarHeuristic,
+  generateEditorialCalendarWithGroq,
+  type CalendarParams,
+  type EditorialCalendar,
+} from "@/lib/editorial-calendar"
 
 // Champs "carte" exposés au client pour afficher les sources (aucun champ premium).
 const SOURCE_CARD_COLUMNS = "id, title, brand, category, thumbnail, slug"
@@ -202,6 +210,59 @@ async function fetchImageAsDataUrl(rawUrl?: string | null): Promise<string | nul
   }
 }
 
+/**
+ * Périmètre autorisé : ne charge QUE les campagnes présentes dans les favoris
+ * ou les collections de l'utilisateur. Empêche un client de lire le texte
+ * premium d'une campagne arbitraire via le générateur.
+ */
+async function loadScopedCampaigns(
+  userId: string,
+  requestedIds: string[],
+): Promise<
+  | { ok: true; ids: string[]; campaigns: GeneratorCampaign[] }
+  | { ok: false; error: string }
+> {
+  const requested = Array.from(new Set(requestedIds || [])).filter(Boolean)
+  if (requested.length === 0) {
+    return { ok: false, error: "Sélectionnez au moins une campagne." }
+  }
+
+  const admin = getSupabaseAdmin()
+  const { data: favRows } = await (admin as any)
+    .from("favorites")
+    .select("campaign_id")
+    .eq("user_id", userId)
+  const { data: colRows } = await (admin as any)
+    .from("collections")
+    .select("id")
+    .eq("user_id", userId)
+  const colIds = (colRows || []).map((c: any) => c.id)
+  let itemIds: string[] = []
+  if (colIds.length > 0) {
+    const { data } = await (admin as any)
+      .from("collection_items")
+      .select("campaign_id")
+      .in("collection_id", colIds)
+    itemIds = (data || []).map((i: any) => i.campaign_id)
+  }
+  const allowed = new Set<string>([
+    ...(favRows || []).map((f: any) => f.campaign_id),
+    ...itemIds,
+  ])
+  const ids = requested.filter((id) => allowed.has(id))
+  if (ids.length === 0) {
+    return { ok: false, error: "Aucune campagne valide dans votre sélection." }
+  }
+
+  const { data, error } = await (admin as any)
+    .from("campaigns")
+    .select(SOURCE_TEXT_COLUMNS)
+    .in("id", ids)
+  if (error) return { ok: false, error: "Erreur lors du chargement des campagnes." }
+
+  return { ok: true, ids, campaigns: (data || []) as GeneratorCampaign[] }
+}
+
 export type GenerateResult =
   | { success: true; data: GeneratedCampaign & { source: "groq" | "heuristic" } }
   | { success: false; error: string }
@@ -219,48 +280,9 @@ export async function generateCampaignFromSources(
   if (!user) return { success: false, error: "Authentification requise." }
   if (!canPremium) return { success: false, error: "Réservé aux abonnés Basic ou Pro." }
 
-  const requested = Array.from(new Set(input.campaignIds || [])).filter(Boolean)
-  if (requested.length === 0) {
-    return { success: false, error: "Sélectionnez au moins une campagne favorite." }
-  }
-
-  const admin = getSupabaseAdmin()
-
-  // Périmètre autorisé : uniquement les campagnes des favoris / collections du user.
-  const { data: favRows } = await (admin as any)
-    .from("favorites")
-    .select("campaign_id")
-    .eq("user_id", user.id)
-  const { data: colRows } = await (admin as any)
-    .from("collections")
-    .select("id")
-    .eq("user_id", user.id)
-  const colIds = (colRows || []).map((c: any) => c.id)
-  let itemIds: string[] = []
-  if (colIds.length > 0) {
-    const { data } = await (admin as any)
-      .from("collection_items")
-      .select("campaign_id")
-      .in("collection_id", colIds)
-    itemIds = (data || []).map((i: any) => i.campaign_id)
-  }
-  const allowed = new Set<string>([
-    ...(favRows || []).map((f: any) => f.campaign_id),
-    ...itemIds,
-  ])
-  const ids = requested.filter((id) => allowed.has(id))
-  if (ids.length === 0) {
-    return { success: false, error: "Aucune campagne valide dans votre sélection." }
-  }
-
-  const { data, error } = await (admin as any)
-    .from("campaigns")
-    .select(SOURCE_TEXT_COLUMNS)
-    .in("id", ids)
-
-  if (error) return { success: false, error: "Erreur lors du chargement des favoris." }
-
-  const campaigns = (data || []) as GeneratorCampaign[]
+  const scoped = await loadScopedCampaigns(user.id, input.campaignIds)
+  if (!scoped.ok) return { success: false, error: scoped.error }
+  const { ids, campaigns } = scoped
   const insights = extractInsights(campaigns)
 
   // Visuel optionnel : thumbnail de la 1re campagne sélectionnée (ordre demandé).
@@ -285,4 +307,57 @@ export async function generateCampaignFromSources(
 
   const heuristic = generateCampaign(campaigns, input.brief)
   return { success: true, data: { ...heuristic, source: "heuristic" } }
+}
+
+export interface CalendarInput {
+  campaignIds: string[]
+  brief: CampaignBrief
+  weeks?: number
+  postsPerWeek?: number
+  startDate?: string
+  channels?: string[]
+  /** Concept de campagne déjà généré, pour ancrer le planning (optionnel). */
+  concept?: string | null
+}
+
+export type CalendarGenResult =
+  | { success: true; data: EditorialCalendar }
+  | { success: false; error: string }
+
+/**
+ * Génère un calendrier éditorial (planning de publications) à partir des
+ * campagnes sélectionnées et du brief. Même périmètre de sécurité que la
+ * génération de campagne. Fallback heuristique si l'IA est indisponible.
+ */
+export async function generateEditorialCalendar(
+  input: CalendarInput,
+): Promise<CalendarGenResult> {
+  const { user, canPremium } = await resolveAccess()
+  if (!user) return { success: false, error: "Authentification requise." }
+  if (!canPremium) return { success: false, error: "Réservé aux abonnés Basic ou Pro." }
+
+  const scoped = await loadScopedCampaigns(user.id, input.campaignIds)
+  if (!scoped.ok) return { success: false, error: scoped.error }
+  const insights = extractInsights(scoped.campaigns)
+
+  const params: CalendarParams = clampParams({
+    weeks: input.weeks,
+    postsPerWeek: input.postsPerWeek,
+    startDate: input.startDate,
+    channels: input.channels,
+  })
+  const slots = buildSlots(params, input.brief.channel || "")
+
+  const ai = await generateEditorialCalendarWithGroq({
+    slots,
+    brief: input.brief,
+    insights,
+    concept: input.concept,
+  })
+  if (ai) return { success: true, data: ai }
+
+  return {
+    success: true,
+    data: generateEditorialCalendarHeuristic(slots, input.brief, insights),
+  }
 }

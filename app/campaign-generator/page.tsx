@@ -12,10 +12,12 @@ import { getGoogleDriveImageUrl } from "@/lib/utils"
 import {
   getGeneratorSources,
   generateCampaignFromSources,
+  generateEditorialCalendar,
   type GeneratorSources,
   type SourceCampaign,
 } from "@/app/actions/campaign-generator"
 import type { GeneratedCampaign } from "@/lib/campaign-generator"
+import type { EditorialCalendar, EditorialPost } from "@/lib/editorial-calendar"
 
 type GeneratedCampaignWithSource = GeneratedCampaign & { source: "groq" | "heuristic" }
 import { toast } from "sonner"
@@ -34,6 +36,8 @@ import {
   ImageOff,
   Images,
   RotateCcw,
+  CalendarDays,
+  Download,
 } from "lucide-react"
 
 const OBJECTIVES = [
@@ -274,6 +278,89 @@ function Stepper({
   )
 }
 
+// --- Calendrier éditorial : helpers d'export -----------------------------
+
+const WEEK_OPTIONS = [2, 4, 6, 8]
+const CADENCE_OPTIONS = [2, 3, 5]
+
+function formatDateFr(iso: string): string {
+  try {
+    return new Date(iso + "T00:00:00").toLocaleDateString("fr-FR", {
+      weekday: "short",
+      day: "2-digit",
+      month: "short",
+    })
+  } catch {
+    return iso
+  }
+}
+
+/** Découpe les posts en groupes de 7 jours à partir du 1er post. */
+function groupByWeek(posts: EditorialPost[]): EditorialPost[][] {
+  if (posts.length === 0) return []
+  const start = new Date(posts[0].date + "T00:00:00Z").getTime()
+  const weeks: EditorialPost[][] = []
+  for (const p of posts) {
+    const d = new Date(p.date + "T00:00:00Z").getTime()
+    const idx = Math.max(0, Math.floor((d - start) / (7 * 86400_000)))
+    ;(weeks[idx] ||= []).push(p)
+  }
+  return weeks.filter(Boolean)
+}
+
+function downloadText(filename: string, content: string, mime: string) {
+  const blob = new Blob([content], { type: mime })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function calendarToText(posts: EditorialPost[]): string {
+  return posts
+    .map((p) =>
+      [
+        `${formatDateFr(p.date)} — ${p.channel} (${p.format})`,
+        `Thème : ${p.theme}`,
+        p.hook && `Accroche : ${p.hook}`,
+        p.copy && `Texte : ${p.copy}`,
+        p.cta && `CTA : ${p.cta}`,
+        p.hashtags.length ? p.hashtags.join(" ") : "",
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    )
+    .join("\n\n———\n\n")
+}
+
+function calendarToIcs(posts: EditorialPost[]): string {
+  const esc = (s: string) =>
+    String(s).replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;")
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z"
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Laveiye//Calendrier editorial//FR",
+  ]
+  posts.forEach((p, i) => {
+    const dt = p.date.replace(/-/g, "")
+    const desc = [p.hook, p.copy, p.cta, p.hashtags.join(" ")].filter(Boolean).join("\\n")
+    lines.push(
+      "BEGIN:VEVENT",
+      `UID:laveiye-${dt}-${i}@laveiye.com`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${dt}`,
+      `SUMMARY:${esc(`${p.channel} — ${p.theme}`)}`,
+      `DESCRIPTION:${esc(desc)}`,
+      "END:VEVENT",
+    )
+  })
+  lines.push("END:VCALENDAR")
+  return lines.join("\r\n")
+}
+
 function CampaignGeneratorContent() {
   const { checking: subChecking, locked: subLocked } = useRequireActiveSubscription()
   const { isAuthenticated } = useAuthContext()
@@ -295,6 +382,14 @@ function CampaignGeneratorContent() {
 
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState<GeneratedCampaignWithSource | null>(null)
+
+  // Calendrier éditorial
+  const [calWeeks, setCalWeeks] = useState(4)
+  const [calCadence, setCalCadence] = useState(3)
+  const [calStart, setCalStart] = useState(() => new Date().toISOString().slice(0, 10))
+  const [calChannels, setCalChannels] = useState<string[]>([])
+  const [calLoading, setCalLoading] = useState(false)
+  const [calendar, setCalendar] = useState<EditorialCalendar | null>(null)
 
   useEffect(() => {
     if (subChecking || subLocked || !isAuthenticated) return
@@ -373,6 +468,7 @@ function CampaignGeneratorContent() {
     }
     setGenerating(true)
     setResult(null)
+    setCalendar(null)
     try {
       const res = await generateCampaignFromSources({
         campaignIds: Array.from(selectedIds),
@@ -393,6 +489,37 @@ function CampaignGeneratorContent() {
       setGenerating(false)
     }
   }
+
+  const handleGenerateCalendar = async () => {
+    setCalLoading(true)
+    setCalendar(null)
+    try {
+      const res = await generateEditorialCalendar({
+        campaignIds: Array.from(selectedIds),
+        brief: { brand, product, description, objective, channel, audience, tone },
+        weeks: calWeeks,
+        postsPerWeek: calCadence,
+        startDate: calStart,
+        channels: calChannels.length ? calChannels : [channel],
+        concept: result?.campaignText ?? null,
+      })
+      if (res.success) {
+        setCalendar(res.data)
+        toast.success(
+          res.data.source === "groq" ? "Calendrier généré par IA" : "Calendrier généré",
+        )
+      } else {
+        toast.error(res.error)
+      }
+    } catch {
+      toast.error("Erreur lors de la génération du calendrier")
+    } finally {
+      setCalLoading(false)
+    }
+  }
+
+  const toggleCalChannel = (c: string) =>
+    setCalChannels((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]))
 
   if (subChecking || subLocked) {
     return (
@@ -478,12 +605,12 @@ function CampaignGeneratorContent() {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-xl font-bold">Votre campagne</h2>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => { setResult(null); setStep(2) }}>
+              <Button variant="outline" onClick={() => { setResult(null); setCalendar(null); setStep(2) }}>
                 Modifier le brief
               </Button>
               <Button
                 className="gap-1.5 bg-[#F2B33D] text-white hover:bg-[#F2B33D]/90"
-                onClick={() => { setResult(null); setStep(1) }}
+                onClick={() => { setResult(null); setCalendar(null); setStep(1) }}
               >
                 <RotateCcw className="h-4 w-4" /> Nouvelle génération
               </Button>
@@ -542,6 +669,175 @@ function CampaignGeneratorContent() {
             <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-relaxed text-foreground">
               {result.visualIntent}
             </pre>
+          </div>
+
+          {/* ---------- Calendrier éditorial ---------- */}
+          <div className="rounded-2xl border border-black/5 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#1a1a1a]">
+            <div className="mb-1 flex items-center gap-2">
+              <CalendarDays className="h-5 w-5 text-[#F2B33D]" />
+              <h3 className="font-bold">Calendrier éditorial</h3>
+              {calendar && (
+                <span
+                  className={
+                    calendar.source === "groq"
+                      ? "rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 ring-1 ring-emerald-500/30 dark:text-emerald-300"
+                      : "rounded-full bg-slate-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-700 ring-1 ring-slate-500/30 dark:text-slate-300"
+                  }
+                >
+                  {calendar.source === "groq" ? "IA" : "Heuristique"}
+                </span>
+              )}
+            </div>
+            <p className="mb-4 text-sm text-muted-foreground">
+              Transformez ce concept en planning de publications prêt à diffuser.
+            </p>
+
+            {/* Paramètres */}
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold">Durée</label>
+                <select
+                  value={calWeeks}
+                  onChange={(e) => setCalWeeks(Number(e.target.value))}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                >
+                  {WEEK_OPTIONS.map((w) => (
+                    <option key={w} value={w}>
+                      {w} semaines
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold">Publications / semaine</label>
+                <select
+                  value={calCadence}
+                  onChange={(e) => setCalCadence(Number(e.target.value))}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                >
+                  {CADENCE_OPTIONS.map((c) => (
+                    <option key={c} value={c}>
+                      {c} / semaine
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold">Date de début</label>
+                <input
+                  type="date"
+                  value={calStart}
+                  onChange={(e) => setCalStart(e.target.value)}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="mt-3">
+              <label className="mb-1.5 block text-xs font-semibold">
+                Canaux à faire tourner{" "}
+                <span className="font-normal text-muted-foreground">
+                  (défaut : {channel})
+                </span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {CHANNELS.map((c) => {
+                  const on = calChannels.includes(c)
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => toggleCalChannel(c)}
+                      className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                        on
+                          ? "bg-[#F2B33D] text-white"
+                          : "bg-black/5 text-muted-foreground hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <Button
+                onClick={handleGenerateCalendar}
+                disabled={calLoading}
+                className="gap-2 bg-[#F2B33D] text-white hover:bg-[#F2B33D]/90"
+              >
+                {calLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CalendarDays className="h-4 w-4" />
+                )}
+                {calendar ? "Regénérer le calendrier" : "Générer le calendrier"}
+              </Button>
+              {calendar && calendar.posts.length > 0 && (
+                <>
+                  <CopyButton text={calendarToText(calendar.posts)} label="Copier" />
+                  <Button
+                    variant="outline"
+                    className="gap-1.5"
+                    onClick={() =>
+                      downloadText(
+                        "calendrier-editorial.ics",
+                        calendarToIcs(calendar.posts),
+                        "text/calendar",
+                      )
+                    }
+                  >
+                    <Download className="h-3.5 w-3.5" /> .ics
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {/* Rendu par semaine */}
+            {calendar && calendar.posts.length > 0 && (
+              <div className="mt-5 space-y-5">
+                {groupByWeek(calendar.posts).map((week, wi) => (
+                  <div key={wi}>
+                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-muted-foreground">
+                      Semaine {wi + 1}
+                    </p>
+                    <div className="space-y-2">
+                      {week.map((p, pi) => (
+                        <div
+                          key={`${p.date}-${pi}`}
+                          className="rounded-xl border border-black/5 bg-black/[0.02] p-3 dark:border-white/10 dark:bg-white/5"
+                        >
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className="font-semibold text-foreground">
+                              {formatDateFr(p.date)}
+                            </span>
+                            <span className="rounded-full bg-[#F2B33D]/15 px-2 py-0.5 font-medium text-[#0F0F0F] dark:text-white">
+                              {p.channel}
+                            </span>
+                            <span className="text-muted-foreground">{p.format}</span>
+                          </div>
+                          {p.hook && <p className="mt-1.5 text-sm font-semibold">{p.hook}</p>}
+                          {p.copy && (
+                            <p className="mt-0.5 text-sm text-muted-foreground">{p.copy}</p>
+                          )}
+                          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+                            {p.cta && (
+                              <span className="font-medium text-[#F2B33D]">{p.cta} →</span>
+                            )}
+                            {p.hashtags.map((h) => (
+                              <span key={h} className="text-muted-foreground">
+                                {h}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       ) : (

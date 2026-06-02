@@ -238,7 +238,7 @@ export default function AdminBrandRequestsPage() {
       `Approuver manuellement la demande « ${req.brand_name} » ?\n\n` +
       `Cette action force le statut « Disponible » et marque le paiement comme reçu ` +
       `(payment_method = "admin_override"). À utiliser uniquement si le paiement a été ` +
-      `confirmé hors FeexPay.`
+      `confirmé hors PawaPay.`
     )
     if (!ok) return
     setApprovingId(req.id)
@@ -249,7 +249,7 @@ export default function AdminBrandRequestsPage() {
     }
   }
 
-  // Construit le lien de paiement public (FeexPay) pour cette demande.
+  // Construit le lien de paiement public (PawaPay) pour cette demande.
   const buildPaymentLink = (id: string) => {
     if (typeof window === 'undefined') return `/pay/brand-request/${id}`
     return `${window.location.origin}/pay/brand-request/${id}`
@@ -764,7 +764,7 @@ export default function AdminBrandRequestsPage() {
                           </div>
                         </div>
 
-                        {/* Lien de paiement FeexPay (auto-généré) — copier-coller pour envoi au client */}
+                        {/* Lien de paiement PawaPay (auto-généré) — copier-coller pour envoi au client */}
                         {(() => {
                           const paymentLink = buildPaymentLink(req.id)
                           const linkKey = `pay-${req.id}`
@@ -773,7 +773,7 @@ export default function AdminBrandRequestsPage() {
                               <div className="flex items-center gap-2 mb-1.5">
                                 <CreditCard className="h-3.5 w-3.5 text-[#059669]" />
                                 <p className="text-xs font-semibold text-[#059669]">
-                                  Lien de paiement FeexPay
+                                  Lien de paiement PawaPay
                                 </p>
                                 {!devisAmount && (
                                   <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide text-amber-700">
@@ -813,7 +813,7 @@ export default function AdminBrandRequestsPage() {
                                 </a>
                               </div>
                               <p className="mt-1.5 text-[11px] text-gray-600">
-                                Envoyez ce lien au client. Une fois le paiement validé par FeexPay, la
+                                Envoyez ce lien au client. Une fois le paiement validé par PawaPay, la
                                 demande passera automatiquement en « Disponible ».
                               </p>
                             </div>
@@ -831,7 +831,7 @@ export default function AdminBrandRequestsPage() {
                               type="text"
                               value={paymentReference}
                               onChange={(e) => setPaymentReference(e.target.value)}
-                              placeholder="Renseignée automatiquement après paiement FeexPay"
+                              placeholder="Renseignée automatiquement après paiement PawaPay"
                               className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-mono outline-none focus:border-[#F2B33D]"
                             />
                             {paymentReference && (

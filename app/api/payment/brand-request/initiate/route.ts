@@ -26,8 +26,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { randomUUID } from 'crypto'
 import { getSupabaseServer } from '@/lib/supabase-server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { initiateDeposit } from '@/lib/feexpay'
-import { toReseau } from '@/lib/feexpay-providers'
+import {
+  initiateDeposit,
+  PUBLIC_BASE_URL,
+} from '@/lib/pawapay'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -114,7 +116,7 @@ export async function POST(request: NextRequest) {
         amount: Number(amountStr),
         currency,
         status: 'pending',
-        payment_method: 'feexpay',
+        payment_method: 'pawapay',
         provider,
         client_phone: cleanedPhone,
         user_email: user.email || null,
@@ -123,8 +125,6 @@ export async function POST(request: NextRequest) {
           brand_request_id: req.id,
           brand_name: req.brand_name,
           user_id: user.id,
-          ref_command: depositId,
-          provider,
         },
         created_at: new Date().toISOString(),
       })
@@ -142,59 +142,54 @@ export async function POST(request: NextRequest) {
       })
       .eq('id', req.id)
 
-    // 5. Appel FeexPay
-    const customerMessage = `Devis ${String(req.brand_name || '').slice(0, 30)}`.slice(0, 50)
+    // 5. Appel PawaPay
+    const customerMessage = `Devis ${String(req.brand_name || '').slice(0, 14)}`.slice(0, 22)
     const response = await initiateDeposit({
-      refCommand: depositId,
+      depositId,
       amount: amountStr,
       currency,
-      phoneNumber: cleanedPhone,
-      reseau: toReseau(provider),
-      description: customerMessage,
-      email: user.email || undefined,
-      callbackInfo: {
-        ref_command: depositId,
-        type: 'brand_request',
-        brand_request_id: req.id,
+      payer: {
+        type: 'MMO',
+        accountDetails: {
+          phoneNumber: cleanedPhone,
+          provider,
+        },
       },
+      customerMessage,
+      successfulUrl: `${PUBLIC_BASE_URL}/payment/success?ref=${depositId}`,
+      failedUrl: `${PUBLIC_BASE_URL}/payment/cancel?ref=${depositId}`,
     })
 
-    // 6. Si refus immédiat, on remet le paiement en `failed`.
-    if (response.status === 'FAILED') {
-      await (supabaseAdmin as any)
-        .from('payments')
-        .update({ status: 'failed' })
-        .eq('ref_command', depositId)
-
-      return NextResponse.json(
-        { error: 'Paiement refusé par FeexPay', status: 'FAILED', ref_command: depositId },
-        { status: 400 }
-      )
-    }
-
-    // Stocker la reference FeexPay (clé de polling).
-    if (response.reference) {
+    // 6. Si rejet immédiat, on remet le paiement en `rejected` et on log
+    if (response.status === 'REJECTED') {
       await (supabaseAdmin as any)
         .from('payments')
         .update({
-          metadata: {
-            type: 'brand_request',
-            brand_request_id: req.id,
-            brand_name: req.brand_name,
-            user_id: user.id,
-            ref_command: depositId,
-            provider,
-            feexpay_reference: response.reference,
-          },
+          status: 'rejected',
+          failure_code: response.failureReason?.failureCode,
+          failure_message: response.failureReason?.failureMessage,
         })
         .eq('ref_command', depositId)
+
+      return NextResponse.json(
+        {
+          error:
+            response.failureReason?.failureMessage ||
+            'Paiement refusé par l’opérateur',
+          status: 'REJECTED',
+          ref_command: depositId,
+        },
+        { status: 400 }
+      )
     }
 
     return NextResponse.json({
       success: true,
       ref_command: depositId,
-      reference: response.reference,
-      status: response.status || 'PENDING',
+      depositId,
+      status: response.status,
+      nextStep: response.nextStep,
+      authorizationUrl: (response as any).authorizationUrl,
     })
   } catch (error: any) {
     console.error('[brand-request/initiate] error', error)

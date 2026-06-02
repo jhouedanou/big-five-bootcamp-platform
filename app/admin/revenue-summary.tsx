@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Wallet, TrendingUp, TrendingDown, ArrowRight, RefreshCw, CircleDot } from 'lucide-react'
 
 // Map currency → ISO country code (for flag emoji) + label.
-// FeexPay returns ISO 4217 currency codes; we display a recognisable hint.
+// PawaPay returns ISO 4217 currency codes; we display a recognisable hint.
 const CURRENCY_META: Record<string, { flag: string; label: string }> = {
   XOF: { flag: '🌍', label: 'UEMOA' },
   XAF: { flag: '🌍', label: 'CEMAC' },
@@ -112,7 +112,7 @@ export function RevenueSummary() {
         <div className="flex items-center gap-2">
           <Wallet className="w-5 h-5 text-emerald-600" />
           <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-            Revenus & solde FeexPay
+            Revenus & solde PawaPay
           </h2>
         </div>
         <div className="flex items-center gap-2">
@@ -170,7 +170,7 @@ export function RevenueSummary() {
                       </p>
                       <p className="text-[10px] text-emerald-700 font-medium flex items-center gap-1">
                         <CircleDot className="w-2.5 h-2.5 animate-pulse" />
-                        {data?.balances ? 'Live FeexPay' : 'Local (encaissé − reversé)'}
+                        {data?.balances ? 'Live PawaPay' : 'Local (encaissé − reversé)'}
                       </p>
                     </div>
                   </div>

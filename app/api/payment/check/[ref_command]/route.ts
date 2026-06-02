@@ -1,16 +1,15 @@
 /**
  * API Route: POST /api/payment/check/[ref_command]
  *
- * Verifie le statut d'un paiement directement aupres de FeexPay
+ * Verifie le statut d'un paiement directement aupres de PawaPay
  * et met a jour la base de donnees si le paiement est complete.
- * Fallback si le webhook n'a pas ete recu.
+ * Fallback si le callback n'a pas ete recu.
  *
- * `ref_command` = notre UUID interne (customId). La `reference` FeexPay
- * (clé de polling) est stockée dans `payments.metadata.feexpay_reference`.
+ * Avec PawaPay, le `ref_command` est exactement le `depositId` (UUIDv4).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { checkDepositStatus } from '@/lib/feexpay';
+import { checkDepositStatus } from '@/lib/pawapay';
 import { createClient } from '@supabase/supabase-js';
 import { rateLimit, getClientIp } from '@/lib/rate-limit';
 import { computeSubscriptionEnd } from '@/lib/subscription';
@@ -28,14 +27,21 @@ function getSupabase() {
   return _supabase;
 }
 
-/** Mappe un statut FeexPay vers notre statut interne. */
-function mapFeexPayStatus(status: string): string {
+/** Mappe un statut PawaPay vers notre statut interne. */
+function mapPawaPayStatus(status: string): string {
   switch (status) {
-    case 'SUCCESSFUL':
+    case 'COMPLETED':
       return 'completed';
     case 'FAILED':
       return 'failed';
-    case 'PENDING':
+    case 'REJECTED':
+      return 'rejected';
+    case 'DUPLICATE_IGNORED':
+      return 'duplicate';
+    case 'ACCEPTED':
+    case 'ENQUEUED':
+    case 'PROCESSING':
+    case 'IN_RECONCILIATION':
     default:
       return 'pending';
   }
@@ -98,12 +104,13 @@ export async function POST(
       });
     }
 
-    // 2. Verifier aupres de FeexPay via la reference stockée à l'init.
-    const feexReference = paymentData.metadata?.feexpay_reference as string | undefined;
-    if (!feexReference) {
+    // 2. Verifier aupres de PawaPay (ref_command === depositId)
+    const pawapayResult = await checkDepositStatus(ref_command);
+
+    if (pawapayResult.status === 'NOT_FOUND' || !pawapayResult.data) {
       return NextResponse.json({
         success: false,
-        message: 'Reference FeexPay non encore enregistrée',
+        message: 'Deposit not yet registered on PawaPay',
         payment: {
           ref_command: paymentData.ref_command,
           status: paymentData.status,
@@ -111,23 +118,26 @@ export async function POST(
       });
     }
 
-    const deposit = await checkDepositStatus(feexReference);
-    const mappedStatus = mapFeexPayStatus(deposit.status);
+    const deposit = pawapayResult.data;
+    const mappedStatus = mapPawaPayStatus(deposit.status);
 
-    console.log('FeexPay check result:', {
-      reference: feexReference,
+    console.log('PawaPay check result:', {
+      depositId: deposit.depositId,
       status: deposit.status,
       mapped: mappedStatus,
     });
 
-    // 3. Si SUCCESSFUL : activer l'utilisateur / finaliser la commande
+    // 3. Si COMPLETED : activer l'utilisateur / finaliser la commande
     if (mappedStatus === 'completed') {
       const updateData: Record<string, unknown> = {
         status: 'completed',
-        payment_method: 'feexpay',
-        completed_at: new Date().toISOString(),
+        payment_method: 'pawapay',
+        provider: deposit.payer?.accountDetails?.provider,
+        client_phone: deposit.payer?.accountDetails?.phoneNumber,
+        provider_transaction_id: deposit.providerTransactionId,
+        completed_at: deposit.created || new Date().toISOString(),
         final_amount: deposit.amount ? Number(deposit.amount) : paymentData.amount,
-        currency: paymentData.currency,
+        currency: deposit.currency || paymentData.currency,
       };
 
       await supabase
@@ -151,11 +161,11 @@ export async function POST(
 
         if (!planName) {
           console.error(
-            '[feexpay/check] Plan invalide ou manquant dans metadata, activation annulee',
+            '[pawapay/check] Plan invalide ou manquant dans metadata, activation annulee',
             { paymentId: paymentData.id, rawPlan, metadata: paymentData.metadata }
           );
         } else if (paymentData.metadata.promo_bonus) {
-          // Bonus LAVEIYE : aligne sur callback /feexpay/deposit. Trois cas
+          // Bonus LAVEIYE : aligne sur callback /pawapay/deposit. Trois cas
           // (merged / before / after) — cf. lib/promo-codes.ts.
           const bonus = paymentData.metadata.promo_bonus as {
             kind: 'merged' | 'before' | 'after';
@@ -202,7 +212,7 @@ export async function POST(
               .is('promo_redeemed_at', null);
           }
           console.log(
-            '[feexpay/check] Subscription + bonus LAVEIYE activated for user:',
+            '[pawapay/check] Subscription + bonus LAVEIYE activated for user:',
             paymentData.metadata.userId,
             '\u2014 first phase:',
             bonus.first_phase_plan
@@ -212,8 +222,8 @@ export async function POST(
           paymentData.metadata.pending_starts_at
         ) {
           // Downgrade différé : écrire pending_* au lieu d'écraser plan courant.
-          // Doit rester aligné avec la même branche dans le callback FeexPay
-          // (app/api/payment/feexpay/callback/deposit/route.ts).
+          // Doit rester aligné avec la même branche dans le callback PawaPay
+          // (app/api/payment/pawapay/callback/deposit/route.ts).
           await supabase
             .from('users')
             .update({
@@ -243,7 +253,7 @@ export async function POST(
           }
 
           console.log(
-            '[feexpay/check] Downgrade différé enregistré pour user:',
+            '[pawapay/check] Downgrade différé enregistré pour user:',
             paymentData.metadata.userId,
             '— pending:', planName
           );
@@ -270,16 +280,20 @@ export async function POST(
           ref_command: paymentData.ref_command,
           status: 'completed',
           amount: deposit.amount,
-          currency: paymentData.currency,
+          currency: deposit.currency,
         },
       });
     }
 
-    // 4. Si FAILED : mettre a jour la base
-    if (mappedStatus === 'failed') {
+    // 4. Si FAILED / REJECTED : mettre a jour la base
+    if (mappedStatus === 'failed' || mappedStatus === 'rejected') {
       await supabase
         .from('payments')
-        .update({ status: 'failed' } as any)
+        .update({
+          status: mappedStatus,
+          failure_code: deposit.failureReason?.failureCode,
+          failure_message: deposit.failureReason?.failureMessage,
+        } as any)
         .eq('id', paymentData.id);
 
       return NextResponse.json({
@@ -288,7 +302,8 @@ export async function POST(
         payment: {
           ref_command: paymentData.ref_command,
           status: mappedStatus,
-          feexpay_status: deposit.status,
+          pawapay_status: deposit.status,
+          failureReason: deposit.failureReason,
         },
       });
     }
@@ -300,7 +315,9 @@ export async function POST(
       payment: {
         ref_command: paymentData.ref_command,
         status: paymentData.status,
-        feexpay_status: deposit.status,
+        pawapay_status: deposit.status,
+        nextStep: deposit.nextStep,
+        authorizationUrl: deposit.authorizationUrl,
       },
     });
 

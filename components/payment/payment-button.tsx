@@ -2,10 +2,10 @@
  * Composant: PaymentButton
  *
  * Ouvre une boite de dialogue qui collecte le numero Mobile Money + l'operateur,
- * puis initie une collecte FeexPay. Selon l'operateur :
- *  - Wave : redirection vers authorizationUrl si FeexPay en renvoie une
- *  - MTN / Orange / Moov : PIN prompt sur le telephone du client puis polling
- *    du statut en tache de fond.
+ * puis initie un depot PawaPay. Selon l'operateur :
+ *  - Wave SEN/CIV : redirection vers authorizationUrl
+ *  - MTN / Orange / Moov / Airtel : PIN prompt sur le telephone du client
+ *    puis polling du statut en tache de fond.
  */
 
 'use client';
@@ -32,7 +32,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { FEEXPAY_PROVIDERS } from '@/lib/feexpay-providers';
 
 interface PaymentButtonProps {
   sessionId: string;
@@ -42,6 +41,21 @@ interface PaymentButtonProps {
   onSuccess?: () => void;
   className?: string;
 }
+
+/** Liste non exhaustive des providers PawaPay les plus utilises en Afrique de l'Ouest. */
+const PAWAPAY_PROVIDERS = [
+  { value: 'MTN_MOMO_CIV', label: 'MTN Mobile Money — Côte d’Ivoire' },
+  { value: 'ORANGE_CIV', label: 'Orange Money — Côte d’Ivoire' },
+  { value: 'MOOV_CIV', label: 'Moov Money — Côte d’Ivoire' },
+  { value: 'WAVE_CIV', label: 'Wave — Côte d’Ivoire' },
+  { value: 'WAVE_SEN', label: 'Wave — Sénégal' },
+  { value: 'ORANGE_SEN', label: 'Orange Money — Sénégal' },
+  { value: 'FREE_SEN', label: 'Free Money — Sénégal' },
+  { value: 'ORANGE_BFA', label: 'Orange Money — Burkina Faso' },
+  { value: 'MOOV_BFA', label: 'Moov Money — Burkina Faso' },
+  { value: 'MTN_MOMO_BEN', label: 'MTN Mobile Money — Bénin' },
+  { value: 'MOOV_BEN', label: 'Moov Money — Bénin' },
+];
 
 export default function PaymentButton({
   sessionId,
@@ -145,7 +159,7 @@ export default function PaymentButton({
                 <SelectValue placeholder="Choisissez votre opérateur" />
               </SelectTrigger>
               <SelectContent>
-                {FEEXPAY_PROVIDERS.map((p) => (
+                {PAWAPAY_PROVIDERS.map((p) => (
                   <SelectItem key={p.value} value={p.value}>
                     {p.label}
                   </SelectItem>

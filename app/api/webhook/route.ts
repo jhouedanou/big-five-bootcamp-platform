@@ -1,8 +1,11 @@
 /**
  * API Route: /api/webhook (DEPRECATED)
  *
- * Ancien webhook de paiement deprecie. Utiliser le callback FeexPay :
- *   - POST /api/payment/feexpay/callback/deposit
+ * Ancien webhook de paiement deprecie. Utiliser les callbacks PawaPay.
+ * Les nouveaux callbacks sont dans :
+ *   - POST /api/payment/pawapay/callback/deposit
+ *   - POST /api/payment/pawapay/callback/payout
+ *   - POST /api/payment/pawapay/callback/refund
  *
  * On renvoie 410 Gone pour signaler que cette ressource n'existe plus.
  */
@@ -12,7 +15,7 @@ import { NextResponse } from 'next/server';
 const GONE_BODY = {
   error: 'Gone',
   message:
-    'This endpoint has been replaced by FeexPay. Use /api/payment/feexpay/callback/deposit.',
+    'This endpoint has been replaced by PawaPay. Use /api/payment/pawapay/callback/{deposit|payout|refund}.',
 };
 
 export async function POST() {

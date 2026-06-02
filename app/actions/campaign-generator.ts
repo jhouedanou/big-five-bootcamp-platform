@@ -38,6 +38,10 @@ export interface GeneratorSources {
   authenticated: boolean
   favorites: SourceCampaign[]
   collections: SourceCollection[]
+  /** Cartes de TOUTES les campagnes citées (favoris + items de collections),
+   *  dédupliquées, pour afficher titre/marque des campagnes de collection
+   *  même quand elles ne sont pas en favori. */
+  campaigns: SourceCampaign[]
 }
 
 async function resolveAccess() {
@@ -55,10 +59,10 @@ async function resolveAccess() {
 export async function getGeneratorSources(): Promise<GeneratorSources> {
   const { user, canPremium } = await resolveAccess()
   if (!user) {
-    return { locked: false, authenticated: false, favorites: [], collections: [] }
+    return { locked: false, authenticated: false, favorites: [], collections: [], campaigns: [] }
   }
   if (!canPremium) {
-    return { locked: true, authenticated: true, favorites: [], collections: [] }
+    return { locked: true, authenticated: true, favorites: [], collections: [], campaigns: [] }
   }
 
   const admin = getSupabaseAdmin()
@@ -113,7 +117,7 @@ export async function getGeneratorSources(): Promise<GeneratorSources> {
     .map((id) => cardById.get(id))
     .filter((c): c is SourceCampaign => !!c)
 
-  return { locked: false, authenticated: true, favorites, collections }
+  return { locked: false, authenticated: true, favorites, collections, campaigns: cards }
 }
 
 export interface GenerateInput {

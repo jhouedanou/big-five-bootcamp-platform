@@ -83,13 +83,76 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   )
 }
 
+/**
+ * Groupe de sélection (Favoris ou une collection) : un en-tête avec case
+ * "tout cocher" + une case par campagne.
+ */
+function SourceGroup({
+  icon,
+  title,
+  campaigns,
+  selectedIds,
+  onToggleId,
+  onToggleAll,
+}: {
+  icon: React.ReactNode
+  title: string
+  campaigns: SourceCampaign[]
+  selectedIds: Set<string>
+  onToggleId: (id: string) => void
+  onToggleAll: (selected: boolean) => void
+}) {
+  const selectedCount = campaigns.filter((c) => selectedIds.has(c.id)).length
+  const allSelected = selectedCount === campaigns.length && campaigns.length > 0
+
+  return (
+    <div>
+      <label className="flex cursor-pointer select-none items-center gap-2 py-1 text-xs font-semibold">
+        <input
+          type="checkbox"
+          checked={allSelected}
+          ref={(el) => {
+            if (el) el.indeterminate = selectedCount > 0 && !allSelected
+          }}
+          onChange={(e) => onToggleAll(e.target.checked)}
+          className="h-3.5 w-3.5 rounded border-input"
+        />
+        {icon}
+        <span className="truncate">{title}</span>
+        <span className="ml-auto shrink-0 font-normal text-muted-foreground">
+          {selectedCount}/{campaigns.length}
+        </span>
+      </label>
+      <ul className="ml-5 mt-0.5 space-y-0.5 border-l border-black/5 pl-2 dark:border-white/10">
+        {campaigns.map((c) => (
+          <li key={c.id}>
+            <label className="flex cursor-pointer select-none items-center gap-2 py-0.5 text-xs">
+              <input
+                type="checkbox"
+                checked={selectedIds.has(c.id)}
+                onChange={() => onToggleId(c.id)}
+                className="h-3.5 w-3.5 rounded border-input"
+              />
+              <span className="line-clamp-1">{c.title || "Campagne"}</span>
+              {c.brand && (
+                <span className="shrink-0 text-muted-foreground">· {c.brand}</span>
+              )}
+            </label>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
 function CampaignGeneratorContent() {
   const { checking: subChecking, locked: subLocked } = useRequireActiveSubscription()
   const { isAuthenticated } = useAuthContext()
 
   const [sources, setSources] = useState<GeneratorSources | null>(null)
   const [loadingSources, setLoadingSources] = useState(true)
-  const [sourceKey, setSourceKey] = useState<string>("favorites")
+  // Sélection granulaire : ids de campagnes cochées (favoris + collections).
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const [brand, setBrand] = useState("")
   const [product, setProduct] = useState("")
@@ -108,7 +171,11 @@ function CampaignGeneratorContent() {
       setLoadingSources(true)
       try {
         const data = await getGeneratorSources()
-        if (!cancelled) setSources(data)
+        if (!cancelled) {
+          setSources(data)
+          // Présélection : tous les favoris cochés par défaut.
+          setSelectedIds(new Set(data.favorites.map((f) => f.id)))
+        }
       } finally {
         if (!cancelled) setLoadingSources(false)
       }
@@ -118,33 +185,59 @@ function CampaignGeneratorContent() {
     }
   }, [subChecking, subLocked, isAuthenticated])
 
+  // Carte d'accès rapide id → campagne (favoris + items de collections).
+  const cardById = useMemo(() => {
+    const m = new Map<string, SourceCampaign>()
+    if (sources) for (const c of sources.campaigns) m.set(c.id, c)
+    return m
+  }, [sources])
+
+  // Campagnes cochées, ordre stable (favoris d'abord puis collections).
   const selectedCampaigns: SourceCampaign[] = useMemo(() => {
     if (!sources) return []
-    if (sourceKey === "favorites") return sources.favorites
-    const col = sources.collections.find((c) => c.id === sourceKey)
-    if (!col) return []
-    const byId = new Map(sources.favorites.map((f) => [f.id, f]))
-    // Les campagnes d'une collection peuvent ne pas être dans les favoris :
-    // on affiche au moins celles connues ; le serveur valide le périmètre complet.
-    return col.campaignIds.map((id) => byId.get(id)).filter((c): c is SourceCampaign => !!c)
-  }, [sources, sourceKey])
+    const seen = new Set<string>()
+    const ordered: SourceCampaign[] = []
+    const push = (id: string) => {
+      if (selectedIds.has(id) && !seen.has(id)) {
+        const c = cardById.get(id)
+        if (c) { seen.add(id); ordered.push(c) }
+      }
+    }
+    sources.favorites.forEach((f) => push(f.id))
+    sources.collections.forEach((col) => col.campaignIds.forEach(push))
+    return ordered
+  }, [sources, selectedIds, cardById])
 
-  const selectedIds = useMemo(() => {
-    if (!sources) return []
-    if (sourceKey === "favorites") return sources.favorites.map((f) => f.id)
-    return sources.collections.find((c) => c.id === sourceKey)?.campaignIds ?? []
-  }, [sources, sourceKey])
+  const toggleId = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  // Coche/décoche en bloc toutes les campagnes (connues) d'une liste d'ids.
+  const setManySelected = (ids: string[], selected: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      for (const id of ids) {
+        if (!cardById.has(id)) continue
+        selected ? next.add(id) : next.delete(id)
+      }
+      return next
+    })
+  }
 
   const handleGenerate = async () => {
-    if (selectedIds.length === 0) {
-      toast.error("Ajoutez d'abord des campagnes à vos favoris ou collections.")
+    if (selectedIds.size === 0) {
+      toast.error("Sélectionnez au moins une campagne (favoris ou collections).")
       return
     }
     setGenerating(true)
     setResult(null)
     try {
       const res = await generateCampaignFromSources({
-        campaignIds: selectedIds,
+        campaignIds: Array.from(selectedIds),
         brief: { brand, product, objective, channel, audience, tone },
       })
       if (res.success) {
@@ -254,21 +347,45 @@ function CampaignGeneratorContent() {
           {/* Formulaire */}
           <div className="space-y-5 rounded-2xl border border-black/5 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#1a1a1a]">
             <div>
-              <label className="mb-1.5 block text-sm font-semibold">Source d'inspiration</label>
-              <select
-                value={sourceKey}
-                onChange={(e) => setSourceKey(e.target.value)}
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              >
-                <option value="favorites">Tous mes favoris ({sources?.favorites.length ?? 0})</option>
-                {sources?.collections.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    Collection : {c.name} ({c.campaignIds.length})
-                  </option>
-                ))}
-              </select>
+              <label className="mb-1.5 block text-sm font-semibold">Sources d'inspiration</label>
+              <p className="mb-2 text-xs text-muted-foreground">
+                Cochez plusieurs collections et choisissez les campagnes à analyser.
+              </p>
+              <div className="max-h-72 space-y-3 overflow-y-auto rounded-lg border border-input bg-background p-3">
+                {/* Groupe favoris */}
+                {(sources?.favorites.length ?? 0) > 0 && (
+                  <SourceGroup
+                    icon={<Heart className="h-3.5 w-3.5 text-[#F2B33D]" />}
+                    title="Favoris"
+                    campaigns={sources!.favorites}
+                    selectedIds={selectedIds}
+                    onToggleId={toggleId}
+                    onToggleAll={(sel) =>
+                      setManySelected(sources!.favorites.map((f) => f.id), sel)
+                    }
+                  />
+                )}
+                {/* Groupes collections */}
+                {sources?.collections.map((col) => {
+                  const cards = col.campaignIds
+                    .map((id) => cardById.get(id))
+                    .filter((c): c is SourceCampaign => !!c)
+                  if (cards.length === 0) return null
+                  return (
+                    <SourceGroup
+                      key={col.id}
+                      icon={<FolderOpen className="h-3.5 w-3.5 text-[#F2B33D]" />}
+                      title={col.name}
+                      campaigns={cards}
+                      selectedIds={selectedIds}
+                      onToggleId={toggleId}
+                      onToggleAll={(sel) => setManySelected(cards.map((c) => c.id), sel)}
+                    />
+                  )
+                })}
+              </div>
               <p className="mt-1.5 text-xs text-muted-foreground">
-                {selectedIds.length} campagne(s) analysée(s)
+                {selectedIds.size} campagne(s) sélectionnée(s)
               </p>
             </div>
 
@@ -350,7 +467,7 @@ function CampaignGeneratorContent() {
 
             <Button
               onClick={handleGenerate}
-              disabled={generating || loadingSources || selectedIds.length === 0}
+              disabled={generating || loadingSources || selectedIds.size === 0}
               className="w-full gap-2 bg-[#F2B33D] text-white hover:bg-[#F2B33D]/90"
             >
               {generating ? (

@@ -84,6 +84,27 @@ function CopyButton({ text, label }: { text: string; label: string }) {
 }
 
 /**
+ * Layout de page. Défini au niveau module (PAS dans le composant) sinon il
+ * est recréé à chaque render → React démonte/remonte l'arbre → les inputs
+ * perdent le focus à chaque frappe.
+ */
+function Shell({
+  isAuthenticated,
+  children,
+}: {
+  isAuthenticated: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <div className="flex min-h-screen flex-col bg-[#F4F8FB] dark:bg-[#0F0F0F]">
+      {isAuthenticated ? <DashboardNavbar /> : <Navbar />}
+      <main className="container mx-auto max-w-6xl flex-1 px-4 pb-16 pt-8">{children}</main>
+      <Footer />
+    </div>
+  )
+}
+
+/**
  * Groupe de sélection (Favoris ou une collection) : un en-tête avec case
  * "tout cocher" + une case par campagne.
  */
@@ -257,17 +278,9 @@ function CampaignGeneratorContent() {
     }
   }
 
-  const Shell = ({ children }: { children: React.ReactNode }) => (
-    <div className="flex min-h-screen flex-col bg-[#F4F8FB] dark:bg-[#0F0F0F]">
-      {isAuthenticated ? <DashboardNavbar /> : <Navbar />}
-      <main className="container mx-auto max-w-6xl flex-1 px-4 pb-16 pt-8">{children}</main>
-      <Footer />
-    </div>
-  )
-
   if (subChecking || subLocked) {
     return (
-      <Shell>
+      <Shell isAuthenticated={isAuthenticated}>
         <div className="flex min-h-[400px] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-[#F2B33D]" />
         </div>
@@ -277,7 +290,7 @@ function CampaignGeneratorContent() {
 
   if (!isAuthenticated) {
     return (
-      <Shell>
+      <Shell isAuthenticated={isAuthenticated}>
         <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
           <Lock className="h-10 w-10 text-[#F2B33D]" />
           <h1 className="mt-4 text-2xl font-bold">Connexion requise</h1>
@@ -292,7 +305,7 @@ function CampaignGeneratorContent() {
 
   if (sources?.locked) {
     return (
-      <Shell>
+      <Shell isAuthenticated={isAuthenticated}>
         <div className="mx-auto mt-10 max-w-xl rounded-2xl border border-amber-300/60 bg-white p-8 text-center shadow-lg dark:bg-[#1a1a1a]">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-amber-100">
             <Sparkles className="h-6 w-6 text-amber-600" />
@@ -313,7 +326,7 @@ function CampaignGeneratorContent() {
   const noSources = !loadingSources && (sources?.favorites.length ?? 0) === 0 && (sources?.collections.length ?? 0) === 0
 
   return (
-    <Shell>
+    <Shell isAuthenticated={isAuthenticated}>
       <header className="mb-8">
         <div className="inline-flex items-center gap-2 rounded-full bg-[#F2B33D]/15 px-3 py-1 text-sm font-semibold text-[#0F0F0F] ring-1 ring-[#F2B33D]/30 dark:text-white">
           <Sparkles className="h-4 w-4 text-[#F2B33D]" />

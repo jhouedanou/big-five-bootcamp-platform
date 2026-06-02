@@ -25,6 +25,7 @@ import {
   Building2,
   CalendarHeart,
   Wallet,
+  Webhook,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -37,6 +38,7 @@ const sidebarLinks = [
   { href: "/admin/users", label: "Utilisateurs", icon: Users, description: "Gérer les accès" },
   { href: "/admin/brand-requests", label: "Veille concurrentielle", icon: Building2, description: "Demandes de veille" },
   { href: "/admin/payments", label: "Paiements", icon: Wallet, description: "Historique & solde" },
+  { href: "/admin/chariow", label: "Config Chariow", icon: Webhook, description: "Pulse & produits paiement" },
   { href: "/admin/mailchimp", label: "Mailchimp", icon: Mail, description: "Email marketing" },
   { href: "/admin/keynote", label: "Keynote 21 mai", icon: Megaphone, description: "Inscriptions & codes promo" },
   { href: "/admin/decrypte", label: "#BigFiveDecrypte", icon: Sparkles, description: "Inscriptions session Pro" },

@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Upload, X, Loader2, ImagePlus, Link2 } from "lucide-react"
 import { toast } from "sonner"
-import { cn } from "@/lib/utils"
+import { cn, isEphemeralGoogleImageUrl } from "@/lib/utils"
 
 interface ImageUploadProps {
   value: string
@@ -110,12 +110,17 @@ export function ImageUpload({
 
   const handleUrlSubmit = () => {
     const url = urlInput.trim()
-    if (url) {
-      onChange(url)
-      setUrlInput("")
-      setShowUrlInput(false)
-      toast.success("URL de l'image mise à jour")
+    if (!url) return
+    if (isEphemeralGoogleImageUrl(url)) {
+      toast.error("Lien Google temporaire détecté", {
+        description: "Cette URL expire et renverra une erreur 403. Uploadez l'image directement à la place.",
+      })
+      return
     }
+    onChange(url)
+    setUrlInput("")
+    setShowUrlInput(false)
+    toast.success("URL de l'image mise à jour")
   }
 
   const handleRemove = () => {

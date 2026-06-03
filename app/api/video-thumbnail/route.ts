@@ -134,6 +134,10 @@ export async function GET(request: NextRequest) {
         thumbnailUrl = await getTwitterThumbnail(url);
         break;
 
+      case "tiktok":
+        thumbnailUrl = await getTikTokThumbnail(url);
+        break;
+
       case "linkedin":
         thumbnailUrl = await getOpenGraphThumbnail(url);
         break;
@@ -206,6 +210,29 @@ async function getTwitterThumbnail(url: string): Promise<string | null> {
     }
 
     // Fallback: OpenGraph
+    return await getOpenGraphThumbnail(url);
+  } catch {
+    return await getOpenGraphThumbnail(url);
+  }
+}
+
+/**
+ * Récupère la thumbnail TikTok via oEmbed public (pas de token requis).
+ * https://www.tiktok.com/oembed?url=... renvoie thumbnail_url.
+ */
+async function getTikTokThumbnail(url: string): Promise<string | null> {
+  try {
+    const oembedUrl = `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`;
+    const response = await fetch(oembedUrl, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; BigFiveBot/1.0)" },
+      signal: AbortSignal.timeout(8000),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.thumbnail_url) return data.thumbnail_url;
+    }
+
     return await getOpenGraphThumbnail(url);
   } catch {
     return await getOpenGraphThumbnail(url);

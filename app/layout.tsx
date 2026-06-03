@@ -45,6 +45,7 @@ export const viewport: Viewport = {
 }
 
 import { Providers } from "@/components/providers"
+import { TawkTo } from "@/components/tawk-to"
 
 export default function RootLayout({
   children,
@@ -90,20 +91,8 @@ export default function RootLayout({
             gtag('config', '${GA_ID}');
           `}
         </Script>
-        {/* Tawk.to live chat */}
-        <Script id="tawk-to" strategy="afterInteractive">
-          {`
-            var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
-            (function(){
-              var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
-              s1.async=true;
-              s1.src='https://embed.tawk.to/6a1db0360071501c2cc23ec6/1jq1vgm3s';
-              s1.charset='UTF-8';
-              s1.setAttribute('crossorigin','*');
-              s0.parentNode.insertBefore(s1,s0);
-            })();
-          `}
-        </Script>
+        {/* Tawk.to live chat — hidden on /admin routes */}
+        <TawkTo />
       </body>
     </html>
   )

@@ -204,6 +204,29 @@ export function getGoogleDriveImageUrl(url: string): string {
 }
 
 /**
+ * Détecte une URL d'image Google signée et éphémère (token `rd-d/...` servi par
+ * googleusercontent), typiquement copiée depuis l'aperçu Drive/Google Photos.
+ * Ces URLs sont liées à la session du copieur et expirent → 403 pour tout autre
+ * visiteur. Inutilisables comme thumbnail : il faut uploader le fichier
+ * (Supabase Storage) au lieu de coller le lien.
+ */
+export function isEphemeralGoogleImageUrl(url: string): boolean {
+  if (!url) return false
+  return /googleusercontent\.com\/rd-d\//i.test(url)
+}
+
+/**
+ * Détecte une image hébergée sur Google Drive (drive.google.com ou
+ * lh3.googleusercontent.com). Google bloque le hotlinking en masse : ces URLs
+ * marchent à l'unité mais renvoient 403/429 quand plusieurs se chargent en
+ * grille (dashboard, liste admin). Solution durable = ré-uploader sur Supabase.
+ */
+export function isGoogleDriveHostedUrl(url: string): boolean {
+  if (!url) return false
+  return /(drive\.google\.com|googleusercontent\.com)/i.test(url)
+}
+
+/**
  * Génère un slug SEO-friendly à partir d'un texte.
  * - Convertit en minuscules
  * - Remplace les caractères accentués (é→e, à→a, etc.)

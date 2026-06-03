@@ -32,6 +32,8 @@ interface UserProfile {
   laveiyeCode?: string | null
   laveiyeStatus?: 'active' | 'used' | 'expired' | null
   laveiyeRedeemedAt?: string | null
+  // Clé de licence Chariow/Moneroo du dernier achat.
+  licenseKey?: string | null
 }
 
 interface PaymentRecord {
@@ -195,6 +197,7 @@ export default function ProfilePage() {
         laveiyeCode: (keynoteRow as any)?.promo_code || null,
         laveiyeStatus,
         laveiyeRedeemedAt: redeemedAt || null,
+        licenseKey: profile?.license_key || null,
       })
     } catch (error: any) {
       if (error?.name === 'AbortError') return
@@ -621,6 +624,34 @@ export default function ProfilePage() {
             )}
           </div>
         </section>
+
+        {/* Clé de licence Chariow/Moneroo (dernier achat) */}
+        {user.licenseKey && (
+          <section className="mt-6 rounded-xl border border-[#10B981]/30 bg-[#10B981]/5 p-6">
+            <h2 className="font-[family-name:var(--font-heading)] text-lg font-semibold text-card-foreground flex items-center gap-2">
+              <KeyRound className="h-5 w-5 text-[#10B981]" />
+              Votre clé de licence
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Clé liée à votre dernier achat. Conservez-la précieusement.
+            </p>
+            <div className="mt-4 flex items-center gap-2">
+              <code className="flex-1 rounded-lg border border-border bg-white dark:bg-card px-3 py-2 font-mono text-sm tracking-wider text-foreground select-all">
+                {user.licenseKey}
+              </code>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  navigator.clipboard?.writeText(user.licenseKey || "")
+                }}
+              >
+                Copier
+              </Button>
+            </div>
+          </section>
+        )}
 
         {/* Activité mensuelle — appliquée aux 3 plans */}
         <section className="mt-6 rounded-xl border border-[#F2B33D]/20 bg-gradient-to-br from-[#F2B33D]/5 to-[#a855f7]/5 p-6">

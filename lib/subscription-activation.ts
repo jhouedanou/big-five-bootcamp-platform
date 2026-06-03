@@ -192,6 +192,8 @@ export async function activateUserSubscription(payment: PaymentLike): Promise<vo
       end,
     })
 
+    const licenseKey = metadata.chariow_license_key || null
+
     await (supabaseAdmin as any)
       .from('users')
       .update({
@@ -199,6 +201,8 @@ export async function activateUserSubscription(payment: PaymentLike): Promise<vo
         subscription_status: 'active',
         subscription_start_date: new Date().toISOString(),
         subscription_end_date: end,
+        // Clé de licence Chariow/Moneroo (si fournie au paiement).
+        ...(licenseKey ? { license_key: licenseKey } : {}),
         updated_at: new Date().toISOString(),
       })
       .eq('id', metadata.userId)

@@ -107,6 +107,8 @@ export default function SubscribePage() {
   }, [])
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [country, setCountry] = useState("CIV")
+  const [phone, setPhone] = useState("")
 
   // Code promo LAVEIYE — BONUS "3 mois Basic offerts", cumulable avec
   // n'importe quel plan (cf. lib/promo-codes.ts).
@@ -310,6 +312,12 @@ export default function SubscribePage() {
       }
     }
 
+    const phoneDigits = phone.replace(/\D/g, '')
+    if (phoneDigits.length < 8) {
+      alert("Renseignez un numéro de téléphone valide.")
+      return
+    }
+
     setIsProcessing(true)
 
     try {
@@ -321,6 +329,8 @@ export default function SubscribePage() {
           userName: userProfile?.name || user.user_metadata?.name,
           plan: selectedPlan,
           billing: isAnnual ? 'annual' : 'monthly',
+          country,
+          phone: phoneDigits,
           promoCode: resolvedPromoCode,
           rawPromoInput: promoInput.trim() || undefined,
         }),
@@ -807,6 +817,44 @@ export default function SubscribePage() {
           )}
         </div>
 
+        {/* Coordonnées de paiement — préremplissage du checkout Chariow/Moneroo */}
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="country" className="mb-1 block text-sm font-medium text-[#0F0F0F]">
+              Pays
+            </label>
+            <select
+              id="country"
+              value={country}
+              onChange={(e) => setCountry(e.target.value)}
+              className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm text-[#0F0F0F]"
+            >
+              <option value="CIV">Côte d&apos;Ivoire</option>
+              <option value="SEN">Sénégal</option>
+              <option value="BFA">Burkina Faso</option>
+              <option value="BEN">Bénin</option>
+              <option value="MLI">Mali</option>
+              <option value="TGO">Togo</option>
+              <option value="CMR">Cameroun</option>
+              <option value="NER">Niger</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="phone" className="mb-1 block text-sm font-medium text-[#0F0F0F]">
+              Téléphone (mobile money)
+            </label>
+            <input
+              id="phone"
+              type="tel"
+              inputMode="numeric"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="07 00 00 00 00"
+              className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm text-[#0F0F0F]"
+            />
+          </div>
+        </div>
+
         {/* Terms */}
         <div className="mt-6 flex items-start gap-2">
           <input
@@ -835,7 +883,7 @@ export default function SubscribePage() {
         {/* CTA */}
         <Button
           onClick={handlePayment}
-          disabled={!acceptTerms || isProcessing}
+          disabled={!acceptTerms || isProcessing || phone.replace(/\D/g, '').length < 8}
           className="mt-6 h-12 w-full shadow-lg shadow-[#F2B33D]/25 bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-white font-bold text-base"
         >
           {isProcessing ? (

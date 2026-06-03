@@ -20,7 +20,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { buildCheckoutUrl, generateRefCommand, getProductId, CHARIOW_CONFIG } from '@/lib/chariow';
+import { initCheckout, generateRefCommand, getProductId, COUNTRY_ISO, CHARIOW_CONFIG } from '@/lib/chariow';
 import {
   KEYNOTE_PROMO_OFFER,
   computePromoPhases,
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { userEmail, userName, plan, billing, currency = 'XOF', promoCode, rawPromoInput } = body;
+    const { userEmail, userName, plan, billing, currency = 'XOF', promoCode, rawPromoInput, country, phone } = body;
 
     if (!userEmail) {
       return NextResponse.json(
@@ -102,6 +102,24 @@ export async function POST(request: NextRequest) {
     if (!planConfig) {
       return NextResponse.json(
         { error: 'Plan invalide. Choisissez "discovery", "basic" ou "pro".' },
+        { status: 400 }
+      );
+    }
+
+    // Pays + téléphone requis pour préremplir le checkout Chariow → Moneroo
+    // (l'opérateur mobile money est déduit du pays + numéro).
+    const countryKey = String(country || '').toUpperCase().trim();
+    const countryIso = COUNTRY_ISO[countryKey];
+    const phoneDigits = String(phone || '').replace(/\D/g, '');
+    if (!countryIso) {
+      return NextResponse.json(
+        { error: 'Pays invalide ou non supporté.' },
+        { status: 400 }
+      );
+    }
+    if (phoneDigits.length < 8) {
+      return NextResponse.json(
+        { error: 'Numéro de téléphone invalide.' },
         { status: 400 }
       );
     }
@@ -378,25 +396,49 @@ export async function POST(request: NextRequest) {
     }
 
     const baseUrl = resolveBaseUrl();
+    // Sépare le nom en prénom / nom pour préremplir le checkout.
+    const nameParts = String(customerName).trim().split(/\s+/);
+    const firstName = nameParts[0] || 'Client';
+    const lastName = nameParts.slice(1).join(' ') || firstName;
+
     let checkoutUrl: string;
+    let chariowSaleId: string | undefined;
     try {
-      checkoutUrl = buildCheckoutUrl({
+      const result = await initCheckout({
         productId,
-        refCommand: ref_command,
         email: userEmail,
-        successUrl: `${baseUrl}/payment/success?ref_command=${encodeURIComponent(ref_command)}`,
-        cancelUrl: `${baseUrl}/payment/failed?ref_command=${encodeURIComponent(ref_command)}`,
+        firstName,
+        lastName,
+        phone: { number: phoneDigits, country_code: countryIso },
+        redirectUrl: `${baseUrl}/payment/success?ref_command=${encodeURIComponent(ref_command)}`,
+        customMetadata: { ref_command },
+        paymentCurrency: currency,
       });
+      if (!result.checkoutUrl) {
+        throw new Error(`Chariow checkout sans URL (step=${result.step})`);
+      }
+      checkoutUrl = result.checkoutUrl;
+      chariowSaleId = result.saleId;
     } catch (e: any) {
       await (supabaseAdmin as any)
         .from('payments')
         .update({ status: 'failed' })
         .eq('id', (payment as any).id);
-      console.error('[subscribe] buildCheckoutUrl error:', e);
+      console.error('[subscribe] initCheckout error:', e);
       return NextResponse.json(
-        { error: 'Impossible de construire l\'URL Chariow', details: e?.message },
+        { error: 'Impossible d\'initialiser le paiement Chariow', details: e?.message },
         { status: 500 }
       );
+    }
+
+    // Mémorise le sale_id Chariow pour retrouver le paiement au webhook.
+    if (chariowSaleId) {
+      await (supabaseAdmin as any)
+        .from('payments')
+        .update({
+          metadata: { ...((payment as any).metadata || {}), chariow_sale_id: chariowSaleId },
+        })
+        .eq('id', (payment as any).id);
     }
 
     return NextResponse.json({

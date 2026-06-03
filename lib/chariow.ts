@@ -150,7 +150,83 @@ export async function getSale(saleId: string): Promise<any> {
     throw new Error(`Chariow API error ${response.status}: ${errorText}`);
   }
 
-  return response.json();
+  const json = await response.json();
+  // L'API Chariow encapsule la ressource dans `data`. On déballe pour exposer
+  // directement { status, amount, ... } aux appelants (webhook, status route).
+  return (json && typeof json === 'object' && 'data' in json) ? (json as any).data : json;
+}
+
+// ============================================================================
+// Checkout API — POST /checkout
+// Crée une vente avec les coordonnées client déjà connues (email, nom,
+// téléphone + pays) afin que la page Chariow → Moneroo soit préremplie et que
+// l'utilisateur n'ait pas à ressaisir son pays / moyen de paiement.
+// ============================================================================
+
+export interface ChariowPhone {
+  /** Numéro, chiffres uniquement (sans indicatif "+"). */
+  number: string;
+  /** Code pays ISO 3166-1 alpha-2 (ex. "CI"). cf. COUNTRY_ISO */
+  country_code: string;
+}
+
+export interface InitCheckoutInput {
+  productId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: ChariowPhone;
+  /** URL de retour après paiement. */
+  redirectUrl?: string;
+  /** Métadonnées renvoyées dans le Pulse (≤ 10 clés, ≤ 255 car. par valeur). */
+  customMetadata?: Record<string, string>;
+  /** Devise ISO 4217 (défaut : devise de la boutique). */
+  paymentCurrency?: string;
+}
+
+export interface InitCheckoutResult {
+  step?: 'payment' | 'completed' | 'already_purchased';
+  status?: string;
+  /** URL de paiement hébergée (null pour les produits gratuits). */
+  checkoutUrl: string | null;
+  transactionId?: string;
+  /** Identifiant public de la vente (`sal_…`). */
+  saleId?: string;
+}
+
+/**
+ * Initialise un checkout côté API Chariow avec les coordonnées client
+ * préremplies. Renvoie `checkoutUrl` (étape paiement Moneroo) vers laquelle
+ * rediriger. Le `country_code` doit être ISO alpha-2 (voir COUNTRY_ISO).
+ */
+export async function initCheckout(input: InitCheckoutInput): Promise<InitCheckoutResult> {
+  const body: Record<string, unknown> = {
+    product_id: input.productId,
+    email: input.email,
+    first_name: input.firstName.slice(0, 50),
+    last_name: (input.lastName || input.firstName || 'Client').slice(0, 50),
+    phone: {
+      number: String(input.phone.number).replace(/\D/g, ''),
+      country_code: input.phone.country_code,
+    },
+  };
+  if (input.redirectUrl) body.redirect_url = input.redirectUrl;
+  if (input.customMetadata) body.custom_metadata = input.customMetadata;
+  if (input.paymentCurrency) body.payment_currency = input.paymentCurrency;
+
+  const res = await chariowFetch<{ data?: any }>('/checkout', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+
+  const data = res?.data ?? {};
+  return {
+    step: data.step,
+    status: data?.purchase?.status,
+    checkoutUrl: data?.payment?.checkout_url ?? null,
+    transactionId: data?.payment?.transaction_id,
+    saleId: data?.purchase?.id,
+  };
 }
 
 // ============================================================================

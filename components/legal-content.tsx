@@ -12,8 +12,8 @@
  * conserver la date d'édition centralisée, importer `LEGAL_LAST_UPDATED`.
  */
 
-export const LEGAL_LAST_UPDATED = "21 mai 2026";
-export const LEGAL_VERSION = "2.1";
+export const LEGAL_LAST_UPDATED = "3 juin 2026";
+export const LEGAL_VERSION = "2.2";
 
 const sectionClass = "space-y-3 text-sm leading-relaxed";
 const h2Class = "text-lg font-semibold mt-8 mb-3 text-foreground";
@@ -543,7 +543,33 @@ export function PrivacyContent() {
             </section>
 
             <section className={sectionClass}>
-                <h2 className={h2Class}>Article 12 — Contact</h2>
+                <h2 className={h2Class}>Article 12 — Application mobile Laveiye</h2>
+                <p>
+                    L&apos;application mobile Laveiye (Android et iOS) est une interface (vue web) donnant accès au service www.laveiye.com. <strong>L&apos;application en elle-même ne collecte, ne stocke et ne transmet aucune donnée personnelle vers des serveurs propres à l&apos;application.</strong> Les données que vous saisissez (compte, identifiants, contenus) sont traitées par la Plateforme dans les mêmes conditions que depuis un navigateur, conformément à la présente Politique.
+                </p>
+                <h3 className={h3Class}>12.1 Autorisations de l&apos;appareil</h3>
+                <p>
+                    L&apos;application demande certaines autorisations <strong>uniquement lorsque le service le nécessite</strong>, après votre consentement explicite via la fenêtre système. Vous pouvez les refuser ou les révoquer à tout moment dans les réglages de votre appareil.
+                </p>
+                <ul className={ulClass}>
+                    <li><strong>Internet / accès réseau</strong> : charger la Plateforme (obligatoire) ;</li>
+                    <li><strong>Appareil photo</strong> : prendre une photo à envoyer sur la Plateforme, lorsque vous utilisez un champ d&apos;envoi de photo ;</li>
+                    <li><strong>Photos et médias</strong> : sélectionner un fichier à envoyer depuis votre galerie, lorsque vous utilisez un champ d&apos;envoi de fichier ;</li>
+                    <li><strong>Enregistrement dans la galerie</strong> : sauvegarder un visuel téléchargé depuis la Plateforme, à votre demande ;</li>
+                    <li><strong>Microphone</strong> : uniquement si une page de la Plateforme le requiert (contenu audio/vidéo) ;</li>
+                </ul>
+                <h3 className={h3Class}>12.2 Téléchargement de visuels</h3>
+                <p>
+                    Lorsque vous téléchargez un visuel depuis l&apos;application, celui-ci est enregistré localement dans la galerie de votre appareil. Ce fichier reste sous votre contrôle exclusif ; il n&apos;est ni copié, ni transmis à BigFiveAbidjan.
+                </p>
+                <h3 className={h3Class}>12.3 Liens externes</h3>
+                <p>
+                    Les liens vers d&apos;autres sites ou applications (réseaux sociaux, e-mail, téléphone, WhatsApp) ouvrent l&apos;application concernée de votre appareil. Ces services disposent de leurs propres politiques de confidentialité.
+                </p>
+            </section>
+
+            <section className={sectionClass}>
+                <h2 className={h2Class}>Article 13 — Contact</h2>
                 <ul className={ulClass}>
                     <li>Email : support@laveiye.com</li>
                     <li>Téléphone : +225 21 59 42 28</li>

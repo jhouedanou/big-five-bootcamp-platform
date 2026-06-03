@@ -109,6 +109,10 @@ export function Footer() {
                     </button>
                   }
                 />
+                <Link href="/account-deletion" className="group flex items-center text-sm text-muted-foreground transition-colors hover:text-[#F2B33D]">
+                  Suppression de compte
+                  <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </Link>
               </nav>
             </div>
           </div>

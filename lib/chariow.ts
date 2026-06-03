@@ -15,6 +15,7 @@ export const CHARIOW_CONFIG = {
 };
 
 export const CHARIOW_API_KEY = process.env.CHARIOW_API_KEY || '';
+export const CHARIOW_BASE_URL = CHARIOW_CONFIG.API_URL;
 
 /**
  * URL publique de l'application (utilisée pour `redirect_url` après paiement).
@@ -40,6 +41,9 @@ export function getPublicBaseUrl(): string {
 }
 
 export const PUBLIC_BASE_URL = getPublicBaseUrl();
+
+/** URL du webhook (Pulse) à déclarer dans Chariow. */
+export const CHARIOW_PULSE_URL = `${PUBLIC_BASE_URL}/api/webhook/chariow`;
 
 /**
  * Map code pays interne (3 lettres) → ISO 3166-1 alpha-2 attendu par le champ

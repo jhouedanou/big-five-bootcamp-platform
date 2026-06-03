@@ -35,7 +35,7 @@ import { ImageGallery } from "@/components/ui/lightbox";
 import { getCreativeByIdOrSlug, getRelatedCampaigns } from "@/app/actions/creative";
 import { useFavorites } from "@/hooks/use-favorites";
 import { cn, getGoogleDriveImageUrl, fixBrokenEncoding } from "@/lib/utils";
-import { detectVideoPlatform, getEmbedUrl, getVideoPlatformLabel, getOriginalVideoUrl } from "@/lib/video-utils";
+import { detectVideoPlatform, getEmbedUrl, getVideoPlatformLabel, getOriginalVideoUrl, platformLabelToVideoPlatform } from "@/lib/video-utils";
 import { isPaidPlan, canAccessPremiumContent } from "@/lib/pricing";
 import { useRequireActiveSubscription } from "@/hooks/use-require-active-subscription";
 import { UpgradePopup } from "@/components/upgrade-popup";
@@ -967,16 +967,23 @@ export default function ContentDetailClient({ id }: { id: string }) {
             {/* Video player — embed multi-plateforme (affiché dans les 2 tabs si présent) */}
             {content.video_url && (() => {
               const originalVideoUrl = getOriginalVideoUrl(content.video_url);
-              const videoPlatform = detectVideoPlatform(originalVideoUrl);
+              // Priorise la plateforme déclarée de la campagne ; sinon détection URL.
+              const declaredLabel = content.platforms?.find(Boolean) || "";
+              const declaredPlatform = platformLabelToVideoPlatform(declaredLabel);
+              const videoPlatform = declaredPlatform !== "unknown"
+                ? declaredPlatform
+                : detectVideoPlatform(originalVideoUrl);
               const embedUrl = getEmbedUrl(content.video_url);
-              const platformLabel = getVideoPlatformLabel(videoPlatform);
+              const platformLabel = declaredLabel || getVideoPlatformLabel(videoPlatform);
 
-              if (videoPlatform === "linkedin" || videoPlatform === "facebook" || videoPlatform === "instagram") {
+              if (videoPlatform === "linkedin" || videoPlatform === "facebook" || videoPlatform === "instagram" || videoPlatform === "tiktok") {
                 const iconBg = videoPlatform === "linkedin"
                   ? "bg-[#0A66C2]"
                   : videoPlatform === "instagram"
                     ? "bg-gradient-to-br from-[#F2B33D] via-[#F2B33D] to-orange-400"
-                    : "bg-[#1877F2]";
+                    : videoPlatform === "tiktok"
+                      ? "bg-black"
+                      : "bg-[#1877F2]";
 
                 return (
                   <Card className="overflow-hidden">

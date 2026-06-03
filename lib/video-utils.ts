@@ -262,6 +262,26 @@ export function isSupportedVideoUrl(url: string): boolean {
 }
 
 /**
+ * Mappe un libellé de plateforme déclarée sur la campagne (ex. "Instagram",
+ * "Twitter/X") vers la VideoPlatform correspondante. Utilisé pour prioriser la
+ * plateforme réelle de la campagne plutôt qu'une détection depuis l'URL.
+ * Retourne "unknown" si aucun mapping ne correspond.
+ */
+export function platformLabelToVideoPlatform(
+  label: string | null | undefined,
+): VideoPlatform {
+  if (!label) return "unknown";
+  const l = label.toLowerCase();
+  if (l.includes("youtube")) return "youtube";
+  if (l.includes("facebook")) return "facebook";
+  if (l.includes("instagram")) return "instagram";
+  if (l.includes("tiktok")) return "tiktok";
+  if (l.includes("linkedin")) return "linkedin";
+  if (l.includes("twitter") || l === "x" || l.includes("x.com")) return "twitter";
+  return "unknown";
+}
+
+/**
  * Retourne le label humain de la plateforme vidéo
  */
 export function getVideoPlatformLabel(platform: VideoPlatform): string {

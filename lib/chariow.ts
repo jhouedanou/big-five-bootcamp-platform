@@ -14,6 +14,48 @@ export const CHARIOW_CONFIG = {
   CHECKOUT_URL: process.env.CHARIOW_CHECKOUT_URL || 'https://checkout.chariow.com',
 };
 
+export const CHARIOW_API_KEY = process.env.CHARIOW_API_KEY || '';
+
+/**
+ * URL publique de l'application (utilisée pour `redirect_url` après paiement).
+ * Doit être en HTTPS en production.
+ */
+export function getPublicBaseUrl(): string {
+  const raw =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.NODE_ENV === 'production'
+      ? 'https://laveiye.com'
+      : 'http://localhost:3000');
+
+  if (process.env.NODE_ENV === 'production') {
+    if (/localhost|127\.0\.0\.1/i.test(raw) || !/^https:\/\//i.test(raw)) {
+      console.warn(
+        `NEXT_PUBLIC_APP_URL invalide en production : "${raw}". ` +
+          `Définir une URL HTTPS publique (sans localhost).`
+      );
+    }
+  }
+  return raw;
+}
+
+export const PUBLIC_BASE_URL = getPublicBaseUrl();
+
+/**
+ * Map code pays interne (3 lettres) → ISO 3166-1 alpha-2 attendu par le champ
+ * `phone.country_code` du checkout Chariow.
+ */
+export const COUNTRY_ISO: Record<string, string> = {
+  CIV: 'CI',
+  SEN: 'SN',
+  BFA: 'BF',
+  BEN: 'BJ',
+  MLI: 'ML',
+  TGO: 'TG',
+  CMR: 'CM',
+  NER: 'NE',
+};
+
 /**
  * Résout le product_id Chariow pour un couple (plan, billing).
  * Lit `CHARIOW_PRODUCT_<PLAN>_<BILLING>` (ex: CHARIOW_PRODUCT_PRO_ANNUAL).

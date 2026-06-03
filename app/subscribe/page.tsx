@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
 import { LegalModal } from "@/components/legal-modal"
 import { SubscribeCampaignsCarousel } from "@/components/subscribe-campaigns-carousel"
+import { CountryPhoneField, getCountryMeta } from "@/components/payment/country-phone-field"
 
 type PlanChoice = "basic" | "pro" | "discovery"
 
@@ -313,8 +314,9 @@ export default function SubscribePage() {
     }
 
     const phoneDigits = phone.replace(/\D/g, '')
-    if (phoneDigits.length < 8) {
-      alert("Renseignez un numéro de téléphone valide.")
+    const expectedDigits = getCountryMeta(country).digits
+    if (phoneDigits.length !== expectedDigits) {
+      alert(`Numéro invalide : ${expectedDigits} chiffres attendus pour ${getCountryMeta(country).name}.`)
       return
     }
 
@@ -733,40 +735,12 @@ export default function SubscribePage() {
               </p>
 
               <div className="mt-4 space-y-3">
-                <div>
-                  <label htmlFor="country" className="mb-1 block text-xs font-medium text-[#0F0F0F]/70">
-                    Votre pays
-                  </label>
-                  <select
-                    id="country"
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                    className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm text-[#0F0F0F]"
-                  >
-                    <option value="CIV">🇨🇮 Côte d&apos;Ivoire</option>
-                    <option value="SEN">🇸🇳 Sénégal</option>
-                    <option value="BFA">🇧🇫 Burkina Faso</option>
-                    <option value="BEN">🇧🇯 Bénin</option>
-                    <option value="MLI">🇲🇱 Mali</option>
-                    <option value="TGO">🇹🇬 Togo</option>
-                    <option value="CMR">🇨🇲 Cameroun</option>
-                    <option value="NER">🇳🇪 Niger</option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="phone" className="mb-1 block text-xs font-medium text-[#0F0F0F]/70">
-                    Téléphone (mobile money)
-                  </label>
-                  <input
-                    id="phone"
-                    type="tel"
-                    inputMode="numeric"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="07 00 00 00 00"
-                    className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm text-[#0F0F0F]"
-                  />
-                </div>
+                <CountryPhoneField
+                  country={country}
+                  onCountryChange={setCountry}
+                  phone={phone}
+                  onPhoneChange={setPhone}
+                />
 
                 <label htmlFor="terms" className="flex items-start gap-2 text-xs text-[#0F0F0F]/60">
                   <input
@@ -791,7 +765,7 @@ export default function SubscribePage() {
 
                 <Button
                   onClick={handlePayment}
-                  disabled={!acceptTerms || isProcessing || phone.replace(/\D/g, '').length < 8}
+                  disabled={!acceptTerms || isProcessing || phone.replace(/\D/g, '').length !== getCountryMeta(country).digits}
                   className="h-11 w-full bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-white font-bold shadow-lg shadow-[#F2B33D]/25"
                 >
                   {isProcessing ? (

@@ -321,10 +321,10 @@ export default function AdminTempsFortsPage() {
             <Sparkles className="h-3.5 w-3.5" />
             Temps forts
           </div>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground">
             Pilotage des temps forts
           </h1>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
             Gérez la bannière, le pop-up et la liste des temps forts (Coupe du monde, Ramadan, Black Friday…).
           </p>
         </div>
@@ -363,16 +363,16 @@ export default function AdminTempsFortsPage() {
         />
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white dark:bg-card shadow-sm">
         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-          <h2 className="text-lg font-semibold text-slate-900">Liste des temps forts</h2>
-          <p className="text-xs text-slate-500">
-            Source : <code className="rounded bg-slate-100 px-1.5 py-0.5">temps_forts (DB)</code>
+          <h2 className="text-lg font-semibold text-foreground">Liste des temps forts</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Source : <code className="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5">temps_forts (DB)</code>
           </p>
         </div>
         <div className="divide-y divide-slate-100">
           {tempsForts.length === 0 ? (
-            <div className="px-6 py-10 text-center text-sm text-slate-500">
+            <div className="px-6 py-10 text-center text-sm text-slate-500 dark:text-slate-400">
               Aucun temps fort. Cliquez sur « Nouveau temps fort » pour en créer un.
             </div>
           ) : (
@@ -381,14 +381,14 @@ export default function AdminTempsFortsPage() {
               const count = countsBySlug.get(tf.slug) || 0
               return (
                 <div key={tf.slug} className="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center">
-                  <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-slate-100">
+                  <div className="relative h-16 w-24 shrink-0 overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800">
                     {tf.imageUrl && (
                       <Image src={tf.imageUrl} alt={tf.title} fill sizes="96px" className="object-cover" />
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-base font-semibold text-slate-900 truncate">
+                      <h3 className="text-base font-semibold text-foreground truncate">
                         {tf.shortTitle || tf.title}
                       </h3>
                       <StatusBadge status={status} />
@@ -399,14 +399,14 @@ export default function AdminTempsFortsPage() {
                         <Badge className="bg-amber-100 text-amber-700 text-[10px] uppercase">Featured</Badge>
                       )}
                     </div>
-                    <p className="mt-1 text-sm text-slate-600 line-clamp-2">{tf.description}</p>
-                    <p className="mt-1 text-xs text-slate-400">
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-300 line-clamp-2">{tf.description}</p>
+                    <p className="mt-1 text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">
                       Activation : {tf.dateActivation} · Événement : {tf.eventDate}
                       {tf.endDate ? ` · Fin : ${tf.endDate}` : ""}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <Button asChild size="sm" variant="outline" className="text-slate-600">
+                    <Button asChild size="sm" variant="outline" className="text-slate-600 dark:text-slate-300">
                       <Link href={`/admin/campaigns?temps_fort=${tf.slug}`}>
                         <span className="font-bold mr-1">{count}</span>
                         campagne{count > 1 ? "s" : ""}
@@ -428,7 +428,7 @@ export default function AdminTempsFortsPage() {
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
-                    <Button asChild size="sm" variant="ghost" className="text-slate-500">
+                    <Button asChild size="sm" variant="ghost" className="text-slate-500 dark:text-slate-400">
                       <Link href={`/temps-forts/${tf.slug}`} target="_blank" rel="noreferrer">
                         <ExternalLink className="h-4 w-4" />
                       </Link>
@@ -465,7 +465,7 @@ export default function AdminTempsFortsPage() {
               <div className="flex flex-col gap-3 overflow-hidden flex-1">
                 <div className="flex items-center gap-3">
                   <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500 dark:text-slate-400" />
                     <Input
                       placeholder="Rechercher par titre ou marque…"
                       value={assocSearch}
@@ -496,13 +496,13 @@ export default function AdminTempsFortsPage() {
                   </Button>
                 </div>
 
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-slate-500 dark:text-slate-400">
                   {checkedCount} sélectionnée{checkedCount > 1 ? "s" : ""} · {filtered.length} sur {campaigns.length} campagne{campaigns.length > 1 ? "s" : ""}
                 </p>
 
                 <div className="overflow-y-auto flex-1">
                   {paginated.length === 0 ? (
-                    <p className="p-8 text-center text-sm text-slate-500">Aucune campagne trouvée.</p>
+                    <p className="p-8 text-center text-sm text-slate-500 dark:text-slate-400">Aucune campagne trouvée.</p>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {paginated.map((c) => {
@@ -524,7 +524,7 @@ export default function AdminTempsFortsPage() {
                               })
                             }
                           >
-                            <div className="relative aspect-video bg-slate-100 shrink-0">
+                            <div className="relative aspect-video bg-slate-100 dark:bg-slate-800 shrink-0">
                               {c.imageUrl ? (
                                 <Image src={c.imageUrl} alt={c.title} fill sizes="200px" className="object-cover" />
                               ) : (
@@ -543,8 +543,8 @@ export default function AdminTempsFortsPage() {
                               </div>
                             </div>
                             <div className="p-2.5 flex flex-col gap-0.5">
-                              <p className="text-xs font-semibold text-slate-900 line-clamp-2 leading-tight">{c.title}</p>
-                              <p className="text-[10px] text-slate-500 truncate">{c.brand}{c.sector ? ` · ${c.sector}` : ""}</p>
+                              <p className="text-xs font-semibold text-foreground line-clamp-2 leading-tight">{c.title}</p>
+                              <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{c.brand}{c.sector ? ` · ${c.sector}` : ""}</p>
                             </div>
                           </label>
                         )
@@ -563,7 +563,7 @@ export default function AdminTempsFortsPage() {
                     >
                       ← Précédent
                     </Button>
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
                       Page {assocPage} / {totalPages}
                     </span>
                     <Button
@@ -748,7 +748,7 @@ export default function AdminTempsFortsPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+      <Label className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
         {label}
       </Label>
       {children}
@@ -766,8 +766,8 @@ function ToggleField({
   onChange: (value: boolean) => void
 }) {
   return (
-    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
+    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white dark:bg-card px-3 py-2.5">
+      <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{label}</span>
       <Switch checked={checked} onCheckedChange={onChange} />
     </label>
   )
@@ -788,21 +788,21 @@ function MultiCheckboxField({
 }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+      <Label className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
         {label}
       </Label>
       {options.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-3 text-sm text-slate-500">
+        <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 dark:bg-slate-900/40 p-3 text-sm text-slate-500 dark:text-slate-400">
           {emptyLabel}
         </div>
       ) : (
-        <div className="grid max-h-52 grid-cols-1 gap-2 overflow-y-auto rounded-lg border border-slate-200 bg-white p-3">
+        <div className="grid max-h-52 grid-cols-1 gap-2 overflow-y-auto rounded-lg border border-slate-200 bg-white dark:bg-card p-3">
           {options.map((option) => {
             const checked = selectedValues.includes(option)
             return (
               <label
                 key={option}
-                className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm text-slate-800 hover:bg-slate-50"
+                className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm text-slate-800 hover:bg-slate-50 dark:bg-slate-900/40"
               >
                 <Checkbox checked={checked} onCheckedChange={(value) => onToggle(option, value === true)} />
                 <span className="min-w-0 truncate">{option}</span>
@@ -835,16 +835,16 @@ function PilotageCard({
   onSlugChange: (slug: string | null) => void
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white dark:bg-card p-5 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-base font-semibold text-slate-900">{title}</h3>
-          <p className="mt-1 text-sm text-slate-600">{description}</p>
+          <h3 className="text-base font-semibold text-foreground">{title}</h3>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{description}</p>
         </div>
         <Switch checked={enabled} onCheckedChange={onToggle} disabled={disabled} />
       </div>
       <div className="mt-4 space-y-1.5">
-        <Label className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+        <Label className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300">
           Temps fort à afficher
         </Label>
         <Select
@@ -879,14 +879,14 @@ function StatCard({
   icon: React.ComponentType<{ className?: string }>
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white dark:bg-card p-5 shadow-sm">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{label}</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</p>
         <div className="rounded-lg bg-orange-100 p-2 text-orange-600">
           <Icon className="h-4 w-4" />
         </div>
       </div>
-      <p className="mt-2 text-3xl font-bold text-slate-900">{value}</p>
+      <p className="mt-2 text-3xl font-bold text-foreground">{value}</p>
     </div>
   )
 }
@@ -907,7 +907,7 @@ function StatusBadge({ status }: { status: "active" | "upcoming" | "past" }) {
     )
   }
   return (
-    <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-600">
+    <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-600 dark:text-slate-300">
       Passé
     </span>
   )

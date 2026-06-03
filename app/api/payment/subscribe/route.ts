@@ -20,7 +20,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { buildCheckoutUrl, generateRefCommand, CHARIOW_CONFIG } from '@/lib/chariow';
+import { buildCheckoutUrl, generateRefCommand, getProductId, CHARIOW_CONFIG } from '@/lib/chariow';
 import {
   KEYNOTE_PROMO_OFFER,
   computePromoPhases,
@@ -363,8 +363,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Construire l'URL de checkout Chariow
-    if (!CHARIOW_CONFIG.API_KEY || !CHARIOW_CONFIG.PRODUCT_ID) {
+    // Construire l'URL de checkout Chariow.
+    // product_id résolu selon le couple (plan, billing) via CHARIOW_PRODUCT_<PLAN>_<BILLING>.
+    const productId = getProductId(planKey, isAnnual ? 'annual' : 'monthly');
+    if (!CHARIOW_CONFIG.API_KEY || !productId) {
       await (supabaseAdmin as any)
         .from('payments')
         .update({ status: 'failed' })
@@ -379,6 +381,7 @@ export async function POST(request: NextRequest) {
     let checkoutUrl: string;
     try {
       checkoutUrl = buildCheckoutUrl({
+        productId,
         refCommand: ref_command,
         email: userEmail,
         successUrl: `${baseUrl}/payment/success?ref_command=${encodeURIComponent(ref_command)}`,

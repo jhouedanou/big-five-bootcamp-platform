@@ -1,11 +1,11 @@
 /**
- * Logos des opérateurs Mobile Money.
+ * Logos des opérateurs Mobile Money utilisés par PawaPay.
  *
  * Les fichiers sont stockés dans `/public/operators/` (téléchargés une fois
  * via `scripts/download-operator-logos.mjs`), pour éviter tout hotlinking
  * fragile et garantir la disponibilité offline / en CDN Vercel.
  *
- * Clé = code court de l'opérateur (préfixe avant le pays dans le code interne).
+ * Clé = code court de l'opérateur (préfixe avant le pays dans PAWAPAY).
  */
 
 export type OperatorBrand = "MTN" | "ORANGE" | "MOOV" | "WAVE" | "FREE"
@@ -19,7 +19,7 @@ export const OPERATOR_LOGOS: Record<OperatorBrand, { src: string; alt: string; b
 }
 
 /**
- * Détermine la marque d'un code provider interne (ex. "MTN_MOMO_CIV" → "MTN").
+ * Détermine la marque d'un provider PawaPay (ex. "MTN_MOMO_CIV" → "MTN").
  */
 export function getOperatorBrand(providerCode: string): OperatorBrand | null {
   const upper = providerCode.toUpperCase()
@@ -32,7 +32,7 @@ export function getOperatorBrand(providerCode: string): OperatorBrand | null {
 }
 
 /**
- * Renvoie le logo associé à un code provider interne, ou null.
+ * Renvoie le logo associé à un provider PawaPay, ou null.
  */
 export function getOperatorLogo(providerCode: string) {
   const brand = getOperatorBrand(providerCode)

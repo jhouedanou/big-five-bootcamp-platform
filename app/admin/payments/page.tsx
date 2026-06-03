@@ -1,11 +1,12 @@
 // Admin payments dashboard.
-// Server Component. Read-only. FeexPay n'expose pas d'API de solde : tout est
-// dérivé des tables locales `payments` et `payouts`. Aggregates via SQL RPC.
+// Server Component. Read-only. No live PawaPay API call (balance derived
+// from local `payments` and `payouts` tables). Aggregates via SQL RPC.
 
 import { Wallet } from 'lucide-react'
 import { getSupabaseAdmin } from '@/lib/supabase-server'
 import { BalanceCards, type PaymentTotals } from './balance-cards'
 import { PaymentsTable, type PaymentRow, type PayoutRow } from './payments-table'
+import { LiveBalances } from './live-balances'
 import { MonthFilter } from './month-filter'
 
 export const dynamic = 'force-dynamic'
@@ -56,7 +57,7 @@ export default async function AdminPaymentsPage({
   let paymentsQuery = (supabase as any)
     .from('payments')
     .select(
-      'id, ref_command, user_email, amount, final_amount, currency, status, payment_method, provider_transaction_id, client_phone, completed_at, created_at'
+      'id, ref_command, user_email, amount, final_amount, currency, status, payment_method, provider_transaction_id, client_phone, failure_code, failure_message, completed_at, created_at'
     )
     .gte('created_at', since)
   if (until) paymentsQuery = paymentsQuery.lt('created_at', until)
@@ -133,7 +134,7 @@ export default async function AdminPaymentsPage({
             </h1>
           </div>
           <p className="text-muted-foreground mt-2">
-            Historique des paiements FeexPay et solde disponible (calculé localement,
+            Historique des paiements PawaPay et solde disponible (calculé localement,
             sans appel API externe). Onboarding/sandbox exclus — uniquement
             transactions depuis le{' '}
             {new Date(LIVE_SINCE).toLocaleDateString('fr-FR', {
@@ -147,9 +148,11 @@ export default async function AdminPaymentsPage({
         <MonthFilter liveSince={LIVE_SINCE} selected={selectedMonth} />
       </div>
 
+      <LiveBalances />
+
       <div>
-        <p className="text-xs uppercase tracking-wide text-slate-500 font-medium mb-2">
-          Vue interne (depuis la base, hors frais FeexPay)
+        <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium mb-2">
+          Vue interne (depuis la base, hors frais PawaPay)
           {selectedMonth && ` — ${selectedMonth}`}
         </p>
         <BalanceCards totals={totals} />
@@ -164,7 +167,7 @@ export default async function AdminPaymentsPage({
         month={selectedMonth}
       />
 
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-slate-400 dark:text-slate-500 dark:text-slate-400">
         Données mises en cache 60 secondes. Pour forcer un rafraîchissement, recharger
         la page après expiration.
       </p>

@@ -12,7 +12,7 @@
     "enabled": true
   },
   "vars": {
-    "FEEXPAY_MODE": "LIVE",
+    "PAWAPAY_ENV": "production",
     "GMAIL_IMPERSONATE_USER": "support@laveiye.com",
     "GMAIL_FROM": "Laveiye <support@laveiye.com>"
   }

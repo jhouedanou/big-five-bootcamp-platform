@@ -44,9 +44,9 @@ export function MonthFilter({
   }
 
   return (
-    <div className="inline-flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
-      <Calendar className="w-4 h-4 text-slate-500" />
-      <label htmlFor="month-filter" className="text-xs text-slate-500 font-medium">
+    <div className="inline-flex items-center gap-2 bg-white dark:bg-card border border-slate-200 rounded-xl px-3 py-2 shadow-sm">
+      <Calendar className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+      <label htmlFor="month-filter" className="text-xs text-slate-500 dark:text-slate-400 font-medium">
         Mois :
       </label>
       <select

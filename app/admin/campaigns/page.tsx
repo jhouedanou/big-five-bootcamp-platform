@@ -451,10 +451,10 @@ function CampaignsPageContent() {
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 font-[family-name:var(--font-heading)]">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground font-[family-name:var(--font-heading)]">
             Exemples de Campagnes
           </h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-gray-500 dark:text-gray-400 mt-1">
             Gerez les exemples de campagnes affiches sur la plateforme ({campaigns.length} campagnes)
           </p>
         </div>
@@ -468,7 +468,7 @@ function CampaignsPageContent() {
       </div>
 
       {/* Filters */}
-      <Card className="bg-white border-gray-200 shadow-sm">
+      <Card className="bg-white dark:bg-card border-gray-200 shadow-sm">
         <CardContent className="p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
@@ -477,14 +477,14 @@ function CampaignsPageContent() {
                 placeholder="Rechercher par titre, marque ou agence..."
                 value={searchTerm}
                 onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
+                className="pl-10 bg-white dark:bg-card border-gray-300 text-foreground placeholder:text-gray-400"
               />
             </div>
             <Select value={filterSector} onValueChange={(v) => { setFilterSector(v); setCurrentPage(1); }}>
-              <SelectTrigger className="w-full sm:w-[200px] bg-white border-gray-300 text-gray-900">
+              <SelectTrigger className="w-full sm:w-[200px] bg-white dark:bg-card border-gray-300 text-foreground">
                 <SelectValue placeholder="Filtrer par secteur" />
               </SelectTrigger>
-              <SelectContent className="bg-white border-gray-200 text-gray-900">
+              <SelectContent className="bg-white dark:bg-card border-gray-200 text-foreground">
                 <SelectItem value="all">Tous les secteurs</SelectItem>
                 {campaignOptions.sectors.map((s) => (
                   <SelectItem key={s} value={s}>{s}</SelectItem>
@@ -512,7 +512,7 @@ function CampaignsPageContent() {
               variant="ghost"
               size="sm"
               onClick={() => setSelectedIds(new Set())}
-              className="text-gray-600 hover:text-gray-900"
+              className="text-gray-600 dark:text-gray-400 hover:text-foreground"
             >
               Tout désélectionner
             </Button>
@@ -542,15 +542,15 @@ function CampaignsPageContent() {
           </div>
         )}
         {filteredCampaigns.length === 0 ? (
-          <Card className="bg-white border-gray-200 shadow-sm">
+          <Card className="bg-white dark:bg-card border-gray-200 shadow-sm">
             <CardContent className="p-8 text-center">
               <Megaphone className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">Aucune campagne trouvee</p>
+              <p className="text-gray-500 dark:text-gray-400">Aucune campagne trouvee</p>
             </CardContent>
           </Card>
         ) : (
           paginatedCampaigns.map((item) => (
-            <Card key={item.id} className="bg-white border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+            <Card key={item.id} className="bg-white dark:bg-card border-gray-200 shadow-sm hover:shadow-md transition-shadow">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4 flex-1 min-w-0">
@@ -562,7 +562,7 @@ function CampaignsPageContent() {
                       />
                     </div>
                     {/* Thumbnail */}
-                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-200">
+                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0 border border-gray-200">
                       {item.imageUrl ? (
                         <img
                           src={getGoogleDriveImageUrl(item.imageUrl)}
@@ -577,8 +577,8 @@ function CampaignsPageContent() {
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-gray-900 font-medium truncate">{item.title}</h3>
-                      <p className="text-gray-500 text-sm mt-0.5 truncate">
+                      <h3 className="text-foreground font-medium truncate">{item.title}</h3>
+                      <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5 truncate">
                         {item.brand && <span>{item.brand}</span>}
                         {item.agency && <span> - {item.agency}</span>}
                       </p>
@@ -617,18 +617,18 @@ function CampaignsPageContent() {
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${sectorColor(item.sector)}`}>
                           {item.sector}
                         </span>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
                           <Globe className="h-3 w-3 mr-1" />
                           {item.country}
                         </span>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
                           {item.platform}
                         </span>
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
                           {item.format}
                         </span>
                         {item.date && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
                             {item.date}
                           </span>
                         )}
@@ -650,21 +650,21 @@ function CampaignsPageContent() {
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-gray-500 hover:text-gray-900 flex-shrink-0">
+                      <Button variant="ghost" size="icon" className="text-gray-500 dark:text-gray-400 hover:text-foreground flex-shrink-0">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-white border-gray-200 text-gray-900 shadow-lg">
+                    <DropdownMenuContent align="end" className="bg-white dark:bg-card border-gray-200 text-foreground shadow-lg">
                       <DropdownMenuItem
                         onClick={() => setPreviewCampaign(item)}
-                        className="hover:bg-gray-100 cursor-pointer"
+                        className="hover:bg-gray-100 dark:bg-gray-800 cursor-pointer"
                       >
                         <Eye className="h-4 w-4 mr-2" />
                         Apercu
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => window.open(`/content/${item.slug || item.id}`, '_blank')}
-                        className="hover:bg-gray-100 cursor-pointer"
+                        className="hover:bg-gray-100 dark:bg-gray-800 cursor-pointer"
                       >
                         <ExternalLink className="h-4 w-4 mr-2" />
                         Voir le détail
@@ -689,7 +689,7 @@ function CampaignsPageContent() {
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handleOpenEdit(item)}
-                        className="hover:bg-gray-100 cursor-pointer"
+                        className="hover:bg-gray-100 dark:bg-gray-800 cursor-pointer"
                       >
                         <Edit className="h-4 w-4 mr-2" />
                         Modifier
@@ -713,7 +713,7 @@ function CampaignsPageContent() {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             Affichage {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filteredCampaigns.length)} sur {filteredCampaigns.length} campagnes
           </p>
           <div className="flex items-center gap-2">
@@ -722,7 +722,7 @@ function CampaignsPageContent() {
               size="sm"
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="text-gray-700 border-gray-300"
+              className="text-gray-700 dark:text-gray-300 border-gray-300"
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
               Précédent
@@ -756,7 +756,7 @@ function CampaignsPageContent() {
               size="sm"
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage === totalPages}
-              className="text-gray-700 border-gray-300"
+              className="text-gray-700 dark:text-gray-300 border-gray-300"
             >
               Suivant
               <ChevronRight className="h-4 w-4 ml-1" />
@@ -767,9 +767,9 @@ function CampaignsPageContent() {
 
       {/* Preview Dialog */}
       <Dialog open={!!previewCampaign} onOpenChange={() => { setPreviewCampaign(null); setPreviewImageIndex(0); }}>
-        <DialogContent className="bg-white border-gray-200 text-gray-900 sm:max-w-[600px] max-h-[90vh] overflow-y-auto shadow-xl">
+        <DialogContent className="bg-white dark:bg-card border-gray-200 text-foreground sm:max-w-[600px] max-h-[90vh] overflow-y-auto shadow-xl">
           <DialogHeader>
-            <DialogTitle className="text-gray-900">{previewCampaign?.title}</DialogTitle>
+            <DialogTitle className="text-foreground">{previewCampaign?.title}</DialogTitle>
             <DialogDescription className="sr-only">Aperçu de la campagne</DialogDescription>
           </DialogHeader>
           {previewCampaign && (() => {
@@ -778,7 +778,7 @@ function CampaignsPageContent() {
             return (
               <div className="space-y-4">
                 {allImages.length > 0 && (
-                  <div className="relative rounded-lg overflow-hidden bg-gray-100">
+                  <div className="relative rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
                     <img
                       src={allImages[previewImageIndex] || ""}
                       alt={`${previewCampaign.title} - ${previewImageIndex + 1}`}
@@ -822,7 +822,7 @@ function CampaignsPageContent() {
                 )}
                 {embedVideoUrl && (
                   <div className="rounded-lg overflow-hidden">
-                    <div className="text-sm text-gray-500 mb-1 flex items-center gap-1">
+                    <div className="text-sm text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
                       <Video className="h-3 w-3" /> Vidéo
                     </div>
                     <iframe
@@ -838,7 +838,7 @@ function CampaignsPageContent() {
                   <div>
                     <h4 className="font-semibold text-gray-800 mb-1">Description</h4>
                     <div
-                      className="text-gray-600 prose prose-sm max-w-none"
+                      className="text-gray-600 dark:text-gray-400 prose prose-sm max-w-none"
                       dangerouslySetInnerHTML={{ __html: sanitizeHtml(previewCampaign.description) }}
                     />
                   </div>
@@ -847,7 +847,7 @@ function CampaignsPageContent() {
                   <div>
                     <h4 className="font-semibold text-gray-800 mb-1">Analyse</h4>
                     <div
-                      className="text-gray-600 prose prose-sm max-w-none"
+                      className="text-gray-600 dark:text-gray-400 prose prose-sm max-w-none"
                       dangerouslySetInnerHTML={{ __html: sanitizeHtml(previewCampaign.analyse) }}
                     />
                   </div>
@@ -856,7 +856,7 @@ function CampaignsPageContent() {
                   <div>
                     <h4 className="font-semibold text-gray-800 mb-1">Comment s'en servir</h4>
                     <div
-                      className="text-gray-600 prose prose-sm max-w-none"
+                      className="text-gray-600 dark:text-gray-400 prose prose-sm max-w-none"
                       dangerouslySetInnerHTML={{ __html: sanitizeHtml(previewCampaign.howToUse) }}
                     />
                   </div>
@@ -865,48 +865,48 @@ function CampaignsPageContent() {
                   <div>
                     <h4 className="font-semibold text-gray-800 mb-1">Résumé</h4>
                     <div
-                      className="text-gray-600 prose prose-sm max-w-none"
+                      className="text-gray-600 dark:text-gray-400 prose prose-sm max-w-none"
                       dangerouslySetInnerHTML={{ __html: sanitizeHtml(previewCampaign.summary) }}
                     />
                   </div>
                 )}
-                <div className="grid grid-cols-2 gap-3 text-sm bg-gray-50 rounded-lg p-4">
+                <div className="grid grid-cols-2 gap-3 text-sm bg-gray-50 dark:bg-gray-900/40 rounded-lg p-4">
                   <div>
-                    <span className="text-gray-500">Marque:</span>{" "}
-                    <span className="text-gray-900 font-medium">{previewCampaign.brand || "-"}</span>
+                    <span className="text-gray-500 dark:text-gray-400">Marque:</span>{" "}
+                    <span className="text-foreground font-medium">{previewCampaign.brand || "-"}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Agence:</span>{" "}
-                    <span className="text-gray-900 font-medium">{previewCampaign.agency || "-"}</span>
+                    <span className="text-gray-500 dark:text-gray-400">Agence:</span>{" "}
+                    <span className="text-foreground font-medium">{previewCampaign.agency || "-"}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Plateforme:</span>{" "}
-                    <span className="text-gray-900 font-medium">{previewCampaign.platform}</span>
+                    <span className="text-gray-500 dark:text-gray-400">Plateforme:</span>{" "}
+                    <span className="text-foreground font-medium">{previewCampaign.platform}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Pays:</span>{" "}
-                    <span className="text-gray-900 font-medium">{previewCampaign.country}</span>
+                    <span className="text-gray-500 dark:text-gray-400">Pays:</span>{" "}
+                    <span className="text-foreground font-medium">{previewCampaign.country}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Secteur:</span>{" "}
-                    <span className="text-gray-900 font-medium">{previewCampaign.sector}</span>
+                    <span className="text-gray-500 dark:text-gray-400">Secteur:</span>{" "}
+                    <span className="text-foreground font-medium">{previewCampaign.sector}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Format:</span>{" "}
-                    <span className="text-gray-900 font-medium">{previewCampaign.format}</span>
+                    <span className="text-gray-500 dark:text-gray-400">Format:</span>{" "}
+                    <span className="text-foreground font-medium">{previewCampaign.format}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Date:</span>{" "}
-                    <span className="text-gray-900 font-medium">{previewCampaign.date || "-"}</span>
+                    <span className="text-gray-500 dark:text-gray-400">Date:</span>{" "}
+                    <span className="text-foreground font-medium">{previewCampaign.date || "-"}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Année:</span>{" "}
-                    <span className="text-gray-900 font-medium">{previewCampaign.year || "-"}</span>
+                    <span className="text-gray-500 dark:text-gray-400">Année:</span>{" "}
+                    <span className="text-foreground font-medium">{previewCampaign.year || "-"}</span>
                   </div>
                 </div>
                 {previewCampaign.tags.length > 0 && (
                   <div>
-                    <span className="text-gray-500 text-sm">Tags:</span>
+                    <span className="text-gray-500 dark:text-gray-400 text-sm">Tags:</span>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {previewCampaign.tags.map((tag) => (
                         <span
@@ -930,12 +930,12 @@ function CampaignsPageContent() {
         setIsDialogOpen(open);
         if (!open) setCurrentStep(1);
       }}>
-        <DialogContent className="bg-white border-gray-200 text-gray-900 sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="bg-white dark:bg-card border-gray-200 text-foreground sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
-            <DialogTitle className="text-gray-900">
+            <DialogTitle className="text-foreground">
               {editingCampaign ? "Modifier la campagne" : "Ajouter une campagne"}
             </DialogTitle>
-            <DialogDescription className="text-gray-500">
+            <DialogDescription className="text-gray-500 dark:text-gray-400">
               {editingCampaign
                 ? "Modifiez les informations de la campagne."
                 : "Remplissez les informations pour creer une nouvelle campagne."}
@@ -972,7 +972,7 @@ function CampaignsPageContent() {
                   <div className="ml-2 hidden sm:block">
                     <p className={cn(
                       "text-xs font-medium",
-                      currentStep === step.id ? "text-gray-900" : "text-gray-500"
+                      currentStep === step.id ? "text-foreground" : "text-gray-500"
                     )}>
                       {step.title}
                     </p>
@@ -997,7 +997,7 @@ function CampaignsPageContent() {
               <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                 {/* Title */}
                 <div className="space-y-2">
-                  <Label htmlFor="camp-title" className="text-gray-700">Titre *</Label>
+                  <Label htmlFor="camp-title" className="text-gray-700 dark:text-gray-300">Titre *</Label>
                   <Input
                     id="camp-title"
                     value={formData.title}
@@ -1010,18 +1010,18 @@ function CampaignsPageContent() {
                       }
                       setFormData({ ...formData, ...updates });
                     }}
-                    className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
+                    className="bg-white dark:bg-card border-gray-300 text-foreground placeholder:text-gray-400"
                     placeholder="Ex: MTN Ghana - Mobile Money Campaign"
                   />
                 </div>
 
                 {/* Permalien / Slug */}
                 <div className="space-y-2">
-                  <Label htmlFor="camp-slug" className="text-gray-700">
+                  <Label htmlFor="camp-slug" className="text-gray-700 dark:text-gray-300">
                     Permalien (URL SEO)
                   </Label>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500 whitespace-nowrap">/content/</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">/content/</span>
                     <Input
                       id="camp-slug"
                       value={formData.slug || ""}
@@ -1034,37 +1034,37 @@ function CampaignsPageContent() {
                           .replace(/-+/g, '-');
                         setFormData({ ...formData, slug: cleaned });
                       }}
-                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 font-mono text-sm"
+                      className="bg-white dark:bg-card border-gray-300 text-foreground placeholder:text-gray-400 font-mono text-sm"
                       placeholder="mon-titre-de-campagne"
                     />
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      className="border-gray-300 text-gray-600 hover:bg-gray-100 whitespace-nowrap text-xs"
+                      className="border-gray-300 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:bg-gray-800 whitespace-nowrap text-xs"
                       onClick={() => setFormData({ ...formData, slug: generateSlug(formData.title) })}
                       title="Regénérer depuis le titre"
                     >
                       🔄 Auto
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     URL finale : <span className="font-mono text-primary">/content/{formData.slug || "..."}</span> — Idéal pour le référencement (SEO)
                   </p>
                 </div>
 
                 {/* Summary - Résumé */}
                 <div className="space-y-2">
-                  <Label htmlFor="camp-summary" className="text-gray-700">Résumé</Label>
+                  <Label htmlFor="camp-summary" className="text-gray-700 dark:text-gray-300">Résumé</Label>
                   <Input
                     id="camp-summary"
                     value={formData.summary || ""}
                     onChange={(e) => setFormData({ ...formData, summary: e.target.value })}
-                    className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
+                    className="bg-white dark:bg-card border-gray-300 text-foreground placeholder:text-gray-400"
                     placeholder="Une phrase qui résume la campagne..."
                     maxLength={150}
                   />
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     Court résumé affiché sur les cartes (max. 150 caractères)
                   </p>
                 </div>
@@ -1072,22 +1072,22 @@ function CampaignsPageContent() {
                 {/* Brand & Agency */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="camp-brand" className="text-gray-700">Marque</Label>
+                    <Label htmlFor="camp-brand" className="text-gray-700 dark:text-gray-300">Marque</Label>
                     <Input
                       id="camp-brand"
                       value={formData.brand}
                       onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
+                      className="bg-white dark:bg-card border-gray-300 text-foreground placeholder:text-gray-400"
                       placeholder="Ex: MTN"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="camp-agency" className="text-gray-700">Agence</Label>
+                    <Label htmlFor="camp-agency" className="text-gray-700 dark:text-gray-300">Agence</Label>
                     <Input
                       id="camp-agency"
                       value={formData.agency}
                       onChange={(e) => setFormData({ ...formData, agency: e.target.value })}
-                      className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
+                      className="bg-white dark:bg-card border-gray-300 text-foreground placeholder:text-gray-400"
                       placeholder="Ex: Ogilvy Africa"
                     />
                   </div>
@@ -1127,10 +1127,10 @@ function CampaignsPageContent() {
 
                 {/* Axe (multi-select checkboxes) */}
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Axe(s)</Label>
-                  <div className="grid grid-cols-2 gap-2 p-3 border border-gray-300 rounded-md bg-white max-h-48 overflow-y-auto">
+                  <Label className="text-gray-700 dark:text-gray-300">Axe(s)</Label>
+                  <div className="grid grid-cols-2 gap-2 p-3 border border-gray-300 rounded-md bg-white dark:bg-card max-h-48 overflow-y-auto">
                     {campaignOptions.axes.map((a) => (
-                      <label key={a} className="flex items-center gap-2 cursor-pointer text-sm text-gray-900 hover:bg-gray-50 rounded px-1 py-0.5">
+                      <label key={a} className="flex items-center gap-2 cursor-pointer text-sm text-foreground hover:bg-gray-50 dark:bg-gray-900/40 rounded px-1 py-0.5">
                         <Checkbox
                           checked={(formData.axe || []).includes(a)}
                           onCheckedChange={(checked) => {
@@ -1151,11 +1151,11 @@ function CampaignsPageContent() {
 
                 {/* Temps forts associés (multi-select checkboxes) */}
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Temps forts associés</Label>
-                  <p className="text-xs text-gray-500">Cochez les événements auxquels cette campagne se rattache (ex: Coupe du monde, Ramadan…).</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 border border-gray-300 rounded-md bg-white max-h-56 overflow-y-auto">
+                  <Label className="text-gray-700 dark:text-gray-300">Temps forts associés</Label>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Cochez les événements auxquels cette campagne se rattache (ex: Coupe du monde, Ramadan…).</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-3 border border-gray-300 rounded-md bg-white dark:bg-card max-h-56 overflow-y-auto">
                     {TEMPS_FORTS.map((tf) => (
-                      <label key={tf.slug} className="flex items-center gap-2 cursor-pointer text-sm text-gray-900 hover:bg-gray-50 rounded px-1 py-0.5">
+                      <label key={tf.slug} className="flex items-center gap-2 cursor-pointer text-sm text-foreground hover:bg-gray-50 dark:bg-gray-900/40 rounded px-1 py-0.5">
                         <Checkbox
                           checked={(formData.tempsFortSlugs || []).includes(tf.slug)}
                           onCheckedChange={(checked) => {
@@ -1170,7 +1170,7 @@ function CampaignsPageContent() {
                         />
                         <span className="flex-1">
                           <span className="font-medium">{tf.shortTitle || tf.title}</span>
-                          <span className="ml-1 text-xs text-gray-500">· {tf.category}</span>
+                          <span className="ml-1 text-xs text-gray-500 dark:text-gray-400">· {tf.category}</span>
                         </span>
                       </label>
                     ))}
@@ -1180,7 +1180,7 @@ function CampaignsPageContent() {
                 {/* Date & Year */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="camp-date" className="text-gray-700">Date de la campagne</Label>
+                    <Label htmlFor="camp-date" className="text-gray-700 dark:text-gray-300">Date de la campagne</Label>
                     <DatePicker
                       date={formData.date ? new Date(formData.date) : undefined}
                       onDateChange={(date) => {
@@ -1197,32 +1197,32 @@ function CampaignsPageContent() {
                       }}
                       placeholder="Sélectionner une date"
                       displayFormat="dd MMM yyyy"
-                      className="bg-white border-gray-300 text-gray-900"
+                      className="bg-white dark:bg-card border-gray-300 text-foreground"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="camp-year" className="text-gray-700">Annee</Label>
+                    <Label htmlFor="camp-year" className="text-gray-700 dark:text-gray-300">Annee</Label>
                     <Input
                       id="camp-year"
                       type="number"
                       value={formData.year}
                       onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) || new Date().getFullYear() })}
-                      className="bg-white border-gray-300 text-gray-900"
+                      className="bg-white dark:bg-card border-gray-300 text-foreground"
                     />
                   </div>
                 </div>
 
                 {/* Status */}
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Statut de publication</Label>
+                  <Label className="text-gray-700 dark:text-gray-300">Statut de publication</Label>
                   <Select
                     value={formData.status || "Brouillon"}
                     onValueChange={(value: "Brouillon" | "En attente" | "Publié") => setFormData({ ...formData, status: value })}
                   >
-                    <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                    <SelectTrigger className="bg-white dark:bg-card border-gray-300 text-foreground">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200 text-gray-900">
+                    <SelectContent className="bg-white dark:bg-card border-gray-200 text-foreground">
                       {statuses.map((s) => (
                         <SelectItem key={s} value={s}>
                           <span className={`inline-flex items-center gap-2 ${
@@ -1245,15 +1245,15 @@ function CampaignsPageContent() {
 
                 {/* Access Level */}
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Niveau d'accès</Label>
+                  <Label className="text-gray-700 dark:text-gray-300">Niveau d'accès</Label>
                   <Select
                     value={formData.accessLevel || "free"}
                     onValueChange={(value: "free" | "premium") => setFormData({ ...formData, accessLevel: value })}
                   >
-                    <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                    <SelectTrigger className="bg-white dark:bg-card border-gray-300 text-foreground">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200 text-gray-900">
+                    <SelectContent className="bg-white dark:bg-card border-gray-200 text-foreground">
                       <SelectItem value="free">
                         <span className="inline-flex items-center gap-2 text-green-600">
                           <Users className="h-4 w-4" />
@@ -1268,7 +1268,7 @@ function CampaignsPageContent() {
                       </SelectItem>
                     </SelectContent>
                   </Select>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     Les campagnes Premium ne sont pas visibles sur la page Démo.
                   </p>
                 </div>
@@ -1289,13 +1289,13 @@ function CampaignsPageContent() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-900">Campagne de la semaine</span>
+                        <span className="text-sm font-medium text-foreground">Campagne de la semaine</span>
                         <Checkbox
                           checked={formData.featured || false}
                           onCheckedChange={(checked) => setFormData({ ...formData, featured: !!checked })}
                         />
                       </div>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         Mise en avant dans la section « Meilleures campagnes de la semaine » du dashboard.
                       </p>
                     </div>
@@ -1304,7 +1304,7 @@ function CampaignsPageContent() {
 
                 {/* Lien vers la publication d'origine */}
                 <div className="space-y-2">
-                  <Label htmlFor="camp-publication-url" className="text-gray-700 flex items-center gap-2">
+                  <Label htmlFor="camp-publication-url" className="text-gray-700 dark:text-gray-300 flex items-center gap-2">
                     <ExternalLink className="h-4 w-4 text-[#F2B33D]" />
                     Lien vers la publication d'origine
                   </Label>
@@ -1313,10 +1313,10 @@ function CampaignsPageContent() {
                     type="url"
                     value={formData.publicationUrl || ""}
                     onChange={(e) => setFormData({ ...formData, publicationUrl: e.target.value })}
-                    className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
+                    className="bg-white dark:bg-card border-gray-300 text-foreground placeholder:text-gray-400"
                     placeholder="https://www.facebook.com/... ou https://www.instagram.com/p/..."
                   />
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     URL de la publication originale sur les réseaux sociaux (Facebook, Instagram, LinkedIn, etc.)
                   </p>
                 </div>
@@ -1338,8 +1338,8 @@ function CampaignsPageContent() {
                 {/* Images supplementaires - Champs répétables */}
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Label className="text-gray-700">Visuels supplémentaires (carousel)</Label>
-                    <span className="text-xs text-gray-500">
+                    <Label className="text-gray-700 dark:text-gray-300">Visuels supplémentaires (carousel)</Label>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
                       {(formData.images || []).length} image{(formData.images || []).length !== 1 ? 's' : ''} ajoutée{(formData.images || []).length !== 1 ? 's' : ''}
                     </span>
                   </div>
@@ -1347,9 +1347,9 @@ function CampaignsPageContent() {
                   {/* Liste des images existantes avec champs éditables */}
                   <div className="space-y-2">
                     {(formData.images || []).map((img, idx) => (
-                      <div key={idx} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                      <div key={idx} className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-900/40 rounded-lg border border-gray-200">
                         {/* Miniature */}
-                        <div className="w-12 h-12 rounded-md overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-200">
+                        <div className="w-12 h-12 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0 border border-gray-200">
                           {img ? (
                             <img src={getGoogleDriveImageUrl(img)} alt={`Visuel ${idx + 1}`} className="w-full h-full object-cover" />
                           ) : (
@@ -1361,7 +1361,7 @@ function CampaignsPageContent() {
                         
                         {/* Numéro et input */}
                         <div className="flex-1 flex items-center gap-2">
-                          <span className="text-xs text-gray-500 font-medium w-6">#{idx + 1}</span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400 font-medium w-6">#{idx + 1}</span>
                           <Input
                             value={img}
                             onChange={(e) => {
@@ -1369,7 +1369,7 @@ function CampaignsPageContent() {
                               newImages[idx] = e.target.value;
                               setFormData({ ...formData, images: newImages });
                             }}
-                            className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 text-sm"
+                            className="bg-white dark:bg-card border-gray-300 text-foreground placeholder:text-gray-400 text-sm"
                             placeholder="URL de l'image..."
                           />
                         </div>
@@ -1381,7 +1381,7 @@ function CampaignsPageContent() {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-gray-400 hover:text-gray-600"
+                            className="h-8 w-8 text-gray-400 hover:text-gray-600 dark:text-gray-400"
                             onClick={() => {
                               if (idx > 0) {
                                 const newImages = [...(formData.images || [])];
@@ -1400,7 +1400,7 @@ function CampaignsPageContent() {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-gray-400 hover:text-gray-600"
+                            className="h-8 w-8 text-gray-400 hover:text-gray-600 dark:text-gray-400"
                             onClick={() => {
                               const images = formData.images || [];
                               if (idx < images.length - 1) {
@@ -1449,39 +1449,39 @@ function CampaignsPageContent() {
                             handleAddImage();
                           }
                         }}
-                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
+                        className="bg-white dark:bg-card border-gray-300 text-foreground placeholder:text-gray-400"
                         placeholder="Ou coller une URL..."
                       />
                       <Button
                         type="button"
                         onClick={handleAddImage}
                         variant="outline"
-                        className="border-gray-300 text-gray-700 hover:bg-gray-100 gap-2"
+                        className="border-gray-300 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:bg-gray-800 gap-2"
                       >
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
                   
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     💡 Astuce : Uploadez ou collez des URLs pour créer un carousel. Réorganisez l'ordre avec les flèches.
                   </p>
                 </div>
 
                 {/* Video checkbox — Ceci est une publication vidéo */}
-                <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 dark:bg-gray-900/40 p-4">
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="camp-video"
                       checked={formData.isVideo || false}
                       onCheckedChange={(checked) => setFormData({ ...formData, isVideo: !!checked })}
                     />
-                    <Label htmlFor="camp-video" className="cursor-pointer text-gray-700 font-medium">
+                    <Label htmlFor="camp-video" className="cursor-pointer text-gray-700 dark:text-gray-300 font-medium">
                       <Video className="h-4 w-4 inline mr-1.5" />
                       Ceci est une publication vidéo
                     </Label>
                   </div>
-                  <p className="text-xs text-gray-500 ml-6">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 ml-6">
                     Cochez si la campagne est principalement une vidéo (Facebook, YouTube, LinkedIn, Twitter/X). 
                     La thumbnail sera récupérée automatiquement depuis le réseau social.
                   </p>
@@ -1490,7 +1490,7 @@ function CampaignsPageContent() {
                 {/* URL Video — Visible uniquement si isVideo est coché */}
                 {formData.isVideo && (
                   <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                    <Label htmlFor="camp-video-url" className="text-gray-700">
+                    <Label htmlFor="camp-video-url" className="text-gray-700 dark:text-gray-300">
                       <Video className="h-4 w-4 inline mr-1" />
                       URL de la vidéo
                     </Label>
@@ -1502,7 +1502,7 @@ function CampaignsPageContent() {
                           const newUrl = e.target.value;
                           setFormData({ ...formData, videoUrl: newUrl });
                         }}
-                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
+                        className="bg-white dark:bg-card border-gray-300 text-foreground placeholder:text-gray-400"
                         placeholder="https://facebook.com/.../videos/... ou youtube.com/watch?v=... ou x.com/.../status/..."
                       />
                       {formData.videoUrl && formData.videoUrl.trim() && (
@@ -1569,7 +1569,7 @@ function CampaignsPageContent() {
                       </div>
                     )}
                     
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       💡 Plateformes supportées : YouTube, Facebook, LinkedIn, Twitter/X. Collez le lien de la publication vidéo.
                     </p>
                     
@@ -1595,40 +1595,40 @@ function CampaignsPageContent() {
               <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
                 {/* Description with WYSIWYG */}
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Description</Label>
+                  <Label className="text-gray-700 dark:text-gray-300">Description</Label>
                   <RichTextEditor
                     content={formData.description}
                     onChange={(content) => setFormData({ ...formData, description: content })}
                     placeholder="Décrivez la campagne, son contexte, ses objectifs..."
-                    className="bg-white border-gray-300"
+                    className="bg-white dark:bg-card border-gray-300"
                   />
                 </div>
 
                 {/* Analyse with WYSIWYG — saves to analyse in DB */}
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Analyse</Label>
+                  <Label className="text-gray-700 dark:text-gray-300">Analyse</Label>
                   <RichTextEditor
                     content={formData.analyse || ""}
                     onChange={(content) => setFormData({ ...formData, analyse: content })}
                     placeholder="Analysez la campagne, sa stratégie, ses résultats et ses points clés..."
-                    className="bg-white border-gray-300"
+                    className="bg-white dark:bg-card border-gray-300"
                   />
                 </div>
 
                 {/* Comment s'en servir — saves to how_to_use in DB */}
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Comment s'en servir</Label>
+                  <Label className="text-gray-700 dark:text-gray-300">Comment s'en servir</Label>
                   <RichTextEditor
                     content={formData.howToUse || ""}
                     onChange={(content) => setFormData({ ...formData, howToUse: content })}
                     placeholder="Expliquez comment s'inspirer de cette campagne et l'appliquer concrètement..."
-                    className="bg-white border-gray-300"
+                    className="bg-white dark:bg-card border-gray-300"
                   />
                 </div>
 
                 {/* Tags */}
                 <div className="space-y-2">
-                  <Label className="text-gray-700">Tags</Label>
+                  <Label className="text-gray-700 dark:text-gray-300">Tags</Label>
                   <MultiCheckboxGroup
                     options={campaignOptions.tags}
                     selectedValues={formData.tags}
@@ -1664,7 +1664,7 @@ function CampaignsPageContent() {
                             setShowTagSuggestions(false);
                           }
                         }}
-                        className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
+                        className="bg-white dark:bg-card border-gray-300 text-foreground placeholder:text-gray-400"
                         placeholder="Ajouter un tag ou sélectionner..."
                       />
                       <Button
@@ -1674,7 +1674,7 @@ function CampaignsPageContent() {
                           setShowTagSuggestions(false);
                         }}
                         variant="outline"
-                        className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                        className="border-gray-300 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:bg-gray-800"
                       >
                         +
                       </Button>
@@ -1682,15 +1682,15 @@ function CampaignsPageContent() {
                     
                     {/* Suggestions de tags */}
                     {showTagSuggestions && filteredTagSuggestions.length > 0 && (
-                      <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                        <div className="p-2 text-xs text-gray-500 border-b border-gray-100">
+                      <div className="absolute z-50 mt-1 w-full bg-white dark:bg-card border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        <div className="p-2 text-xs text-gray-500 dark:text-gray-400 border-b border-gray-100">
                           💡 Tags existants (cliquez pour ajouter)
                         </div>
                         {filteredTagSuggestions.map((tag) => (
                           <button
                             key={tag}
                             type="button"
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between group"
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:bg-gray-900/40 flex items-center justify-between group"
                             onMouseDown={(e) => {
                               e.preventDefault();
                               if (!formData.tags.includes(tag)) {
@@ -1700,7 +1700,7 @@ function CampaignsPageContent() {
                               setShowTagSuggestions(false);
                             }}
                           >
-                            <span className="text-gray-700">{tag}</span>
+                            <span className="text-gray-700 dark:text-gray-300">{tag}</span>
                             <span className="text-xs text-gray-400 group-hover:text-primary">+ Ajouter</span>
                           </button>
                         ))}
@@ -1744,7 +1744,7 @@ function CampaignsPageContent() {
                     </div>
                   )}
                   
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     💡 Tapez pour filtrer les tags existants ou créez-en un nouveau en appuyant sur Entrée.
                   </p>
                 </div>
@@ -1760,7 +1760,7 @@ function CampaignsPageContent() {
                   type="button"
                   variant="outline"
                   onClick={() => setCurrentStep(prev => prev - 1)}
-                  className="border-gray-300 text-gray-700 hover:bg-gray-100 gap-2"
+                  className="border-gray-300 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:bg-gray-800 gap-2"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Précédent
@@ -1772,7 +1772,7 @@ function CampaignsPageContent() {
                 type="button"
                 variant="outline"
                 onClick={() => setIsDialogOpen(false)}
-                className="border-gray-300 text-gray-700 hover:bg-gray-100"
+                className="border-gray-300 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:bg-gray-800"
               >
                 Annuler
               </Button>
@@ -1802,13 +1802,13 @@ function CampaignsPageContent() {
 
       {/* Batch Delete Confirmation Dialog */}
       <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent className="bg-white border-gray-200 text-gray-900 sm:max-w-[420px]">
+        <DialogContent className="bg-white dark:bg-card border-gray-200 text-foreground sm:max-w-[420px]">
           <DialogHeader>
             <DialogTitle className="text-red-600 flex items-center gap-2">
               <Trash2 className="h-5 w-5" />
               Confirmer la suppression
             </DialogTitle>
-            <DialogDescription className="text-gray-600">
+            <DialogDescription className="text-gray-600 dark:text-gray-400">
               Vous êtes sur le point de supprimer{" "}
               <span className="font-bold text-red-600">{selectedIds.size} campagne{selectedIds.size > 1 ? "s" : ""}</span>.
               Cette action est irréversible.
@@ -1819,7 +1819,7 @@ function CampaignsPageContent() {
               variant="outline"
               onClick={() => setShowDeleteConfirm(false)}
               disabled={isBatchDeleting}
-              className="border-gray-300 text-gray-700"
+              className="border-gray-300 text-gray-700 dark:text-gray-300"
             >
               Annuler
             </Button>
@@ -1861,12 +1861,12 @@ function SingleCheckboxGroup({
 }) {
   return (
     <div className="space-y-2">
-      <Label className="text-gray-700">{label}</Label>
-      <div className="grid max-h-48 grid-cols-1 gap-2 overflow-y-auto rounded-md border border-gray-300 bg-white p-3 sm:grid-cols-2">
+      <Label className="text-gray-700 dark:text-gray-300">{label}</Label>
+      <div className="grid max-h-48 grid-cols-1 gap-2 overflow-y-auto rounded-md border border-gray-300 bg-white dark:bg-card p-3 sm:grid-cols-2">
         {options.map((option) => (
           <label
             key={option}
-            className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm text-gray-900 hover:bg-gray-50"
+            className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm text-foreground hover:bg-gray-50 dark:bg-gray-900/40"
           >
             <Checkbox
               checked={value === option}
@@ -1893,18 +1893,18 @@ function MultiCheckboxGroup({
 }) {
   if (options.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-gray-300 bg-gray-50 p-3 text-sm text-gray-500">
+      <div className="rounded-md border border-dashed border-gray-300 bg-gray-50 dark:bg-gray-900/40 p-3 text-sm text-gray-500 dark:text-gray-400">
         {emptyLabel}
       </div>
     );
   }
 
   return (
-    <div className="grid max-h-56 grid-cols-1 gap-2 overflow-y-auto rounded-md border border-gray-300 bg-white p-3 sm:grid-cols-2">
+    <div className="grid max-h-56 grid-cols-1 gap-2 overflow-y-auto rounded-md border border-gray-300 bg-white dark:bg-card p-3 sm:grid-cols-2">
       {options.map((option) => (
         <label
           key={option}
-          className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm text-gray-900 hover:bg-gray-50"
+          className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm text-foreground hover:bg-gray-50 dark:bg-gray-900/40"
         >
           <Checkbox
             checked={(selectedValues || []).includes(option)}
@@ -1923,7 +1923,7 @@ export default function CampaignsPage() {
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement...</p>
+          <p className="text-gray-600 dark:text-gray-400">Chargement...</p>
         </div>
       </div>
     }>

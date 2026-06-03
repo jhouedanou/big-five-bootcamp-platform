@@ -20,7 +20,14 @@ function AuthCodeErrorContent() {
   // dans le hash fragment (#access_token=...&refresh_token=...) au lieu d'un
   // code PKCE en query. Le serveur ne voit pas le hash → on a atterri ici.
   // On hydrate la session côté client puis on redirige vers /dashboard.
-  const [recovering, setRecovering] = useState(false);
+  // Détecte immédiatement (avant le 1er render) si on a un hash avec access_token.
+  // Évite le flash de la page d'erreur pendant que l'effet d'hydratation tourne.
+  const [hasSessionHash] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const h = window.location.hash || "";
+    return h.includes("access_token=");
+  });
+  const [recovering, setRecovering] = useState(hasSessionHash);
   const [checkingSession, setCheckingSession] = useState(true);
   const [resendEmail, setResendEmail] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
@@ -81,9 +88,16 @@ function AuthCodeErrorContent() {
 
     setRecovering(true);
 
+    // Nettoie immédiatement l'URL : retire le hash sensible (#access_token=…)
+    // pour qu'il n'apparaisse pas dans l'historique du navigateur.
+    window.history.replaceState(null, "", window.location.pathname);
+
     // Pose les cookies de session côté serveur via /api/auth/hydrate.
     // Évite le SDK Supabase côté client (qui peut hang sur navigator.locks
     // conflict avec onAuthStateChange dans AuthProvider).
+    const isSignup = params.get("type") === "signup";
+    const dest = isSignup ? "/auth/verified" : "/dashboard";
+
     fetch("/api/auth/hydrate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -96,7 +110,7 @@ function AuthCodeErrorContent() {
           setRecovering(false);
           return;
         }
-        window.location.href = "/dashboard";
+        window.location.href = dest;
       })
       .catch((e: unknown) => {
         console.error("[auth-code-error] exception hydrate", e);

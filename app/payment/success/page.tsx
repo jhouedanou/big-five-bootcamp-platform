@@ -2,8 +2,8 @@
  * Page: /payment/success
  *
  * Page de confirmation après paiement.
- * On vérifie le statut auprès de FeexPay (via /api/payment/check) si le webhook
- * n'a pas encore été traité, puis on affiche les détails.
+ * PawaPay redirige avec ?paymentId=...&paymentStatus=...&ref_command=...
+ * Vérifie le statut auprès de PawaPay si le webhook n'a pas encore été traité.
  */
 
 'use client';
@@ -74,7 +74,7 @@ function PaymentSuccessContent() {
       setLoading(true);
       setError(null);
 
-      // Premiere tentative : appeler directement le check FeexPay pour forcer la synchro
+      // Premiere tentative : appeler directement le check PawaPay pour forcer la synchro
       if (attempt === 0) {
         try {
           const checkResponse = await fetch(`/api/payment/check/${ref_command}`, {
@@ -82,7 +82,7 @@ function PaymentSuccessContent() {
           });
           const checkData = await checkResponse.json();
           if (checkData.success && checkData.payment?.status === 'completed') {
-            // Paiement confirmé par FeexPay, charger les détails complets
+            // Paiement confirmé par PawaPay, charger les détails complets
             const statusResponse = await fetch(`/api/payment/status/${ref_command}`);
             const statusData = await statusResponse.json();
             if (statusData.success && statusData.payment?.status === 'completed') {
@@ -102,7 +102,7 @@ function PaymentSuccessContent() {
             }
           }
         } catch (checkErr) {
-          console.error('FeexPay check error:', checkErr);
+          console.error('PawaPay check error:', checkErr);
         }
       }
 
@@ -166,7 +166,7 @@ function PaymentSuccessContent() {
   }, []);
 
   useEffect(() => {
-    // La référence peut venir de l'URL (?ref_command / ?ref) ou du sessionStorage.
+    // PawaPay redirige avec paymentId, paymentStatus et ref_command dans l'URL
     const refFromUrl = searchParams.get('ref_command') || searchParams.get('ref');
     const refFromStorage = sessionStorage.getItem('payment_ref');
     const ref_command = refFromUrl || refFromStorage;

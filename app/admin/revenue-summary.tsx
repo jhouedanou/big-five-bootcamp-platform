@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Wallet, TrendingUp, TrendingDown, ArrowRight, RefreshCw, CircleDot } from 'lucide-react'
 
 // Map currency → ISO country code (for flag emoji) + label.
-// FeexPay returns ISO 4217 currency codes; we display a recognisable hint.
+// PawaPay returns ISO 4217 currency codes; we display a recognisable hint.
 const CURRENCY_META: Record<string, { flag: string; label: string }> = {
   XOF: { flag: '🌍', label: 'UEMOA' },
   XAF: { flag: '🌍', label: 'CEMAC' },
@@ -111,8 +111,8 @@ export function RevenueSummary() {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Wallet className="w-5 h-5 text-emerald-600" />
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-            Revenus & solde FeexPay
+          <h2 className="text-lg font-semibold text-foreground dark:text-white">
+            Revenus & solde PawaPay
           </h2>
         </div>
         <div className="flex items-center gap-2">
@@ -120,7 +120,7 @@ export function RevenueSummary() {
             type="button"
             onClick={load}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg bg-white dark:bg-card border border-slate-200 hover:bg-slate-50 disabled:opacity-50"
           >
             <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
             Actualiser
@@ -165,12 +165,12 @@ export function RevenueSummary() {
                       <Wallet className="h-4 w-4" />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-slate-900 dark:text-white leading-tight">
+                      <p className="text-sm font-semibold text-foreground dark:text-white leading-tight">
                         Solde disponible
                       </p>
                       <p className="text-[10px] text-emerald-700 font-medium flex items-center gap-1">
                         <CircleDot className="w-2.5 h-2.5 animate-pulse" />
-                        {data?.balances ? 'Live FeexPay' : 'Local (encaissé − reversé)'}
+                        {data?.balances ? 'Live PawaPay' : 'Local (encaissé − reversé)'}
                       </p>
                     </div>
                   </div>
@@ -180,7 +180,7 @@ export function RevenueSummary() {
                   const entries = Object.entries(liveByCurrency)
                   if (entries.length === 0) {
                     return (
-                      <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                      <p className="text-2xl font-bold text-foreground dark:text-white">
                         {fmt(totals.available_balance, primaryCurrency)}
                       </p>
                     )
@@ -215,8 +215,8 @@ export function RevenueSummary() {
                         )
                       })}
                       {zero.length > 0 && (
-                        <details className="text-[10px] text-slate-400">
-                          <summary className="cursor-pointer hover:text-slate-600 select-none px-2 py-1">
+                        <details className="text-[10px] text-slate-400 dark:text-slate-500 dark:text-slate-400">
+                          <summary className="cursor-pointer hover:text-slate-600 dark:text-slate-300 select-none px-2 py-1">
                             {zero.length} wallet{zero.length > 1 ? 's' : ''} à 0
                           </summary>
                           <div className="mt-1 flex flex-wrap gap-1 px-2">
@@ -225,7 +225,7 @@ export function RevenueSummary() {
                               return (
                                 <span
                                   key={cur}
-                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 text-slate-500"
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400"
                                 >
                                   <span>{meta.flag}</span>
                                   <span className="font-medium">{cur}</span>
@@ -249,10 +249,10 @@ export function RevenueSummary() {
                   </div>
                   <TrendingUp className="w-4 h-4 text-emerald-500" />
                 </div>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                <p className="text-2xl font-bold text-foreground dark:text-white">
                   {fmt(totals.total_collected, primaryCurrency)}
                 </p>
-                <p className="text-sm font-medium text-slate-900 dark:text-white mt-1">
+                <p className="text-sm font-medium text-foreground dark:text-white mt-1">
                   Total encaissé
                 </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -268,10 +268,10 @@ export function RevenueSummary() {
                     <TrendingDown className="h-5 w-5" />
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                <p className="text-2xl font-bold text-foreground dark:text-white">
                   {fmt(totals.total_paid_out, primaryCurrency)}
                 </p>
-                <p className="text-sm font-medium text-slate-900 dark:text-white mt-1">
+                <p className="text-sm font-medium text-foreground dark:text-white mt-1">
                   Total reversé
                 </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -287,10 +287,10 @@ export function RevenueSummary() {
                     <TrendingUp className="h-5 w-5" />
                   </div>
                 </div>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                <p className="text-2xl font-bold text-foreground dark:text-white">
                   {currencies.length || 1}
                 </p>
-                <p className="text-sm font-medium text-slate-900 dark:text-white mt-1">
+                <p className="text-sm font-medium text-foreground dark:text-white mt-1">
                   Devises actives
                 </p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -303,16 +303,16 @@ export function RevenueSummary() {
           {data?.balances && data.balances.length > 0 && (
             <Card className="mt-4 border-0 bg-white dark:bg-slate-800/50">
               <CardContent className="p-4">
-                <p className="text-xs uppercase tracking-wide text-slate-500 font-medium mb-3">
+                <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium mb-3">
                   Solde par wallet (live)
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                   {data.balances.map((b, i) => (
                     <div key={`${b.country}-${b.provider}-${i}`} className="text-sm">
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
                         {b.country} · {b.provider}
                       </p>
-                      <p className="font-semibold text-slate-900 dark:text-white">
+                      <p className="font-semibold text-foreground dark:text-white">
                         {fmt(Number(b.balance), b.currency)}
                       </p>
                     </div>

@@ -15,6 +15,24 @@ export const CHARIOW_CONFIG = {
 };
 
 /**
+ * Résout le product_id Chariow pour un couple (plan, billing).
+ * Lit `CHARIOW_PRODUCT_<PLAN>_<BILLING>` (ex: CHARIOW_PRODUCT_PRO_ANNUAL).
+ * Retombe sur `CHARIOW_PRODUCT_ID` si la variable spécifique est absente.
+ */
+export function getProductId(
+  plan: string | null | undefined,
+  billing: 'monthly' | 'annual' | string | null | undefined,
+): string {
+  const planKey = String(plan || '').toUpperCase().trim();
+  const billingKey = String(billing || '').toLowerCase().trim() === 'annual' ? 'ANNUAL' : 'MONTHLY';
+  if (planKey === 'DISCOVERY' || planKey === 'BASIC' || planKey === 'PRO') {
+    const value = process.env[`CHARIOW_PRODUCT_${planKey}_${billingKey}`];
+    if (value) return value;
+  }
+  return CHARIOW_CONFIG.PRODUCT_ID;
+}
+
+/**
  * Construit l'URL de checkout Chariow pour un produit donné.
  * `refCommand` est passé en metadata pour être renvoyé dans le webhook.
  * Ajuster pattern URL quand Chariow fournit la spec officielle.

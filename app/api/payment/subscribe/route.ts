@@ -316,6 +316,7 @@ export async function POST(request: NextRequest) {
     const paymentInsert = {
       user_email: userEmail,
       amount: SUBSCRIPTION_PRICE,
+      final_amount: SUBSCRIPTION_PRICE,
       currency,
       status: 'pending',
       payment_method: 'chariow',

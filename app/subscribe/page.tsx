@@ -717,9 +717,100 @@ export default function SubscribePage() {
           </ul>
         </div>
           </div>
-          {/* === COLONNE DROITE : Carrousel vendeur (visuel + perks dynamiques) === */}
-          <aside className="md:sticky md:top-6 md:self-start">
+          {/* === COLONNE DROITE : Carrousel vendeur + carte de paiement compacte === */}
+          <aside className="md:sticky md:top-6 md:self-start space-y-4">
             <SubscribeCampaignsCarousel plan={selectedPlan} />
+
+            {/* Carte de paiement compacte (inspirée du checkout Moneroo) */}
+            <div className="rounded-2xl border border-[#F5F5F5] bg-white p-5 shadow-sm">
+              <p className="text-xs font-medium text-[#0F0F0F]/50">Total à payer</p>
+              <p className="mt-0.5 text-3xl font-bold text-[#0F0F0F]">
+                {finalAmountFormatted} <span className="text-lg font-semibold text-[#0F0F0F]/60">XOF</span>
+              </p>
+              <p className="mt-1 text-xs text-[#0F0F0F]/50">
+                {plan.name} · {isAnnual ? 'Annuel' : 'Mensuel'}
+                {appliedPromo ? ` · +${appliedPromo.bonusDurationLabel} ${appliedPromo.bonusPlanLabel} offerts` : ''}
+              </p>
+
+              <div className="mt-4 space-y-3">
+                <div>
+                  <label htmlFor="country" className="mb-1 block text-xs font-medium text-[#0F0F0F]/70">
+                    Votre pays
+                  </label>
+                  <select
+                    id="country"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm text-[#0F0F0F]"
+                  >
+                    <option value="CIV">🇨🇮 Côte d&apos;Ivoire</option>
+                    <option value="SEN">🇸🇳 Sénégal</option>
+                    <option value="BFA">🇧🇫 Burkina Faso</option>
+                    <option value="BEN">🇧🇯 Bénin</option>
+                    <option value="MLI">🇲🇱 Mali</option>
+                    <option value="TGO">🇹🇬 Togo</option>
+                    <option value="CMR">🇨🇲 Cameroun</option>
+                    <option value="NER">🇳🇪 Niger</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="phone" className="mb-1 block text-xs font-medium text-[#0F0F0F]/70">
+                    Téléphone (mobile money)
+                  </label>
+                  <input
+                    id="phone"
+                    type="tel"
+                    inputMode="numeric"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="07 00 00 00 00"
+                    className="h-10 w-full rounded-lg border border-border bg-white px-3 text-sm text-[#0F0F0F]"
+                  />
+                </div>
+
+                <label htmlFor="terms" className="flex items-start gap-2 text-xs text-[#0F0F0F]/60">
+                  <input
+                    type="checkbox"
+                    id="terms"
+                    checked={acceptTerms}
+                    onChange={(e) => setAcceptTerms(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-border"
+                  />
+                  <span>
+                    {"J'accepte les"}{" "}
+                    <LegalModal
+                      defaultTab="cgv"
+                      trigger={
+                        <button type="button" className="text-[#F2B33D] hover:underline">
+                          CGV et la politique de confidentialité
+                        </button>
+                      }
+                    />
+                  </span>
+                </label>
+
+                <Button
+                  onClick={handlePayment}
+                  disabled={!acceptTerms || isProcessing || phone.replace(/\D/g, '').length < 8}
+                  className="h-11 w-full bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-white font-bold shadow-lg shadow-[#F2B33D]/25"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Redirection...
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="mr-2 h-4 w-4" />
+                      {isDowngradeChoice ? "Programmer" : (isActive ? "Renouveler" : "Payer")}
+                    </>
+                  )}
+                </Button>
+                <p className="text-center text-[10px] text-[#0F0F0F]/40">
+                  Paiement sécurisé · Mobile Money, Wave, carte
+                </p>
+              </div>
+            </div>
           </aside>
         </div>
 
@@ -816,90 +907,6 @@ export default function SubscribePage() {
             </div>
           )}
         </div>
-
-        {/* Coordonnées de paiement — préremplissage du checkout Chariow/Moneroo */}
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="country" className="mb-1 block text-sm font-medium text-[#0F0F0F]">
-              Pays
-            </label>
-            <select
-              id="country"
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
-              className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm text-[#0F0F0F]"
-            >
-              <option value="CIV">Côte d&apos;Ivoire</option>
-              <option value="SEN">Sénégal</option>
-              <option value="BFA">Burkina Faso</option>
-              <option value="BEN">Bénin</option>
-              <option value="MLI">Mali</option>
-              <option value="TGO">Togo</option>
-              <option value="CMR">Cameroun</option>
-              <option value="NER">Niger</option>
-            </select>
-          </div>
-          <div>
-            <label htmlFor="phone" className="mb-1 block text-sm font-medium text-[#0F0F0F]">
-              Téléphone (mobile money)
-            </label>
-            <input
-              id="phone"
-              type="tel"
-              inputMode="numeric"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="07 00 00 00 00"
-              className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm text-[#0F0F0F]"
-            />
-          </div>
-        </div>
-
-        {/* Terms */}
-        <div className="mt-6 flex items-start gap-2">
-          <input
-            type="checkbox"
-            id="terms"
-            checked={acceptTerms}
-            onChange={(e) => setAcceptTerms(e.target.checked)}
-            className="mt-1 h-4 w-4 rounded border-border"
-          />
-          <label htmlFor="terms" className="text-sm text-[#0F0F0F]/60">
-            {"J'accepte les"}{" "}
-            <LegalModal
-              defaultTab="cgv"
-              trigger={
-                <button
-                  type="button"
-                  className="text-[#F2B33D] hover:underline"
-                >
-                  CGV et la politique de confidentialité
-                </button>
-              }
-            />
-          </label>
-        </div>
-
-        {/* CTA */}
-        <Button
-          onClick={handlePayment}
-          disabled={!acceptTerms || isProcessing || phone.replace(/\D/g, '').length < 8}
-          className="mt-6 h-12 w-full shadow-lg shadow-[#F2B33D]/25 bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-white font-bold text-base"
-        >
-          {isProcessing ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Redirection en cours...
-            </>
-          ) : (
-            <>
-              <Lock className="mr-2 h-4 w-4" />
-              {isDowngradeChoice
-                ? "Programmer le changement"
-                : (isActive ? "Renouveler" : "Payer")}{" "}— {finalAmountFormatted} XOF
-            </>
-          )}
-        </Button>
 
         {/* Recap */}
         <div className="mt-6 rounded-xl border border-[#F5F5F5] bg-white p-4">

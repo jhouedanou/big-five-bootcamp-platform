@@ -319,6 +319,7 @@ export async function POST(request: NextRequest) {
       currency,
       status: 'pending',
       payment_method: 'chariow',
+      client_phone: phoneDigits,
       ref_command,
       metadata: {
         type: 'subscription',
@@ -431,11 +432,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Mémorise le sale_id Chariow pour retrouver le paiement au webhook.
+    // Mémorise le sale_id Chariow pour retrouver le paiement au webhook
+    // et l'afficher dans l'admin (provider_transaction_id).
     if (chariowSaleId) {
       await (supabaseAdmin as any)
         .from('payments')
         .update({
+          provider_transaction_id: chariowSaleId,
           metadata: { ...((payment as any).metadata || {}), chariow_sale_id: chariowSaleId },
         })
         .eq('id', (payment as any).id);

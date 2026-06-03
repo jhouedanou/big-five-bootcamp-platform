@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     if (refCommand) {
       const { data } = await (supabaseAdmin as any)
         .from('payments')
-        .select('id, status, metadata, user_email, amount, currency, ref_command')
+        .select('id, status, metadata, user_email, amount, currency, ref_command, provider_transaction_id')
         .eq('ref_command', refCommand)
         .maybeSingle();
       payment = data;
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     if (!payment && saleId) {
       const { data } = await (supabaseAdmin as any)
         .from('payments')
-        .select('id, status, metadata, user_email, amount, currency, ref_command')
+        .select('id, status, metadata, user_email, amount, currency, ref_command, provider_transaction_id')
         .eq('metadata->>chariow_sale_id', saleId)
         .maybeSingle();
       payment = data;
@@ -120,12 +120,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Extraction tolérante d'un éventuel motif d'échec (selon payload Chariow/Moneroo).
+    const failureCode: string | null =
+      payload?.failure_code ||
+      payload?.error_code ||
+      verifiedData?.payment?.failure_code ||
+      verifiedData?.failure_code ||
+      null;
+    const failureMessage: string | null =
+      payload?.failure_message ||
+      payload?.message ||
+      verifiedData?.payment?.failure_message ||
+      verifiedData?.failure_reason ||
+      null;
+
     // 3. Update paiement
     const { error: updateError } = await (supabaseAdmin as any)
       .from('payments')
       .update({
         status: verifiedStatus,
         completed_at: verifiedStatus === 'completed' ? new Date().toISOString() : undefined,
+        provider_transaction_id: saleId || payment.provider_transaction_id,
+        failure_code: verifiedStatus === 'failed' ? failureCode : null,
+        failure_message: verifiedStatus === 'failed' ? failureMessage : null,
         ipn_data: { payload, verified: verifiedData } as any,
         metadata: {
           ...(payment.metadata || {}),

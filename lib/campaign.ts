@@ -114,6 +114,104 @@ export function isCampaignPublicActive(
   return true
 }
 
+/**
+ * Résultat de l'évaluation de la campagne pour un nouveau compte au moment de
+ * l'inscription : campagne ouverte ou non, durée Basic offerte, et date de fin
+ * calculée (null hors campagne).
+ */
+export interface CampaignSignupApplication {
+  active: boolean
+  days: number
+  endDate: Date | null
+}
+
+/**
+ * Évalue la campagne LAVEIYE pour un nouveau compte. Lit la config depuis
+ * `site_settings` (best-effort : une erreur de lecture est journalisée et
+ * traitée comme campagne inactive) et calcule la date de fin de gratuité.
+ * Partagé par `/api/auth/register` et `ensureUserProfile` (auth/callback) pour
+ * garder le comportement cohérent.
+ */
+export async function resolveCampaignSignup(
+  supabase: SupabaseClient,
+  now: Date = new Date()
+): Promise<CampaignSignupApplication> {
+  let active = false
+  let days = CAMPAIGN_DEFAULT_FREE_DAYS
+  try {
+    const campaign = await getCampaignSettings(supabase)
+    active = isCampaignPublicActive(campaign, now)
+    days = campaign.freeDays
+  } catch (campaignErr) {
+    console.error('Campaign settings read error:', campaignErr)
+  }
+  const endDate = active
+    ? new Date(now.getTime() + days * 24 * 60 * 60 * 1000)
+    : null
+  return { active, days, endDate }
+}
+
+/**
+ * Construit les champs d'abonnement à écrire dans `users` lors de la création du
+ * compte. En campagne active : Basic gratuit avec dates de début/fin ; sinon
+ * aucun plan par défaut (souscription payante requise).
+ */
+export function buildCampaignSubscriptionFields(
+  application: CampaignSignupApplication,
+  now: Date = new Date()
+): Record<string, unknown> {
+  if (!application.active || !application.endDate) {
+    return { plan: null, subscription_status: 'none' }
+  }
+  return {
+    plan: 'Basic',
+    subscription_status: 'active',
+    subscription_start_date: now.toISOString(),
+    subscription_end_date: application.endDate.toISOString(),
+  }
+}
+
+/**
+ * Écrit la ligne d'audit `payments` (montant 0) tracant l'octroi du Basic
+ * gratuit campagne. Best-effort : tout échec est journalisé mais n'est jamais
+ * propagé, afin de ne pas coupler la création du compte à cet effet de bord.
+ */
+export async function recordCampaignSignupAudit(
+  supabase: SupabaseClient,
+  params: {
+    userId: string
+    userEmail: string
+    days: number
+    now: Date
+    source: 'registration' | 'auth_callback'
+  }
+): Promise<void> {
+  try {
+    const { error } = await supabase.from('payments').insert({
+      ref_command: `campaign-laveiye-reg-${params.userId}-${params.now.getTime()}`,
+      amount: 0,
+      currency: 'XOF',
+      status: 'completed',
+      payment_method: 'campaign_free',
+      user_email: params.userEmail,
+      item_name: `Campagne LAVEIYE — Basic gratuit ${params.days}j`,
+      metadata: {
+        type: 'campaign_laveiye_free',
+        campaign: 'laveiye_2026',
+        days: params.days,
+        source: params.source,
+      },
+      created_at: params.now.toISOString(),
+      completed_at: params.now.toISOString(),
+    })
+    if (error) {
+      console.error('Campaign signup audit insert error:', error)
+    }
+  } catch (auditErr) {
+    console.error('Campaign signup audit insert error:', auditErr)
+  }
+}
+
 export interface ActivateExistingResult {
   activated: number
   skipped: number

@@ -81,9 +81,18 @@ export async function getCampaignSettings(
   }
 }
 
+// Détecte une date au format seul "YYYY-MM-DD" (sans composante horaire).
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/
+
 /**
  * La campagne est-elle ouverte au public à l'instant `now` ?
  * Vrai si : activée ET (pas de date de début OU début passé) ET (pas de fin OU fin future).
+ *
+ * Pour une `endDate` au format jour seul ("YYYY-MM-DD"), la campagne reste
+ * ouverte jusqu'à la fin de cette journée (23:59:59.999) — cohérent avec
+ * l'aperçu admin qui traite la date de fin comme inclusive. Sans ce traitement,
+ * `new Date("YYYY-MM-DD")` est interprété à minuit UTC et fermerait la campagne
+ * un jour trop tôt.
  */
 export function isCampaignPublicActive(
   settings: CampaignSettings,
@@ -95,8 +104,11 @@ export function isCampaignPublicActive(
     if (!Number.isNaN(start.getTime()) && now < start) return false
   }
   if (settings.endDate) {
-    const end = new Date(settings.endDate)
-    if (!Number.isNaN(end.getTime()) && now >= end) return false
+    const endRaw = DATE_ONLY_RE.test(settings.endDate.trim())
+      ? `${settings.endDate.trim()}T23:59:59.999Z`
+      : settings.endDate
+    const end = new Date(endRaw)
+    if (!Number.isNaN(end.getTime()) && now > end) return false
   }
   return true
 }

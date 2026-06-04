@@ -56,7 +56,7 @@ export function CampaignSettingsCard() {
     if (!enabled) return false
     const now = new Date()
     if (startDate && now < new Date(startDate)) return false
-    if (endDate && now >= new Date(endDate + "T23:59:59")) return false
+    if (endDate && now > new Date(endDate + "T23:59:59.999Z")) return false
     return true
   })()
 

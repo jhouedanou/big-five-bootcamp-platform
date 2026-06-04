@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { EmailOtpType } from '@supabase/supabase-js'
 import { getSupabaseAdmin } from '@/lib/supabase-server'
+import { getCampaignSettings, isCampaignPublicActive } from '@/lib/campaign'
 
 export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url)
@@ -99,17 +100,59 @@ async function ensureUserProfile(user: { id: string; email?: string | null; user
             .single()
 
         if (!existing) {
-            // Nouveau compte : aucun plan par defaut. L'utilisateur doit souscrire a
-            // Decouverte / Basic / Pro avant d'acceder a la plateforme.
+            // Nouveau compte créé via ce chemin (ex. confirmation d'email après un
+            // upsert d'inscription échoué, ou OAuth/magic link). On applique la même
+            // logique campagne LAVEIYE que /api/auth/register : si la campagne est
+            // ouverte au public maintenant, le compte reçoit Basic gratuit ; sinon
+            // aucun plan par défaut (souscription Découverte/Basic/Pro requise).
+            const now = new Date()
+            let campaignActive = false
+            let campaignDays = 0
+            try {
+                const campaign = await getCampaignSettings(admin)
+                campaignActive = isCampaignPublicActive(campaign, now)
+                campaignDays = campaign.freeDays
+            } catch (campaignErr) {
+                console.error('Campaign settings read error (auth/callback):', campaignErr)
+            }
+            const campaignEndDate = campaignActive
+                ? new Date(now.getTime() + campaignDays * 24 * 60 * 60 * 1000)
+                : null
+
             await admin.from('users').upsert({
                 id: user.id,
                 email: user.email,
                 name: user.user_metadata?.name || user.email.split('@')[0],
                 role: 'user',
-                plan: null,
+                plan: campaignActive ? 'Basic' : null,
                 status: 'active',
-                subscription_status: 'none',
+                subscription_status: campaignActive ? 'active' : 'none',
+                ...(campaignActive && {
+                    subscription_start_date: now.toISOString(),
+                    subscription_end_date: campaignEndDate!.toISOString(),
+                }),
             }, { onConflict: 'id' })
+
+            // Trace d'audit campagne (montant 0), alignée sur /api/auth/register.
+            if (campaignActive) {
+                await admin.from('payments').insert({
+                    ref_command: `campaign-laveiye-reg-${user.id}-${now.getTime()}`,
+                    amount: 0,
+                    currency: 'XOF',
+                    status: 'completed',
+                    payment_method: 'campaign_free',
+                    user_email: user.email,
+                    item_name: `Campagne LAVEIYE — Basic gratuit ${campaignDays}j`,
+                    metadata: {
+                        type: 'campaign_laveiye_free',
+                        campaign: 'laveiye_2026',
+                        days: campaignDays,
+                        source: 'auth_callback',
+                    },
+                    created_at: now.toISOString(),
+                    completed_at: now.toISOString(),
+                })
+            }
         }
     } catch (e) {
         console.error('Auto-profile creation error:', e)

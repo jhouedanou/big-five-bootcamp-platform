@@ -1,9 +1,9 @@
 /**
  * Utilitaires pour la gestion des vidéos multi-plateforme
- * Supporte: YouTube, Facebook, LinkedIn, Twitter/X, Instagram, TikTok
+ * Supporte: YouTube, Facebook, LinkedIn, Twitter/X, Instagram, TikTok, Google Drive
  */
 
-export type VideoPlatform = "youtube" | "facebook" | "linkedin" | "twitter" | "instagram" | "tiktok" | "unknown";
+export type VideoPlatform = "youtube" | "facebook" | "linkedin" | "twitter" | "instagram" | "tiktok" | "drive" | "unknown";
 
 export interface VideoInfo {
   platform: VideoPlatform;
@@ -26,8 +26,36 @@ export function detectVideoPlatform(url: string): VideoPlatform {
   if (u.includes("tiktok.com")) return "tiktok";
   if (u.includes("linkedin.com")) return "linkedin";
   if (u.includes("twitter.com") || u.includes("x.com") || u.includes("t.co")) return "twitter";
+  if (u.includes("drive.google.com")) return "drive";
 
   return "unknown";
+}
+
+/**
+ * Extrait l'ID de fichier d'un lien Google Drive.
+ * Formats supportés :
+ * - drive.google.com/file/d/FILE_ID/view
+ * - drive.google.com/open?id=FILE_ID
+ * - drive.google.com/uc?id=FILE_ID (ou ?export=...&id=FILE_ID)
+ */
+export function extractGoogleDriveFileId(url: string): string {
+  if (!url) return "";
+  const fileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (fileMatch) return fileMatch[1];
+  const openMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+  if (openMatch) return openMatch[1];
+  const ucMatch = url.match(/drive\.google\.com\/uc\?(?:[^&]*&)*id=([a-zA-Z0-9_-]+)/);
+  if (ucMatch) return ucMatch[1];
+  return "";
+}
+
+/**
+ * Construit l'URL d'embed Google Drive (/preview, intégrable en iframe).
+ * Ne garantit PAS que le fichier est public — voir lib/media-validation.
+ */
+export function getGoogleDriveEmbedUrl(url: string): string {
+  const id = extractGoogleDriveFileId(url);
+  return id ? `https://drive.google.com/file/d/${id}/preview` : url;
 }
 
 /**
@@ -236,6 +264,9 @@ export function getEmbedUrl(url: string): string {
     case "linkedin": {
       return getLinkedInEmbedUrl(originalUrl) || originalUrl;
     }
+    case "drive": {
+      return getGoogleDriveEmbedUrl(originalUrl);
+    }
     default:
       return originalUrl;
   }
@@ -262,6 +293,8 @@ export function isEmbeddableVideoUrl(url: string): boolean {
       return !!extractTikTokId(originalUrl);
     case "linkedin":
       return !!getLinkedInEmbedUrl(originalUrl);
+    case "drive":
+      return !!extractGoogleDriveFileId(originalUrl);
     default:
       return false;
   }
@@ -332,6 +365,11 @@ export function parseVideoUrl(url: string): VideoInfo {
       embedUrl = originalUrl;
       thumbnailUrl = null;
       break;
+    case "drive":
+      videoId = extractGoogleDriveFileId(originalUrl);
+      embedUrl = videoId ? `https://drive.google.com/file/d/${videoId}/preview` : originalUrl;
+      thumbnailUrl = null;
+      break;
   }
 
   return {
@@ -368,6 +406,7 @@ export function platformLabelToVideoPlatform(
   if (l.includes("tiktok")) return "tiktok";
   if (l.includes("linkedin")) return "linkedin";
   if (l.includes("twitter") || l === "x" || l.includes("x.com")) return "twitter";
+  if (l.includes("drive") || l.includes("google drive")) return "drive";
   return "unknown";
 }
 
@@ -399,6 +438,7 @@ export function getVideoPlatformLabel(platform: VideoPlatform): string {
     tiktok: "TikTok",
     linkedin: "LinkedIn",
     twitter: "Twitter/X",
+    drive: "Google Drive",
     unknown: "Vidéo",
   };
   return labels[platform];

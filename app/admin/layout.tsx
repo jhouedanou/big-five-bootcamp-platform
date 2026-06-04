@@ -25,6 +25,7 @@ import {
   Building2,
   CalendarHeart,
   Wallet,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -34,6 +35,7 @@ import Image from "next/image";
 const sidebarLinks = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, description: "Vue d'ensemble" },
   { href: "/admin/campaigns", label: "Campagnes", icon: Megaphone, description: "Gérer le contenu" },
+  { href: "/admin/bulk-editor", label: "Éditeur en masse", icon: Layers, description: "Images, vidéos & métadonnées" },
   { href: "/admin/temps-forts", label: "Temps forts", icon: CalendarHeart, description: "Événements & campagnes" },
   { href: "/admin/users", label: "Utilisateurs", icon: Users, description: "Gérer les accès" },
   { href: "/admin/brand-requests", label: "Veille concurrentielle", icon: Building2, description: "Demandes de veille" },

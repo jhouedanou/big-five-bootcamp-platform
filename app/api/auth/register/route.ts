@@ -4,6 +4,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { createClient } from '@supabase/supabase-js'
 import { isDisposableEmail } from '@/lib/disposable-emails'
+import { getCampaignSettings, isCampaignPublicActive, CAMPAIGN_DEFAULT_FREE_DAYS } from '@/lib/campaign'
 
 // Liste des codes pays acceptés à l'inscription. Doit rester aligné avec
 // `PHONE_COUNTRIES` dans `components/phone-input.tsx`.
@@ -220,9 +221,26 @@ export async function POST(request: Request) {
     }
 
     // Créer le profil dans la table users via service role (bypass RLS).
-    // Aucun plan par défaut : le choix d'un plan PAYANT (Découverte / Basic / Pro)
-    // est obligatoire pour accéder à la plateforme.
+    // En dehors d'une campagne active, aucun plan par défaut : le choix d'un plan PAYANT
+    // (Découverte / Basic / Pro) est obligatoire pour accéder à la plateforme.
+    // La campagne est pilotée depuis l'admin (site_settings) et s'ouvre/ferme
+    // automatiquement selon les dates — aucune variable d'env requise.
     const supabaseAdmin = getSupabaseAdmin()
+    const nowTs = new Date()
+
+    let campaignActive = false
+    let campaignDays = CAMPAIGN_DEFAULT_FREE_DAYS
+    try {
+      const campaign = await getCampaignSettings(supabaseAdmin)
+      campaignActive = isCampaignPublicActive(campaign, nowTs)
+      campaignDays = campaign.freeDays
+    } catch (campaignErr) {
+      console.error('Campaign settings read error:', campaignErr)
+    }
+    const campaignEndDate = campaignActive
+      ? new Date(nowTs.getTime() + campaignDays * 24 * 60 * 60 * 1000)
+      : null
+
     const { error: profileError } = await supabaseAdmin
       .from('users')
       .upsert({
@@ -230,12 +248,37 @@ export async function POST(request: Request) {
         email,
         name,
         role: 'user',
-        plan: null,
+        plan: campaignActive ? 'Basic' : null,
         status: 'active',
-        subscription_status: 'none',
+        subscription_status: campaignActive ? 'active' : 'none',
+        ...(campaignActive && {
+          subscription_start_date: nowTs.toISOString(),
+          subscription_end_date: campaignEndDate!.toISOString(),
+        }),
         phone_country: phoneCountry,
         phone_e164: phoneE164,
       }, { onConflict: 'id' })
+
+    // Trace d'audit campagne
+    if (campaignActive && !profileError) {
+      await supabaseAdmin.from('payments').insert({
+        ref_command: `campaign-laveiye-reg-${signUpData.user.id}-${nowTs.getTime()}`,
+        amount: 0,
+        currency: 'XOF',
+        status: 'completed',
+        payment_method: 'campaign_free',
+        user_email: email,
+        item_name: `Campagne LAVEIYE — Basic gratuit ${campaignDays}j`,
+        metadata: {
+          type: 'campaign_laveiye_free',
+          campaign: 'laveiye_2026',
+          days: campaignDays,
+          source: 'registration',
+        },
+        created_at: nowTs.toISOString(),
+        completed_at: nowTs.toISOString(),
+      })
+    }
 
     if (profileError) {
       console.error("Profile creation error:", profileError.message)

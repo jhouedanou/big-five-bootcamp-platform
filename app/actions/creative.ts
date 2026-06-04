@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js"
 import { revalidatePath } from "next/cache"
 import { generateSlug, getGoogleDriveImageUrl } from "@/lib/utils"
 import { getViewerAccess, redactPremiumFields, redactPremiumFieldsList } from "@/lib/content-access"
+import { checkAdmin } from "@/lib/admin-auth"
 
 function getSupabaseAdmin() {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -121,6 +122,9 @@ export async function getDashboardCampaigns() {
 }
 
 export async function createCreative(formData: FormData) {
+    const admin = await checkAdmin()
+    if (!admin) return { success: false, error: "Accès refusé : admin requis" }
+
     const title = formData.get("title") as string
     const platform = formData.get("platform") as string
     const format = formData.get("format") as string
@@ -183,6 +187,9 @@ export async function createCreative(formData: FormData) {
 }
 
 export async function updateCreative(id: string, formData: FormData) {
+    const admin = await checkAdmin()
+    if (!admin) return { success: false, error: "Accès refusé : admin requis" }
+
     const title = formData.get("title") as string
     const platform = formData.get("platform") as string
     const format = formData.get("format") as string
@@ -230,6 +237,9 @@ export async function updateCreative(id: string, formData: FormData) {
 }
 
 export async function deleteCreative(id: string) {
+    const admin = await checkAdmin()
+    if (!admin) return { success: false, error: "Accès refusé : admin requis" }
+
     try {
         const supabase = getSupabaseAdmin()
         const { error } = await supabase
@@ -335,6 +345,9 @@ const VALID_STATUSES = ['Brouillon', 'En attente', 'Publié']
 const VALID_ACCESS_LEVELS = ['free', 'premium']
 
 export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
+    const admin = await checkAdmin()
+    if (!admin) return { success: false, error: "Accès refusé : admin requis" }
+
     const supabase = getSupabaseAdmin()
     const errors: string[] = []
     let imported = 0

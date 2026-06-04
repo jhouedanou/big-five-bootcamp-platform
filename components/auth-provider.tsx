@@ -327,6 +327,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Actions
   const signIn = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    // Best-effort : horodatage dernière connexion + event "login" (KPI actifs).
+    if (!error && data?.session) {
+      fetch("/api/me/login-ping", { method: "POST", keepalive: true }).catch(() => {})
+    }
     return { data, error }
   }, [supabase])
 

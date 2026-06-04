@@ -26,6 +26,8 @@ import {
   CalendarHeart,
   Wallet,
   Webhook,
+  Filter,
+  Video,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -37,12 +39,14 @@ const sidebarLinks = [
   { href: "/admin/campaigns", label: "Campagnes", icon: Megaphone, description: "Gérer le contenu" },
   { href: "/admin/temps-forts", label: "Temps forts", icon: CalendarHeart, description: "Événements & campagnes" },
   { href: "/admin/users", label: "Utilisateurs", icon: Users, description: "Gérer les accès" },
+  { href: "/admin/audience", label: "Segmentation", icon: Filter, description: "Filtres, tags & KPI" },
   { href: "/admin/brand-requests", label: "Veille concurrentielle", icon: Building2, description: "Demandes de veille" },
   { href: "/admin/payments", label: "Paiements", icon: Wallet, description: "Historique & solde" },
   { href: "/admin/chariow", label: "Config Chariow", icon: Webhook, description: "Pulse & produits paiement" },
   { href: "/admin/mailchimp", label: "Mailchimp", icon: Mail, description: "Email marketing" },
   { href: "/admin/keynote", label: "Keynote 21 mai", icon: Megaphone, description: "Inscriptions & codes promo" },
   { href: "/admin/decrypte", label: "#BigFiveDecrypte", icon: Sparkles, description: "Inscriptions session Pro" },
+  { href: "/admin/webinars", label: "Webinaires", icon: Video, description: "Sessions & inscriptions" },
   { href: "/admin/branding", label: "Branding", icon: Palette, description: "Logo et identité" },
   { href: "/admin/settings", label: "Paramètres", icon: Settings, description: "Configuration" },
 ];

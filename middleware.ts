@@ -34,6 +34,7 @@ function shouldNoIndexPath(pathname: string) {
     pathname === '/community' ||
     pathname === '/demo' ||
     pathname.startsWith('/admin') ||
+    pathname.startsWith('/onboarding') ||
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/favorites') ||
     pathname.startsWith('/profile') ||

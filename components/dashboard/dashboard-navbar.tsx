@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { Menu, X, Search, User, LogOut, Settings, CreditCard, Crown, Sparkles, Clock, Users, Heart, MousePointer, Building2, FolderOpen, SlidersHorizontal, ArrowRight, LibraryBig, Flame, Eye } from "lucide-react"
+import { Menu, X, Search, User, LogOut, Settings, CreditCard, Crown, Sparkles, Clock, Users, Heart, MousePointer, Building2, FolderOpen, SlidersHorizontal, ArrowRight, LibraryBig, Flame, Eye, Video } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { useAuthContext } from "@/components/auth-provider"
@@ -292,6 +292,13 @@ export function DashboardNavbar({
             >
               <Eye className="h-3.5 w-3.5" aria-hidden="true" />
               Veille
+            </Link>
+            <Link
+              href="/webinaires"
+              className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground flex items-center gap-1"
+            >
+              <Video className="h-3.5 w-3.5" aria-hidden="true" />
+              Webinaires
             </Link>
           </nav>
         </div>
@@ -745,6 +752,14 @@ export function DashboardNavbar({
             >
               <Flame className="h-4 w-4" aria-hidden="true" />
               Temps forts
+            </Link>
+            <Link
+              href="/webinaires"
+              className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground flex items-center gap-1.5"
+              onClick={() => setIsOpen(false)}
+            >
+              <Video className="h-4 w-4" aria-hidden="true" />
+              Webinaires
             </Link>
             {isPremium && (
               <Link

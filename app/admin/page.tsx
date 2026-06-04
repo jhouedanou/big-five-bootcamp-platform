@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useAdmin } from "./AdminContext";
 import { RevenueSummary } from "./revenue-summary";
+import { AdminStatsBlock } from "@/components/admin/AdminStatsBlock";
 
 export default function AdminDashboardPage() {
   const { campaigns } = useAdmin();
@@ -124,6 +125,9 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* KPI segmentation (campagnes, actifs, marques, pays, abonnés par plan) */}
+      <AdminStatsBlock />
 
       {/* Quick Actions */}
       <div>

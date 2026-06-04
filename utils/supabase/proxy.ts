@@ -89,15 +89,34 @@ export async function updateSession(request: NextRequest) {
     )
 
     // Protected routes - require authentication
-    if ((pathname.startsWith('/dashboard') && !isPublicDashboardPath) ||
+    const isProtectedAppRoute =
+        (pathname.startsWith('/dashboard') && !isPublicDashboardPath) ||
         pathname.startsWith('/favorites') ||
         pathname.startsWith('/profile') ||
-        pathname.startsWith('/subscribe')) {
+        pathname.startsWith('/subscribe')
 
+    if (isProtectedAppRoute) {
         if (!user) {
             const url = request.nextUrl.clone()
             url.pathname = '/login'
             url.searchParams.set('redirect', pathname)
+            return NextResponse.redirect(url)
+        }
+
+        // Onboarding obligatoire : tant que le profil n'est pas complété,
+        // bloquer l'accès aux routes protégées et rediriger vers /onboarding.
+        // (Le client SPA affiche en plus une modal bloquante via
+        //  RequireCompletedProfile pour les navigations sans rechargement.)
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('profile_completed')
+            .eq('user_id', user.id)
+            .maybeSingle()
+
+        if (!profile?.profile_completed) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/onboarding'
+            url.search = ''
             return NextResponse.redirect(url)
         }
     }

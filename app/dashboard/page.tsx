@@ -7,6 +7,9 @@ import Image from "next/image"
 import dynamic from "next/dynamic"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { TempsFortsBanner } from "@/components/temps-forts/temps-forts-banner"
+import { PromoBanner } from "@/components/promo/PromoBanner"
+import { PromoPopup } from "@/components/promo/PromoPopup"
+import { WebinarDashboardBlock } from "@/components/webinars/WebinarDashboardBlock"
 import { TempsFortsPopup } from "@/components/temps-forts/temps-forts-popup"
 import type { DynamicFilterOptions } from "@/components/dashboard/filters-sidebar"
 import { ContentCard, ContentItem } from "@/components/dashboard/content-card"
@@ -1134,8 +1137,15 @@ export default function DashboardPage() {
           searchQuota={searchQuota}
         />
 
+        <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+          <PromoBanner />
+          <div className="mb-2 lg:max-w-sm lg:ml-auto">
+            <WebinarDashboardBlock />
+          </div>
+        </div>
         <TempsFortsBanner />
         <TempsFortsPopup />
+        <PromoPopup />
 
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 

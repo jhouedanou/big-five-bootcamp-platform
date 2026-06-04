@@ -4,7 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { EmailOtpType } from '@supabase/supabase-js'
 import { getSupabaseAdmin } from '@/lib/supabase-server'
-import { getCampaignSettings, isCampaignPublicActive } from '@/lib/campaign'
+import { resolveCampaignSignup, buildCampaignSubscriptionFields, recordCampaignSignupAudit } from '@/lib/campaign'
 
 export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url)
@@ -106,51 +106,25 @@ async function ensureUserProfile(user: { id: string; email?: string | null; user
             // ouverte au public maintenant, le compte reçoit Basic gratuit ; sinon
             // aucun plan par défaut (souscription Découverte/Basic/Pro requise).
             const now = new Date()
-            let campaignActive = false
-            let campaignDays = 0
-            try {
-                const campaign = await getCampaignSettings(admin)
-                campaignActive = isCampaignPublicActive(campaign, now)
-                campaignDays = campaign.freeDays
-            } catch (campaignErr) {
-                console.error('Campaign settings read error (auth/callback):', campaignErr)
-            }
-            const campaignEndDate = campaignActive
-                ? new Date(now.getTime() + campaignDays * 24 * 60 * 60 * 1000)
-                : null
+            const campaign = await resolveCampaignSignup(admin, now)
 
             await admin.from('users').upsert({
                 id: user.id,
                 email: user.email,
                 name: user.user_metadata?.name || user.email.split('@')[0],
                 role: 'user',
-                plan: campaignActive ? 'Basic' : null,
                 status: 'active',
-                subscription_status: campaignActive ? 'active' : 'none',
-                ...(campaignActive && {
-                    subscription_start_date: now.toISOString(),
-                    subscription_end_date: campaignEndDate!.toISOString(),
-                }),
+                ...buildCampaignSubscriptionFields(campaign, now),
             }, { onConflict: 'id' })
 
-            // Trace d'audit campagne (montant 0), alignée sur /api/auth/register.
-            if (campaignActive) {
-                await admin.from('payments').insert({
-                    ref_command: `campaign-laveiye-reg-${user.id}-${now.getTime()}`,
-                    amount: 0,
-                    currency: 'XOF',
-                    status: 'completed',
-                    payment_method: 'campaign_free',
-                    user_email: user.email,
-                    item_name: `Campagne LAVEIYE — Basic gratuit ${campaignDays}j`,
-                    metadata: {
-                        type: 'campaign_laveiye_free',
-                        campaign: 'laveiye_2026',
-                        days: campaignDays,
-                        source: 'auth_callback',
-                    },
-                    created_at: now.toISOString(),
-                    completed_at: now.toISOString(),
+            // Trace d'audit campagne (best-effort, ne bloque pas la création du compte).
+            if (campaign.active) {
+                await recordCampaignSignupAudit(admin, {
+                    userId: user.id,
+                    userEmail: user.email,
+                    days: campaign.days,
+                    now,
+                    source: 'auth_callback',
                 })
             }
         }

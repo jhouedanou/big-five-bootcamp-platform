@@ -4,7 +4,7 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { createClient } from '@supabase/supabase-js'
 import { isDisposableEmail } from '@/lib/disposable-emails'
-import { getCampaignSettings, isCampaignPublicActive, CAMPAIGN_DEFAULT_FREE_DAYS } from '@/lib/campaign'
+import { resolveCampaignSignup, buildCampaignSubscriptionFields, recordCampaignSignupAudit } from '@/lib/campaign'
 
 // Liste des codes pays acceptés à l'inscription. Doit rester aligné avec
 // `PHONE_COUNTRIES` dans `components/phone-input.tsx`.
@@ -228,18 +228,7 @@ export async function POST(request: Request) {
     const supabaseAdmin = getSupabaseAdmin()
     const nowTs = new Date()
 
-    let campaignActive = false
-    let campaignDays = CAMPAIGN_DEFAULT_FREE_DAYS
-    try {
-      const campaign = await getCampaignSettings(supabaseAdmin)
-      campaignActive = isCampaignPublicActive(campaign, nowTs)
-      campaignDays = campaign.freeDays
-    } catch (campaignErr) {
-      console.error('Campaign settings read error:', campaignErr)
-    }
-    const campaignEndDate = campaignActive
-      ? new Date(nowTs.getTime() + campaignDays * 24 * 60 * 60 * 1000)
-      : null
+    const campaign = await resolveCampaignSignup(supabaseAdmin, nowTs)
 
     const { error: profileError } = await supabaseAdmin
       .from('users')
@@ -248,35 +237,20 @@ export async function POST(request: Request) {
         email,
         name,
         role: 'user',
-        plan: campaignActive ? 'Basic' : null,
         status: 'active',
-        subscription_status: campaignActive ? 'active' : 'none',
-        ...(campaignActive && {
-          subscription_start_date: nowTs.toISOString(),
-          subscription_end_date: campaignEndDate!.toISOString(),
-        }),
+        ...buildCampaignSubscriptionFields(campaign, nowTs),
         phone_country: phoneCountry,
         phone_e164: phoneE164,
       }, { onConflict: 'id' })
 
-    // Trace d'audit campagne
-    if (campaignActive && !profileError) {
-      await supabaseAdmin.from('payments').insert({
-        ref_command: `campaign-laveiye-reg-${signUpData.user.id}-${nowTs.getTime()}`,
-        amount: 0,
-        currency: 'XOF',
-        status: 'completed',
-        payment_method: 'campaign_free',
-        user_email: email,
-        item_name: `Campagne LAVEIYE — Basic gratuit ${campaignDays}j`,
-        metadata: {
-          type: 'campaign_laveiye_free',
-          campaign: 'laveiye_2026',
-          days: campaignDays,
-          source: 'registration',
-        },
-        created_at: nowTs.toISOString(),
-        completed_at: nowTs.toISOString(),
+    // Trace d'audit campagne (best-effort, n'affecte pas la création du compte)
+    if (campaign.active && !profileError) {
+      await recordCampaignSignupAudit(supabaseAdmin, {
+        userId: signUpData.user.id,
+        userEmail: email,
+        days: campaign.days,
+        now: nowTs,
+        source: 'registration',
       })
     }
 

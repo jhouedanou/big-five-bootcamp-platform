@@ -104,8 +104,9 @@ export function isCampaignPublicActive(
     if (!Number.isNaN(start.getTime()) && now < start) return false
   }
   if (settings.endDate) {
-    const endRaw = DATE_ONLY_RE.test(settings.endDate.trim())
-      ? `${settings.endDate.trim()}T23:59:59.999Z`
+    const endTrimmed = settings.endDate.trim()
+    const endRaw = DATE_ONLY_RE.test(endTrimmed)
+      ? `${endTrimmed}T23:59:59.999Z`
       : settings.endDate
     const end = new Date(endRaw)
     if (!Number.isNaN(end.getTime()) && now > end) return false

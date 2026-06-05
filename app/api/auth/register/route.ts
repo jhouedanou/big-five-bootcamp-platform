@@ -4,12 +4,23 @@ import { NextResponse } from "next/server"
 import { z } from "zod"
 import { createClient } from '@supabase/supabase-js'
 import { isDisposableEmail } from '@/lib/disposable-emails'
+import { resolveCampaignSignup, buildCampaignSubscriptionFields, recordCampaignSignupAudit } from '@/lib/campaign'
+
+// Liste des codes pays acceptés à l'inscription. Doit rester aligné avec
+// `PHONE_COUNTRIES` dans `components/phone-input.tsx`.
+const PHONE_COUNTRY_CODES = ['CIV', 'SEN', 'BEN', 'CMR', 'BFA', 'TGO', 'MLI', 'FRA'] as const
 
 const registerSchema = z.object({
   name: z.string().min(2, "Le nom doit contenir au moins 2 caractères"),
   email: z.string().email("Email invalide"),
   password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
   website: z.string().optional(),
+  phoneCountry: z.enum(PHONE_COUNTRY_CODES, {
+    errorMap: () => ({ message: "Indicatif pays invalide" }),
+  }),
+  phoneE164: z
+    .string()
+    .regex(/^\+[1-9][0-9]{5,14}$/, "Numéro de téléphone invalide"),
   elapsedMs: z.number().optional(),
 })
 
@@ -64,7 +75,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { name, email, password, website, elapsedMs } = validation.data
+    const { name, email, password, website, phoneCountry, phoneE164, elapsedMs } = validation.data
 
     // Refuser les domaines d'emails jetables / temporaires
     if (isDisposableEmail(email)) {
@@ -210,9 +221,15 @@ export async function POST(request: Request) {
     }
 
     // Créer le profil dans la table users via service role (bypass RLS).
-    // Aucun plan par défaut : le choix d'un plan PAYANT (Découverte / Basic / Pro)
-    // est obligatoire pour accéder à la plateforme.
+    // En dehors d'une campagne active, aucun plan par défaut : le choix d'un plan PAYANT
+    // (Découverte / Basic / Pro) est obligatoire pour accéder à la plateforme.
+    // La campagne est pilotée depuis l'admin (site_settings) et s'ouvre/ferme
+    // automatiquement selon les dates — aucune variable d'env requise.
     const supabaseAdmin = getSupabaseAdmin()
+    const nowTs = new Date()
+
+    const campaign = await resolveCampaignSignup(supabaseAdmin, nowTs)
+
     const { error: profileError } = await supabaseAdmin
       .from('users')
       .upsert({
@@ -220,10 +237,22 @@ export async function POST(request: Request) {
         email,
         name,
         role: 'user',
-        plan: null,
         status: 'active',
-        subscription_status: 'none',
+        ...buildCampaignSubscriptionFields(campaign, nowTs),
+        phone_country: phoneCountry,
+        phone_e164: phoneE164,
       }, { onConflict: 'id' })
+
+    // Trace d'audit campagne (best-effort, n'affecte pas la création du compte)
+    if (campaign.active && !profileError) {
+      await recordCampaignSignupAudit(supabaseAdmin, {
+        userId: signUpData.user.id,
+        userEmail: email,
+        days: campaign.days,
+        now: nowTs,
+        source: 'registration',
+      })
+    }
 
     if (profileError) {
       console.error("Profile creation error:", profileError.message)

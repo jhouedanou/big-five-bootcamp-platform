@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Save, Lock, Eye, EyeOff, Loader2, Mail, ShoppingCart, ExternalLink, AlertTriangle, Send } from "lucide-react";
 import { toast } from "sonner";
 import { parseMaintenanceMode, serializeMaintenanceMode } from "@/lib/maintenance-mode";
+import { CampaignSettingsCard } from "./campaign-settings-card";
 
 const parseBooleanSetting = (value: unknown, fallback: boolean) => {
   if (typeof value === "boolean") return value;
@@ -298,6 +299,9 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid gap-6">
+        {/* Campagne LAVEIYE */}
+        <CampaignSettingsCard />
+
         {/* Password Change */}
         <Card className="bg-white dark:bg-card border-gray-200 shadow-sm">
           <CardHeader>

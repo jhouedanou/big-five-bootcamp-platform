@@ -15,6 +15,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 import { addDays, computeSubscriptionEnd } from '@/lib/subscription';
+import {
+  getCampaignSettings,
+  isCampaignPublicActive,
+  activateExistingUsersBasic,
+} from '@/lib/campaign';
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +39,30 @@ export async function GET(request: NextRequest) {
     }
 
     const now = new Date().toISOString();
+
+    // 0bis. Filet de sécurité campagne LAVEIYE : si la campagne est ouverte
+    //       (activée + dans la fenêtre de dates) et que l'activation one-shot
+    //       des comptes existants n'a jamais tourné, on la déclenche ici.
+    //       Idempotent via `campaign_existing_activated_at`.
+    let campaignActivated = 0;
+    try {
+      const campaign = await getCampaignSettings(supabaseAdmin as any);
+      if (
+        campaign.enabled &&
+        !campaign.existingActivatedAt &&
+        isCampaignPublicActive(campaign, new Date())
+      ) {
+        const res = await activateExistingUsersBasic(
+          supabaseAdmin as any,
+          campaign.freeDays,
+          'cron_auto'
+        );
+        campaignActivated = res.activated;
+        console.log(`✅ Campagne LAVEIYE : ${res.activated} comptes existants activés (cron)`);
+      }
+    } catch (e) {
+      console.error('[cron/check-subscriptions] campaign activation error:', e);
+    }
 
     // 0. Appliquer les downgrades programmés (pending_plan) dont la date
     //    d'activation est passée. À distinguer de l'expiration sèche : ici
@@ -265,6 +294,7 @@ export async function GET(request: NextRequest) {
       downgraded: hasExpired ? expiredUsers.length : 0,
       pending_applied: pendingApplied,
       expiring_reminders_sent: expiringRemindersSent,
+      campaign_existing_activated: campaignActivated,
       users: downgraded,
       checked_at: now,
     });

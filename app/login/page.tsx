@@ -147,7 +147,23 @@ export default function LoginPage() {
       toast.success("Connexion réussie !", {
         description: "Redirection vers votre tableau de bord...",
       })
-      
+
+      // Vérifie immédiatement la limite multi-appareils. Si l'utilisateur
+      // dépasse le quota (cette session étant celle de trop), on l'envoie
+      // sur /auth/device-limit pour libérer une place.
+      try {
+        const res = await fetch('/api/auth/sessions', { cache: 'no-store' })
+        if (res.ok) {
+          const data: { overLimit?: boolean } = await res.json()
+          if (data?.overLimit) {
+            window.location.href = '/auth/device-limit'
+            return
+          }
+        }
+      } catch {
+        // Non bloquant : si le check échoue (réseau), on poursuit vers redirectTo.
+      }
+
       // Forcer le rechargement complet pour que le middleware détecte la session
       window.location.href = redirectTo
     } catch (err) {

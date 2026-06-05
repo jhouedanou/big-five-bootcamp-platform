@@ -35,7 +35,8 @@ import { ImageGallery } from "@/components/ui/lightbox";
 import { getCreativeByIdOrSlug, getRelatedCampaigns } from "@/app/actions/creative";
 import { useFavorites } from "@/hooks/use-favorites";
 import { cn, getGoogleDriveImageUrl, fixBrokenEncoding } from "@/lib/utils";
-import { detectVideoPlatform, getEmbedUrl, getVideoPlatformLabel, getOriginalVideoUrl } from "@/lib/video-utils";
+import { detectVideoPlatform, getEmbedUrl, getVideoPlatformLabel, getOriginalVideoUrl, platformLabelToVideoPlatform } from "@/lib/video-utils";
+import { VideoModal } from "@/components/video-modal";
 import { isPaidPlan, canAccessPremiumContent } from "@/lib/pricing";
 import { useRequireActiveSubscription } from "@/hooks/use-require-active-subscription";
 import { UpgradePopup } from "@/components/upgrade-popup";
@@ -134,6 +135,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
   const { refreshClickCounters, userPlan: contextUserPlan, user: contextUser, loading: contextAuthLoading } = useAuthContext();
   const [isToggling, setIsToggling] = useState(false);
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
+  const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [readProgress, setReadProgress] = useState(0);
   const [activeTab, setActiveTab] = useState<"axe" | "utilisation">("axe");
   const articleRef = useRef<HTMLDivElement>(null);
@@ -978,55 +980,71 @@ export default function ContentDetailClient({ id }: { id: string }) {
             {/* Video player — embed multi-plateforme (affiché dans les 2 tabs si présent) */}
             {content.video_url && (() => {
               const originalVideoUrl = getOriginalVideoUrl(content.video_url);
-              const videoPlatform = detectVideoPlatform(originalVideoUrl);
+              // Priorise la plateforme déclarée de la campagne ; sinon détection URL.
+              const declaredLabel = content.platforms?.find(Boolean) || "";
+              const declaredPlatform = platformLabelToVideoPlatform(declaredLabel);
+              const videoPlatform = declaredPlatform !== "unknown"
+                ? declaredPlatform
+                : detectVideoPlatform(originalVideoUrl);
               const embedUrl = getEmbedUrl(content.video_url);
-              const platformLabel = getVideoPlatformLabel(videoPlatform);
+              const platformLabel = declaredLabel || getVideoPlatformLabel(videoPlatform);
 
-              if (videoPlatform === "linkedin" || videoPlatform === "facebook" || videoPlatform === "instagram") {
+              if (videoPlatform === "linkedin" || videoPlatform === "facebook" || videoPlatform === "instagram" || videoPlatform === "tiktok") {
                 const iconBg = videoPlatform === "linkedin"
                   ? "bg-[#0A66C2]"
                   : videoPlatform === "instagram"
                     ? "bg-gradient-to-br from-[#F2B33D] via-[#F2B33D] to-orange-400"
-                    : "bg-[#1877F2]";
+                    : videoPlatform === "tiktok"
+                      ? "bg-black"
+                      : "bg-[#1877F2]";
 
                 return (
-                  <Card className="overflow-hidden">
-                    <CardContent className="p-0">
-                      <a
-                        href={originalVideoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block relative group"
-                      >
-                        <div className="relative aspect-[9/16] max-h-[500px] w-full overflow-hidden bg-gray-100">
-                          <Image
-                            src={getGoogleDriveImageUrl(content.thumbnail || '') || "/placeholder.jpg"}
-                            alt={content.title}
-                            fill
-                            sizes="(max-width: 1024px) 100vw, 800px"
-                            className="w-full h-full object-contain"
-                          />
-                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
-                            <div className="bg-white/95 rounded-full p-5 shadow-xl group-hover:scale-110 transition-transform">
-                              <Play className="h-10 w-10 text-[#0F0F0F] ml-1" />
+                  <>
+                    <Card className="overflow-hidden">
+                      <CardContent className="p-0">
+                        <button
+                          type="button"
+                          onClick={() => setVideoModalOpen(true)}
+                          className="block w-full text-left relative group"
+                        >
+                          <div className="relative aspect-[9/16] max-h-[500px] w-full overflow-hidden bg-gray-100">
+                            <Image
+                              src={getGoogleDriveImageUrl(content.thumbnail || '') || "/placeholder.jpg"}
+                              alt={content.title}
+                              fill
+                              sizes="(max-width: 1024px) 100vw, 800px"
+                              className="w-full h-full object-contain"
+                            />
+                            <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
+                              <div className="bg-white/95 rounded-full p-5 shadow-xl group-hover:scale-110 transition-transform">
+                                <Play className="h-10 w-10 text-[#0F0F0F] ml-1" />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-6 pt-20">
-                          <div className="flex items-center gap-3">
-                            <div className={`flex h-12 w-12 items-center justify-center rounded-full text-white ${iconBg}`}>
-                              <Play className="h-5 w-5 ml-0.5" />
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent p-6 pt-20">
+                            <div className="flex items-center gap-3">
+                              <div className={`flex h-12 w-12 items-center justify-center rounded-full text-white ${iconBg}`}>
+                                <Play className="h-5 w-5 ml-0.5" />
+                              </div>
+                              <div>
+                                <p className="font-semibold text-white text-lg">Voir la vidéo {platformLabel}</p>
+                                <p className="text-sm text-white/70">Cliquez pour lire ici</p>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-semibold text-white text-lg">Voir la vidéo sur {platformLabel}</p>
-                              <p className="text-sm text-white/70">Cliquez pour ouvrir dans un nouvel onglet</p>
-                            </div>
-                            <ExternalLink className="h-5 w-5 text-white/70 ml-auto" />
                           </div>
-                        </div>
-                      </a>
-                    </CardContent>
-                  </Card>
+                        </button>
+                      </CardContent>
+                    </Card>
+
+                    <VideoModal
+                      open={videoModalOpen}
+                      onOpenChange={setVideoModalOpen}
+                      videoUrl={content.video_url}
+                      platformLabel={declaredLabel}
+                      format={content.format}
+                      title={content.title}
+                    />
+                  </>
                 );
               }
 

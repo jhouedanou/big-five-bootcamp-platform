@@ -3,6 +3,7 @@
 import { createClient } from "@supabase/supabase-js"
 import { revalidatePath } from "next/cache"
 import { checkAdmin } from "@/lib/admin-auth"
+import { getCampaignSettings, activateExistingUsersBasic, CAMPAIGN_KEYS } from "@/lib/campaign"
 
 function getSupabaseAdmin() {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -164,7 +165,7 @@ export async function resetSubscription(
                 : 'Basic'
         }
 
-        const { error } = await supabase
+        const { data: userRow, error: userErr } = await supabase
             .from('users')
             .update({
                 plan: resolvedPlan,
@@ -174,9 +175,29 @@ export async function resetSubscription(
                 updated_at: now.toISOString(),
             })
             .eq('id', userId)
+            .select('email')
+            .single<{ email: string | null }>()
 
-        if (error) throw error
+        if (userErr) throw userErr
+
+        // Audit ligne payments : trace activation manuelle (montant=0).
+        await (supabase as any)
+            .from('payments')
+            .insert({
+                ref_command: `manual-${userId}-${now.getTime()}`,
+                amount: 0,
+                currency: 'XOF',
+                status: 'completed',
+                payment_method: 'manual_admin',
+                user_email: userRow?.email || null,
+                item_name: `Activation manuelle ${resolvedPlan} (${days}j)`,
+                metadata: { type: 'manual_activation', userId, plan: resolvedPlan, days },
+                created_at: now.toISOString(),
+                completed_at: now.toISOString(),
+            })
+
         revalidatePath("/admin/users")
+        revalidatePath("/admin/payments")
         return { success: true }
     } catch (error) {
         console.error('Error resetting subscription:', error)
@@ -421,6 +442,82 @@ export async function bulkCreateUsers(payload: {
         return { success: true, results, summary }
     } catch (error: any) {
         console.error('bulkCreateUsers error:', error)
+        return { success: false, error: error?.message || 'Erreur inconnue' }
+    }
+}
+
+export interface CampaignConfigInput {
+    enabled: boolean
+    startDate: string | null
+    endDate: string | null
+    freeDays: number
+    activateExistingNow?: boolean
+}
+
+/**
+ * Sauvegarde la config campagne (site_settings) ET, si demandé, active
+ * immédiatement les comptes existants (one-shot idempotent). Un seul appel
+ * configure toute la campagne : comptes existants ouverts maintenant,
+ * inscriptions publiques ouvertes/fermées automatiquement selon les dates.
+ */
+export async function saveCampaignConfig(input: CampaignConfigInput) {
+    try {
+        const admin = await checkAdmin()
+        if (!admin) {
+            return { success: false, error: 'Accès refusé : admin requis' }
+        }
+        const supabase = getSupabaseAdmin()
+        const now = new Date()
+        const safeDays = Math.max(1, Math.min(730, Math.floor(input.freeDays || 90)))
+
+        const rows = [
+            { key: CAMPAIGN_KEYS.enabled, value: String(!!input.enabled) },
+            { key: CAMPAIGN_KEYS.startDate, value: input.startDate || '' },
+            { key: CAMPAIGN_KEYS.endDate, value: input.endDate || '' },
+            { key: CAMPAIGN_KEYS.freeDays, value: String(safeDays) },
+        ].map((r) => ({ ...r, updated_at: now.toISOString() }))
+
+        const { error: upsertErr } = await supabase
+            .from('site_settings')
+            .upsert(rows, { onConflict: 'key' })
+        if (upsertErr) throw upsertErr
+
+        let activation: Awaited<ReturnType<typeof activateExistingUsersBasic>> | null = null
+        if (input.enabled && input.activateExistingNow) {
+            const settings = await getCampaignSettings(supabase)
+            if (!settings.existingActivatedAt) {
+                activation = await activateExistingUsersBasic(supabase, safeDays, 'bulk_admin')
+            }
+        }
+
+        revalidatePath('/admin/settings')
+        revalidatePath('/admin/users')
+        revalidatePath('/admin/payments')
+        return { success: true, activation }
+    } catch (error: any) {
+        console.error('saveCampaignConfig error:', error)
+        return { success: false, error: error?.message || 'Erreur inconnue' }
+    }
+}
+
+export async function campaignActivateAllUsers(days?: number) {
+    try {
+        const admin = await checkAdmin()
+        if (!admin) {
+            return { success: false, error: 'Accès refusé : admin requis' }
+        }
+        const supabase = getSupabaseAdmin()
+        // Durée : paramètre explicite > config campagne (site_settings) > défaut.
+        const settings = await getCampaignSettings(supabase)
+        const effectiveDays = typeof days === 'number' && days > 0 ? days : settings.freeDays
+
+        const result = await activateExistingUsersBasic(supabase, effectiveDays, 'bulk_admin')
+
+        revalidatePath('/admin/users')
+        revalidatePath('/admin/payments')
+        return { success: true, ...result }
+    } catch (error: any) {
+        console.error('campaignActivateAllUsers error:', error)
         return { success: false, error: error?.message || 'Erreur inconnue' }
     }
 }

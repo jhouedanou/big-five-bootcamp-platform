@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { EmailOtpType } from '@supabase/supabase-js'
 import { getSupabaseAdmin } from '@/lib/supabase-server'
+import { resolveCampaignSignup, buildCampaignSubscriptionFields, recordCampaignSignupAudit } from '@/lib/campaign'
 
 export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url)
@@ -99,17 +100,33 @@ async function ensureUserProfile(user: { id: string; email?: string | null; user
             .single()
 
         if (!existing) {
-            // Nouveau compte : aucun plan par defaut. L'utilisateur doit souscrire a
-            // Decouverte / Basic / Pro avant d'acceder a la plateforme.
+            // Nouveau compte créé via ce chemin (ex. confirmation d'email après un
+            // upsert d'inscription échoué, ou OAuth/magic link). On applique la même
+            // logique campagne LAVEIYE que /api/auth/register : si la campagne est
+            // ouverte au public maintenant, le compte reçoit Basic gratuit ; sinon
+            // aucun plan par défaut (souscription Découverte/Basic/Pro requise).
+            const now = new Date()
+            const campaign = await resolveCampaignSignup(admin, now)
+
             await admin.from('users').upsert({
                 id: user.id,
                 email: user.email,
                 name: user.user_metadata?.name || user.email.split('@')[0],
                 role: 'user',
-                plan: null,
                 status: 'active',
-                subscription_status: 'none',
+                ...buildCampaignSubscriptionFields(campaign, now),
             }, { onConflict: 'id' })
+
+            // Trace d'audit campagne (best-effort, ne bloque pas la création du compte).
+            if (campaign.active) {
+                await recordCampaignSignupAudit(admin, {
+                    userId: user.id,
+                    userEmail: user.email,
+                    days: campaign.days,
+                    now,
+                    source: 'auth_callback',
+                })
+            }
         }
     } catch (e) {
         console.error('Auto-profile creation error:', e)

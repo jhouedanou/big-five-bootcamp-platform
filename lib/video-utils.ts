@@ -1,9 +1,9 @@
 /**
  * Utilitaires pour la gestion des vidéos multi-plateforme
- * Supporte: YouTube, Facebook, LinkedIn, Twitter/X, Instagram, TikTok
+ * Supporte: YouTube, Facebook, LinkedIn, Twitter/X, Instagram, TikTok, Google Drive
  */
 
-export type VideoPlatform = "youtube" | "facebook" | "linkedin" | "twitter" | "instagram" | "tiktok" | "unknown";
+export type VideoPlatform = "youtube" | "facebook" | "linkedin" | "twitter" | "instagram" | "tiktok" | "drive" | "unknown";
 
 export interface VideoInfo {
   platform: VideoPlatform;
@@ -26,8 +26,36 @@ export function detectVideoPlatform(url: string): VideoPlatform {
   if (u.includes("tiktok.com")) return "tiktok";
   if (u.includes("linkedin.com")) return "linkedin";
   if (u.includes("twitter.com") || u.includes("x.com") || u.includes("t.co")) return "twitter";
+  if (u.includes("drive.google.com")) return "drive";
 
   return "unknown";
+}
+
+/**
+ * Extrait l'ID de fichier d'un lien Google Drive.
+ * Formats supportés :
+ * - drive.google.com/file/d/FILE_ID/view
+ * - drive.google.com/open?id=FILE_ID
+ * - drive.google.com/uc?id=FILE_ID (ou ?export=...&id=FILE_ID)
+ */
+export function extractGoogleDriveFileId(url: string): string {
+  if (!url) return "";
+  const fileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (fileMatch) return fileMatch[1];
+  const openMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+  if (openMatch) return openMatch[1];
+  const ucMatch = url.match(/drive\.google\.com\/uc\?(?:[^&]*&)*id=([a-zA-Z0-9_-]+)/);
+  if (ucMatch) return ucMatch[1];
+  return "";
+}
+
+/**
+ * Construit l'URL d'embed Google Drive (/preview, intégrable en iframe).
+ * Ne garantit PAS que le fichier est public — voir lib/media-validation.
+ */
+export function getGoogleDriveEmbedUrl(url: string): string {
+  const id = extractGoogleDriveFileId(url);
+  return id ? `https://drive.google.com/file/d/${id}/preview` : url;
 }
 
 /**
@@ -157,6 +185,41 @@ export function getOriginalVideoUrl(url: string): string {
 }
 
 /**
+ * Extrait le shortcode d'un post/reel Instagram
+ * Formats: instagram.com/p/CODE, /reel/CODE, /tv/CODE
+ */
+function extractInstagramShortcode(url: string): string {
+  const match = url.match(/instagram\.com\/(?:p|reel|reels|tv)\/([^/?#]+)/);
+  return match ? match[1] : "";
+}
+
+/**
+ * Extrait l'ID d'une vidéo TikTok
+ * Format: tiktok.com/@user/video/VIDEO_ID
+ */
+function extractTikTokId(url: string): string {
+  const match = url.match(/tiktok\.com\/@[^/]+\/video\/(\d+)/);
+  return match ? match[1] : "";
+}
+
+/**
+ * Génère l'URL d'embed LinkedIn à partir d'un post.
+ * LinkedIn n'expose un iframe que pour les URN activity / ugcPost.
+ * Les liens /posts/SLUG ne sont pas intégrables → null (fallback lien).
+ */
+function getLinkedInEmbedUrl(url: string): string | null {
+  const activityMatch = url.match(/urn:li:activity:(\d+)/);
+  if (activityMatch) {
+    return `https://www.linkedin.com/embed/feed/update/urn:li:activity:${activityMatch[1]}`;
+  }
+  const ugcMatch = url.match(/urn:li:ugcPost:(\d+)/);
+  if (ugcMatch) {
+    return `https://www.linkedin.com/embed/feed/update/urn:li:ugcPost:${ugcMatch[1]}`;
+  }
+  return null;
+}
+
+/**
  * Génère l'URL d'embed pour une vidéo.
  * Gère les cas où l'URL est déjà convertie en embed (ne double-encode pas).
  */
@@ -173,13 +236,9 @@ export function getEmbedUrl(url: string): string {
       return id ? `https://www.youtube.com/embed/${id}` : originalUrl;
     }
     case "facebook": {
-      const videoId = extractFacebookVideoId(originalUrl);
-      if (videoId) {
-        // Utiliser le format d'embed direct par ID — plus fiable que plugins/video.php
-        return `https://www.facebook.com/video/embed?video_id=${videoId}`;
-      }
-      // Fallback: plugins/video.php avec l'URL originale
-      return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(originalUrl)}&show_text=false&width=560&appId`;
+      // Embed officiel Facebook : plugins/video.php avec l'URL originale.
+      // video/embed?video_id= n'est pas un endpoint public → iframe blanc.
+      return `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(originalUrl)}&show_text=false&width=560`;
     }
     case "twitter": {
       const tweetId = extractTwitterId(originalUrl);
@@ -188,11 +247,56 @@ export function getEmbedUrl(url: string): string {
       }
       return originalUrl;
     }
-    case "linkedin": {
+    case "instagram": {
+      const shortcode = extractInstagramShortcode(originalUrl);
+      if (shortcode) {
+        return `https://www.instagram.com/p/${shortcode}/embed`;
+      }
       return originalUrl;
+    }
+    case "tiktok": {
+      const id = extractTikTokId(originalUrl);
+      if (id) {
+        return `https://www.tiktok.com/embed/v2/${id}`;
+      }
+      return originalUrl;
+    }
+    case "linkedin": {
+      return getLinkedInEmbedUrl(originalUrl) || originalUrl;
+    }
+    case "drive": {
+      return getGoogleDriveEmbedUrl(originalUrl);
     }
     default:
       return originalUrl;
+  }
+}
+
+/**
+ * Indique si une URL vidéo peut être intégrée dans un iframe (embed fiable).
+ * Sert à décider d'afficher l'iframe ou le fallback (lien + icône) dans la modale.
+ */
+export function isEmbeddableVideoUrl(url: string): boolean {
+  if (!url) return false;
+  const originalUrl = getOriginalVideoUrl(url);
+  const platform = detectVideoPlatform(originalUrl);
+  switch (platform) {
+    case "youtube":
+      return !!extractYouTubeId(originalUrl);
+    case "facebook":
+      return true; // plugins/video.php gère le fallback href
+    case "twitter":
+      return !!extractTwitterId(originalUrl);
+    case "instagram":
+      return !!extractInstagramShortcode(originalUrl);
+    case "tiktok":
+      return !!extractTikTokId(originalUrl);
+    case "linkedin":
+      return !!getLinkedInEmbedUrl(originalUrl);
+    case "drive":
+      return !!extractGoogleDriveFileId(originalUrl);
+    default:
+      return false;
   }
 }
 
@@ -203,7 +307,20 @@ export function getYouTubeThumbnail(url: string): string | null {
   const originalUrl = getOriginalVideoUrl(url);
   const id = extractYouTubeId(originalUrl);
   if (!id) return null;
-  return `https://img.youtube.com/vi/${id}/maxresdefault.jpg`;
+  // hqdefault existe toujours (maxresdefault renvoie souvent 404 → image cassée)
+  return `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+}
+
+/**
+ * Récupère une thumbnail vidéo si possible (actuellement seul YouTube expose
+ * une thumbnail fiable sans appel API authentifié). Facebook/Instagram/TikTok
+ * nécessitent leur oEmbed/Graph API → null ici, le composant affiche un
+ * placeholder (icône vidéo). Aucun appel réseau n'est fait, donc pas de 429.
+ */
+export function getVideoThumbnail(url: string): string | null {
+  const platform = detectVideoPlatform(getOriginalVideoUrl(url));
+  if (platform === "youtube") return getYouTubeThumbnail(url);
+  return null;
 }
 
 /**
@@ -221,15 +338,11 @@ export function parseVideoUrl(url: string): VideoInfo {
     case "youtube":
       videoId = extractYouTubeId(originalUrl);
       embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}` : originalUrl;
-      thumbnailUrl = videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : null;
+      thumbnailUrl = videoId ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg` : null;
       break;
     case "facebook":
       videoId = extractFacebookVideoId(originalUrl);
-      if (videoId) {
-        embedUrl = `https://www.facebook.com/video/embed?video_id=${videoId}`;
-      } else {
-        embedUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(originalUrl)}&show_text=false&width=560&appId`;
-      }
+      embedUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(originalUrl)}&show_text=false&width=560`;
       thumbnailUrl = null;
       break;
     case "twitter":
@@ -237,9 +350,24 @@ export function parseVideoUrl(url: string): VideoInfo {
       embedUrl = videoId ? `https://platform.twitter.com/embed/Tweet.html?id=${videoId}` : originalUrl;
       thumbnailUrl = null;
       break;
+    case "instagram":
+      videoId = extractInstagramShortcode(originalUrl);
+      embedUrl = videoId ? `https://www.instagram.com/p/${videoId}/embed` : originalUrl;
+      thumbnailUrl = null;
+      break;
+    case "tiktok":
+      videoId = extractTikTokId(originalUrl);
+      embedUrl = videoId ? `https://www.tiktok.com/embed/v2/${videoId}` : originalUrl;
+      thumbnailUrl = null;
+      break;
     case "linkedin":
       videoId = extractLinkedInId(originalUrl);
       embedUrl = originalUrl;
+      thumbnailUrl = null;
+      break;
+    case "drive":
+      videoId = extractGoogleDriveFileId(originalUrl);
+      embedUrl = videoId ? `https://drive.google.com/file/d/${videoId}/preview` : originalUrl;
       thumbnailUrl = null;
       break;
   }
@@ -262,6 +390,44 @@ export function isSupportedVideoUrl(url: string): boolean {
 }
 
 /**
+ * Mappe un libellé de plateforme déclarée sur la campagne (ex. "Instagram",
+ * "Twitter/X") vers la VideoPlatform correspondante. Utilisé pour prioriser la
+ * plateforme réelle de la campagne plutôt qu'une détection depuis l'URL.
+ * Retourne "unknown" si aucun mapping ne correspond.
+ */
+export function platformLabelToVideoPlatform(
+  label: string | null | undefined,
+): VideoPlatform {
+  if (!label) return "unknown";
+  const l = label.toLowerCase();
+  if (l.includes("youtube")) return "youtube";
+  if (l.includes("facebook")) return "facebook";
+  if (l.includes("instagram")) return "instagram";
+  if (l.includes("tiktok")) return "tiktok";
+  if (l.includes("linkedin")) return "linkedin";
+  if (l.includes("twitter") || l === "x" || l.includes("x.com")) return "twitter";
+  if (l.includes("drive") || l.includes("google drive")) return "drive";
+  return "unknown";
+}
+
+/**
+ * Détermine l'orientation d'affichage d'une vidéo (portrait vs paysage) à
+ * partir du format déclaré et de la plateforme. Sert à adapter le ratio de
+ * l'iframe : 9/16 pour les contenus verticaux (Reels, Stories, TikTok,
+ * Shorts), 16/9 sinon.
+ */
+export function getVideoOrientation(
+  platformLabel: string | null | undefined,
+  format?: string | null,
+): "portrait" | "landscape" {
+  const f = (format || "").toLowerCase();
+  if (/(story|reel|short|vertical|portrait)/.test(f)) return "portrait";
+  const p = platformLabelToVideoPlatform(platformLabel);
+  if (p === "tiktok" || p === "instagram") return "portrait";
+  return "landscape";
+}
+
+/**
  * Retourne le label humain de la plateforme vidéo
  */
 export function getVideoPlatformLabel(platform: VideoPlatform): string {
@@ -272,6 +438,7 @@ export function getVideoPlatformLabel(platform: VideoPlatform): string {
     tiktok: "TikTok",
     linkedin: "LinkedIn",
     twitter: "Twitter/X",
+    drive: "Google Drive",
     unknown: "Vidéo",
   };
   return labels[platform];

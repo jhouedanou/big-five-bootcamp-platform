@@ -45,6 +45,7 @@ export const viewport: Viewport = {
 }
 
 import { Providers } from "@/components/providers"
+import { TawkTo } from "@/components/tawk-to"
 
 export default function RootLayout({
   children,
@@ -90,6 +91,8 @@ export default function RootLayout({
             gtag('config', '${GA_ID}');
           `}
         </Script>
+        {/* Tawk.to live chat — hidden on /admin routes */}
+        <TawkTo />
       </body>
     </html>
   )

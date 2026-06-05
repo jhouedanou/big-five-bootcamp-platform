@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic"
 import { getUsers, getPayments, getFavoritesCounts } from "@/app/actions/user"
 import { UsersTable } from "./users-table"
 import { BulkAddUsersDialog } from "./bulk-add-dialog"
+import { CampaignActivateDialog } from "./campaign-activate-dialog"
 
 export default async function UsersPage() {
   const [usersResult, paymentsResult, favoritesResult] = await Promise.all([
@@ -37,7 +38,10 @@ export default async function UsersPage() {
             Gérez l&apos;accès des utilisateurs. Cliquez sur une ligne pour voir les détails de paiement.
           </p>
         </div>
-        <BulkAddUsersDialog />
+        <div className="flex gap-2">
+            <CampaignActivateDialog />
+            <BulkAddUsersDialog />
+          </div>
       </div>
 
       <UsersTable

@@ -51,6 +51,7 @@ import {
   Star,
   ExternalLink,
   ArrowLeft,
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -63,11 +64,12 @@ import { toast } from "sonner";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import { CSVImporter } from "@/components/admin/csv-importer";
-import { cn, getGoogleDriveImageUrl, generateSlug } from "@/lib/utils";
+import { cn, getGoogleDriveImageUrl, generateSlug, isEphemeralGoogleImageUrl, isGoogleDriveHostedUrl } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
-import { detectVideoPlatform, getEmbedUrl, isSupportedVideoUrl, getYouTubeThumbnail, getVideoPlatformLabel, getOriginalVideoUrl } from "@/lib/video-utils";
+import { detectVideoPlatform, getEmbedUrl, isSupportedVideoUrl, getYouTubeThumbnail, getVideoPlatformLabel, getOriginalVideoUrl, isEmbeddableVideoUrl, platformLabelToVideoPlatform } from "@/lib/video-utils";
 import { ImageUpload, ImageUploadButton } from "@/components/ui/image-upload";
 import { useTempsForts } from "@/components/temps-forts/use-temps-forts";
+import { VideoModal } from "@/components/video-modal";
 
 const FALLBACK_PLATFORMS = ["Facebook", "Instagram", "TikTok", "YouTube", "LinkedIn", "Twitter/X"];
 const countries = ["Bénin", "Côte d'Ivoire", "Sénégal", "Burkina Faso", "Togo", "Guinée"];
@@ -146,6 +148,8 @@ function CampaignsPageContent() {
   const searchParams = useSearchParams();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterSector, setFilterSector] = useState<string>("all");
+  const [filterPlatform, setFilterPlatform] = useState<string>("all");
+  const [filterMedia, setFilterMedia] = useState<"all" | "video" | "image">("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<ContentItem | null>(null);
   const [formData, setFormData] = useState<Omit<ContentItem, "id">>(defaultFormData);
@@ -153,6 +157,7 @@ function CampaignsPageContent() {
   const [imageInput, setImageInput] = useState("");
   const [previewCampaign, setPreviewCampaign] = useState<ContentItem | null>(null);
   const [previewImageIndex, setPreviewImageIndex] = useState(0);
+  const [videoCampaign, setVideoCampaign] = useState<ContentItem | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -222,9 +227,13 @@ function CampaignsPageContent() {
       (item.brand || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       (item.agency || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSector = filterSector === "all" || item.sector === filterSector;
+    const matchesPlatform = filterPlatform === "all" || item.platform === filterPlatform;
     const tempsFortFilter = searchParams.get("temps_fort");
     const matchesTempsFort = !tempsFortFilter || (item.tempsFortSlugs || []).includes(tempsFortFilter);
-    return matchesSearch && matchesSector && matchesTempsFort;
+    const matchesMedia =
+      filterMedia === "all" ||
+      (filterMedia === "video" ? !!item.isVideo : !item.isVideo);
+    return matchesSearch && matchesSector && matchesPlatform && matchesTempsFort && matchesMedia;
   });
 
   const totalPages = Math.ceil(filteredCampaigns.length / ITEMS_PER_PAGE);
@@ -291,7 +300,14 @@ function CampaignsPageContent() {
 
   const handleAddImage = () => {
     const url = imageInput.trim();
-    if (url && !(formData.images || []).includes(url)) {
+    if (!url) return;
+    if (isEphemeralGoogleImageUrl(url)) {
+      toast.error("Lien Google temporaire détecté", {
+        description: "Cette URL expire (erreur 403). Uploadez l'image directement.",
+      });
+      return;
+    }
+    if (!(formData.images || []).includes(url)) {
       setFormData({ ...formData, images: [...(formData.images || []), url] });
       setImageInput("");
     }
@@ -491,6 +507,27 @@ function CampaignsPageContent() {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={filterPlatform} onValueChange={(v) => { setFilterPlatform(v); setCurrentPage(1); }}>
+              <SelectTrigger className="w-full sm:w-[180px] bg-white dark:bg-card border-gray-300 text-foreground">
+                <SelectValue placeholder="Filtrer par plateforme" />
+              </SelectTrigger>
+              <SelectContent className="bg-white dark:bg-card border-gray-200 text-foreground">
+                <SelectItem value="all">Toutes les plateformes</SelectItem>
+                <SelectItem value="Facebook">Facebook</SelectItem>
+                <SelectItem value="Instagram">Instagram</SelectItem>
+                <SelectItem value="Twitter/X">X</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterMedia} onValueChange={(v) => { setFilterMedia(v as "all" | "video" | "image"); setCurrentPage(1); }}>
+              <SelectTrigger className="w-full sm:w-[160px] bg-white dark:bg-card border-gray-300 text-foreground">
+                <SelectValue placeholder="Type de média" />
+              </SelectTrigger>
+              <SelectContent className="bg-white dark:bg-card border-gray-200 text-foreground">
+                <SelectItem value="all">Tous</SelectItem>
+                <SelectItem value="image">Images</SelectItem>
+                <SelectItem value="video">Vidéos</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
@@ -561,21 +598,40 @@ function CampaignsPageContent() {
                         onCheckedChange={() => toggleSelect(item.id)}
                       />
                     </div>
-                    {/* Thumbnail */}
-                    <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0 border border-gray-200">
-                      {item.imageUrl ? (
+                    {/* Thumbnail compacte */}
+                    <div className="relative w-16 h-16 flex-shrink-0 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                      {item.imageUrl && isGoogleDriveHostedUrl(item.imageUrl) ? (
+                        // URL Google Drive : on NE charge PAS l'image (Google bloque le
+                        // hotlinking en masse → 403/429). On affiche un avertissement.
+                        <div
+                          className="flex h-full w-full flex-col items-center justify-center gap-1 bg-amber-50 dark:bg-amber-950/30 p-1 text-center"
+                          title="Google Drive bloque l'accès à cette image. Ré-uploadez-la directement."
+                        >
+                          <AlertTriangle className="h-4 w-4 text-amber-500" />
+                          <span className="text-[9px] leading-tight text-amber-600 dark:text-amber-400">
+                            Drive bloqué
+                          </span>
+                        </div>
+                      ) : item.imageUrl ? (
                         <img
-                          src={getGoogleDriveImageUrl(item.imageUrl)}
+                          src={item.imageUrl}
                           alt={item.title}
-                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "/placeholder.svg";
+                          }}
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Megaphone className="h-6 w-6 text-[#FF6B35]" />
+                        <div className="flex h-full w-full items-center justify-center text-gray-400">
+                          {item.isVideo ? (
+                            <Video className="h-5 w-5" />
+                          ) : (
+                            <Image className="h-5 w-5" />
+                          )}
                         </div>
                       )}
                     </div>
-
                     <div className="flex-1 min-w-0">
                       <h3 className="text-foreground font-medium truncate">{item.title}</h3>
                       <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5 truncate">
@@ -583,6 +639,15 @@ function CampaignsPageContent() {
                         {item.agency && <span> - {item.agency}</span>}
                       </p>
                       <div className="flex flex-wrap gap-2 mt-2">
+                        {/* Avertissement image Google Drive bloquée */}
+                        {item.imageUrl && isGoogleDriveHostedUrl(item.imageUrl) && (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
+                            title="Google Drive bloque l'accès aux images chargées en masse. Ré-uploadez l'image directement (bouton upload) pour qu'elle s'affiche dans la bibliothèque."
+                          >
+                            <AlertTriangle className="h-3 w-3" /> Image Drive bloquée — ré-uploadez
+                          </span>
+                        )}
                         {/* Badge de statut */}
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
                           item.status === "Publié" ? "bg-green-100 text-green-700" :
@@ -662,6 +727,15 @@ function CampaignsPageContent() {
                         <Eye className="h-4 w-4 mr-2" />
                         Apercu
                       </DropdownMenuItem>
+                      {item.isVideo && item.videoUrl && (
+                        <DropdownMenuItem
+                          onClick={() => setVideoCampaign(item)}
+                          className="hover:bg-gray-100 dark:bg-gray-800 cursor-pointer text-[#FF6B35]"
+                        >
+                          <Video className="h-4 w-4 mr-2" />
+                          Voir la vidéo
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem
                         onClick={() => window.open(`/content/${item.slug || item.id}`, '_blank')}
                         className="hover:bg-gray-100 dark:bg-gray-800 cursor-pointer"
@@ -764,6 +838,16 @@ function CampaignsPageContent() {
           </div>
         </div>
       )}
+
+      {/* Video Modal — lecture in-app, ratio adapté au format, nouvel onglet si refusé */}
+      <VideoModal
+        open={!!videoCampaign}
+        onOpenChange={(open) => { if (!open) setVideoCampaign(null); }}
+        videoUrl={videoCampaign?.videoUrl || ""}
+        platformLabel={videoCampaign?.platform}
+        format={videoCampaign?.format}
+        title={videoCampaign?.title || ""}
+      />
 
       {/* Preview Dialog */}
       <Dialog open={!!previewCampaign} onOpenChange={() => { setPreviewCampaign(null); setPreviewImageIndex(0); }}>

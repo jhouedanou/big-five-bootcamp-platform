@@ -20,6 +20,7 @@ import {
   COUNTRY_ISO,
   CHARIOW_CONFIG,
 } from "@/lib/chariow"
+import { isSupportedIso2 } from "@/lib/payment-countries"
 import { addDays, computeSubscriptionEnd } from "@/lib/subscription"
 import { promoIsLive, type PromoCampaign } from "@/lib/promo"
 import { safeErrorMessage } from "@/lib/api-errors"
@@ -57,8 +58,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Pays + téléphone requis pour préremplir Chariow → Moneroo.
+    // Le checkout envoie désormais un code ISO-2 (combobox Chariow). On valide
+    // qu'il fait partie des pays supportés ; rétro-compatible ISO-3 via COUNTRY_ISO.
     const countryKey = String(country || "").toUpperCase().trim()
-    const countryIso = COUNTRY_ISO[countryKey]
+    const countryIso = isSupportedIso2(countryKey)
+      ? countryKey
+      : COUNTRY_ISO[countryKey]
     const phoneDigits = String(phone || "").replace(/\D/g, "")
     if (!countryIso) {
       return NextResponse.json({ error: "Pays invalide ou non supporté." }, { status: 400 })

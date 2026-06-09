@@ -1,33 +1,28 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useSearchParams } from "next/navigation"
 import { toast } from "sonner"
-import { Loader2, Check, Sparkles } from "lucide-react"
+import { Loader2, Check, Sparkles, ChevronsUpDown, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Countdown } from "@/components/promo/Countdown"
 import { trackEvent, trackGA4 } from "@/lib/analytics"
 import { cn } from "@/lib/utils"
 import type { PromoOffer } from "@/lib/promo"
 
-const COUNTRIES = [
-  { code: "CIV", label: "Côte d'Ivoire" },
-  { code: "SEN", label: "Sénégal" },
-  { code: "BFA", label: "Burkina Faso" },
-  { code: "BEN", label: "Bénin" },
-  { code: "MLI", label: "Mali" },
-  { code: "TGO", label: "Togo" },
-  { code: "CMR", label: "Cameroun" },
-  { code: "NER", label: "Niger" },
-]
+interface PaymentCountry {
+  code: string
+  name: string
+}
+
+/** Drapeau emoji depuis un code ISO-2 (indicateurs régionaux Unicode). */
+function flagEmoji(code: string): string {
+  const cc = code.toUpperCase()
+  if (!/^[A-Z]{2}$/.test(cc)) return ""
+  return String.fromCodePoint(...[...cc].map((c) => 127397 + c.charCodeAt(0)))
+}
 
 interface NormalOffer {
   plan: string
@@ -59,9 +54,27 @@ export function CheckoutClient() {
   const [error, setError] = useState(false)
 
   const [selection, setSelection] = useState<string | null>(null)
-  const [country, setCountry] = useState("")
+  const [country, setCountry] = useState("") // code ISO-2
   const [phone, setPhone] = useState("")
   const [submitting, setSubmitting] = useState(false)
+
+  const [countries, setCountries] = useState<PaymentCountry[]>([])
+
+  // Pays supportés par Moneroo (dédupliqués côté serveur), avec repli statique.
+  useEffect(() => {
+    let alive = true
+    fetch("/api/payment-countries", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d: { countries?: PaymentCountry[] }) => {
+        if (alive && Array.isArray(d.countries)) setCountries(d.countries)
+      })
+      .catch(() => {
+        /* repli silencieux : la liste reste vide, le combobox affiche un message */
+      })
+    return () => {
+      alive = false
+    }
+  }, [])
 
   useEffect(() => {
     let alive = true
@@ -238,14 +251,7 @@ export function CheckoutClient() {
       <section className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-neutral-900">Pays</label>
-          <Select value={country} onValueChange={setCountry}>
-            <SelectTrigger><SelectValue placeholder="Sélectionnez votre pays" /></SelectTrigger>
-            <SelectContent>
-              {COUNTRIES.map((c) => (
-                <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <CountryCombobox countries={countries} value={country} onChange={setCountry} />
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-neutral-900">Téléphone (Mobile Money)</label>
@@ -290,6 +296,106 @@ export function CheckoutClient() {
         </Button>
       </section>
     </div>
+  )
+}
+
+function CountryCombobox({
+  countries,
+  value,
+  onChange,
+}: {
+  countries: PaymentCountry[]
+  value: string
+  onChange: (code: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState("")
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const selected = useMemo(
+    () => countries.find((c) => c.code === value) || null,
+    [countries, value]
+  )
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return countries
+    return countries.filter(
+      (c) => c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)
+    )
+  }, [countries, query])
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(o) => {
+        setOpen(o)
+        if (o) setTimeout(() => inputRef.current?.focus(), 0)
+        else setQuery("")
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          role="combobox"
+          aria-expanded={open}
+          className="flex h-10 w-full items-center justify-between rounded-md border border-neutral-200 bg-white px-3 text-sm text-neutral-900 ring-offset-background focus:outline-none focus:ring-2 focus:ring-[#F2B33D]/40"
+        >
+          {selected ? (
+            <span className="flex items-center gap-2">
+              <span aria-hidden>{flagEmoji(selected.code)}</span>
+              {selected.name}
+            </span>
+          ) : (
+            <span className="text-neutral-400">Sélectionnez votre pays</span>
+          )}
+          <ChevronsUpDown className="size-4 shrink-0 text-neutral-400" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <div className="flex items-center gap-2 border-b border-neutral-100 px-3">
+          <Search className="size-4 text-neutral-400" />
+          <Input
+            ref={inputRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Rechercher un pays…"
+            className="h-10 border-0 px-0 shadow-none focus-visible:ring-0"
+          />
+        </div>
+        <div className="max-h-64 overflow-y-auto p-1">
+          {countries.length === 0 ? (
+            <p className="px-3 py-6 text-center text-sm text-neutral-400">
+              Chargement des pays…
+            </p>
+          ) : filtered.length === 0 ? (
+            <p className="px-3 py-6 text-center text-sm text-neutral-400">
+              Aucun pays trouvé.
+            </p>
+          ) : (
+            filtered.map((c) => (
+              <button
+                key={c.code}
+                type="button"
+                onClick={() => {
+                  onChange(c.code)
+                  setOpen(false)
+                  setQuery("")
+                }}
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm hover:bg-neutral-100",
+                  c.code === value && "bg-neutral-50 font-medium"
+                )}
+              >
+                <span aria-hidden>{flagEmoji(c.code)}</span>
+                <span className="flex-1">{c.name}</span>
+                {c.code === value && <Check className="size-4 text-[#F2B33D]" />}
+              </button>
+            ))
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   )
 }
 

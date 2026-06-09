@@ -59,6 +59,7 @@
     "country-flag-icons": "^1.6.15",
     "date-fns": "^4.1.0",
     "embla-carousel-react": "8.5.1",
+    "i18n-iso-countries": "^7.14.0",
     "input-otp": "1.4.1",
     "isomorphic-dompurify": "^3.13.0",
     "lucide-react": "^0.454.0",

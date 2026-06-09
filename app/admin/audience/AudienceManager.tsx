@@ -9,6 +9,7 @@ import {
   Tag as TagIcon,
   Loader2,
   ChevronDown,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -81,13 +82,23 @@ function fmtDate(value: string | null) {
   }
 }
 
-function TagBadge({ tag }: { tag: TagSummary }) {
+function TagBadge({ tag, onRemove }: { tag: TagSummary; onRemove?: () => void }) {
   return (
     <span
-      className="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium text-white"
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium text-white"
       style={{ backgroundColor: tag.color }}
     >
       {tag.name}
+      {onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          aria-label={`Retirer le tag ${tag.name}`}
+          className="-mr-0.5 ml-0.5 rounded-full p-0.5 transition-colors hover:bg-black/20"
+        >
+          <X className="size-3" />
+        </button>
+      )}
     </span>
   )
 }
@@ -301,6 +312,37 @@ export function AudienceManager() {
     }
   }
 
+  // --- retrait d'un tag assigné à un utilisateur (mise à jour optimiste) ---
+  async function removeTagFromUser(userId: string, tag: TagSummary) {
+    if (!window.confirm(`Retirer le tag « ${tag.name} » de cet utilisateur ?`)) return
+
+    // Mise à jour optimiste : on retire le tag de la ligne immédiatement.
+    const prevRows = rows
+    setRows((rs) =>
+      rs.map((r) =>
+        r.id === userId ? { ...r, tags: r.tags.filter((t) => t.id !== tag.id) } : r
+      )
+    )
+
+    try {
+      const res = await fetch(
+        `/api/admin/users/${userId}/tags?tag_id=${encodeURIComponent(tag.id)}`,
+        { method: "DELETE" }
+      )
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        setRows(prevRows) // rollback
+        toast.error(d?.error ?? "Suppression impossible.")
+        return
+      }
+      trackGA4("admin_tag_removed", { target_user_id: userId, tag_id: tag.id })
+      toast.success("Tag retiré.")
+    } catch {
+      setRows(prevRows) // rollback
+      toast.error("Erreur réseau.")
+    }
+  }
+
   // --- création de tag ---
   async function createTag() {
     const name = newTagName.trim()
@@ -364,71 +406,92 @@ export function AudienceManager() {
 
         <div className={cn("p-4 pt-0 lg:block lg:pt-4", showFilters ? "block" : "hidden")}>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Input
-              placeholder="Nom, email, téléphone…"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-            />
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] text-slate-500">Recherche</label>
+              <Input
+                placeholder="Nom, email, téléphone…"
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+              />
+            </div>
 
-            <Select value={filters.country ?? ALL} onValueChange={(v) => setFilter("country", v)}>
-              <SelectTrigger><SelectValue placeholder="Pays" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>Tous les pays</SelectItem>
-                {COUNTRIES.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] text-slate-500">Pays</label>
+              <Select value={filters.country ?? ALL} onValueChange={(v) => setFilter("country", v)}>
+                <SelectTrigger><SelectValue placeholder="Tous les pays" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>Tous les pays</SelectItem>
+                  {COUNTRIES.map((c) => (
+                    <SelectItem key={c} value={c}>{c}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select value={filters.subscription_plan ?? ALL} onValueChange={(v) => setFilter("subscription_plan", v)}>
-              <SelectTrigger><SelectValue placeholder="Plan d'abonnement" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>Tous les plans</SelectItem>
-                {SUBSCRIPTION_PLAN_OPTIONS.map((p) => (
-                  <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] text-slate-500">Plan</label>
+              <Select value={filters.subscription_plan ?? ALL} onValueChange={(v) => setFilter("subscription_plan", v)}>
+                <SelectTrigger><SelectValue placeholder="Tous les plans" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>Tous les plans</SelectItem>
+                  {SUBSCRIPTION_PLAN_OPTIONS.map((p) => (
+                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select value={filters.access_type ?? ALL} onValueChange={(v) => setFilter("access_type", v)}>
-              <SelectTrigger><SelectValue placeholder="Type d'accès" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>Tous les accès</SelectItem>
-                {ACCESS_TYPE_OPTIONS.map((a) => (
-                  <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] text-slate-500">Accès</label>
+              <Select value={filters.access_type ?? ALL} onValueChange={(v) => setFilter("access_type", v)}>
+                <SelectTrigger><SelectValue placeholder="Tous les accès" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>Tous les accès</SelectItem>
+                  {ACCESS_TYPE_OPTIONS.map((a) => (
+                    <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select value={filters.subscription_status ?? ALL} onValueChange={(v) => setFilter("subscription_status", v)}>
-              <SelectTrigger><SelectValue placeholder="Statut d'abonnement" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>Tous les statuts</SelectItem>
-                {SUBSCRIPTION_STATUS_OPTIONS.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] text-slate-500">Statut</label>
+              <Select value={filters.subscription_status ?? ALL} onValueChange={(v) => setFilter("subscription_status", v)}>
+                <SelectTrigger><SelectValue placeholder="Tous les statuts" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>Tous les statuts</SelectItem>
+                  {SUBSCRIPTION_STATUS_OPTIONS.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select value={filters.activity_status ?? ALL} onValueChange={(v) => setFilter("activity_status", v)}>
-              <SelectTrigger><SelectValue placeholder="Statut d'activité" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>Toute activité</SelectItem>
-                {ACTIVITY_STATUS_OPTIONS.map((s) => (
-                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] text-slate-500">Activité</label>
+              <Select value={filters.activity_status ?? ALL} onValueChange={(v) => setFilter("activity_status", v)}>
+                <SelectTrigger><SelectValue placeholder="Toute activité" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>Toute activité</SelectItem>
+                  {ACTIVITY_STATUS_OPTIONS.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Select value={filters.tag ?? ALL} onValueChange={(v) => setFilter("tag", v)}>
-              <SelectTrigger><SelectValue placeholder="Tag" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>Tous les tags</SelectItem>
-                {tags.map((t) => (
-                  <SelectItem key={t.id} value={t.slug}>{t.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] text-slate-500">Tags</label>
+              <Select value={filters.tag ?? ALL} onValueChange={(v) => setFilter("tag", v)}>
+                <SelectTrigger><SelectValue placeholder="Tous les tags" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>Tous les tags</SelectItem>
+                  {tags.map((t) => (
+                    <SelectItem key={t.id} value={t.slug}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             <div className="flex flex-col gap-1">
               <label className="text-[11px] text-slate-500">Inscrit depuis</label>
@@ -567,7 +630,9 @@ export function AudienceManager() {
                     <div className="flex flex-wrap gap-1">
                       {u.tags.length === 0
                         ? <span className="text-slate-400">—</span>
-                        : u.tags.map((t) => <TagBadge key={t.id} tag={t} />)}
+                        : u.tags.map((t) => (
+                            <TagBadge key={t.id} tag={t} onRemove={() => removeTagFromUser(u.id, t)} />
+                          ))}
                     </div>
                   </td>
                   <td className="p-3">

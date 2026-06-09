@@ -55,3 +55,53 @@ export async function POST(
 
   return NextResponse.json({ success: true, applied: rows.length })
 }
+
+const deleteSchema = z.object({
+  tag_id: z.string().uuid(),
+})
+
+/**
+ * DELETE /api/admin/users/:id/tags
+ * Retire UN tag assigné à un utilisateur (admin only).
+ * Supprime uniquement la relation dans `user_tags` — jamais le tag lui-même.
+ * tag_id passé en query (?tag_id=) ou dans le corps JSON.
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const admin = await checkAdmin()
+  if (!admin) return NextResponse.json({ error: "Accès refusé" }, { status: 403 })
+
+  const { id: userId } = await params
+
+  const queryTagId = request.nextUrl.searchParams.get("tag_id")
+  const json = queryTagId ? { tag_id: queryTagId } : await request.json().catch(() => null)
+  const parsed = deleteSchema.safeParse(json)
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Données invalides" }, { status: 400 })
+  }
+
+  const supabase = getSupabaseAdmin()
+  const { error, count } = await supabase
+    .from("user_tags")
+    .delete({ count: "exact" })
+    .eq("user_id", userId)
+    .eq("tag_id", parsed.data.tag_id)
+
+  if (error) {
+    return NextResponse.json(
+      { error: "Suppression impossible", details: safeErrorMessage(error) },
+      { status: 500 }
+    )
+  }
+
+  await supabase.from("analytics_events").insert({
+    user_id: admin.id,
+    event_name: "admin_tag_removed",
+    source: "admin",
+    metadata: { target_user_id: userId, tag_id: parsed.data.tag_id },
+  })
+
+  return NextResponse.json({ success: true, removed: count ?? 0 })
+}

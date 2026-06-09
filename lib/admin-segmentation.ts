@@ -39,8 +39,24 @@ export function activityStatusLabel(s: ActivityStatus): string {
 }
 
 /**
- * Calcule le statut d'activité depuis last_activity_at (réf) ou last_login_at.
- * Seuils : ≤7j actif récent, 8–30j actif, 31–59j inactif, ≥60j dormant.
+ * Calcule le statut d'activité d'un compte.
+ *
+ * CRITÈRE OFFICIEL « compte dormant » (validé QA, juin 2026) :
+ *   un compte est DORMANT après ≥ 60 jours sans activité.
+ *
+ * Champ de référence : `last_activity_at` (dernière activité réelle) ; à défaut
+ * `last_login_at` (dernière connexion). Côté SQL c'est la colonne dérivée
+ * `last_activity_ref` (voir la vue `admin_users`) — garder les deux alignés.
+ *
+ * Bornes (en jours pleins écoulés depuis la référence) :
+ *   - jamais connecté : last_login_at == null (cas du compte créé sans 1ʳᵉ connexion)
+ *   - actif récent    : ≤ 7 j
+ *   - actif           : 8 – 30 j
+ *   - inactif         : 31 – 59 j
+ *   - dormant         : ≥ 60 j
+ *
+ * `null` (jamais d'activité) ne compte JAMAIS comme dormant : il est classé
+ * "never_connected" pour éviter les faux positifs.
  */
 export function getActivityStatus(
   lastLoginAt: string | null,

@@ -4,6 +4,15 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { CalendarDays, Clock, User, Users, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { StatusBadge } from "@/components/webinars/StatusBadge"
 import { AddToCalendar } from "@/components/webinars/AddToCalendar"
@@ -42,6 +51,8 @@ export function WebinairesClient({ highlightSlug }: { highlightSlug?: string }) 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [registeringId, setRegisteringId] = useState<string | null>(null)
+  const [registerTarget, setRegisterTarget] = useState<WebinarWithMeta | null>(null)
+  const [phone, setPhone] = useState("")
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({})
 
   // Préserve l'intention d'inscription venue de l'aperçu public : scroll + halo.
@@ -78,16 +89,28 @@ export function WebinairesClient({ highlightSlug }: { highlightSlug?: string }) 
     return [...upcoming, ...past]
   }, [webinars])
 
-  async function register(w: WebinarWithMeta) {
+  function openRegister(w: WebinarWithMeta) {
     trackGA4("webinar_signup_clicked", { webinar_id: w.id })
+    setPhone("")
+    setRegisterTarget(w)
+  }
+
+  async function confirmRegister() {
+    const w = registerTarget
+    if (!w) return
     setRegisteringId(w.id)
     try {
-      const res = await fetch(`/api/webinars/${w.id}/register`, { method: "POST" })
+      const res = await fetch(`/api/webinars/${w.id}/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: phone.trim() || undefined }),
+      })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
         toast.error(data?.error ?? "Inscription impossible.")
         if (data?.alreadyRegistered) {
           setWebinars((prev) => prev.map((x) => (x.id === w.id ? { ...x, is_registered: true } : x)))
+          setRegisterTarget(null)
         }
         return
       }
@@ -99,6 +122,7 @@ export function WebinairesClient({ highlightSlug }: { highlightSlug?: string }) 
             : x
         )
       )
+      setRegisterTarget(null)
     } catch {
       toast.error("Erreur réseau.")
     } finally {
@@ -183,7 +207,7 @@ export function WebinairesClient({ highlightSlug }: { highlightSlug?: string }) 
                     </>
                   ) : eligible ? (
                     <Button
-                      onClick={() => register(w)}
+                      onClick={() => openRegister(w)}
                       disabled={registeringId === w.id}
                       className="gap-2 bg-neutral-900 text-white hover:bg-neutral-800"
                     >
@@ -202,6 +226,45 @@ export function WebinairesClient({ highlightSlug }: { highlightSlug?: string }) 
         </div>
       )}
     </div>
+
+    <Dialog open={!!registerTarget} onOpenChange={(o) => !o && setRegisterTarget(null)}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Confirmer votre inscription</DialogTitle>
+          <DialogDescription>
+            {registerTarget?.title}. Laissez votre numéro WhatsApp pour recevoir le
+            rappel et le lien de la session (facultatif).
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-neutral-900">Téléphone (WhatsApp)</label>
+          <Input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="07 00 00 00 00"
+            inputMode="tel"
+            autoFocus
+          />
+        </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => setRegisterTarget(null)}
+            disabled={!!registeringId}
+          >
+            Annuler
+          </Button>
+          <Button
+            onClick={confirmRegister}
+            disabled={!!registeringId}
+            className="gap-2 bg-neutral-900 text-white hover:bg-neutral-800"
+          >
+            {registeringId && <Loader2 className="size-4 animate-spin" />}
+            Confirmer l'inscription
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   )
 }

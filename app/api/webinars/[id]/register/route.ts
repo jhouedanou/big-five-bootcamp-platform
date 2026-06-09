@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getAuthenticatedUser, getSupabaseAdmin } from "@/lib/supabase-server"
 import { getWebinarById, getRegistrationCount } from "@/lib/webinars-server"
-import { canRegister } from "@/lib/webinars"
+import { canRegister, webinarMailchimpTag } from "@/lib/webinars"
 import { sendWebinarConfirmation } from "@/lib/webinar-emails"
 import { safeErrorMessage } from "@/lib/api-errors"
 import { sendGA4ServerEvent } from "@/lib/ga4-mp"
@@ -15,13 +15,19 @@ const MAILCHIMP_TAG = "bigfive_decrypte_registered"
  * Inscrit l'utilisateur connecté : contrôles + insertion + email + Mailchimp.
  * L'email/Mailchimp ne bloquent JAMAIS l'inscription.
  */
-export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params
     const user = await getAuthenticatedUser()
     if (!user) {
       return NextResponse.json({ error: "Authentification requise" }, { status: 401 })
     }
+
+    // Téléphone saisi (optionnel) — stocké en merge field Mailchimp pour
+    // segmentation WhatsApp. À défaut, on retombe sur le téléphone du profil.
+    const body = await req.json().catch(() => ({} as Record<string, unknown>))
+    const rawPhone = typeof body?.phone === "string" ? body.phone : ""
+    const phone = (rawPhone || (user.profile as { phone_number?: string } | undefined)?.phone_number || "").trim()
 
     const webinar = await getWebinarById(id)
     if (!webinar || webinar.status !== "published") {
@@ -114,14 +120,19 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     }
 
     // --- Mailchimp (non bloquant) ---
+    // Upsert (PUT) : crée ou met à jour le contact. Tag dynamique propre au
+    // webinaire (ex. Webinaire_Laveiye_Activation_Juin_2026) + téléphone en
+    // merge field PHONE pour les segments WhatsApp ciblés (relance / replay).
     try {
       const { getMailchimpService } = await import("@/lib/mailchimp")
       const mailchimp = getMailchimpService()
       await mailchimp.loadConfig()
+      const mergeFields: Record<string, string> = { FNAME: firstName }
+      if (phone) mergeFields.PHONE = phone
       await mailchimp.upsertMember({
         email,
-        mergeFields: { FNAME: firstName },
-        tags: [MAILCHIMP_TAG],
+        mergeFields,
+        tags: [MAILCHIMP_TAG, webinarMailchimpTag(webinar)],
       })
     } catch (e) {
       console.error("[webinar/register] Mailchimp échoué:", e)

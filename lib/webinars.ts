@@ -32,6 +32,40 @@ export interface WebinarWithMeta extends Webinar {
 /** Statut affiché côté public. */
 export type PublicStatus = "à venir" | "inscriptions ouvertes" | "terminé" | "complet" | "annulé"
 
+const MONTHS_FR = [
+  "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin",
+  "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre",
+]
+
+/**
+ * Tag Mailchimp spécifique au webinaire, pour segmenter les inscrits et lancer
+ * des campagnes WhatsApp ciblées (relance, replay).
+ *
+ * Format : `Webinaire_Laveiye_<TitrePascalCase>_<MoisFr>_<Année>`.
+ * Ex. titre "Activation", date 2026-06-15 → `Webinaire_Laveiye_Activation_Juin_2026`.
+ *
+ * Le titre est translittéré (accents retirés), réduit aux mots alphanumériques
+ * en PascalCase, et tronqué à 6 mots pour garder un tag lisible.
+ */
+export function webinarMailchimpTag(w: Pick<Webinar, "title" | "date">): string {
+  const titlePart = w.title
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 6)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join("_") || "Session"
+
+  const [year, month] = w.date.split("-")
+  const monthFr = MONTHS_FR[Number(month) - 1] || ""
+  const suffix = [monthFr, year].filter(Boolean).join("_")
+
+  return ["Webinaire_Laveiye", titlePart, suffix].filter(Boolean).join("_")
+}
+
 /** Combine date + heure en Date (heure locale du navigateur/serveur). */
 export function webinarStartDate(w: Pick<Webinar, "date" | "start_time">): Date {
   const time = w.start_time || "00:00:00"

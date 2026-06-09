@@ -105,17 +105,28 @@ export async function getCampaignsByIds(ids: string[]) {
 export async function getDashboardCampaigns() {
     try {
         const supabase = getSupabaseAdmin()
-        const { data, error } = await supabase
-            .from('campaigns')
-            .select(DASHBOARD_COLUMNS)
-            .eq('status', 'Publié')
-            .order('created_at', { ascending: false })
-            .limit(500)
 
-        if (error) throw error
+        // On pagine par lots de 1000 (limite serveur Supabase par requête) pour
+        // récupérer TOUTES les campagnes publiées : le compteur du dashboard doit
+        // refléter le nombre réel, sans plafond figé.
+        const PAGE = 1000
+        const all: any[] = []
+        for (let from = 0; ; from += PAGE) {
+            const { data, error } = await supabase
+                .from('campaigns')
+                .select(DASHBOARD_COLUMNS)
+                .eq('status', 'Publié')
+                .order('created_at', { ascending: false })
+                .range(from, from + PAGE - 1)
+
+            if (error) throw error
+            if (!data || data.length === 0) break
+            all.push(...data)
+            if (data.length < PAGE) break
+        }
 
         const viewer = await getViewerAccess()
-        return { success: true, data: redactPremiumFieldsList(data || [], viewer) }
+        return { success: true, data: redactPremiumFieldsList(all, viewer) }
     } catch (error) {
         return { success: false, error: "Failed to fetch dashboard campaigns" }
     }

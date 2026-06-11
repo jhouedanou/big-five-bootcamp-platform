@@ -5,29 +5,12 @@ import { useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { Loader2, Check, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Countdown } from "@/components/promo/Countdown"
+import { CountryPhoneField, getCountryMeta } from "@/components/payment/country-phone-field"
 import { trackEvent, trackGA4 } from "@/lib/analytics"
+import { fbTrack, newFbEventId } from "@/lib/fb-pixel"
 import { cn } from "@/lib/utils"
 import type { PromoOffer } from "@/lib/promo"
-
-const COUNTRIES = [
-  { code: "CIV", label: "Côte d'Ivoire" },
-  { code: "SEN", label: "Sénégal" },
-  { code: "BFA", label: "Burkina Faso" },
-  { code: "BEN", label: "Bénin" },
-  { code: "MLI", label: "Mali" },
-  { code: "TGO", label: "Togo" },
-  { code: "CMR", label: "Cameroun" },
-  { code: "NER", label: "Niger" },
-]
 
 interface NormalOffer {
   plan: string
@@ -118,19 +101,31 @@ export function CheckoutClient() {
       return
     }
     if (!country) {
-      toast.error("Sélectionnez votre pays.")
+      // Pays non sélectionné OU pays sans moyen de paiement configuré
+      // (le message détaillé est affiché sous le sélecteur).
+      toast.error("Sélectionnez un pays disposant d'un moyen de paiement.")
       return
     }
-    if (phone.replace(/\D/g, "").length < 8) {
-      toast.error("Numéro de téléphone invalide.")
+    const expectedDigits = getCountryMeta(country).digits
+    if (phone.replace(/\D/g, "").length !== expectedDigits) {
+      toast.error(`Numéro invalide : ${expectedDigits} chiffres attendus.`)
       return
     }
     setSubmitting(true)
+
+    // Pixel + CAPI : InitiateCheckout dédoublonné par event_id partagé (LOT F).
+    const fbEventId = newFbEventId()
+    fbTrack(
+      "InitiateCheckout",
+      { value: selected?.price, currency: "XOF", selection },
+      fbEventId
+    )
+
     try {
       const res = await fetch("/api/checkout/create-payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ selection, source, country, phone }),
+        body: JSON.stringify({ selection, source, country, phone, fbEventId }),
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok || !json?.checkoutUrl) {
@@ -234,28 +229,14 @@ export function CheckoutClient() {
         </section>
       )}
 
-      {/* Coordonnées paiement */}
-      <section className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-neutral-900">Pays</label>
-          <Select value={country} onValueChange={setCountry}>
-            <SelectTrigger><SelectValue placeholder="Sélectionnez votre pays" /></SelectTrigger>
-            <SelectContent>
-              {COUNTRIES.map((c) => (
-                <SelectItem key={c.code} value={c.code}>{c.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-neutral-900">Téléphone (Mobile Money)</label>
-          <Input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="07 00 00 00 00"
-            inputMode="tel"
-          />
-        </div>
+      {/* Coordonnées paiement — sélecteur pays monde + mapping mobile money */}
+      <section className="max-w-md">
+        <CountryPhoneField
+          country={country}
+          onCountryChange={setCountry}
+          phone={phone}
+          onPhoneChange={setPhone}
+        />
       </section>
 
       {/* Récapitulatif */}

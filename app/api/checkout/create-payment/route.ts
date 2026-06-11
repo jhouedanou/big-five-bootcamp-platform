@@ -22,6 +22,7 @@ import {
 } from "@/lib/chariow"
 import { addDays, computeSubscriptionEnd } from "@/lib/subscription"
 import { promoIsLive, type PromoCampaign } from "@/lib/promo"
+import { isPromoPreviewGranted } from "@/lib/promo-preview"
 import { safeErrorMessage } from "@/lib/api-errors"
 import { sendGA4ServerEvent } from "@/lib/ga4-mp"
 
@@ -46,11 +47,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json().catch(() => ({}))
-    const { selection, source, country, phone } = body as {
+    const { selection, source, country, phone, fbEventId } = body as {
       selection?: string
       source?: string
       country?: string
       phone?: string
+      fbEventId?: string
     }
     if (!selection) {
       return NextResponse.json({ error: "Sélection manquante" }, { status: 400 })
@@ -106,7 +108,10 @@ export async function POST(request: NextRequest) {
         .eq("id", offer.campaign_id)
         .maybeSingle()
 
-      if (!promoIsLive(campaign as PromoCampaign | null, Date.now())) {
+      // Mode preview promo (LOT K) : un admin sur l'environnement de test
+      // peut dérouler le checkout promo hors période réelle.
+      const preview = await isPromoPreviewGranted()
+      if (!preview && !promoIsLive(campaign as PromoCampaign | null, Date.now())) {
         return NextResponse.json(
           { error: "Cette offre promotionnelle a expiré." },
           { status: 410 }
@@ -226,6 +231,25 @@ export async function POST(request: NextRequest) {
       promo_offer_id: promoOfferId ?? undefined,
       user_id: authUser.id,
     })
+
+    // Meta CAPI : InitiateCheckout côté serveur, dédoublonné avec le pixel
+    // par event_id partagé (LOT F). Best-effort, ne bloque jamais le paiement.
+    try {
+      const { sendFbCapiEvent } = await import("@/lib/fb-capi")
+      void sendFbCapiEvent({
+        eventName: "InitiateCheckout",
+        eventId: typeof fbEventId === "string" && fbEventId ? fbEventId : `ic_${ref_command}`,
+        email: userEmail,
+        value: amount,
+        currency: "XOF",
+        clientIp: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null,
+        userAgent: request.headers.get("user-agent"),
+        eventSourceUrl: `${resolveBaseUrl()}/checkout`,
+        customData: { plan: planSlug },
+      })
+    } catch {
+      // tracking best-effort
+    }
 
     // --- Init checkout Chariow ---
     const baseUrl = resolveBaseUrl()

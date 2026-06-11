@@ -10,6 +10,34 @@ export const dynamic = "force-dynamic"
 
 const MAILCHIMP_TAG = "bigfive_decrypte_registered"
 
+const MONTHS_FR = [
+  "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin",
+  "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre",
+]
+
+/** Nettoie un libellé pour un tag Mailchimp : sans accents, mots en _ . */
+function sanitizeTagPart(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+}
+
+/**
+ * Tag spécifique au webinaire (LOT C), généré dynamiquement :
+ * Webinaire_Laveiye_<Nom>_<Mois>_<Année>
+ * ex: Webinaire_Laveiye_Activation_Juin_2026
+ */
+function buildWebinarTag(title: string, date: string): string {
+  const d = new Date(`${date}T00:00:00`)
+  const month = Number.isNaN(d.getTime()) ? "" : MONTHS_FR[d.getMonth()]
+  const year = Number.isNaN(d.getTime()) ? "" : String(d.getFullYear())
+  return ["Webinaire_Laveiye", sanitizeTagPart(title), month, year]
+    .filter(Boolean)
+    .join("_")
+}
+
 /**
  * POST /api/webinars/:id/register
  * Inscrit l'utilisateur connecté : contrôles + insertion + email + Mailchimp.
@@ -113,15 +141,30 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       console.error(`[webinar/register] email échoué pour ${email}:`, emailResult.error)
     }
 
-    // --- Mailchimp (non bloquant) ---
+    // --- Mailchimp (non bloquant, LOT C) ---
+    // Upsert du contact (pas de doublon : PUT par hash email), tag dynamique
+    // par webinaire, et numéro de téléphone dans le merge field PHONE
+    // (segments exportables pour campagnes WhatsApp).
     try {
       const { getMailchimpService } = await import("@/lib/mailchimp")
       const mailchimp = getMailchimpService()
       await mailchimp.loadConfig()
+
+      // Téléphone collecté à l'inscription Laveiye (users.phone_e164).
+      const { data: userRow } = await supabase
+        .from("users")
+        .select("phone_e164, phone_number")
+        .eq("id", user.id)
+        .maybeSingle()
+      const phone = userRow?.phone_e164 || userRow?.phone_number || ""
+
+      const mergeFields: Record<string, string> = { FNAME: firstName }
+      if (phone) mergeFields.PHONE = phone
+
       await mailchimp.upsertMember({
         email,
-        mergeFields: { FNAME: firstName },
-        tags: [MAILCHIMP_TAG],
+        mergeFields,
+        tags: [MAILCHIMP_TAG, buildWebinarTag(webinar.title, webinar.date)],
       })
     } catch (e) {
       console.error("[webinar/register] Mailchimp échoué:", e)

@@ -25,6 +25,9 @@ import { format, parseISO, startOfWeek, subDays } from "date-fns"
 import { fr } from "date-fns/locale"
 import { isPaidPlan, canAccessPremiumContent } from "@/lib/pricing"
 import { fixBrokenEncoding } from "@/lib/utils"
+import { trackEvent } from "@/lib/analytics"
+import { fbTrack } from "@/lib/fb-pixel"
+import { FbViewContent } from "@/components/analytics/fb-events"
 
 const ParticlesBackground = dynamic(() => import("@/components/ui/particles-background").then(m => m.ParticlesBackground), { ssr: false })
 const FiltersSidebar = dynamic(() => import("@/components/dashboard/filters-sidebar").then(m => m.FiltersSidebar))
@@ -960,6 +963,11 @@ export default function DashboardPage() {
     setCommittedSearchQuery(q)
     setCurrentPage(1)
 
+    // Événement d'activité réelle (QA T54) — indépendant du quota.
+    trackEvent("search_performed", { query: q })
+    // Pixel Facebook : Search (LOT F).
+    fbTrack("Search", { search_string: q })
+
     // Verrou anti-doublon : on set la ref AVANT l'appel async pour empêcher
     // qu'un second submit (clic suggestion + Enter rapide) déclenche un
     // 2e tracking pendant que le 1er est encore in-flight.
@@ -1025,6 +1033,13 @@ export default function DashboardPage() {
       const prev = selectedFilters[category] || []
       const added = values.some((v) => !prev.includes(v))
       if (added) newlyAddedCategories.push(category)
+    }
+
+    // Événement d'activité réelle (QA T54) — indépendant du quota.
+    if (newlyAddedCategories.length > 0) {
+      trackEvent("filter_used", { categories: newlyAddedCategories })
+      // Pixel Facebook : Search — l'usage des filtres compte comme recherche (LOT F).
+      fbTrack("Search", { search_string: newlyAddedCategories.join(", "), kind: "filter" })
     }
 
     // Clic tag = soumission implicite : on commit la recherche en cours
@@ -1137,9 +1152,12 @@ export default function DashboardPage() {
           searchQuota={searchQuota}
         />
 
+        <FbViewContent contentName="dashboard" />
         <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
           <PromoBanner />
-          <div className="mb-2 lg:max-w-sm lg:ml-auto">
+          {/* QA T47 : bloc #BigFiveDécrypte sur toute la largeur, mêmes
+              dimensions que la bannière « Temps forts ». */}
+          <div className="mb-2">
             <WebinarDashboardBlock />
           </div>
         </div>

@@ -164,7 +164,7 @@
         "ctaLink": "/register?plan=pro",
         "ctaVariant": "default",
         "highlighted": false,
-        "badge": null,
+        "badge": "Recommandé",
         "color": "#F2B33D",
         "features": [
           "Accès illimité à la bibliothèque",

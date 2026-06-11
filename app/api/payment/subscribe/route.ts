@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { userEmail, userName, plan, billing, currency = 'XOF', promoCode, rawPromoInput, country, phone } = body;
+    const { userEmail, userName, plan, billing, currency = 'XOF', promoCode, rawPromoInput, country, phone, fbEventId } = body;
 
     if (!userEmail) {
       return NextResponse.json(
@@ -381,6 +381,25 @@ export async function POST(request: NextRequest) {
         { error: 'Failed to create payment record', details: paymentError.message },
         { status: 500 }
       );
+    }
+
+    // Meta CAPI : InitiateCheckout côté serveur, dédoublonné avec le pixel
+    // par event_id partagé (LOT F). Best-effort, ne bloque jamais le paiement.
+    try {
+      const { sendFbCapiEvent } = await import('@/lib/fb-capi');
+      void sendFbCapiEvent({
+        eventName: 'InitiateCheckout',
+        eventId: typeof fbEventId === 'string' && fbEventId ? fbEventId : `ic_${ref_command}`,
+        email: userEmail,
+        value: SUBSCRIPTION_PRICE,
+        currency: currency || 'XOF',
+        clientIp: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null,
+        userAgent: request.headers.get('user-agent'),
+        eventSourceUrl: `${resolveBaseUrl()}/subscribe`,
+        customData: { plan: planKey },
+      });
+    } catch {
+      // tracking best-effort
     }
 
     // Construire l'URL de checkout Chariow.

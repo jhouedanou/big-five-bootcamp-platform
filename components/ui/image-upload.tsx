@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Upload, X, Loader2, ImagePlus, Link2 } from "lucide-react"
 import { toast } from "sonner"
-import { cn, isEphemeralGoogleImageUrl } from "@/lib/utils"
+import { cn, isEphemeralGoogleImageUrl, isGoogleDriveHostedUrl } from "@/lib/utils"
 
 interface ImageUploadProps {
   value: string
@@ -114,6 +114,16 @@ export function ImageUpload({
     if (isEphemeralGoogleImageUrl(url)) {
       toast.error("Lien Google temporaire détecté", {
         description: "Cette URL expire et renverra une erreur 403. Uploadez l'image directement à la place.",
+      })
+      return
+    }
+    // LOT I : plus aucun nouveau visuel hébergé sur Google Drive. Les quotas
+    // de diffusion Google bloquent l'affichage de manière imprévisible.
+    if (isGoogleDriveHostedUrl(url)) {
+      toast.error("Les liens Google Drive ne sont plus acceptés", {
+        description:
+          "Google limite la diffusion des fichiers Drive (affichage bloqué de façon imprévisible). Téléchargez le fichier puis uploadez-le directement : il sera servi via le CDN, sans quota.",
+        duration: 8000,
       })
       return
     }

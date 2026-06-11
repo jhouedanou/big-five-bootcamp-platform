@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { TableCell, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,7 +14,7 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog"
 import { UserStatusToggle } from "./user-status-toggle"
-import { ChevronDown, ChevronRight, CreditCard, Calendar, Clock, Heart, XCircle, RotateCcw, Loader2, Mail, Send, ShieldCheck, ShieldOff, Eye } from "lucide-react"
+import { ChevronDown, ChevronRight, CreditCard, Calendar, Clock, Heart, XCircle, RotateCcw, Loader2, Mail, Send, ShieldCheck, ShieldOff, Eye, Activity } from "lucide-react"
 import { endSubscription, resetSubscription, setUserRole, resetUserViews } from "@/app/actions/user"
 import { getPlanDisplayName } from "@/lib/pricing"
 
@@ -104,6 +104,54 @@ function getPaymentStatusLabel(status: string) {
     }
 }
 
+interface ActivityEvent {
+    id: string
+    event_name: string
+    source: string | null
+    page_url: string | null
+    metadata: Record<string, unknown> | null
+    created_at: string
+}
+
+const ACTIVITY_EVENT_LABELS: Record<string, string> = {
+    login_success: 'Connexion',
+    login: 'Connexion',
+    campaign_viewed: 'Consultation campagne',
+    brand_viewed: 'Consultation marque',
+    search_performed: 'Recherche',
+    filter_used: 'Filtre utilisé',
+    campaign_saved: 'Campagne sauvegardée',
+    premium_content_clicked: 'Clic contenu premium',
+    onboarding_completed: 'Profil complété',
+    profile_completion_popup_completed: 'Profil complété (popup)',
+    webinar_registration_completed: 'Inscription webinaire',
+    webinar_confirmation_email_sent: 'Email confirmation webinaire envoyé',
+    promo_banner_clicked: 'Clic bannière promo',
+    promo_popup_clicked: 'Clic popup promo',
+    promo_offer_selected: "Choix d'offre promo",
+    checkout_option_selected: 'Option checkout choisie',
+    payment_attempted: 'Paiement initié',
+    payment_successful: 'Paiement réussi',
+    payment_failed: 'Paiement échoué',
+    subscription_started: 'Abonnement démarré',
+    plan_upgraded: 'Upgrade de plan',
+    plan_downgraded: 'Downgrade de plan',
+}
+
+function activityEventLabel(name: string): string {
+    return ACTIVITY_EVENT_LABELS[name] ?? name
+}
+
+/** Détail court lisible depuis les métadonnées (titre campagne, requête…). */
+function activityEventDetail(e: ActivityEvent): string {
+    const m = e.metadata || {}
+    const candidates = [m.title, m.brand, m.query, m.slug]
+    const found = candidates.find((v) => typeof v === 'string' && v.trim())
+    if (found) return String(found)
+    if (Array.isArray(m.categories)) return (m.categories as string[]).join(', ')
+    return ''
+}
+
 export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
     const [isExpanded, setIsExpanded] = useState(false)
     const [isEndingSubscription, setIsEndingSubscription] = useState(false)
@@ -118,6 +166,31 @@ export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
     const [emailMessage, setEmailMessage] = useState("")
     const [resetDays, setResetDays] = useState(30)
     const [resetPlan, setResetPlan] = useState<'keep' | 'Discovery' | 'Basic' | 'Pro'>('keep')
+
+    // Historique d'activité (QA T55) — chargé à l'ouverture de la fiche.
+    const [activityEvents, setActivityEvents] = useState<ActivityEvent[]>([])
+    const [activityLoading, setActivityLoading] = useState(false)
+    const [activityLoaded, setActivityLoaded] = useState(false)
+
+    useEffect(() => {
+        if (!isExpanded || activityLoaded || activityLoading) return
+        let cancelled = false
+        setActivityLoading(true)
+        fetch(`/api/admin/users/${user.id}/activity?limit=50`)
+            .then((res) => (res.ok ? res.json() : { events: [] }))
+            .then((data) => {
+                if (cancelled) return
+                setActivityEvents(data.events || [])
+                setActivityLoaded(true)
+            })
+            .catch(() => {
+                if (!cancelled) setActivityLoaded(true)
+            })
+            .finally(() => {
+                if (!cancelled) setActivityLoading(false)
+            })
+        return () => { cancelled = true }
+    }, [isExpanded, activityLoaded, activityLoading, user.id])
 
     const subStart = user.subscription_start_date as string | null | undefined
     const subEnd = user.subscription_end_date as string | null | undefined
@@ -525,6 +598,60 @@ export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
                                                 </tr>
                                             </tfoot>
                                         )}
+                                    </table>
+                                </div>
+                            )}
+
+                            {/* Historique d'activité (QA T55) : qui a fait quoi, depuis quelle page */}
+                            <div className="flex items-center gap-2 mb-3 mt-6">
+                                <Activity className="h-4 w-4 text-muted-foreground" />
+                                <h4 className="font-semibold text-sm">
+                                    Historique d&apos;activité
+                                    {activityEvents.length > 0 && (
+                                        <span className="ml-2 text-muted-foreground font-normal">
+                                            ({activityEvents.length} action{activityEvents.length > 1 ? 's' : ''} récente{activityEvents.length > 1 ? 's' : ''})
+                                        </span>
+                                    )}
+                                </h4>
+                            </div>
+
+                            {activityLoading ? (
+                                <p className="text-sm text-muted-foreground flex items-center gap-2">
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Chargement de l&apos;activité…
+                                </p>
+                            ) : activityEvents.length === 0 ? (
+                                <p className="text-sm text-muted-foreground italic">
+                                    Aucune action enregistrée pour cet utilisateur.
+                                </p>
+                            ) : (
+                                <div className="border rounded-md overflow-hidden">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="bg-muted/50 text-left">
+                                                <th className="px-3 py-2 font-medium text-muted-foreground">Action</th>
+                                                <th className="px-3 py-2 font-medium text-muted-foreground">Détail</th>
+                                                <th className="px-3 py-2 font-medium text-muted-foreground">Page</th>
+                                                <th className="px-3 py-2 font-medium text-muted-foreground">Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {activityEvents.map((event) => (
+                                                <tr key={event.id} className="border-t">
+                                                    <td className="px-3 py-2 font-medium">
+                                                        {activityEventLabel(event.event_name)}
+                                                    </td>
+                                                    <td className="px-3 py-2 text-muted-foreground max-w-[220px] truncate">
+                                                        {activityEventDetail(event) || '—'}
+                                                    </td>
+                                                    <td className="px-3 py-2 font-mono text-xs text-muted-foreground max-w-[220px] truncate">
+                                                        {event.page_url || event.source || '—'}
+                                                    </td>
+                                                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+                                                        {formatDateTime(event.created_at)}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
                                     </table>
                                 </div>
                             )}

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getSupabaseAdmin } from "@/lib/supabase-server"
 import { safeErrorMessage } from "@/lib/api-errors"
 import { promoIsLive, type PromoCampaign, type PromoOffer } from "@/lib/promo"
+import { isPromoPreviewGranted } from "@/lib/promo-preview"
 
 export const dynamic = "force-dynamic"
 
@@ -35,8 +36,11 @@ export async function GET() {
       return NextResponse.json({ error: safeErrorMessage(error) }, { status: 500 })
     }
 
+    // Mode preview promo (LOT K) : un admin sur l'environnement de test voit
+    // les offres comme en période réelle, hors période.
+    const preview = await isPromoPreviewGranted()
     const campaign = (campaigns ?? []).find((c) =>
-      promoIsLive(c as PromoCampaign, nowMs)
+      preview || promoIsLive(c as PromoCampaign, nowMs)
     ) as PromoCampaign | undefined
 
     let promoOffers: PromoOffer[] = []

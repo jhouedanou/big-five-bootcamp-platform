@@ -13,6 +13,18 @@ function shouldRunAuthMiddleware(pathname: string) {
     pathname.startsWith('/favorites') ||
     pathname.startsWith('/profile') ||
     pathname.startsWith('/subscribe') ||
+    pathname.startsWith('/checkout') ||
+    pathname.startsWith('/settings') ||
+    pathname.startsWith('/notifications') ||
+    pathname.startsWith('/content') ||
+    pathname.startsWith('/library') ||
+    pathname.startsWith('/community') ||
+    pathname.startsWith('/campaign-generator') ||
+    pathname.startsWith('/account-deletion') ||
+    pathname.startsWith('/paywall') ||
+    pathname.startsWith('/decrypte') ||
+    pathname.startsWith('/temps-forts') ||
+    pathname.startsWith('/webinaires') ||
     pathname.startsWith('/admin') ||
     pathname.startsWith('/login') ||
     pathname.startsWith('/register')

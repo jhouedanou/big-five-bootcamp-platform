@@ -22,7 +22,19 @@ const registerSchema = z.object({
     .string()
     .regex(/^\+[1-9][0-9]{5,14}$/, "Numéro de téléphone invalide"),
   elapsedMs: z.number().optional(),
+  // Destination après confirmation d'email (ex: /webinaires?session=slug,
+  // /subscribe?plan=pro). Chemin interne uniquement — validé ci-dessous.
+  redirect: z.string().max(500).optional(),
+  // event_id pixel Facebook pour le dédoublonnage CAPI (LOT F).
+  fbEventId: z.string().max(100).optional(),
 })
+
+/** N'accepte qu'un chemin interne ("/...", pas "//host") — anti open redirect. */
+function sanitizeRedirect(redirect: string | undefined): string {
+  if (!redirect) return '/dashboard'
+  if (!redirect.startsWith('/') || redirect.startsWith('//')) return '/dashboard'
+  return redirect
+}
 
 // Rate limit en mémoire : max 5 tentatives par IP / 10 minutes
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000
@@ -75,7 +87,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { name, email, password, website, phoneCountry, phoneE164, elapsedMs } = validation.data
+    const { name, email, password, website, phoneCountry, phoneE164, elapsedMs, redirect, fbEventId } = validation.data
 
     // Refuser les domaines d'emails jetables / temporaires
     if (isDisposableEmail(email)) {
@@ -171,7 +183,7 @@ export async function POST(request: Request) {
       process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ||
       process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
       new URL(request.url).origin
-    const emailRedirectTo = `${siteUrl}/auth/callback?next=/dashboard`
+    const emailRedirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent(sanitizeRedirect(redirect))}`
 
     const supabaseAnon = createClient(url, anonKey, {
       auth: { autoRefreshToken: false, persistSession: false },
@@ -257,6 +269,23 @@ export async function POST(request: Request) {
     if (profileError) {
       console.error("Profile creation error:", profileError.message)
       // Non bloquant — le profil sera créé au premier login si nécessaire (auth/callback)
+    }
+
+    // Conversions API Meta : CompleteRegistration côté serveur, dédoublonné
+    // avec le pixel client par event_id partagé (LOT F). Best-effort.
+    try {
+      const { sendFbCapiEvent } = await import('@/lib/fb-capi')
+      void sendFbCapiEvent({
+        eventName: 'CompleteRegistration',
+        eventId: fbEventId || `reg_${signUpData.user.id}`,
+        email,
+        phone: phoneE164,
+        clientIp: remoteIp !== 'unknown' ? remoteIp : null,
+        userAgent: request.headers.get('user-agent'),
+        eventSourceUrl: `${siteUrl}/register`,
+      })
+    } catch {
+      // Le tracking ne bloque jamais l'inscription.
     }
 
     // Si email_confirmed_at est null, l'utilisateur doit confirmer son email.

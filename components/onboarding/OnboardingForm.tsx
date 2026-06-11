@@ -3,19 +3,12 @@
 import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
+import { CountrySelect } from "@/components/ui/country-select"
 import { JobFunctionSelect } from "./JobFunctionSelect"
 import { SectorSelector } from "./SectorSelector"
 import { trackEvent, trackGA4 } from "@/lib/analytics"
 import {
-  COUNTRIES,
   OTHER_JOB_FUNCTION,
   OTHER_SECTOR_SLUG,
   validateOnboarding,
@@ -138,23 +131,16 @@ export function OnboardingForm({ source, onCompleted }: OnboardingFormProps) {
         </p>
       </header>
 
-      {/* Pays */}
+      {/* Pays — liste complète ISO 3166 + recherche (QA T04) */}
       <div className="space-y-1.5">
-        <label className="text-sm font-medium text-neutral-900">
+        <label htmlFor="onboarding-country" className="text-sm font-medium text-neutral-900">
           Pays <span className="text-[#F2B33D]">*</span>
         </label>
-        <Select value={country} onValueChange={setCountry}>
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Sélectionnez votre pays" />
-          </SelectTrigger>
-          <SelectContent>
-            {COUNTRIES.map((c) => (
-              <SelectItem key={c} value={c}>
-                {c}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <CountrySelect
+          id="onboarding-country"
+          value={country || null}
+          onChange={(c) => setCountry(c.name)}
+        />
       </div>
 
       {/* Fonction */}

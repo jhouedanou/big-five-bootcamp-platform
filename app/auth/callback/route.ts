@@ -62,7 +62,11 @@ export async function GET(request: Request) {
         if (!error && data.session) {
             await ensureUserProfile(data.session.user)
             const isSignupFlow = !isRecoveryFlow && (otpType === 'signup' || otpType === 'email')
-            const targetNext = isSignupFlow ? '/auth/verified' : next
+            // Conserver la destination d'origine (ex: /webinaires?session=slug)
+            // à travers l'écran de confirmation → bouton "Se connecter" (QA T53).
+            const targetNext = isSignupFlow
+                ? `/auth/verified${next && next !== '/dashboard' ? `?next=${encodeURIComponent(next)}` : ''}`
+                : next
             return buildRedirect(origin, targetNext, isRecoveryFlow, cookiesToSet, hasRecoveryCookie)
         }
         console.error('Auth callback (token_hash) error:', error)

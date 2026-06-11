@@ -1,19 +1,22 @@
 "use client"
 
+import { useState } from "react"
 import { CI, SN, BJ, BF, ML, TG, CM, NE } from "country-flag-icons/react/3x2"
 import type { ComponentType, SVGAttributes } from "react"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { AlertCircle } from "lucide-react"
+import { CountrySelect } from "@/components/ui/country-select"
+import type { Country } from "@/lib/countries"
 
 /**
- * Métadonnées par pays (codes internes 3 lettres alignés avec COUNTRY_ISO
- * côté serveur). `groups` = découpage du numéro national pour l'affichage,
+ * Métadonnées par pays SUPPORTÉ pour le paiement mobile money (mapping
+ * Moneroo). Codes internes 3 lettres alignés avec COUNTRY_ISO côté serveur.
+ * `groups` = découpage du numéro national pour l'affichage,
  * `digits` = nombre total de chiffres attendus.
+ *
+ * LOT A : le sélecteur affiche désormais TOUS les pays du monde (ISO 3166,
+ * recherche incluse) ; cette liste ne définit plus que les pays avec un moyen
+ * de paiement configuré. Un pays hors liste affiche un message clair au lieu
+ * d'un checkout cassé.
  */
 export type CountryMeta = {
   code: string // code interne 3 lettres (CIV, SEN, …)
@@ -40,8 +43,17 @@ const BY_CODE: Record<string, CountryMeta> = Object.fromEntries(
   COUNTRIES.map((c) => [c.code, c])
 )
 
+const SUPPORTED_BY_ISO2: Record<string, CountryMeta> = Object.fromEntries(
+  COUNTRIES.map((c) => [c.iso2, c])
+)
+
 export function getCountryMeta(code: string): CountryMeta {
   return BY_CODE[code] || COUNTRIES[0]
+}
+
+/** Meta paiement d'un pays ISO alpha-2, ou null si non supporté. */
+export function getSupportedMetaByIso2(iso2: string): CountryMeta | null {
+  return SUPPORTED_BY_ISO2[iso2] ?? null
 }
 
 /** Garde uniquement les chiffres et tronque à la longueur du pays. */
@@ -69,7 +81,27 @@ function placeholderFor(code: string): string {
   return meta.groups.map((g) => "0".repeat(g)).join(" ")
 }
 
+/** Message affiché quand le pays choisi n'a pas de moyen de paiement configuré. */
+export function UnsupportedCountryNotice({ countryName }: { countryName: string }) {
+  return (
+    <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+      <p>
+        Aucun moyen de paiement n&apos;est encore disponible pour{" "}
+        <strong>{countryName}</strong>. Le paiement mobile money est
+        actuellement proposé en : Côte d&apos;Ivoire, Sénégal, Bénin, Burkina
+        Faso, Mali, Togo, Cameroun et Niger. Contactez-nous à{" "}
+        <a href="mailto:support@laveiye.com" className="underline">
+          support@laveiye.com
+        </a>{" "}
+        pour une alternative.
+      </p>
+    </div>
+  )
+}
+
 interface Props {
+  /** Code interne 3 lettres du pays de paiement ("" si pays non supporté). */
   country: string
   onCountryChange: (code: string) => void
   /** Chiffres bruts du numéro national (sans indicatif). */
@@ -78,62 +110,59 @@ interface Props {
 }
 
 export function CountryPhoneField({ country, onCountryChange, phone, onPhoneChange }: Props) {
-  const meta = getCountryMeta(country)
-  const complete = phone.length === meta.digits
+  const supportedMeta = BY_CODE[country] ?? null
+  // Nom affiché dans le sélecteur monde : initialisé depuis le code supporté,
+  // puis piloté par la sélection utilisateur (peut être un pays non supporté).
+  const [selectedName, setSelectedName] = useState<string | null>(
+    supportedMeta?.name ?? null
+  )
+
+  const complete = supportedMeta ? phone.length === supportedMeta.digits : false
+
+  const handleSelect = (c: Country) => {
+    setSelectedName(c.name)
+    const meta = getSupportedMetaByIso2(c.code)
+    onCountryChange(meta ? meta.code : "")
+    onPhoneChange("")
+  }
 
   return (
     <div className="space-y-3">
       <div>
         <label className="mb-1 block text-xs font-medium text-[#0F0F0F]/70">Votre pays</label>
-        <Select value={country} onValueChange={(v) => { onCountryChange(v); onPhoneChange("") }}>
-          <SelectTrigger className="h-10 w-full bg-white">
-            <SelectValue>
-              <span className="flex items-center gap-2">
-                <meta.Flag className="h-3.5 w-5 rounded-[2px]" />
-                <span className="text-sm">{meta.name}</span>
-              </span>
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            {COUNTRIES.map((c) => (
-              <SelectItem key={c.code} value={c.code}>
-                <span className="flex items-center gap-2">
-                  <c.Flag className="h-3.5 w-5 rounded-[2px]" />
-                  <span>{c.name}</span>
-                  <span className="text-xs text-[#0F0F0F]/40">{c.dial}</span>
-                </span>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <CountrySelect value={selectedName} onChange={handleSelect} />
       </div>
 
-      <div>
-        <label htmlFor="phone" className="mb-1 block text-xs font-medium text-[#0F0F0F]/70">
-          Téléphone (mobile money)
-        </label>
-        <div className="flex h-10 items-center rounded-lg border border-border bg-white px-3 focus-within:ring-2 focus-within:ring-[#F2B33D]/30">
-          <span className="mr-2 flex items-center gap-1.5 border-r border-border pr-2 text-sm text-[#0F0F0F]/60">
-            <meta.Flag className="h-3.5 w-5 rounded-[2px]" />
-            {meta.dial}
-          </span>
-          <input
-            id="phone"
-            type="tel"
-            inputMode="numeric"
-            autoComplete="tel-national"
-            value={formatPhone(phone, country)}
-            onChange={(e) => onPhoneChange(sanitizePhone(e.target.value, country))}
-            placeholder={placeholderFor(country)}
-            className="h-full w-full bg-transparent text-sm text-[#0F0F0F] outline-none"
-          />
+      {supportedMeta ? (
+        <div>
+          <label htmlFor="phone" className="mb-1 block text-xs font-medium text-[#0F0F0F]/70">
+            Téléphone (mobile money)
+          </label>
+          <div className="flex h-10 items-center rounded-lg border border-border bg-white px-3 focus-within:ring-2 focus-within:ring-[#F2B33D]/30">
+            <span className="mr-2 flex items-center gap-1.5 border-r border-border pr-2 text-sm text-[#0F0F0F]/60">
+              <supportedMeta.Flag className="h-3.5 w-5 rounded-[2px]" />
+              {supportedMeta.dial}
+            </span>
+            <input
+              id="phone"
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel-national"
+              value={formatPhone(phone, country)}
+              onChange={(e) => onPhoneChange(sanitizePhone(e.target.value, country))}
+              placeholder={placeholderFor(country)}
+              className="h-full w-full bg-transparent text-sm text-[#0F0F0F] outline-none"
+            />
+          </div>
+          {phone.length > 0 && !complete && (
+            <p className="mt-1 text-[11px] text-[#E11D48]">
+              {supportedMeta.digits} chiffres attendus ({phone.length}/{supportedMeta.digits}).
+            </p>
+          )}
         </div>
-        {phone.length > 0 && !complete && (
-          <p className="mt-1 text-[11px] text-[#E11D48]">
-            {meta.digits} chiffres attendus ({phone.length}/{meta.digits}).
-          </p>
-        )}
-      </div>
+      ) : selectedName ? (
+        <UnsupportedCountryNotice countryName={selectedName} />
+      ) : null}
     </div>
   )
 }

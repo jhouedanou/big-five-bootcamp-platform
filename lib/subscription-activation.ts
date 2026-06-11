@@ -24,6 +24,7 @@ export interface PaymentLike {
   amount?: number | null
   currency?: string | null
   ref_command?: string | null
+  user_email?: string | null
   metadata?: any
 }
 
@@ -51,6 +52,33 @@ export async function activateUserSubscription(payment: PaymentLike): Promise<vo
         { paymentId: payment.id, rawPlan, metadata }
       )
       return
+    }
+
+    // Meta CAPI : Purchase déclenché sur confirmation EFFECTIVE du paiement
+    // (webhook / polling de vérification), jamais au clic — avec montant et
+    // devise (LOT F). event_id stable (ref_command) → idempotent si le
+    // webhook rejoue ; best-effort, ne bloque jamais l'activation.
+    try {
+      const { sendFbCapiEvent } = await import('@/lib/fb-capi')
+      let email: string | null = payment.user_email || null
+      if (!email) {
+        const { data: u } = await (supabaseAdmin as any)
+          .from('users')
+          .select('email')
+          .eq('id', metadata.userId)
+          .maybeSingle()
+        email = u?.email || null
+      }
+      void sendFbCapiEvent({
+        eventName: 'Purchase',
+        eventId: `purchase_${payment.ref_command || payment.id}`,
+        email,
+        value: typeof payment.amount === 'number' ? payment.amount : 0,
+        currency: payment.currency || 'XOF',
+        customData: { plan: planName, ref_command: payment.ref_command || undefined },
+      })
+    } catch {
+      // tracking best-effort
     }
 
     // ——————————————————————————————————————————————————————————————

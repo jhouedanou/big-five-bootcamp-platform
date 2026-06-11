@@ -13,6 +13,41 @@ import {
 const DEVICE_CHECK_COOKIE = 'lvy-dev-ok'
 const DEVICE_CHECK_TTL_SECONDS = 60
 
+// Pages "connectées" : un utilisateur authentifié dont le profil est incomplet
+// est systématiquement renvoyé vers /onboarding (QA T01), quel que soit le
+// point d'entrée : post-inscription, post-paiement ou accès direct par URL.
+// Le paiement (/subscribe, /checkout) ne doit jamais court-circuiter
+// l'onboarding : ordre du flow = inscription → email → onboarding → paiement.
+const ONBOARDING_GATED_PREFIXES = [
+    '/dashboard',
+    '/favorites',
+    '/profile',
+    '/subscribe',
+    '/checkout',
+    '/settings',
+    '/notifications',
+    '/content',
+    '/library',
+    '/community',
+    '/campaign-generator',
+    '/account-deletion',
+    '/paywall',
+    '/decrypte',
+    '/temps-forts',
+    '/webinaires',
+]
+
+function isOnboardingGatedPath(pathname: string): boolean {
+    // Flux public (demande de veille sans compte) : pas de gate onboarding.
+    if (pathname.startsWith('/dashboard/brand-requests')) return false
+    // Aperçu public partageable d'une session webinaire (QA T52) : reste
+    // accessible même connecté avec profil incomplet.
+    if (/^\/webinaires\/[^/]+\/preview$/.test(pathname)) return false
+    return ONBOARDING_GATED_PREFIXES.some(
+        (p) => pathname === p || pathname.startsWith(`${p}/`)
+    )
+}
+
 function shouldEnforceDeviceLimit(pathname: string): boolean {
   // On bloque l'accès aux espaces authentifiés. Pas sur les pages publiques,
   // ni sur la page /auth/device-limit (sinon boucle), ni sur /admin (les admins
@@ -125,11 +160,15 @@ export async function updateSession(request: NextRequest) {
             url.searchParams.set('redirect', pathname)
             return NextResponse.redirect(url)
         }
+    }
 
-        // Onboarding obligatoire : tant que le profil n'est pas complété,
-        // bloquer l'accès aux routes protégées et rediriger vers /onboarding.
-        // (Le client SPA affiche en plus une modal bloquante via
-        //  RequireCompletedProfile pour les navigations sans rechargement.)
+    // Onboarding obligatoire : tant que le profil n'est pas complété, toutes
+    // les pages connectées (paiement /subscribe et /checkout inclus) redirigent
+    // vers /onboarding. La destination d'origine est conservée via ?next= pour
+    // reprendre le flow après complétion (ex: /subscribe?plan=pro).
+    // (Le client SPA affiche en plus une modal bloquante via
+    //  RequireCompletedProfile pour les navigations sans rechargement.)
+    if (user && isOnboardingGatedPath(pathname)) {
         const { data: profile } = await supabase
             .from('profiles')
             .select('profile_completed')
@@ -138,8 +177,12 @@ export async function updateSession(request: NextRequest) {
 
         if (!profile?.profile_completed) {
             const url = request.nextUrl.clone()
+            const next = pathname + request.nextUrl.search
             url.pathname = '/onboarding'
             url.search = ''
+            if (next && next !== '/dashboard') {
+                url.searchParams.set('next', next)
+            }
             return NextResponse.redirect(url)
         }
     }

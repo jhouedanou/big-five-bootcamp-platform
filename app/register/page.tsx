@@ -14,6 +14,7 @@ import { toast } from "sonner"
 import { LegalModal } from "@/components/legal-modal"
 import { createClient } from "@/lib/supabase"
 import { PhoneInput, isValidPhone, type PhoneInputValue } from "@/components/phone-input"
+import { fbTrack, newFbEventId } from "@/lib/fb-pixel"
 
 function formatNumber(n: number): string {
   if (n >= 1000) {
@@ -109,6 +110,9 @@ export default function RegisterPage() {
 
     setIsLoading(true)
 
+    // event_id partagé pixel/CAPI pour le dédoublonnage Meta (LOT F).
+    const fbEventId = newFbEventId()
+
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
@@ -121,6 +125,8 @@ export default function RegisterPage() {
           phoneCountry: phone.country,
           phoneE164: phone.e164,
           elapsedMs: Date.now() - formStartedAt,
+          redirect: redirectTo || undefined,
+          fbEventId,
         }),
       })
 
@@ -147,6 +153,9 @@ export default function RegisterPage() {
         })
         return
       }
+
+      // Pixel : compte créé (doublé côté serveur via CAPI, même event_id).
+      fbTrack("CompleteRegistration", {}, fbEventId)
 
       if (data.needsEmailConfirmation) {
         toast.success("Compte créé ! 📧", {

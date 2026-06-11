@@ -1,15 +1,22 @@
 /**
- * Gmail API sender via JWT OAuth2 (Service Account + Domain-Wide Delegation).
+ * Transactional email sender — Gmail API (primaire) avec fallback Resend.
  *
- * Cloudflare Workers compatible (Web Crypto API, no Node.js TCP socket).
- * Replaces Resend for all transactional email sending.
- *
- * Setup required:
- * - Service Account in Google Cloud with Gmail API enabled.
- * - Domain-Wide Delegation authorized in Workspace Admin with scope
- *   `https://www.googleapis.com/auth/gmail.send`.
- * - Env vars: GMAIL_CLIENT_EMAIL, GMAIL_PRIVATE_KEY,
+ * Gmail : JWT OAuth2 (Service Account + Domain-Wide Delegation), API HTTP
+ * compatible serverless (Web Crypto API, pas de socket TCP/SMTP).
+ * - Env vars : GMAIL_CLIENT_EMAIL, GMAIL_PRIVATE_KEY,
  *   GMAIL_IMPERSONATE_USER, GMAIL_FROM.
+ *
+ * Resend (fallback) : utilisé quand les credentials Gmail ne sont pas
+ * configurés dans l'environnement (cas Vercel production : seul
+ * RESEND_API_KEY y est défini). API HTTP — fiable depuis les fonctions
+ * serverless, contrairement au SMTP direct.
+ * - Env var : RESEND_API_KEY.
+ *
+ * QA T50 : aucun email de confirmation webinaire n'était envoyé en production
+ * car les variables GMAIL_* n'existent pas sur Vercel → getAccessToken()
+ * levait "Gmail credentials missing" et l'envoi échouait silencieusement
+ * (non bloquant pour l'inscription, par design). Le fallback Resend rend
+ * l'envoi fonctionnel avec les variables réellement déployées.
  */
 
 const GMAIL_API = 'https://gmail.googleapis.com/gmail/v1/users/me/messages/send'
@@ -189,7 +196,77 @@ function buildRfc2822(opts: SendMailOptions): string {
   return headers.join('\r\n') + '\r\n\r\n' + (opts.text || '')
 }
 
+function hasGmailCreds(): boolean {
+  return Boolean(
+    process.env.GMAIL_CLIENT_EMAIL &&
+      process.env.GMAIL_PRIVATE_KEY &&
+      process.env.GMAIL_IMPERSONATE_USER,
+  )
+}
+
+const RESEND_API = 'https://api.resend.com/emails'
+
+function toRecipientArray(value: Recipient | undefined): string[] | undefined {
+  if (!value) return undefined
+  return Array.isArray(value) ? value : [value]
+}
+
+async function sendViaResend(opts: SendMailOptions): Promise<SendMailResult> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    return {
+      ok: false,
+      error:
+        'No email provider configured (neither GMAIL_CLIENT_EMAIL/GMAIL_PRIVATE_KEY/GMAIL_IMPERSONATE_USER nor RESEND_API_KEY)',
+    }
+  }
+
+  const from =
+    opts.from ||
+    process.env.GMAIL_FROM ||
+    process.env.CONTACT_FROM_EMAIL ||
+    'Laveiye <support@laveiye.com>'
+
+  try {
+    const response = await fetch(RESEND_API, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from,
+        to: toRecipientArray(opts.to),
+        cc: toRecipientArray(opts.cc),
+        bcc: toRecipientArray(opts.bcc),
+        reply_to: opts.replyTo,
+        subject: opts.subject,
+        html: opts.html,
+        text: opts.text,
+      }),
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[gmail-sender] resend fallback failed:', response.status, errorText)
+      return { ok: false, error: `Resend API ${response.status}: ${errorText.slice(0, 200)}` }
+    }
+
+    const data = (await response.json()) as { id?: string }
+    return { ok: true, id: data.id }
+  } catch (err) {
+    console.error('[gmail-sender] resend fallback unexpected error:', err)
+    return { ok: false, error: err instanceof Error ? err.message : 'Unknown error' }
+  }
+}
+
 export async function sendMail(opts: SendMailOptions): Promise<SendMailResult> {
+  // Fallback Resend quand Gmail n'est pas configuré dans l'environnement
+  // (cf. en-tête du fichier — QA T50).
+  if (!hasGmailCreds()) {
+    return sendViaResend(opts)
+  }
+
   try {
     const token = await getAccessToken()
     const rfc2822 = buildRfc2822(opts)

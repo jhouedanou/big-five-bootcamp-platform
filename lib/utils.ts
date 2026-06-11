@@ -227,6 +227,24 @@ export function isGoogleDriveHostedUrl(url: string): boolean {
 }
 
 /**
+ * URL de consultation Drive (page "view", PAS un embed) pour un visuel legacy
+ * hébergé sur Google Drive (LOT I). Ouverte dans un nouvel onglet, elle ne
+ * consomme pas le quota de hotlinking. Retourne l'URL d'origine si l'ID de
+ * fichier n'est pas extractible.
+ */
+export function getGoogleDriveViewUrl(url: string): string {
+  if (!url) return url
+  const idMatch =
+    url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/) ||
+    url.match(/[?&]id=([a-zA-Z0-9_-]+)/) ||
+    url.match(/googleusercontent\.com\/d\/([a-zA-Z0-9_-]+)/)
+  if (idMatch) {
+    return `https://drive.google.com/file/d/${idMatch[1]}/view`
+  }
+  return url
+}
+
+/**
  * Génère un slug SEO-friendly à partir d'un texte.
  * - Convertit en minuscules
  * - Remplace les caractères accentués (é→e, à→a, etc.)

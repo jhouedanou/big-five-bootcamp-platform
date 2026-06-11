@@ -10,6 +10,7 @@ import Link from "next/link"
 import { cn } from "@/lib/utils"
 import content from "@/lib/homepage-content.json"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { FbPageView } from "@/components/analytics/fb-events"
 
 const pricingContent = content.pricing
 
@@ -67,13 +68,15 @@ export default function PricingPage() {
 
     return (
         <div className="flex min-h-screen flex-col bg-background">
+            <FbPageView page="pricing" />
             <Navbar />
             <main className="flex-1">
                 {/* Hero */}
                 <section className="relative py-16 lg:py-28 overflow-hidden bg-background">
                     <div className="container relative mx-auto px-4 flex flex-col items-center">
-                        <h1 className="font-[family-name:var(--font-heading)] text-3xl sm:text-4xl lg:text-6xl font-extrabold tracking-tight mb-4 sm:mb-6 text-foreground">
-                            {pricingContent.hero.title} <br className="hidden sm:block" /> <span className="text-[#F2B33D]">{pricingContent.hero.titleHighlight}</span>
+                        {/* LOT J : titre centré, sur une seule ligne en desktop */}
+                        <h1 className="font-[family-name:var(--font-heading)] text-3xl sm:text-4xl lg:text-6xl font-extrabold tracking-tight mb-4 sm:mb-6 text-foreground text-center">
+                            {pricingContent.hero.title} <span className="text-[#F2B33D]">{pricingContent.hero.titleHighlight}</span>
                         </h1>
                         <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto mb-8 text-center">
                             {pricingContent.hero.subtitle}
@@ -124,12 +127,13 @@ export default function PricingPage() {
                 {/* Grille tarifaire responsive */}
                 <section className="py-12 sm:py-20 -mt-12 sm:-mt-20 relative z-10">
                     <div className="container mx-auto px-4">
-                        <div className="flex flex-col sm:flex-row sm:flex-wrap justify-center items-stretch gap-4 sm:gap-6 max-w-5xl mx-auto">
+                        {/* LOT J : grille à 3 colonnes strictement égales */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-stretch gap-4 sm:gap-6 max-w-5xl mx-auto">
                             {plans.map((plan) => (
                                 <div
                                     key={plan.key}
                                     className={cn(
-                                        "relative rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col w-full sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]",
+                                        "relative rounded-3xl p-6 sm:p-8 shadow-sm flex flex-col w-full",
                                         "bg-card border border-border",
                                         plan.highlighted && "shadow-xl lg:-translate-y-4"
                                     )}

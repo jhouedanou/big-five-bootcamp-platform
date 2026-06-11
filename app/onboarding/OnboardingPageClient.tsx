@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation"
 import { OnboardingForm } from "@/components/onboarding/OnboardingForm"
 
-export function OnboardingPageClient() {
+export function OnboardingPageClient({ nextPath = "/dashboard" }: { nextPath?: string }) {
   const router = useRouter()
 
   return (
@@ -12,7 +12,7 @@ export function OnboardingPageClient() {
         <OnboardingForm
           source="onboarding"
           onCompleted={() => {
-            router.replace("/dashboard")
+            router.replace(nextPath)
             router.refresh()
           }}
         />

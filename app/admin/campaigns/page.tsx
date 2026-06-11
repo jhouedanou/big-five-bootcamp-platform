@@ -64,7 +64,7 @@ import { toast } from "sonner";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import { CSVImporter } from "@/components/admin/csv-importer";
-import { cn, getGoogleDriveImageUrl, generateSlug, isEphemeralGoogleImageUrl, isGoogleDriveHostedUrl } from "@/lib/utils";
+import { cn, getGoogleDriveImageUrl, generateSlug, isEphemeralGoogleImageUrl, isGoogleDriveHostedUrl, getGoogleDriveViewUrl } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
 import { detectVideoPlatform, getEmbedUrl, isSupportedVideoUrl, getYouTubeThumbnail, getVideoPlatformLabel, getOriginalVideoUrl, isEmbeddableVideoUrl, platformLabelToVideoPlatform } from "@/lib/video-utils";
 import { ImageUpload, ImageUploadButton } from "@/components/ui/image-upload";
@@ -601,17 +601,21 @@ function CampaignsPageContent() {
                     {/* Thumbnail compacte */}
                     <div className="relative w-16 h-16 flex-shrink-0 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                       {item.imageUrl && isGoogleDriveHostedUrl(item.imageUrl) ? (
-                        // URL Google Drive : on NE charge PAS l'image (Google bloque le
-                        // hotlinking en masse → 403/429). On affiche un avertissement.
-                        <div
-                          className="flex h-full w-full flex-col items-center justify-center gap-1 bg-amber-50 dark:bg-amber-950/30 p-1 text-center"
-                          title="Google Drive bloque l'accès à cette image. Ré-uploadez-la directement."
+                        // Visuel legacy Google Drive (LOT I) : AUCUN embed Drive
+                        // (quota hotlinking → 403/429). Lien "Voir l'image" vers la
+                        // page view Drive, ouvert dans un nouvel onglet.
+                        <a
+                          href={getGoogleDriveViewUrl(item.imageUrl)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex h-full w-full flex-col items-center justify-center gap-1 bg-slate-50 dark:bg-slate-900/40 p-1 text-center hover:bg-slate-100"
+                          title="Visuel hébergé sur Google Drive (legacy). Cliquez pour le voir dans un nouvel onglet. Ré-uploadez-le pour l'afficher en miniature."
                         >
-                          <AlertTriangle className="h-4 w-4 text-amber-500" />
-                          <span className="text-[9px] leading-tight text-amber-600 dark:text-amber-400">
-                            Drive bloqué
+                          <ExternalLink className="h-4 w-4 text-slate-500" />
+                          <span className="text-[9px] leading-tight text-slate-600 dark:text-slate-400">
+                            Voir l&apos;image
                           </span>
-                        </div>
+                        </a>
                       ) : item.imageUrl ? (
                         <img
                           src={item.imageUrl}
@@ -639,14 +643,17 @@ function CampaignsPageContent() {
                         {item.agency && <span> - {item.agency}</span>}
                       </p>
                       <div className="flex flex-wrap gap-2 mt-2">
-                        {/* Avertissement image Google Drive bloquée */}
+                        {/* Visuel legacy Google Drive (LOT I) : lien view, pas d'embed */}
                         {item.imageUrl && isGoogleDriveHostedUrl(item.imageUrl) && (
-                          <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
-                            title="Google Drive bloque l'accès aux images chargées en masse. Ré-uploadez l'image directement (bouton upload) pour qu'elle s'affiche dans la bibliothèque."
+                          <a
+                            href={getGoogleDriveViewUrl(item.imageUrl)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                            title="Visuel hébergé sur Google Drive (legacy). Ouvrir dans un nouvel onglet. Ré-uploadez-le directement pour le servir via le CDN."
                           >
-                            <AlertTriangle className="h-3 w-3" /> Image Drive bloquée — ré-uploadez
-                          </span>
+                            <ExternalLink className="h-3 w-3" /> Voir l&apos;image (Drive)
+                          </a>
                         )}
                         {/* Badge de statut */}
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -743,6 +750,25 @@ function CampaignsPageContent() {
                         <ExternalLink className="h-4 w-4 mr-2" />
                         Voir le détail
                       </DropdownMenuItem>
+                      {/* LOT I : ouverture du visuel dans un nouvel onglet
+                          (URL CDN, ou page view Drive pour le legacy). */}
+                      {item.imageUrl && (
+                        <DropdownMenuItem
+                          onClick={() =>
+                            window.open(
+                              isGoogleDriveHostedUrl(item.imageUrl)
+                                ? getGoogleDriveViewUrl(item.imageUrl)
+                                : item.imageUrl,
+                              '_blank',
+                              'noopener'
+                            )
+                          }
+                          className="hover:bg-gray-100 dark:bg-gray-800 cursor-pointer"
+                        >
+                          <Image className="h-4 w-4 mr-2" />
+                          Voir le visuel
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem
                         onClick={() => handlePublish(item)}
                         className={`hover:bg-gray-100 cursor-pointer ${

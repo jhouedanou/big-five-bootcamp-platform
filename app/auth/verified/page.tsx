@@ -1,11 +1,26 @@
 "use client"
 
+import { Suspense } from "react"
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import { CheckCircle2, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 
-export default function AuthVerifiedPage() {
+/** N'accepte qu'un chemin interne ("/...", pas "//host") — anti open redirect. */
+function sanitizeNext(next: string | null): string | null {
+  if (!next) return null
+  if (!next.startsWith("/") || next.startsWith("//")) return null
+  return next
+}
+
+function AuthVerifiedContent() {
+  const searchParams = useSearchParams()
+  // Destination d'origine (ex: /webinaires?session=slug) conservée à travers
+  // le flow de confirmation d'email (QA T53).
+  const next = sanitizeNext(searchParams.get("next"))
+  const loginHref = next ? `/login?redirect=${encodeURIComponent(next)}` : "/login"
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#F5F5F5] via-white to-white p-4">
       <Card className="max-w-md w-full shadow-xl border-2">
@@ -32,7 +47,7 @@ export default function AuthVerifiedPage() {
             asChild
             className="w-full bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-white font-semibold"
           >
-            <Link href="/login" className="flex items-center justify-center gap-2">
+            <Link href={loginHref} className="flex items-center justify-center gap-2">
               Se connecter
               <ArrowRight className="h-4 w-4" />
             </Link>
@@ -45,5 +60,13 @@ export default function AuthVerifiedPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function AuthVerifiedPage() {
+  return (
+    <Suspense fallback={null}>
+      <AuthVerifiedContent />
+    </Suspense>
   )
 }

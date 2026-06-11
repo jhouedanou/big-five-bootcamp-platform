@@ -853,6 +853,10 @@ function CampaignGeneratorContent() {
                 <p className="text-sm text-muted-foreground">
                   Cliquez sur les visuels des campagnes à analyser (favoris et collections).
                 </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  💡 3 à 6 campagnes proches de votre univers donnent les meilleurs résultats —
+                  trop de sources dilue l'analyse.
+                </p>
               </div>
               {loadingSources ? (
                 <div className="flex justify-center py-10">
@@ -940,8 +944,9 @@ function CampaignGeneratorContent() {
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1.5 block text-sm font-semibold">Objectif</label>
+                  <label htmlFor="gen-objective" className="mb-1.5 block text-sm font-semibold">Objectif</label>
                   <select
+                    id="gen-objective"
                     value={objective}
                     onChange={(e) => setObjective(e.target.value)}
                     className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
@@ -954,8 +959,9 @@ function CampaignGeneratorContent() {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-semibold">Canal de diffusion</label>
+                  <label htmlFor="gen-channel" className="mb-1.5 block text-sm font-semibold">Canal de diffusion</label>
                   <select
+                    id="gen-channel"
                     value={channel}
                     onChange={(e) => setChannel(e.target.value)}
                     className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
@@ -977,8 +983,9 @@ function CampaignGeneratorContent() {
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-sm font-semibold">Ton</label>
+                  <label htmlFor="gen-tone" className="mb-1.5 block text-sm font-semibold">Ton</label>
                   <select
+                    id="gen-tone"
                     value={tone}
                     onChange={(e) => setTone(e.target.value)}
                     className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
@@ -1061,7 +1068,10 @@ function CampaignGeneratorContent() {
               <ChevronLeft className="h-4 w-4" /> Précédent
             </Button>
             <span className="text-xs text-muted-foreground">
-              {step === 1 && `${selectedIds.size} sélectionnée(s)`}
+              {step === 1 &&
+                (selectedIds.size === 0
+                  ? "Sélectionnez au moins une campagne pour continuer"
+                  : `${selectedIds.size} campagne${selectedIds.size > 1 ? "s" : ""} sélectionnée${selectedIds.size > 1 ? "s" : ""}`)}
             </span>
             {step < 3 ? (
               <Button

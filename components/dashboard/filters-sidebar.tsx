@@ -4,6 +4,7 @@ import React from "react"
 
 import { useState } from "react"
 import { ChevronDown, ChevronUp, X, Facebook, Instagram, Linkedin, Youtube, Lock } from "lucide-react"
+import { XLogo } from "@/components/icons/x-logo"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { CountryFlag } from "@/components/ui/country-flag"
@@ -20,6 +21,11 @@ const platformIcons: Record<string, React.ReactNode> = {
   "Instagram": <Instagram className="h-4 w-4" />,
   "LinkedIn": <Linkedin className="h-4 w-4" />,
   "YouTube": <Youtube className="h-4 w-4" />,
+  // Logo X (Twitter) — toutes les variantes de libellé en base.
+  "X": <XLogo className="h-4 w-4" />,
+  "Twitter": <XLogo className="h-4 w-4" />,
+  "Twitter/X": <XLogo className="h-4 w-4" />,
+  "X (Twitter)": <XLogo className="h-4 w-4" />,
 }
 
 // Interface pour les options dynamiques

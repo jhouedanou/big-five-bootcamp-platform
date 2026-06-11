@@ -10,15 +10,32 @@ export const metadata = {
 }
 
 /**
+ * Valide la destination post-onboarding : chemin interne uniquement
+ * (pas d'open redirect via //host ou URL absolue).
+ */
+function sanitizeNext(next: string | undefined): string {
+  if (!next) return "/dashboard"
+  if (!next.startsWith("/") || next.startsWith("//")) return "/dashboard"
+  return next
+}
+
+/**
  * Écran d'onboarding obligatoire.
  * - Non authentifié → /login
- * - Profil déjà complété → /dashboard (pas de re-onboarding)
+ * - Profil déjà complété → destination ?next= (ou /dashboard)
  */
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ next?: string }>
+}) {
   const user = await getAuthenticatedUser()
   if (!user) {
     redirect("/login?redirect=/onboarding")
   }
+
+  const { next } = await searchParams
+  const nextPath = sanitizeNext(next)
 
   const supabase = getSupabaseAdmin()
   const { data: profile } = await supabase
@@ -28,8 +45,8 @@ export default async function OnboardingPage() {
     .maybeSingle()
 
   if (profile?.profile_completed) {
-    redirect("/dashboard")
+    redirect(nextPath)
   }
 
-  return <OnboardingPageClient />
+  return <OnboardingPageClient nextPath={nextPath} />
 }

@@ -64,6 +64,23 @@ export const ACTIVITY_EVENTS: string[] = [
   "brand_viewed",
   "premium_content_clicked",
   "webinar_registration_completed",
+  // Actions clés du funnel promo/checkout (QA T54 : clic bannière promo et
+  // choix d'offre doivent mettre à jour la dernière activité).
+  "promo_banner_clicked",
+  "promo_popup_clicked",
+  "promo_offer_selected",
+  "checkout_option_selected",
+]
+
+/**
+ * Événements d'activité déjà écrits côté serveur (login-ping, route
+ * d'inscription webinaire) : ne PAS les re-persister depuis le client,
+ * sinon doublon dans analytics_events.
+ */
+const SERVER_WRITTEN_EVENTS: string[] = [
+  "login_success",
+  "webinar_registration_completed",
+  "webinar_confirmation_email_sent",
 ]
 
 /** Sources standardisées (champ `source`). */
@@ -178,7 +195,12 @@ export function trackEvent(
   persist = false
 ) {
   trackClientEvent(name, metadata)
-  if (persist || CRITICAL_EVENTS.includes(name)) {
+  // Les événements d'activité réelle sont persistés dans Supabase pour
+  // alimenter last_activity_at, le statut d'activité et le KPI actifs 30j
+  // (QA T54/T18/T59) — sauf ceux déjà écrits côté serveur.
+  const isClientActivity =
+    ACTIVITY_EVENTS.includes(name) && !SERVER_WRITTEN_EVENTS.includes(name)
+  if (persist || CRITICAL_EVENTS.includes(name) || isClientActivity) {
     void trackSupabase(name, metadata)
   }
 }

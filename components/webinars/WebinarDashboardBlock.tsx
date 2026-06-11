@@ -70,42 +70,47 @@ export function WebinarDashboardBlock() {
     return <div className="h-40 animate-pulse rounded-2xl bg-neutral-100" />
   }
 
+  // Pleine largeur (QA T47) : mêmes dimensions que la bannière « Temps forts »
+  // (rounded-2xl, min-h-56) — contenu à gauche, actions à droite sur desktop.
   return (
-    <div className="rounded-2xl border border-[#F2B33D]/30 bg-gradient-to-br from-[#F2B33D]/10 to-white p-5">
-      <div className="mb-1 flex items-center gap-2">
-        <CalendarDays className="size-4 text-[#F2B33D]" />
-        <h3 className="font-semibold text-neutral-900">À ne pas manquer</h3>
+    <div className="flex min-h-56 flex-col justify-center gap-4 rounded-2xl border border-[#F2B33D]/30 bg-gradient-to-br from-[#F2B33D]/10 to-white px-6 py-7 sm:px-8">
+      <div>
+        <div className="mb-1 flex items-center gap-2">
+          <CalendarDays className="size-4 text-[#F2B33D]" />
+          <h3 className="font-semibold text-neutral-900">À ne pas manquer</h3>
+        </div>
+        <p className="text-xs font-medium uppercase tracking-wide text-[#b8860b]">
+          Prochaine session #BigFiveDécrypte
+        </p>
       </div>
-      <p className="mb-3 text-xs font-medium uppercase tracking-wide text-[#b8860b]">
-        Prochaine session #BigFiveDécrypte
-      </p>
 
       {!webinar ? (
         <p className="text-sm text-neutral-500">Aucune session programmée pour le moment.</p>
       ) : (
-        <>
-          <p className="font-medium text-neutral-900">{webinar.title}</p>
-          <div className="mt-2 space-y-1 text-sm text-neutral-600">
-            <div className="flex items-center gap-2">
-              <CalendarDays className="size-3.5 text-neutral-400" /> {fmtDate(webinar.date)}
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="size-3.5 text-neutral-400" />
-              {(webinar.start_time || "").slice(0, 5) || "Heure à confirmer"}
-            </div>
-            <div className="flex items-center gap-2">
-              <Users className="size-3.5 text-neutral-400" /> {webinar.registrations_count} inscrit(s)
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-xl font-semibold text-neutral-900">{webinar.title}</p>
+            <div className="mt-2 flex flex-col gap-1 text-sm text-neutral-600 sm:flex-row sm:flex-wrap sm:gap-x-5">
+              <div className="flex items-center gap-2">
+                <CalendarDays className="size-3.5 text-neutral-400" /> {fmtDate(webinar.date)}
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="size-3.5 text-neutral-400" />
+                {(webinar.start_time || "").slice(0, 5) || "Heure à confirmer"}
+              </div>
+              <div className="flex items-center gap-2">
+                <Users className="size-3.5 text-neutral-400" /> {webinar.registrations_count} inscrit(s)
+              </div>
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 md:shrink-0">
             {webinar.is_registered ? (
               <AddToCalendar webinar={webinar} />
             ) : canRegister(webinar, webinar.registrations_count) ? (
               <Button
                 onClick={register}
                 disabled={registering}
-                size="sm"
                 className="gap-2 bg-neutral-900 text-white hover:bg-neutral-800"
               >
                 {registering && <Loader2 className="size-4 animate-spin" />}
@@ -115,13 +120,13 @@ export function WebinarDashboardBlock() {
               <span className="text-sm text-neutral-400">Inscriptions fermées</span>
             )}
           </div>
-        </>
+        </div>
       )}
 
       <Link
         href="/webinaires"
         onClick={() => trackEvent("webinar_program_clicked", {})}
-        className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-neutral-700 hover:text-neutral-900"
+        className="inline-flex w-fit items-center gap-1 text-sm font-medium text-neutral-700 hover:text-neutral-900"
       >
         Voir le programme des webinaires <ArrowRight className="size-3.5" />
       </Link>

@@ -10,6 +10,7 @@ import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
 import { LegalModal } from "@/components/legal-modal"
 import { SubscribeCampaignsCarousel } from "@/components/subscribe-campaigns-carousel"
 import { CountryPhoneField, getCountryMeta } from "@/components/payment/country-phone-field"
+import { fbTrack, newFbEventId } from "@/lib/fb-pixel"
 
 type PlanChoice = "basic" | "pro" | "discovery"
 
@@ -322,6 +323,14 @@ export default function SubscribePage() {
 
     setIsProcessing(true)
 
+    // Pixel + CAPI : InitiateCheckout dédoublonné par event_id partagé (LOT F).
+    const fbEventId = newFbEventId()
+    fbTrack(
+      "InitiateCheckout",
+      { value: finalAmount, currency: "XOF", plan: selectedPlan },
+      fbEventId
+    )
+
     try {
       const response = await fetch("/api/payment/subscribe", {
         method: "POST",
@@ -335,6 +344,7 @@ export default function SubscribePage() {
           phone: phoneDigits,
           promoCode: resolvedPromoCode,
           rawPromoInput: promoInput.trim() || undefined,
+          fbEventId,
         }),
       })
 

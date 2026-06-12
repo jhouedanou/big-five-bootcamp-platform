@@ -5,7 +5,7 @@ import { CI, SN, BJ, BF, ML, TG, CM, NE } from "country-flag-icons/react/3x2"
 import type { ComponentType, SVGAttributes } from "react"
 import { AlertCircle } from "lucide-react"
 import { CountrySelect } from "@/components/ui/country-select"
-import type { Country } from "@/lib/countries"
+import { ALL_COUNTRIES, COUNTRY_DIAL_CODES, type Country } from "@/lib/countries"
 
 /**
  * Métadonnées par pays SUPPORTÉ pour le paiement mobile money (mapping
@@ -56,10 +56,41 @@ export function getSupportedMetaByIso2(iso2: string): CountryMeta | null {
   return SUPPORTED_BY_ISO2[iso2] ?? null
 }
 
+/** Longueur libre (E.164) pour les pays sans mapping mobile money dédié. */
+const GENERIC_MIN_DIGITS = 6
+const GENERIC_MAX_DIGITS = 15
+
+/** Le code est-il un pays "générique" (ISO alpha-2, hors mapping mobile money) ? */
+function isGenericCountry(code: string): boolean {
+  return /^[A-Z]{2}$/.test(code) && !BY_CODE[code]
+}
+
 /** Garde uniquement les chiffres et tronque à la longueur du pays. */
 export function sanitizePhone(raw: string, code: string): string {
+  const digits = raw.replace(/\D/g, "")
+  if (isGenericCountry(code)) return digits.slice(0, GENERIC_MAX_DIGITS)
   const meta = getCountryMeta(code)
-  return raw.replace(/\D/g, "").slice(0, meta.digits)
+  return digits.slice(0, meta.digits)
+}
+
+/**
+ * Valide le numéro national selon le pays : longueur exacte pour les pays
+ * mobile money, longueur libre 6–15 chiffres (E.164) pour les autres.
+ */
+export function phoneDigitsValid(code: string, digits: string): boolean {
+  const clean = digits.replace(/\D/g, "")
+  if (BY_CODE[code]) return clean.length === BY_CODE[code].digits
+  if (isGenericCountry(code)) {
+    return clean.length >= GENERIC_MIN_DIGITS && clean.length <= GENERIC_MAX_DIGITS
+  }
+  return false
+}
+
+/** Message d'erreur de validation téléphone adapté au pays. */
+export function phoneErrorMessage(code: string): string {
+  const meta = BY_CODE[code]
+  if (meta) return `Numéro invalide : ${meta.digits} chiffres attendus.`
+  return `Numéro invalide : ${GENERIC_MIN_DIGITS} à ${GENERIC_MAX_DIGITS} chiffres attendus.`
 }
 
 /** Formate un numéro de chiffres bruts selon le découpage du pays. */
@@ -81,27 +112,11 @@ function placeholderFor(code: string): string {
   return meta.groups.map((g) => "0".repeat(g)).join(" ")
 }
 
-/** Message affiché quand le pays choisi n'a pas de moyen de paiement configuré. */
-export function UnsupportedCountryNotice({ countryName }: { countryName: string }) {
-  return (
-    <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-      <p>
-        Aucun moyen de paiement n&apos;est encore disponible pour{" "}
-        <strong>{countryName}</strong>. Le paiement mobile money est
-        actuellement proposé en : Côte d&apos;Ivoire, Sénégal, Bénin, Burkina
-        Faso, Mali, Togo, Cameroun et Niger. Contactez-nous à{" "}
-        <a href="mailto:support@laveiye.com" className="underline">
-          support@laveiye.com
-        </a>{" "}
-        pour une alternative.
-      </p>
-    </div>
-  )
-}
-
 interface Props {
-  /** Code interne 3 lettres du pays de paiement ("" si pays non supporté). */
+  /**
+   * Code du pays de paiement : code interne 3 lettres (CIV, SEN, …) pour les
+   * pays mobile money, ISO alpha-2 pour le reste du monde, "" si non choisi.
+   */
   country: string
   onCountryChange: (code: string) => void
   /** Chiffres bruts du numéro national (sans indicatif). */
@@ -111,18 +126,24 @@ interface Props {
 
 export function CountryPhoneField({ country, onCountryChange, phone, onPhoneChange }: Props) {
   const supportedMeta = BY_CODE[country] ?? null
-  // Nom affiché dans le sélecteur monde : initialisé depuis le code supporté,
-  // puis piloté par la sélection utilisateur (peut être un pays non supporté).
+  const genericCountry = !supportedMeta && /^[A-Z]{2}$/.test(country)
+    ? ALL_COUNTRIES.find((c) => c.code === country) ?? null
+    : null
+  // Nom affiché dans le sélecteur monde : initialisé depuis le code reçu,
+  // puis piloté par la sélection utilisateur.
   const [selectedName, setSelectedName] = useState<string | null>(
-    supportedMeta?.name ?? null
+    supportedMeta?.name ?? genericCountry?.name ?? null
   )
 
-  const complete = supportedMeta ? phone.length === supportedMeta.digits : false
+  const complete = phoneDigitsValid(country, phone)
+  const genericDial = genericCountry ? COUNTRY_DIAL_CODES[genericCountry.code] : undefined
 
   const handleSelect = (c: Country) => {
     setSelectedName(c.name)
     const meta = getSupportedMetaByIso2(c.code)
-    onCountryChange(meta ? meta.code : "")
+    // Pays mobile money → code interne 3 lettres ; sinon ISO alpha-2.
+    // Tous les pays peuvent payer (Moneroo gère carte bancaire & co).
+    onCountryChange(meta ? meta.code : c.code)
     onPhoneChange("")
   }
 
@@ -160,8 +181,37 @@ export function CountryPhoneField({ country, onCountryChange, phone, onPhoneChan
             </p>
           )}
         </div>
-      ) : selectedName ? (
-        <UnsupportedCountryNotice countryName={selectedName} />
+      ) : genericCountry ? (
+        <div>
+          <label htmlFor="phone" className="mb-1 block text-xs font-medium text-[#0F0F0F]/70">
+            Téléphone
+          </label>
+          <div className="flex h-10 items-center rounded-lg border border-border bg-white px-3 focus-within:ring-2 focus-within:ring-[#F2B33D]/30">
+            {genericDial && (
+              <span className="mr-2 border-r border-border pr-2 text-sm text-[#0F0F0F]/60">
+                +{genericDial}
+              </span>
+            )}
+            <input
+              id="phone"
+              type="tel"
+              inputMode="numeric"
+              autoComplete="tel-national"
+              value={phone}
+              onChange={(e) => onPhoneChange(sanitizePhone(e.target.value, country))}
+              placeholder="Numéro sans indicatif"
+              className="h-full w-full bg-transparent text-sm text-[#0F0F0F] outline-none"
+            />
+          </div>
+          <div className="mt-2 flex items-start gap-2 rounded-lg border border-border bg-[#F5F5F5] p-2.5 text-[11px] text-[#0F0F0F]/70">
+            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            <p>
+              Le paiement mobile money n&apos;est pas disponible pour{" "}
+              <strong>{genericCountry.name}</strong> — vous pourrez régler par
+              carte bancaire sur la page de paiement.
+            </p>
+          </div>
+        </div>
       ) : null}
     </div>
   )

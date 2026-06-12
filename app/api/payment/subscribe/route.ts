@@ -20,7 +20,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import { initCheckout, generateRefCommand, getProductId, COUNTRY_ISO, CHARIOW_CONFIG } from '@/lib/chariow';
+import { initCheckout, generateRefCommand, getProductId, resolveCountryIso, CHARIOW_CONFIG } from '@/lib/chariow';
 import {
   KEYNOTE_PROMO_OFFER,
   computePromoPhases,
@@ -107,17 +107,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Pays + téléphone requis pour préremplir le checkout Chariow → Moneroo
-    // (l'opérateur mobile money est déduit du pays + numéro).
-    const countryKey = String(country || '').toUpperCase().trim();
-    const countryIso = COUNTRY_ISO[countryKey];
+    // (l'opérateur mobile money est déduit du pays + numéro). Tous les pays
+    // sont acceptés : Moneroo propose carte bancaire & co hors mobile money.
+    const countryIso = resolveCountryIso(country);
     const phoneDigits = String(phone || '').replace(/\D/g, '');
     if (!countryIso) {
       return NextResponse.json(
-        { error: 'Pays invalide ou non supporté.' },
+        { error: 'Pays invalide.' },
         { status: 400 }
       );
     }
-    if (phoneDigits.length < 8) {
+    if (phoneDigits.length < 6) {
       return NextResponse.json(
         { error: 'Numéro de téléphone invalide.' },
         { status: 400 }

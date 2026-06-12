@@ -6,7 +6,7 @@ import { toast } from "sonner"
 import { Loader2, Check, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Countdown } from "@/components/promo/Countdown"
-import { CountryPhoneField, getCountryMeta } from "@/components/payment/country-phone-field"
+import { CountryPhoneField, phoneDigitsValid, phoneErrorMessage } from "@/components/payment/country-phone-field"
 import { trackEvent, trackGA4 } from "@/lib/analytics"
 import { fbTrack, newFbEventId } from "@/lib/fb-pixel"
 import { cn } from "@/lib/utils"
@@ -101,14 +101,11 @@ export function CheckoutClient() {
       return
     }
     if (!country) {
-      // Pays non sélectionné OU pays sans moyen de paiement configuré
-      // (le message détaillé est affiché sous le sélecteur).
-      toast.error("Sélectionnez un pays disposant d'un moyen de paiement.")
+      toast.error("Sélectionnez votre pays.")
       return
     }
-    const expectedDigits = getCountryMeta(country).digits
-    if (phone.replace(/\D/g, "").length !== expectedDigits) {
-      toast.error(`Numéro invalide : ${expectedDigits} chiffres attendus.`)
+    if (!phoneDigitsValid(country, phone)) {
+      toast.error(phoneErrorMessage(country))
       return
     }
     setSubmitting(true)

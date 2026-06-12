@@ -1,14 +1,15 @@
 export const dynamic = "force-dynamic"
 
-import { getUsers, getPayments, getFavoritesCounts } from "@/app/actions/user"
+import { getUsers, getFavoritesCounts } from "@/app/actions/user"
 import { UsersTable } from "./users-table"
 import { BulkAddUsersDialog } from "./bulk-add-dialog"
 import { CampaignActivateDialog } from "./campaign-activate-dialog"
 
 export default async function UsersPage() {
-  const [usersResult, paymentsResult, favoritesResult] = await Promise.all([
+  // Les historiques (paiements, activité) sont chargés à la demande depuis la
+  // fiche utilisateur via popup — plus de chargement global des paiements ici.
+  const [usersResult, favoritesResult] = await Promise.all([
     getUsers(),
-    getPayments(),
     getFavoritesCounts(),
   ])
 
@@ -17,17 +18,7 @@ export default async function UsersPage() {
   }
 
   const users = usersResult.data
-  const payments = paymentsResult.data || []
   const favoritesCounts = favoritesResult.data || {}
-
-  // Group payments by user email
-  const paymentsByEmail: Record<string, typeof payments> = {}
-  for (const payment of payments) {
-    const email = payment.user_email
-    if (!email) continue
-    if (!paymentsByEmail[email]) paymentsByEmail[email] = []
-    paymentsByEmail[email].push(payment)
-  }
 
   return (
     <div className="space-y-6">
@@ -46,7 +37,6 @@ export default async function UsersPage() {
 
       <UsersTable
         users={users as Array<Record<string, unknown>>}
-        paymentsByEmail={paymentsByEmail}
         favoritesCounts={favoritesCounts as Record<string, number>}
       />
     </div>

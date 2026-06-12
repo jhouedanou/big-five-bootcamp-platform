@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { TableCell, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -33,7 +33,6 @@ interface Payment {
 
 interface UserRowProps {
     user: Record<string, unknown>
-    payments: Payment[]
     favoritesCount: number
 }
 
@@ -152,7 +151,7 @@ function activityEventDetail(e: ActivityEvent): string {
     return ''
 }
 
-export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
+export function UserRow({ user, favoritesCount }: UserRowProps) {
     const [isExpanded, setIsExpanded] = useState(false)
     const [isEndingSubscription, setIsEndingSubscription] = useState(false)
     const [isResettingSubscription, setIsResettingSubscription] = useState(false)
@@ -167,30 +166,56 @@ export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
     const [resetDays, setResetDays] = useState(30)
     const [resetPlan, setResetPlan] = useState<'keep' | 'Discovery' | 'Basic' | 'Pro'>('keep')
 
-    // Historique d'activité (QA T55) — chargé à l'ouverture de la fiche.
+    // Historique d'activité (QA T55) — chargé à la demande via popup,
+    // pour ne pas déclencher de requête à chaque ouverture de fiche.
+    const [activityOpen, setActivityOpen] = useState(false)
     const [activityEvents, setActivityEvents] = useState<ActivityEvent[]>([])
     const [activityLoading, setActivityLoading] = useState(false)
     const [activityLoaded, setActivityLoaded] = useState(false)
+    const [activityError, setActivityError] = useState<string | null>(null)
 
-    useEffect(() => {
-        if (!isExpanded || activityLoaded || activityLoading) return
-        let cancelled = false
+    // Historique des paiements — même logique : bouton → popup → requête.
+    const [paymentsOpen, setPaymentsOpen] = useState(false)
+    const [payments, setPayments] = useState<Payment[]>([])
+    const [paymentsLoading, setPaymentsLoading] = useState(false)
+    const [paymentsLoaded, setPaymentsLoaded] = useState(false)
+    const [paymentsError, setPaymentsError] = useState<string | null>(null)
+
+    const openActivityDialog = () => {
+        setActivityOpen(true)
+        if (activityLoaded || activityLoading) return
         setActivityLoading(true)
+        setActivityError(null)
         fetch(`/api/admin/users/${user.id}/activity?limit=50`)
-            .then((res) => (res.ok ? res.json() : { events: [] }))
+            .then((res) => {
+                if (!res.ok) throw new Error()
+                return res.json()
+            })
             .then((data) => {
-                if (cancelled) return
                 setActivityEvents(data.events || [])
                 setActivityLoaded(true)
             })
-            .catch(() => {
-                if (!cancelled) setActivityLoaded(true)
+            .catch(() => setActivityError("Impossible de charger l'activité."))
+            .finally(() => setActivityLoading(false))
+    }
+
+    const openPaymentsDialog = () => {
+        setPaymentsOpen(true)
+        if (paymentsLoaded || paymentsLoading) return
+        setPaymentsLoading(true)
+        setPaymentsError(null)
+        fetch(`/api/admin/users/${user.id}/payments`)
+            .then((res) => {
+                if (!res.ok) throw new Error()
+                return res.json()
             })
-            .finally(() => {
-                if (!cancelled) setActivityLoading(false)
+            .then((data) => {
+                setPayments(data.payments || [])
+                setPaymentsLoaded(true)
             })
-        return () => { cancelled = true }
-    }, [isExpanded, activityLoaded, activityLoading, user.id])
+            .catch(() => setPaymentsError("Impossible de charger les paiements."))
+            .finally(() => setPaymentsLoading(false))
+    }
 
     const subStart = user.subscription_start_date as string | null | undefined
     const subEnd = user.subscription_end_date as string | null | undefined
@@ -529,132 +554,21 @@ export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
                                 </Button>
                             </div>
 
-                            <div className="flex items-center gap-2 mb-3">
-                                <CreditCard className="h-4 w-4 text-muted-foreground" />
-                                <h4 className="font-semibold text-sm">
+                            {/* Historiques : chargés à la demande via popup (bouton → dialog → requête) */}
+                            <div
+                                className="flex items-center gap-3 rounded-lg border bg-card p-3"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <span className="text-sm font-medium text-foreground mr-auto">Historiques</span>
+                                <Button variant="outline" size="sm" onClick={openPaymentsDialog}>
+                                    <CreditCard className="mr-1 h-3 w-3" />
                                     Historique des paiements
-                                    {payments.length > 0 && (
-                                        <span className="ml-2 text-muted-foreground font-normal">
-                                            ({payments.length} transaction{payments.length > 1 ? 's' : ''})
-                                        </span>
-                                    )}
-                                </h4>
-                            </div>
-
-                            {payments.length === 0 ? (
-                                <p className="text-sm text-muted-foreground italic">
-                                    Aucun paiement enregistré pour cet utilisateur.
-                                </p>
-                            ) : (
-                                <div className="border rounded-md overflow-hidden">
-                                    <table className="w-full text-sm">
-                                        <thead>
-                                            <tr className="bg-muted/50 text-left">
-                                                <th className="px-3 py-2 font-medium text-muted-foreground">Référence</th>
-                                                <th className="px-3 py-2 font-medium text-muted-foreground">Description</th>
-                                                <th className="px-3 py-2 font-medium text-muted-foreground">Montant</th>
-                                                <th className="px-3 py-2 font-medium text-muted-foreground">Méthode</th>
-                                                <th className="px-3 py-2 font-medium text-muted-foreground">Statut</th>
-                                                <th className="px-3 py-2 font-medium text-muted-foreground">Date</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {payments.map((payment) => (
-                                                <tr key={payment.id} className="border-t">
-                                                    <td className="px-3 py-2 font-mono text-xs">
-                                                        {payment.ref_command?.substring(0, 20) || '—'}
-                                                    </td>
-                                                    <td className="px-3 py-2">
-                                                        {payment.item_name || 'Abonnement'}
-                                                    </td>
-                                                    <td className="px-3 py-2 font-semibold">
-                                                        {payment.amount?.toLocaleString('fr-FR')} {payment.currency || 'XOF'}
-                                                    </td>
-                                                    <td className="px-3 py-2">
-                                                        {payment.payment_method || '—'}
-                                                    </td>
-                                                    <td className="px-3 py-2">
-                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getPaymentStatusBadge(payment.status)}`}>
-                                                            {getPaymentStatusLabel(payment.status)}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-3 py-2 text-muted-foreground">
-                                                        {formatDateTime(payment.created_at)}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                        {payments.filter(p => p.status === 'completed').length > 0 && (
-                                            <tfoot>
-                                                <tr className="border-t bg-muted/30">
-                                                    <td colSpan={2} className="px-3 py-2 font-medium text-right">Total payé :</td>
-                                                    <td className="px-3 py-2 font-bold text-green-700" colSpan={4}>
-                                                        {payments
-                                                            .filter(p => p.status === 'completed')
-                                                            .reduce((sum, p) => sum + (p.amount || 0), 0)
-                                                            .toLocaleString('fr-FR')
-                                                        } XOF
-                                                    </td>
-                                                </tr>
-                                            </tfoot>
-                                        )}
-                                    </table>
-                                </div>
-                            )}
-
-                            {/* Historique d'activité (QA T55) : qui a fait quoi, depuis quelle page */}
-                            <div className="flex items-center gap-2 mb-3 mt-6">
-                                <Activity className="h-4 w-4 text-muted-foreground" />
-                                <h4 className="font-semibold text-sm">
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={openActivityDialog}>
+                                    <Activity className="mr-1 h-3 w-3" />
                                     Historique d&apos;activité
-                                    {activityEvents.length > 0 && (
-                                        <span className="ml-2 text-muted-foreground font-normal">
-                                            ({activityEvents.length} action{activityEvents.length > 1 ? 's' : ''} récente{activityEvents.length > 1 ? 's' : ''})
-                                        </span>
-                                    )}
-                                </h4>
+                                </Button>
                             </div>
-
-                            {activityLoading ? (
-                                <p className="text-sm text-muted-foreground flex items-center gap-2">
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Chargement de l&apos;activité…
-                                </p>
-                            ) : activityEvents.length === 0 ? (
-                                <p className="text-sm text-muted-foreground italic">
-                                    Aucune action enregistrée pour cet utilisateur.
-                                </p>
-                            ) : (
-                                <div className="border rounded-md overflow-hidden">
-                                    <table className="w-full text-sm">
-                                        <thead>
-                                            <tr className="bg-muted/50 text-left">
-                                                <th className="px-3 py-2 font-medium text-muted-foreground">Action</th>
-                                                <th className="px-3 py-2 font-medium text-muted-foreground">Détail</th>
-                                                <th className="px-3 py-2 font-medium text-muted-foreground">Page</th>
-                                                <th className="px-3 py-2 font-medium text-muted-foreground">Date</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {activityEvents.map((event) => (
-                                                <tr key={event.id} className="border-t">
-                                                    <td className="px-3 py-2 font-medium">
-                                                        {activityEventLabel(event.event_name)}
-                                                    </td>
-                                                    <td className="px-3 py-2 text-muted-foreground max-w-[220px] truncate">
-                                                        {activityEventDetail(event) || '—'}
-                                                    </td>
-                                                    <td className="px-3 py-2 font-mono text-xs text-muted-foreground max-w-[220px] truncate">
-                                                        {event.page_url || event.source || '—'}
-                                                    </td>
-                                                    <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
-                                                        {formatDateTime(event.created_at)}
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
                         </div>
                     </TableCell>
                 </TableRow>
@@ -724,6 +638,148 @@ export function UserRow({ user, payments, favoritesCount }: UserRowProps) {
                             )}
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Historique des paiements (popup, requête à l'ouverture) */}
+            <Dialog open={paymentsOpen} onOpenChange={setPaymentsOpen}>
+                <DialogContent className="sm:max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <CreditCard className="h-5 w-5" />
+                            Historique des paiements — {(user.name as string) || (user.email as string)}
+                            {paymentsLoaded && payments.length > 0 && (
+                                <span className="text-sm text-muted-foreground font-normal">
+                                    ({payments.length} transaction{payments.length > 1 ? 's' : ''})
+                                </span>
+                            )}
+                        </DialogTitle>
+                    </DialogHeader>
+                    {paymentsLoading ? (
+                        <p className="text-sm text-muted-foreground flex items-center gap-2 py-4">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Chargement des paiements…
+                        </p>
+                    ) : paymentsError ? (
+                        <p className="text-sm text-red-600 py-4">{paymentsError}</p>
+                    ) : payments.length === 0 ? (
+                        <p className="text-sm text-muted-foreground italic py-4">
+                            Aucun paiement enregistré pour cet utilisateur.
+                        </p>
+                    ) : (
+                        <div className="border rounded-md overflow-hidden max-h-[60vh] overflow-y-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="bg-muted/50 text-left">
+                                        <th className="px-3 py-2 font-medium text-muted-foreground">Référence</th>
+                                        <th className="px-3 py-2 font-medium text-muted-foreground">Description</th>
+                                        <th className="px-3 py-2 font-medium text-muted-foreground">Montant</th>
+                                        <th className="px-3 py-2 font-medium text-muted-foreground">Méthode</th>
+                                        <th className="px-3 py-2 font-medium text-muted-foreground">Statut</th>
+                                        <th className="px-3 py-2 font-medium text-muted-foreground">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {payments.map((payment) => (
+                                        <tr key={payment.id} className="border-t">
+                                            <td className="px-3 py-2 font-mono text-xs">
+                                                {payment.ref_command?.substring(0, 20) || '—'}
+                                            </td>
+                                            <td className="px-3 py-2">
+                                                {payment.item_name || 'Abonnement'}
+                                            </td>
+                                            <td className="px-3 py-2 font-semibold">
+                                                {payment.amount?.toLocaleString('fr-FR')} {payment.currency || 'XOF'}
+                                            </td>
+                                            <td className="px-3 py-2">
+                                                {payment.payment_method || '—'}
+                                            </td>
+                                            <td className="px-3 py-2">
+                                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getPaymentStatusBadge(payment.status)}`}>
+                                                    {getPaymentStatusLabel(payment.status)}
+                                                </span>
+                                            </td>
+                                            <td className="px-3 py-2 text-muted-foreground">
+                                                {formatDateTime(payment.created_at)}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                                {payments.filter(p => p.status === 'completed').length > 0 && (
+                                    <tfoot>
+                                        <tr className="border-t bg-muted/30">
+                                            <td colSpan={2} className="px-3 py-2 font-medium text-right">Total payé :</td>
+                                            <td className="px-3 py-2 font-bold text-green-700" colSpan={4}>
+                                                {payments
+                                                    .filter(p => p.status === 'completed')
+                                                    .reduce((sum, p) => sum + (p.amount || 0), 0)
+                                                    .toLocaleString('fr-FR')
+                                                } XOF
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                )}
+                            </table>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Historique d'activité (popup, requête à l'ouverture — QA T55) */}
+            <Dialog open={activityOpen} onOpenChange={setActivityOpen}>
+                <DialogContent className="sm:max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Activity className="h-5 w-5" />
+                            Historique d&apos;activité — {(user.name as string) || (user.email as string)}
+                            {activityLoaded && activityEvents.length > 0 && (
+                                <span className="text-sm text-muted-foreground font-normal">
+                                    ({activityEvents.length} action{activityEvents.length > 1 ? 's' : ''})
+                                </span>
+                            )}
+                        </DialogTitle>
+                    </DialogHeader>
+                    {activityLoading ? (
+                        <p className="text-sm text-muted-foreground flex items-center gap-2 py-4">
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Chargement de l&apos;activité…
+                        </p>
+                    ) : activityError ? (
+                        <p className="text-sm text-red-600 py-4">{activityError}</p>
+                    ) : activityEvents.length === 0 ? (
+                        <p className="text-sm text-muted-foreground italic py-4">
+                            Aucune action enregistrée pour cet utilisateur.
+                        </p>
+                    ) : (
+                        <div className="border rounded-md overflow-hidden max-h-[60vh] overflow-y-auto">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="bg-muted/50 text-left">
+                                        <th className="px-3 py-2 font-medium text-muted-foreground">Action</th>
+                                        <th className="px-3 py-2 font-medium text-muted-foreground">Détail</th>
+                                        <th className="px-3 py-2 font-medium text-muted-foreground">Page</th>
+                                        <th className="px-3 py-2 font-medium text-muted-foreground">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {activityEvents.map((event) => (
+                                        <tr key={event.id} className="border-t">
+                                            <td className="px-3 py-2 font-medium">
+                                                {activityEventLabel(event.event_name)}
+                                            </td>
+                                            <td className="px-3 py-2 text-muted-foreground max-w-[220px] truncate">
+                                                {activityEventDetail(event) || '—'}
+                                            </td>
+                                            <td className="px-3 py-2 font-mono text-xs text-muted-foreground max-w-[220px] truncate">
+                                                {event.page_url || event.source || '—'}
+                                            </td>
+                                            <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">
+                                                {formatDateTime(event.created_at)}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </DialogContent>
             </Dialog>
         </>

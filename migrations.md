@@ -1,6 +1,6 @@
 # Migrations à exécuter (Supabase SQL Editor)
 
-Ordre d'exécution = **ordre numérique des préfixes de fichier** (`01_` → `08_`).
+Ordre d'exécution = **ordre numérique des préfixes de fichier** (`01_` → `09_`).
 Exécuter dans le **SQL Editor Supabase**, de haut en bas. Toutes idempotentes
 (ré-exécutables sans casse si doute).
 
@@ -14,6 +14,7 @@ Exécuter dans le **SQL Editor Supabase**, de haut en bas. Toutes idempotentes
 | 6 | `supabase/migrations/06_20260606_webinars_seed.sql` | Seed 2 webinaires publiés (#BigFiveDécrypte juillet + août 2026) | #5 |
 | 7 | `supabase/migrations/07_20260607_analytics_page_url.sql` | Colonne `page_url` sur `analytics_events` | #1 (`analytics_events`) |
 | 8 | `supabase/migrations/08_20260607_user_activity_access.sql` | `users.last_activity_at` + normalisation `access_type` en codes + vue `admin_users` (activity) | #2 (`admin_users`, colonnes users) |
+| 9 | `supabase/migrations/09_20260612_admin_users_phone.sql` | Vue `admin_users` : `phone_number = coalesce(phone_e164, phone_number)` — fixe téléphone vide dans /admin/audience | #8 (vue `admin_users`) |
 
 ## Règle simple
 

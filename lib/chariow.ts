@@ -1,8 +1,10 @@
 /**
  * Chariow Payment Integration
- * 
+ *
  * Configuration et helpers pour l'intégration Chariow (widget de paiement).
  */
+
+import { COUNTRY_DIAL_CODES } from '@/lib/countries';
 
 export const CHARIOW_CONFIG = {
   API_KEY: process.env.CHARIOW_API_KEY || '',
@@ -59,6 +61,36 @@ export const COUNTRY_ISO: Record<string, string> = {
   CMR: 'CM',
   NER: 'NE',
 };
+
+/**
+ * Résout le code ISO alpha-2 d'un pays de checkout. Accepte :
+ *  - le code interne 3 lettres des pays mobile money (CIV, SEN, …)
+ *  - n'importe quel code ISO alpha-2 connu (Moneroo accepte la quasi-totalité
+ *    des pays — carte bancaire & co pour les pays sans mobile money).
+ * Retourne null si le code est inconnu.
+ */
+export function resolveCountryIso(code: string | null | undefined): string | null {
+  const key = String(code || '').toUpperCase().trim();
+  if (COUNTRY_ISO[key]) return COUNTRY_ISO[key];
+  if (/^[A-Z]{2}$/.test(key) && COUNTRY_DIAL_CODES[key]) return key;
+  return null;
+}
+
+/**
+ * Retire l'indicatif international du numéro si l'utilisateur l'a saisi
+ * (ex. "22507070707xx" → "07070707xx" pour CI). Chariow/Moneroo attendent le
+ * numéro national seul, l'indicatif étant porté par `country_code`.
+ */
+export function stripDialPrefix(digits: string, countryIso: string): string {
+  let num = String(digits).replace(/\D/g, '');
+  // Préfixe de sortie international "00" éventuel (ex. "00225…").
+  if (num.startsWith('00')) num = num.slice(2);
+  const dial = COUNTRY_DIAL_CODES[countryIso];
+  if (dial && num.startsWith(dial) && num.length - dial.length >= 6) {
+    num = num.slice(dial.length);
+  }
+  return num;
+}
 
 /**
  * Résout le product_id Chariow pour un couple (plan, billing).
@@ -210,7 +242,9 @@ export async function initCheckout(input: InitCheckoutInput): Promise<InitChecko
     first_name: input.firstName.slice(0, 50),
     last_name: (input.lastName || input.firstName || 'Client').slice(0, 50),
     phone: {
-      number: String(input.phone.number).replace(/\D/g, ''),
+      // Numéro national seul : on retire tout indicatif saisi par l'utilisateur,
+      // l'indicatif est porté par country_code (sinon Moneroo l'affiche en double).
+      number: stripDialPrefix(input.phone.number, input.phone.country_code),
       country_code: input.phone.country_code,
     },
   };

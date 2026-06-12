@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
 import { LegalModal } from "@/components/legal-modal"
 import { SubscribeCampaignsCarousel } from "@/components/subscribe-campaigns-carousel"
-import { CountryPhoneField, getCountryMeta } from "@/components/payment/country-phone-field"
+import { CountryPhoneField, phoneDigitsValid, phoneErrorMessage } from "@/components/payment/country-phone-field"
 import { fbTrack, newFbEventId } from "@/lib/fb-pixel"
 
 type PlanChoice = "basic" | "pro" | "discovery"
@@ -315,9 +315,8 @@ export default function SubscribePage() {
     }
 
     const phoneDigits = phone.replace(/\D/g, '')
-    const expectedDigits = getCountryMeta(country).digits
-    if (phoneDigits.length !== expectedDigits) {
-      alert(`Numéro invalide : ${expectedDigits} chiffres attendus pour ${getCountryMeta(country).name}.`)
+    if (!phoneDigitsValid(country, phoneDigits)) {
+      alert(phoneErrorMessage(country))
       return
     }
 
@@ -775,7 +774,7 @@ export default function SubscribePage() {
 
                 <Button
                   onClick={handlePayment}
-                  disabled={!acceptTerms || isProcessing || phone.replace(/\D/g, '').length !== getCountryMeta(country).digits}
+                  disabled={!acceptTerms || isProcessing || !phoneDigitsValid(country, phone)}
                   className="h-11 w-full bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-white font-bold shadow-lg shadow-[#F2B33D]/25"
                 >
                   {isProcessing ? (

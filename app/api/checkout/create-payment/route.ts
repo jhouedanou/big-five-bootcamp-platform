@@ -17,7 +17,7 @@ import {
   initCheckout,
   generateRefCommand,
   getProductId,
-  COUNTRY_ISO,
+  resolveCountryIso,
   CHARIOW_CONFIG,
 } from "@/lib/chariow"
 import { addDays, computeSubscriptionEnd } from "@/lib/subscription"
@@ -59,13 +59,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Pays + téléphone requis pour préremplir Chariow → Moneroo.
-    const countryKey = String(country || "").toUpperCase().trim()
-    const countryIso = COUNTRY_ISO[countryKey]
+    // Tous les pays sont acceptés (Moneroo gère carte bancaire & co pour les
+    // pays sans mobile money).
+    const countryIso = resolveCountryIso(country)
     const phoneDigits = String(phone || "").replace(/\D/g, "")
     if (!countryIso) {
-      return NextResponse.json({ error: "Pays invalide ou non supporté." }, { status: 400 })
+      return NextResponse.json({ error: "Pays invalide." }, { status: 400 })
     }
-    if (phoneDigits.length < 8) {
+    if (phoneDigits.length < 6) {
       return NextResponse.json({ error: "Numéro de téléphone invalide." }, { status: 400 })
     }
 

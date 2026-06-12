@@ -9,6 +9,7 @@ import {
   Tag as TagIcon,
   Loader2,
   ChevronDown,
+  Download,
   X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -334,6 +335,18 @@ export function AudienceManager() {
     }
   }
 
+  // --- export CSV ---
+  // Exporte TOUTES les lignes correspondant aux filtres actifs (pas
+  // seulement la page courante) via /api/admin/users/export.
+  function exportCsv() {
+    const params = new URLSearchParams()
+    Object.entries(filters).forEach(([k, v]) => {
+      if (v) params.set(k, v)
+    })
+    trackGA4("admin_users_exported", { total, ...filters })
+    window.open(`/api/admin/users/export?${params.toString()}`, "_blank")
+  }
+
   // --- création de tag ---
   async function createTag() {
     const name = newTagName.trim()
@@ -370,9 +383,20 @@ export function AudienceManager() {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Segmentation</h1>
           <p className="text-sm text-slate-500">KPI, filtres et tags utilisateurs.</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)} variant="outline" className="gap-2">
-          <Plus className="size-4" /> Créer un tag
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={exportCsv}
+            variant="outline"
+            className="gap-2"
+            disabled={loading || total === 0}
+            title="Exporter les utilisateurs filtrés en CSV"
+          >
+            <Download className="size-4" /> Exporter CSV
+          </Button>
+          <Button onClick={() => setCreateOpen(true)} variant="outline" className="gap-2">
+            <Plus className="size-4" /> Créer un tag
+          </Button>
+        </div>
       </div>
 
       {/* KPI */}

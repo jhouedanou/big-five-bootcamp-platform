@@ -18,6 +18,7 @@ export type AnalyticsEventName =
   | "job_function_selected"
   // Admin — segmentation / tags
   | "admin_users_filtered"
+  | "admin_users_exported"
   | "admin_tag_created"
   | "admin_tag_applied"
   | "admin_bulk_tag_applied"

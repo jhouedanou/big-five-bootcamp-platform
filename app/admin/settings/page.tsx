@@ -628,6 +628,29 @@ export default function SettingsPage() {
                 onCheckedChange={(checked) => setSettings({ ...settings, publicAccess: checked })}
               />
             </div>
+
+            {/* LOT K — Mode preview promo (QA T28–T39) */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-foreground text-base">Mode preview promo</Label>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Affiche la mécanique promo (bannière, popup, offres checkout,
+                  compte à rebours) hors période réelle — visible UNIQUEMENT par
+                  les comptes admin, jamais par les utilisateurs normaux.
+                </p>
+              </div>
+              <Switch
+                checked={settings.promoPreview}
+                disabled={isLoadingGeneralSettings || isSavingGeneralSettings}
+                onCheckedChange={(checked) => setSettings({ ...settings, promoPreview: checked })}
+              />
+            </div>
+            {settings.promoPreview && (
+              <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                Preview promo actif : les admins voient la promo comme en période
+                réelle (01/07 → 31/08). Pensez à le désactiver après les tests QA.
+              </p>
+            )}
           </CardContent>
         </Card>
 

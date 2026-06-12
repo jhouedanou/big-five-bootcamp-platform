@@ -1155,13 +1155,16 @@ export default function DashboardPage() {
         <FbViewContent contentName="dashboard" />
         <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
           <PromoBanner />
-          {/* QA T47 : bloc #BigFiveDécrypte sur toute la largeur, mêmes
-              dimensions que la bannière « Temps forts ». */}
-          <div className="mb-2">
-            <WebinarDashboardBlock />
+          {/* Temps forts + #BigFiveDécrypte côte à côte sur desktop.
+              grid-flow-col/auto-cols-fr : si la bannière temps forts est
+              fermée ou absente, le bloc Décrypte reprend toute la largeur. */}
+          <div className="grid items-stretch gap-4 lg:grid-flow-col lg:auto-cols-fr">
+            <TempsFortsBanner embedded />
+            <div className="min-w-0">
+              <WebinarDashboardBlock />
+            </div>
           </div>
         </div>
-        <TempsFortsBanner />
         <TempsFortsPopup />
         <PromoPopup />
 

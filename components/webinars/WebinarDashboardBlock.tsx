@@ -67,13 +67,13 @@ export function WebinarDashboardBlock() {
   }
 
   if (loading) {
-    return <div className="h-40 animate-pulse rounded-2xl bg-neutral-100" />
+    return <div className="h-full min-h-56 animate-pulse rounded-2xl bg-neutral-100" />
   }
 
-  // Pleine largeur (QA T47) : mêmes dimensions que la bannière « Temps forts »
-  // (rounded-2xl, min-h-56) — contenu à gauche, actions à droite sur desktop.
+  // Mêmes dimensions que la bannière « Temps forts » (rounded-2xl, min-h-56),
+  // h-full pour s'aligner quand les deux sont côte à côte dans la grille.
   return (
-    <div className="flex min-h-56 flex-col justify-center gap-4 rounded-2xl border border-[#F2B33D]/30 bg-gradient-to-br from-[#F2B33D]/10 to-white px-6 py-7 sm:px-8">
+    <div className="flex h-full min-h-56 flex-col justify-center gap-4 rounded-2xl border border-[#F2B33D]/30 bg-gradient-to-br from-[#F2B33D]/10 to-white px-6 py-7 sm:px-8">
       <div>
         <div className="mb-1 flex items-center gap-2">
           <CalendarDays className="size-4 text-[#F2B33D]" />

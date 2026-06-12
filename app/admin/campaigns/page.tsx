@@ -617,15 +617,24 @@ function CampaignsPageContent() {
                           </span>
                         </a>
                       ) : item.imageUrl ? (
-                        <img
-                          src={item.imageUrl}
-                          alt={item.title}
-                          loading="lazy"
-                          className="h-full w-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = "/placeholder.svg";
-                          }}
-                        />
+                        // QA : clic sur la vignette → visuel ouvert dans un nouvel onglet.
+                        <a
+                          href={item.imageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Ouvrir le visuel dans un nouvel onglet"
+                          className="block h-full w-full"
+                        >
+                          <img
+                            src={item.imageUrl}
+                            alt={item.title}
+                            loading="lazy"
+                            className="h-full w-full object-cover transition-opacity hover:opacity-80"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "/placeholder.svg";
+                            }}
+                          />
+                        </a>
                       ) : (
                         <div className="flex h-full w-full items-center justify-center text-gray-400">
                           {item.isVideo ? (

@@ -78,6 +78,10 @@ function extractYouTubeId(url: string): string {
   const vMatch = url.match(/youtube\.com\/v\/([^?&]+)/);
   if (vMatch) return vMatch[1];
 
+  // youtube.com/shorts/VIDEO_ID
+  const shortsMatch = url.match(/youtube\.com\/shorts\/([^?&/]+)/);
+  if (shortsMatch) return shortsMatch[1];
+
   return "";
 }
 

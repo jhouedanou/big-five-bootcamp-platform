@@ -6,6 +6,8 @@ import type { ActivePromo } from "@/lib/promo"
 interface State {
   promo: ActivePromo | null
   loading: boolean
+  /** Campagne renvoyée via le mode aperçu admin (hors période réelle). */
+  preview: boolean
 }
 
 /**
@@ -13,7 +15,7 @@ interface State {
  * promo = null si aucune campagne live.
  */
 export function useActivePromo(): State {
-  const [state, setState] = useState<State>({ promo: null, loading: true })
+  const [state, setState] = useState<State>({ promo: null, loading: true, preview: false })
 
   useEffect(() => {
     let alive = true
@@ -24,10 +26,11 @@ export function useActivePromo(): State {
         setState({
           promo: d?.active ? { campaign: d.campaign, offers: d.offers ?? [] } : null,
           loading: false,
+          preview: !!d?.preview,
         })
       })
       .catch(() => {
-        if (alive) setState({ promo: null, loading: false })
+        if (alive) setState({ promo: null, loading: false, preview: false })
       })
     return () => {
       alive = false

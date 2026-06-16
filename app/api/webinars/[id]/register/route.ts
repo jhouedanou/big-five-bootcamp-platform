@@ -161,11 +161,19 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       const mergeFields: Record<string, string> = { FNAME: firstName }
       if (phone) mergeFields.PHONE = phone
 
-      await mailchimp.upsertMember({
+      const webinarTag = buildWebinarTag(webinar.title, webinar.date)
+      const res = await mailchimp.upsertMember({
         email,
         mergeFields,
-        tags: [MAILCHIMP_TAG, buildWebinarTag(webinar.title, webinar.date)],
+        tags: [MAILCHIMP_TAG, webinarTag],
       })
+      if (!res.ok) {
+        console.error(`[webinar/register] Mailchimp upsert échoué pour ${email}: ${res.error}`)
+      } else if (!res.tagsOk) {
+        console.error(
+          `[webinar/register] tag webinaire non appliqué pour ${email} (${webinarTag}): ${res.tagsError}`
+        )
+      }
     } catch (e) {
       console.error("[webinar/register] Mailchimp échoué:", e)
     }

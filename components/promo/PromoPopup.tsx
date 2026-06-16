@@ -43,12 +43,21 @@ function todayKey(): string {
 export function PromoPopup() {
   const router = useRouter()
   const { userProfile, isAuthenticated, loading } = useAuthContext()
-  const { promo } = useActivePromo()
+  const { promo, preview } = useActivePromo()
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
     if (loading || !isAuthenticated || !promo) return
     if (!promo.campaign.show_in_popup) return
+    // En aperçu admin : on affiche le popup quel que soit le plan, et sans
+    // tenir compte de la fréquence 1×/jour (pour permettre de re-tester).
+    if (preview) {
+      const t = setTimeout(() => {
+        setOpen(true)
+        trackEvent("promo_popup_viewed", { campaign_id: promo.campaign.id, preview: true })
+      }, 800)
+      return () => clearTimeout(t)
+    }
     if (isActivePro(userProfile)) return
 
     // Garde localStorage immédiate (évite le flash à chaque navigation).
@@ -86,7 +95,7 @@ export function PromoPopup() {
       clearTimeout(t)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, isAuthenticated, promo])
+  }, [loading, isAuthenticated, promo, preview])
 
   function close() {
     trackEvent("promo_popup_closed", { campaign_id: promo?.campaign.id })

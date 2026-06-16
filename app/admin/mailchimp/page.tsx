@@ -29,8 +29,13 @@ interface LibraryMetadata {
   period: { from: string; to: string };
   platformUrl: string;
   latestCampaigns: { title: string; url: string; brand: string; sector: string }[];
+  weeklyCampaigns: { title: string; url: string; brand: string; sector: string; createdAt: string }[];
+  weekFrom: string;
+  weekTo: string;
   recommendedSendTime: string;
 }
+
+const WEEK_PAGE_SIZE = 10;
 
 export default function MailchimpSettingsPage() {
   // Configuration Mailchimp
@@ -70,6 +75,7 @@ export default function MailchimpSettingsPage() {
     errors: string[];
   } | null>(null);
   const [metadata, setMetadata] = useState<LibraryMetadata | null>(null);
+  const [weekPage, setWeekPage] = useState(1);
 
   // Charger la configuration existante
   useEffect(() => {
@@ -213,6 +219,7 @@ export default function MailchimpSettingsPage() {
 
       if (data.success) {
         setMetadata(data.metadata);
+        setWeekPage(1);
       } else {
         toast.error(data.error || "Erreur chargement métadonnées");
       }
@@ -772,6 +779,76 @@ export default function MailchimpSettingsPage() {
                     <span className="ml-2 font-semibold text-foreground">
                       {metadata.recommendedSendTime}
                     </span>
+                  </div>
+
+                  {/* Contenus de la semaine — fenêtre de l'envoi hebdo (7 jours) */}
+                  <div className="text-sm pt-2 border-t">
+                    <span className="text-gray-500 dark:text-gray-400 font-medium">
+                      🗓️ Contenus de la semaine — du {metadata.weekFrom} au {metadata.weekTo} ({metadata.weeklyCampaigns.length})
+                    </span>
+                    {metadata.weeklyCampaigns.length === 0 ? (
+                      <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        Aucun contenu publié sur cette période.
+                      </p>
+                    ) : (
+                      (() => {
+                        const total = metadata.weeklyCampaigns.length;
+                        const totalPages = Math.max(1, Math.ceil(total / WEEK_PAGE_SIZE));
+                        const page = Math.min(weekPage, totalPages);
+                        const startIdx = (page - 1) * WEEK_PAGE_SIZE;
+                        const rows = metadata.weeklyCampaigns.slice(startIdx, startIdx + WEEK_PAGE_SIZE);
+                        return (
+                          <>
+                            <div className="mt-2 space-y-2">
+                              {rows.map((c, i) => (
+                                <div
+                                  key={startIdx + i}
+                                  className="flex items-center justify-between bg-white dark:bg-card border border-gray-200 rounded-lg p-2.5"
+                                >
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-foreground truncate">{c.title}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                      {c.brand} · {c.sector} · {new Date(c.createdAt).toLocaleDateString("fr-FR")}
+                                    </p>
+                                  </div>
+                                  <a
+                                    href={c.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="ml-3 text-xs text-blue-600 hover:underline whitespace-nowrap"
+                                  >
+                                    Voir →
+                                  </a>
+                                </div>
+                              ))}
+                            </div>
+                            {totalPages > 1 && (
+                              <div className="mt-3 flex items-center justify-between">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={page <= 1}
+                                  onClick={() => setWeekPage(page - 1)}
+                                >
+                                  Précédent
+                                </Button>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  Page {page} / {totalPages}
+                                </span>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled={page >= totalPages}
+                                  onClick={() => setWeekPage(page + 1)}
+                                >
+                                  Suivant
+                                </Button>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()
+                    )}
                   </div>
 
                   {/* Dernières campagnes ajoutées */}

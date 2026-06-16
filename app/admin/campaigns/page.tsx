@@ -1601,8 +1601,10 @@ function CampaignsPageContent() {
                     </Label>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 ml-6">
-                    Cochez si la campagne est principalement une vidéo (Facebook, YouTube, LinkedIn, Twitter/X). 
-                    La thumbnail sera récupérée automatiquement depuis le réseau social.
+                    Cochez si la campagne est principalement une vidéo. Vignette générée automatiquement
+                    pour <strong>YouTube</strong> (fiable). <strong>TikTok</strong> : tentée, mais l'image
+                    (CDN TikTok protégé) peut ne pas s'afficher → uploadez une capture si besoin. Autres
+                    plateformes (Facebook, Instagram, LinkedIn, X…) : uploadez une capture d'écran.
                   </p>
                 </div>
 
@@ -1620,6 +1622,34 @@ function CampaignsPageContent() {
                         onChange={(e) => {
                           const newUrl = e.target.value;
                           setFormData({ ...formData, videoUrl: newUrl });
+                        }}
+                        onBlur={async () => {
+                          // Génération auto de la vignette pour YouTube & TikTok
+                          // (sans écraser une vignette déjà renseignée). Les autres
+                          // plateformes : invitation à uploader une capture (ci-dessous).
+                          const u = formData.videoUrl?.trim();
+                          if (!u || formData.imageUrl) return;
+                          const platform = detectVideoPlatform(u);
+                          if (platform === "youtube") {
+                            const thumb = getYouTubeThumbnail(u);
+                            if (thumb) {
+                              setFormData((prev) => ({ ...prev, imageUrl: thumb }));
+                              toast.success("Vignette YouTube générée automatiquement.");
+                            }
+                            return;
+                          }
+                          if (platform === "tiktok") {
+                            try {
+                              const res = await fetch(`/api/video-thumbnail?url=${encodeURIComponent(u)}`);
+                              const data = await res.json();
+                              if (data.success && data.thumbnailUrl) {
+                                setFormData((prev) => ({ ...prev, imageUrl: data.thumbnailUrl }));
+                                toast.success("Vignette TikTok récupérée — vérifiez l'aperçu ; si vide, uploadez une capture.");
+                              }
+                            } catch {
+                              /* silencieux : l'invitation capture d'écran reste affichée */
+                            }
+                          }
                         }}
                         className="bg-white dark:bg-card border-gray-300 text-foreground placeholder:text-gray-400"
                         placeholder="https://facebook.com/.../videos/... ou youtube.com/watch?v=... ou x.com/.../status/..."
@@ -1674,13 +1704,15 @@ function CampaignsPageContent() {
                           const platform = detectVideoPlatform(formData.videoUrl || "");
                           const platformStyles: Record<string, string> = {
                             youtube: "bg-red-100 text-red-700",
+                            tiktok: "bg-neutral-900 text-white",
                             facebook: "bg-blue-100 text-blue-700",
+                            instagram: "bg-pink-100 text-pink-700",
                             twitter: "bg-gray-100 text-gray-700",
                             linkedin: "bg-sky-100 text-sky-700",
                             unknown: "bg-yellow-100 text-yellow-700",
                           };
                           return (
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${platformStyles[platform]}`}>
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${platformStyles[platform] || "bg-gray-100 text-gray-700"}`}>
                               {platform === "unknown" ? "⚠️ Plateforme non reconnue" : `✓ ${getVideoPlatformLabel(platform)} détecté`}
                             </span>
                           );
@@ -1688,9 +1720,40 @@ function CampaignsPageContent() {
                       </div>
                     )}
                     
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      💡 Plateformes supportées : YouTube, Facebook, LinkedIn, Twitter/X. Collez le lien de la publication vidéo.
-                    </p>
+                    {/* Vignette : auto pour YouTube/TikTok, sinon invitation capture d'écran */}
+                    {formData.videoUrl && formData.videoUrl.trim() && (() => {
+                      const platform = detectVideoPlatform(formData.videoUrl || "");
+                      if (platform === "youtube") {
+                        return (
+                          <p className="text-xs text-green-700 dark:text-green-400">
+                            ✓ Vignette YouTube générée automatiquement (fiable, image publique stable).
+                          </p>
+                        );
+                      }
+                      if (platform === "tiktok") {
+                        return (
+                          <p className="text-xs rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-amber-800">
+                            ℹ️ TikTok : récupération tentée automatiquement, mais l'image provient du CDN TikTok
+                            (protégé/expirant) et peut ne pas s'afficher sur le tableau de bord. Vérifiez l'aperçu
+                            ci-dessous ; si vide, <strong>uploadez une capture d'écran</strong> dans « Image principale ».
+                          </p>
+                        );
+                      }
+                      if (formData.imageUrl) {
+                        return (
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            💡 Vignette définie. Pour {getVideoPlatformLabel(platform)}, remplacez-la par une capture d'écran si besoin.
+                          </p>
+                        );
+                      }
+                      return (
+                        <p className="text-xs rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-amber-800">
+                          ⚠️ Vignette non récupérable automatiquement pour {getVideoPlatformLabel(platform)}.
+                          Faites une <strong>capture d'écran de la vidéo</strong> et uploadez-la dans
+                          « Image principale (thumbnail) » ci-dessus. Sinon le contenu s'affichera sans visuel sur le tableau de bord.
+                        </p>
+                      );
+                    })()}
                     
                     {/* Aperçu vidéo embed */}
                     {formData.videoUrl && formData.videoUrl.trim() && isSupportedVideoUrl(formData.videoUrl) && (

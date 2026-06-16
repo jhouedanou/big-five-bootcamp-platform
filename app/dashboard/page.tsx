@@ -6,8 +6,7 @@ import Link from "next/link"
 import Image from "next/image"
 import dynamic from "next/dynamic"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
-import { TempsFortsBanner } from "@/components/temps-forts/temps-forts-banner"
-import { PromoBanner } from "@/components/promo/PromoBanner"
+import { PromoTempsFortsCarousel } from "@/components/promo/promo-temps-forts-carousel"
 import { PromoPopup } from "@/components/promo/PromoPopup"
 import { WebinarDashboardBlock } from "@/components/webinars/WebinarDashboardBlock"
 import { TempsFortsPopup } from "@/components/temps-forts/temps-forts-popup"
@@ -1154,12 +1153,12 @@ export default function DashboardPage() {
 
         <FbViewContent contentName="dashboard" />
         <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
-          <PromoBanner />
-          {/* Temps forts + #BigFiveDécrypte côte à côte sur desktop.
-              grid-flow-col/auto-cols-fr : si la bannière temps forts est
-              fermée ou absente, le bloc Décrypte reprend toute la largeur. */}
+          {/* Bannière carrousel unifiée (Temps forts + offre promo en alternance)
+              + #BigFiveDécrypte côte à côte sur desktop.
+              grid-flow-col/auto-cols-fr : si la bannière est fermée ou absente,
+              le bloc Décrypte reprend toute la largeur. */}
           <div className="grid items-stretch gap-4 lg:grid-flow-col lg:auto-cols-fr">
-            <TempsFortsBanner embedded />
+            <PromoTempsFortsCarousel embedded />
             <div className="min-w-0">
               <WebinarDashboardBlock />
             </div>

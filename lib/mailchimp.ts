@@ -25,6 +25,11 @@ export interface LibraryMetadata {
   period: { from: string; to: string }
   platformUrl: string
   latestCampaigns: { title: string; url: string; brand: string; sector: string }[]
+  /** Contenus de la semaine = fenêtre 7 jours (= envoi hebdo). */
+  weeklyCampaigns: { title: string; url: string; brand: string; sector: string; createdAt: string }[]
+  /** Bornes de la fenêtre hebdo (format FR), pour l'affichage admin. */
+  weekFrom: string
+  weekTo: string
   recommendedSendTime: string
 }
 
@@ -229,12 +234,25 @@ export class MailchimpService {
       : 'https://bigfive.solutions')
 
     // Construire les liens vers les dernières campagnes ajoutées
-    const latestCampaigns = (campaigns || []).slice(0, 5).map((c: any) => ({
+    const toEntry = (c: any) => ({
       title: c.title || 'Sans titre',
       url: `${baseUrl}/content/${c.slug || c.id}`,
       brand: c.brand || '-',
       sector: c.category || '-',
-    }))
+    })
+    const latestCampaigns = (campaigns || []).slice(0, 5).map(toEntry)
+
+    // Contenus de la semaine : fenêtre de 7 jours ANCRÉE sur le contenu le plus
+    // récent (maxDate), pas sur l'horloge. En prod le contenu est ajouté chaque
+    // semaine → maxDate ≈ maintenant → fenêtre = celle de l'envoi hebdo
+    // (cf. app/api/cron/weekly-email). Sur données plus anciennes (démo), on
+    // affiche quand même la dernière semaine réelle de contenu au lieu d'une
+    // liste vide. Liste COMPLÈTE (paginée côté admin).
+    const anchorMs = maxDate ? new Date(maxDate).getTime() : Date.now()
+    const windowStart = new Date(anchorMs - 7 * 24 * 60 * 60 * 1000)
+    const weeklyCampaigns = (campaigns || [])
+      .filter((c: any) => c.created_at && new Date(c.created_at) >= windowStart)
+      .map((c: any) => ({ ...toEntry(c), createdAt: c.created_at }))
 
     return {
       totalCampaigns: campaigns?.length || 0,
@@ -248,6 +266,9 @@ export class MailchimpService {
       },
       platformUrl: baseUrl,
       latestCampaigns,
+      weeklyCampaigns,
+      weekFrom: windowStart.toLocaleDateString('fr-FR'),
+      weekTo: new Date(anchorMs).toLocaleDateString('fr-FR'),
       recommendedSendTime: 'Lundi à 08:00 (les contenus sont chargés le week-end)',
     }
   }
@@ -369,7 +390,10 @@ export class MailchimpService {
     tags?: string[]
     audienceId?: string
     statusIfNew?: 'subscribed' | 'pending'
-  }): Promise<{ ok: true; status: string } | { ok: false; error: string }> {
+  }): Promise<
+    | { ok: true; status: string; tagsOk: boolean; tagsError?: string }
+    | { ok: false; error: string }
+  > {
     if (!this.config) await this.loadConfig()
     const config = this.config!
 
@@ -431,22 +455,51 @@ export class MailchimpService {
 
       const data = await response.json()
 
-      // Appliquer les tags séparément (endpoint dédié)
-      if (input.tags && input.tags.length) {
+      // Appliquer les tags séparément (endpoint dédié).
+      // On vérifie la réponse : un échec ici laissait sinon un contact sans
+      // ses balises (ex : tag par webinaire absent) sans aucune trace.
+      let tagsOk = true
+      let tagsError: string | undefined
+      const tags = (input.tags || []).filter(Boolean)
+      if (tags.length) {
         const tagsUrl = `${baseUrl}/lists/${audienceId}/members/${subscriberHash}/tags`
-        await fetch(tagsUrl, {
-          method: 'POST',
-          headers: {
-            Authorization: `apikey ${config.apiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            tags: input.tags.map((name) => ({ name, status: 'active' })),
-          }),
-        }).catch(() => undefined)
+        const tagsBody = JSON.stringify({
+          tags: tags.map((name) => ({ name, status: 'active' })),
+        })
+        // 2 tentatives : un contact tout juste créé peut renvoyer un 404
+        // transitoire sur /tags (cohérence éventuelle côté Mailchimp).
+        for (let attempt = 0; attempt < 2; attempt++) {
+          tagsOk = true
+          tagsError = undefined
+          try {
+            const tagsRes = await fetch(tagsUrl, {
+              method: 'POST',
+              headers: {
+                Authorization: `apikey ${config.apiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: tagsBody,
+            })
+            if (!tagsRes.ok) {
+              const errData = await tagsRes.json().catch(() => ({}))
+              tagsOk = false
+              tagsError =
+                errData.detail || errData.title || `HTTP ${tagsRes.status}`
+            }
+          } catch (err: any) {
+            tagsOk = false
+            tagsError = err?.message || 'Erreur réseau Mailchimp (tags)'
+          }
+          if (tagsOk) break
+        }
+        if (!tagsOk) {
+          console.error(
+            `[mailchimp] tags échoués pour ${input.email} [${tags.join(', ')}]: ${tagsError}`
+          )
+        }
       }
 
-      return { ok: true, status: data.status || 'subscribed' }
+      return { ok: true, status: data.status || 'subscribed', tagsOk, tagsError }
     } catch (err: any) {
       return { ok: false, error: err?.message || 'Erreur réseau Mailchimp' }
     }

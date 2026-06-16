@@ -49,6 +49,10 @@ export async function GET() {
 
     return NextResponse.json({
       active: true,
+      // preview = campagne renvoyée hors période réelle grâce au mode aperçu
+      // admin. Le client l'utilise pour court-circuiter les exclusions (plan
+      // Pro actif, fréquence 1×/jour) afin que l'admin voie tout comme en réel.
+      preview: preview && !promoIsLive(campaign, nowMs),
       campaign,
       offers: (offers ?? []) as PromoOffer[],
     })

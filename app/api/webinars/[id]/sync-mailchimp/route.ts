@@ -1,11 +1,39 @@
 import { NextRequest, NextResponse } from "next/server"
 import { checkAdmin } from "@/lib/admin-auth"
 import { getSupabaseAdmin } from "@/lib/supabase-server"
+import { getWebinarById } from "@/lib/webinars-server"
 import { safeErrorMessage } from "@/lib/api-errors"
 
 export const dynamic = "force-dynamic"
 
 const MAILCHIMP_TAG = "bigfive_decrypte_registered"
+
+const MONTHS_FR = [
+  "Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin",
+  "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre",
+]
+
+/** Nettoie un libellé pour un tag Mailchimp : sans accents, mots en _ . */
+function sanitizeTagPart(value: string): string {
+  return value
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+}
+
+/**
+ * Tag spécifique au webinaire (LOT C), généré dynamiquement :
+ * Webinaire_Laveiye_<Nom>_<Mois>_<Année>
+ */
+function buildWebinarTag(title: string, date: string): string {
+  const d = new Date(`${date}T00:00:00`)
+  const month = Number.isNaN(d.getTime()) ? "" : MONTHS_FR[d.getMonth()]
+  const year = Number.isNaN(d.getTime()) ? "" : String(d.getFullYear())
+  return ["Webinaire_Laveiye", sanitizeTagPart(title), month, year]
+    .filter(Boolean)
+    .join("_")
+}
 
 /**
  * POST /api/webinars/:id/sync-mailchimp (admin)
@@ -17,6 +45,12 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
   const { id } = await params
   const supabase = getSupabaseAdmin()
+
+  const webinar = await getWebinarById(id)
+  if (!webinar) {
+    return NextResponse.json({ error: "Webinaire introuvable" }, { status: 404 })
+  }
+  const webinarTag = buildWebinarTag(webinar.title, webinar.date)
 
   const { data: regs } = await supabase
     .from("webinar_registrations")
@@ -31,7 +65,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
   const { data: users } = await supabase
     .from("users")
-    .select("id, email, name")
+    .select("id, email, name, phone_e164, phone_number")
     .in("id", userIds)
 
   try {
@@ -44,10 +78,13 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     for (const u of users ?? []) {
       if (!u.email) continue
       const firstName = (u.name || u.email.split("@")[0]).split(" ")[0]
+      const phone = (u as any).phone_e164 || (u as any).phone_number || ""
+      const mergeFields: Record<string, string> = { FNAME: firstName }
+      if (phone) mergeFields.PHONE = phone
       const res = await mailchimp.upsertMember({
         email: u.email,
-        mergeFields: { FNAME: firstName },
-        tags: [MAILCHIMP_TAG],
+        mergeFields,
+        tags: [MAILCHIMP_TAG, webinarTag].filter(Boolean),
       })
       if ((res as any)?.ok) synced++
       else errors.push(`${u.email}: ${(res as any)?.error ?? "échec"}`)

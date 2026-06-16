@@ -3,6 +3,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/components/auth-provider"
 import { SubscriptionStatusBottomSheet } from "@/components/subscription-status-bottom-sheet"
 import { EmailVerificationBottomSheet } from "@/components/email-verification-bottom-sheet"
+import { PromoPreviewBottomSheet } from "@/components/promo/promo-preview-bottom-sheet"
 import { DARK_MODE_ENABLED } from "@/lib/theme-config"
 import { Toaster } from "sonner"
 
@@ -25,6 +26,7 @@ export function Providers({ children }: ProvidersProps) {
         {children}
         <SubscriptionStatusBottomSheet />
         <EmailVerificationBottomSheet />
+        <PromoPreviewBottomSheet />
       </AuthProvider>
       <Toaster richColors position="top-right" />
     </ThemeProvider>

@@ -27,7 +27,7 @@ function isActivePro(profile: any): boolean {
  */
 export function PromoBanner() {
   const { userProfile, isAuthenticated } = useAuthContext()
-  const { promo, loading } = useActivePromo()
+  const { promo, loading, preview } = useActivePromo()
   const [expired, setExpired] = useState(false)
   const viewedRef = useRef(false)
 
@@ -37,7 +37,8 @@ export function PromoBanner() {
     !!promo &&
     promo.campaign.show_in_banner &&
     !expired &&
-    !isActivePro(userProfile)
+    // En aperçu admin, on montre la bannière même à un compte Pro actif.
+    (preview || !isActivePro(userProfile))
 
   useEffect(() => {
     if (visible && !viewedRef.current) {

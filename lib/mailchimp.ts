@@ -14,6 +14,27 @@ export interface MailchimpConfig {
 }
 
 /**
+ * Définition d'un champ de fusion (merge field) Mailchimp attendu.
+ * `tag` = identifiant utilisé dans merge_fields (ex: FNAME, COMPANY).
+ */
+export interface MergeFieldDef {
+  tag: string
+  name: string
+  type?:
+    | 'text'
+    | 'number'
+    | 'phone'
+    | 'date'
+    | 'address'
+    | 'url'
+    | 'dropdown'
+    | 'radio'
+    | 'zip'
+    | 'birthday'
+    | 'imageurl'
+}
+
+/**
  * Métadonnées de la Creative Library pour les campagnes email
  */
 export interface LibraryMetadata {
@@ -503,6 +524,144 @@ export class MailchimpService {
     } catch (err: any) {
       return { ok: false, error: err?.message || 'Erreur réseau Mailchimp' }
     }
+  }
+
+  /**
+   * Récupère les champs de fusion (merge fields) existants d'une audience.
+   * Si audienceId n'est pas fourni, l'audience principale est utilisée.
+   */
+  async getMergeFields(
+    audienceId?: string
+  ): Promise<
+    | { ok: true; tags: string[]; fields: { tag: string; name: string; type: string }[] }
+    | { ok: false; error: string }
+  > {
+    if (!this.config) await this.loadConfig()
+    const config = this.config!
+
+    const unreadable = (config as MailchimpConfig & { apiKeyUnreadable?: boolean }).apiKeyUnreadable
+    if (unreadable) {
+      return {
+        ok: false,
+        error:
+          'Clé API Mailchimp illisible (resaisissez-la dans Paramètres → Mailchimp et enregistrez).',
+      }
+    }
+    if (!config.apiKey) {
+      return { ok: false, error: 'Clé API Mailchimp non configurée' }
+    }
+    const listId = audienceId || config.audienceId
+    if (!listId) {
+      return { ok: false, error: 'Audience Mailchimp non configurée' }
+    }
+
+    let baseUrl = ''
+    try {
+      const dc = this.getDataCenter(config.apiKey)
+      baseUrl = `https://${dc}.api.mailchimp.com/3.0`
+    } catch (err: any) {
+      return { ok: false, error: err?.message || 'Configuration Mailchimp invalide' }
+    }
+
+    try {
+      const url = `${baseUrl}/lists/${listId}/merge-fields?count=1000`
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `apikey ${config.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        return { ok: false, error: data.detail || data.title || `HTTP ${res.status}` }
+      }
+      const fields = (data.merge_fields || []).map((f: any) => ({
+        tag: f.tag,
+        name: f.name,
+        type: f.type,
+      }))
+      return { ok: true, tags: fields.map((f: { tag: string }) => f.tag), fields }
+    } catch (err: any) {
+      return { ok: false, error: err?.message || 'Erreur réseau Mailchimp' }
+    }
+  }
+
+  /**
+   * Vérifie que les champs de fusion requis existent dans une audience.
+   * Avec `create: true`, crée les champs manquants (POST merge-fields).
+   * La comparaison des tags est insensible à la casse.
+   */
+  async ensureMergeFields(
+    required: MergeFieldDef[],
+    opts?: { create?: boolean; audienceId?: string }
+  ): Promise<
+    | {
+        ok: true
+        existing: string[]
+        missing: string[]
+        created: string[]
+        createErrors: { tag: string; error: string }[]
+      }
+    | { ok: false; error: string }
+  > {
+    if (!this.config) await this.loadConfig()
+    const config = this.config!
+    const listId = opts?.audienceId || config.audienceId
+
+    const current = await this.getMergeFields(listId)
+    if (!current.ok) return current
+
+    const existingTags = new Set(current.tags.map((t) => t.toUpperCase()))
+    const missingDefs = required.filter((d) => !existingTags.has(d.tag.toUpperCase()))
+    const missing = missingDefs.map((d) => d.tag)
+    const existing = required
+      .filter((d) => existingTags.has(d.tag.toUpperCase()))
+      .map((d) => d.tag)
+
+    const created: string[] = []
+    const createErrors: { tag: string; error: string }[] = []
+
+    if (opts?.create && missingDefs.length) {
+      let baseUrl = ''
+      try {
+        const dc = this.getDataCenter(config.apiKey)
+        baseUrl = `https://${dc}.api.mailchimp.com/3.0`
+      } catch (err: any) {
+        return { ok: false, error: err?.message || 'Configuration Mailchimp invalide' }
+      }
+
+      for (const def of missingDefs) {
+        try {
+          const res = await fetch(`${baseUrl}/lists/${listId}/merge-fields`, {
+            method: 'POST',
+            headers: {
+              Authorization: `apikey ${config.apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              tag: def.tag,
+              name: def.name,
+              type: def.type || 'text',
+              required: false,
+              public: false,
+            }),
+          })
+          const data = await res.json().catch(() => ({}))
+          if (res.ok) {
+            created.push(def.tag)
+          } else {
+            createErrors.push({
+              tag: def.tag,
+              error: data.detail || data.title || `HTTP ${res.status}`,
+            })
+          }
+        } catch (err: any) {
+          createErrors.push({ tag: def.tag, error: err?.message || 'Erreur réseau' })
+        }
+      }
+    }
+
+    return { ok: true, existing, missing, created, createErrors }
   }
 }
 

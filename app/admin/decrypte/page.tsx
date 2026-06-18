@@ -23,6 +23,7 @@ import {
   AlertTriangle,
   Sparkles,
   Mail,
+  ListChecks,
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -54,6 +55,19 @@ interface Stats {
   pending: number;
 }
 
+interface MergeFieldCheck {
+  ok: boolean;
+  audienceId: string;
+  usingMainAudience: boolean;
+  required: { tag: string; name: string }[];
+  existing: string[];
+  missing: string[];
+  created: string[];
+  createErrors: { tag: string; error: string }[];
+  stillMissing: string[];
+  allPresent: boolean;
+}
+
 export default function DecrypteAdminPage() {
   const [rows, setRows] = useState<Registration[]>([]);
   const [stats, setStats] = useState<Stats>({
@@ -72,6 +86,55 @@ export default function DecrypteAdminPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [mergeCheck, setMergeCheck] = useState<MergeFieldCheck | null>(null);
+  const [mergeError, setMergeError] = useState<string | null>(null);
+  const [mergeLoading, setMergeLoading] = useState(false);
+  const [mergeCreating, setMergeCreating] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
+
+  const checkMergeFields = useCallback(async (create = false) => {
+    setMergeOpen(true);
+    if (create) setMergeCreating(true);
+    else setMergeLoading(true);
+    setMergeError(null);
+    try {
+      const res = await fetch("/api/admin/decrypte/merge-fields", {
+        method: create ? "POST" : "GET",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erreur");
+      setMergeCheck(data as MergeFieldCheck);
+      if (create) {
+        if (data.created?.length) {
+          toast.success(
+            `${data.created.length} champ(s) créé(s) : ${data.created.join(", ")}`
+          );
+        }
+        if (data.createErrors?.length) {
+          const first = data.createErrors[0];
+          toast.error(`Échec création ${first.tag} → ${first.error}`, {
+            duration: 8000,
+          });
+        }
+        if (data.allPresent && !data.created?.length && !data.createErrors?.length) {
+          toast.info("Tous les champs de fusion existent déjà");
+        }
+      } else if (data.allPresent) {
+        toast.success("Tous les champs de fusion sont bien créés ✅");
+      } else {
+        toast.warning(
+          `${data.stillMissing.length} champ(s) de fusion manquant(s) : ${data.stillMissing.join(", ")}`,
+          { duration: 8000 }
+        );
+      }
+    } catch (err: any) {
+      setMergeError(err.message || "Vérification impossible");
+      setMergeCheck(null);
+    } finally {
+      setMergeLoading(false);
+      setMergeCreating(false);
+    }
+  }, []);
 
   const fetchData = useCallback(
     async (q?: string, m?: string) => {
@@ -248,6 +311,19 @@ export default function DecrypteAdminPage() {
               <Mail className="h-4 w-4 mr-2" /> Audience Mailchimp
             </Button>
           </Link>
+          <Button
+            variant="outline"
+            onClick={() => checkMergeFields(false)}
+            disabled={mergeLoading || mergeCreating}
+            className="border-amber-300 text-amber-700 hover:bg-amber-50"
+          >
+            {mergeLoading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <ListChecks className="h-4 w-4 mr-2" />
+            )}
+            Vérifier les champs de fusion
+          </Button>
           <Button variant="outline" onClick={exportCsv} disabled={isLoading}>
             <Download className="h-4 w-4 mr-2" /> Exporter CSV
           </Button>
@@ -294,6 +370,136 @@ export default function DecrypteAdminPage() {
                 scripts/bigfive-decrypte-registrations.sql
               </p>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Vérification des champs de fusion Mailchimp */}
+      {mergeOpen && (
+        <Card
+          className={
+            mergeCheck && !mergeCheck.allPresent
+              ? "border-amber-300 bg-amber-50/60 dark:bg-amber-950/20"
+              : mergeCheck && mergeCheck.allPresent
+              ? "border-emerald-300 bg-emerald-50/60 dark:bg-emerald-950/20"
+              : undefined
+          }
+        >
+          <CardHeader className="pb-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <ListChecks className="h-5 w-5 text-amber-600" />
+                  Champs de fusion Mailchimp
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  Les champs envoyés à l'inscription (FNAME, LNAME, COMPANY,
+                  JOBTITLE, TOPICS, PHONE, SESSION) doivent exister dans
+                  l'audience. Sinon Mailchimp ignore silencieusement ces valeurs.
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => checkMergeFields(false)}
+                  disabled={mergeLoading || mergeCreating}
+                >
+                  {mergeLoading ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Revérifier
+                </Button>
+                {mergeCheck && mergeCheck.stillMissing.length > 0 && (
+                  <Button
+                    size="sm"
+                    onClick={() => checkMergeFields(true)}
+                    disabled={mergeLoading || mergeCreating}
+                    className="bg-amber-500 hover:bg-amber-600"
+                  >
+                    {mergeCreating ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <ListChecks className="h-4 w-4 mr-2" />
+                    )}
+                    Créer les champs manquants
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {mergeError ? (
+              <div className="flex items-start gap-2 text-sm text-red-700">
+                <XCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>{mergeError}</span>
+              </div>
+            ) : !mergeCheck ? (
+              <div className="text-sm text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" /> Vérification…
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  {mergeCheck.allPresent ? (
+                    <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700">
+                      <CheckCircle2 className="h-4 w-4" /> Tous les champs sont
+                      bien créés.
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 font-medium text-amber-700">
+                      <AlertTriangle className="h-4 w-4" />
+                      {mergeCheck.stillMissing.length} champ(s) manquant(s) — à
+                      créer.
+                    </span>
+                  )}
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    Audience{" "}
+                    <code className="font-mono">{mergeCheck.audienceId}</code>
+                    {mergeCheck.usingMainAudience && " (audience principale)"}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5">
+                  {mergeCheck.required.map((f) => {
+                    const present =
+                      mergeCheck.existing.includes(f.tag) ||
+                      mergeCheck.created.includes(f.tag);
+                    return (
+                      <span
+                        key={f.tag}
+                        title={f.name}
+                        className={
+                          "inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded border " +
+                          (present
+                            ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                            : "text-amber-800 bg-amber-100 border-amber-300")
+                        }
+                      >
+                        {present ? (
+                          <CheckCircle2 className="h-3 w-3" />
+                        ) : (
+                          <XCircle className="h-3 w-3" />
+                        )}
+                        {f.tag}
+                      </span>
+                    );
+                  })}
+                </div>
+
+                {mergeCheck.createErrors.length > 0 && (
+                  <div className="text-xs text-red-700 space-y-0.5">
+                    {mergeCheck.createErrors.map((e) => (
+                      <p key={e.tag} className="font-mono">
+                        {e.tag} → {e.error}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

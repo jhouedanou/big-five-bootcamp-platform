@@ -6,17 +6,26 @@
 
 import { COUNTRY_DIAL_CODES } from '@/lib/countries';
 
+// Lecture PARESSEUSE de l'environnement via des getters.
+// Sous OpenNext / Cloudflare Workers, `process.env` n'est peuplé qu'au moment de
+// la requête : une capture au chargement du module renverrait des chaînes vides
+// (d'où l'erreur "Chariow non configuré (API_KEY/PRODUCT_ID manquants)" en prod
+// alors que les variables existent bien dans Cloudflare). Les getters relisent
+// process.env à chaque accès → valeurs correctes au runtime.
+// Même logique que getSupabaseAdmin() dans lib/supabase.ts (lazy).
 export const CHARIOW_CONFIG = {
-  API_KEY: process.env.CHARIOW_API_KEY || '',
-  PRODUCT_ID: process.env.CHARIOW_PRODUCT_ID || '',
-  WEBHOOK_SECRET: process.env.CHARIOW_WEBHOOK_SECRET || '',
-  API_URL: process.env.CHARIOW_API_URL || 'https://api.chariow.com/v1',
-  // URL du checkout hosté Chariow. À ajuster selon docs Chariow réelles.
-  // Pattern courant : https://checkout.chariow.com/{productId}?metadata=...
-  CHECKOUT_URL: process.env.CHARIOW_CHECKOUT_URL || 'https://checkout.chariow.com',
+  get API_KEY() { return process.env.CHARIOW_API_KEY || ''; },
+  get PRODUCT_ID() { return process.env.CHARIOW_PRODUCT_ID || ''; },
+  get WEBHOOK_SECRET() { return process.env.CHARIOW_WEBHOOK_SECRET || ''; },
+  get API_URL() { return process.env.CHARIOW_API_URL || 'https://api.chariow.com/v1'; },
+  // URL du checkout hosté Chariow.
+  get CHECKOUT_URL() { return process.env.CHARIOW_CHECKOUT_URL || 'https://checkout.chariow.com'; },
 };
 
-export const CHARIOW_API_KEY = process.env.CHARIOW_API_KEY || '';
+/** @deprecated Préférer `CHARIOW_CONFIG.API_KEY` (lazy). Fonction pour rester runtime-safe sur Cloudflare. */
+export function getChariowApiKey(): string {
+  return process.env.CHARIOW_API_KEY || '';
+}
 export const CHARIOW_BASE_URL = CHARIOW_CONFIG.API_URL;
 
 /**

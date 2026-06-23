@@ -4,6 +4,11 @@
   "name": "big-five-bootcamp-platform",
   "compatibility_date": "2025-03-25",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  // keep_vars: ne PAS supprimer au déploiement les variables/secrets définis
+  // dans le dashboard Cloudflare et absents de ce fichier (ex: CHARIOW_API_KEY,
+  // CHARIOW_PRODUCT_*, CHARIOW_WEBHOOK_SECRET). Sans ça, chaque `wrangler deploy`
+  // les efface → runtime "Chariow non configuré (API_KEY/PRODUCT_ID manquants)".
+  "keep_vars": true,
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"

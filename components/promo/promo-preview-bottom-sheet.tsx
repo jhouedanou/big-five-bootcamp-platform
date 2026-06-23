@@ -8,13 +8,18 @@
  * serveur via /api/promotions/preview-status). Rappelle à l'admin que la
  * mécanique promo est affichée en aperçu, jamais visible des utilisateurs.
  *
+ * Le bouton « Désactiver » coupe réellement le mode aperçu en un clic
+ * (PUT /api/admin/settings → promo_preview_mode=false), puis re-vérifie : si le
+ * mode reste actif, c'est qu'il est forcé par la variable d'environnement
+ * PROMO_PREVIEW_MODE (à retirer sur Vercel) — on le signale à l'admin.
+ *
  * Charte : or #F2B33D, encre #0F0F0F, fond dégradé crème (cohérent avec les
  * autres bottom sheets du site).
  */
 
 import { useEffect, useState } from "react"
-import Link from "next/link"
-import { Eye, X } from "lucide-react"
+import { Eye, X, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 import { useAuthContext } from "@/components/auth-provider"
 
 const DISMISS_KEY = "promo-preview-sheet-dismissed"
@@ -23,6 +28,7 @@ export function PromoPreviewBottomSheet() {
   const { isAuthenticated, loading } = useAuthContext()
   const [enabled, setEnabled] = useState(false)
   const [dismissed, setDismissed] = useState(false)
+  const [isDisabling, setIsDisabling] = useState(false)
 
   // État de masquage (par session) lu après montage.
   useEffect(() => {
@@ -59,6 +65,43 @@ export function PromoPreviewBottomSheet() {
     setDismissed(true)
   }
 
+  const handleDisable = async () => {
+    setIsDisabling(true)
+    try {
+      // 1. Couper le flag côté réglage admin (upsert par clé : n'écrase pas les
+      // autres réglages).
+      const res = await fetch("/api/admin/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings: { promo_preview_mode: "false" } }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || "Échec de la désactivation")
+      }
+
+      // 2. Re-vérifier : si le mode reste actif, il est forcé par la variable
+      // d'environnement PROMO_PREVIEW_MODE (le réglage DB ne peut pas l'outrepasser).
+      const check = await fetch("/api/promotions/preview-status", { cache: "no-store" })
+        .then((r) => r.json())
+        .catch(() => ({ enabled: false }))
+
+      if (check?.enabled) {
+        toast.warning(
+          "Réglage coupé, mais le mode aperçu reste forcé par la variable d'environnement PROMO_PREVIEW_MODE. Retirez-la sur Vercel pour le désactiver complètement."
+        )
+        return
+      }
+
+      toast.success("Mode aperçu promo désactivé")
+      setEnabled(false)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erreur lors de la désactivation")
+    } finally {
+      setIsDisabling(false)
+    }
+  }
+
   return (
     <div
       role="status"
@@ -78,12 +121,15 @@ export function PromoPreviewBottomSheet() {
             pour test. Visible uniquement par les admins.
           </p>
         </div>
-        <Link
-          href="/admin/settings"
-          className="hidden shrink-0 rounded-lg border border-[#F2B33D]/50 px-3 py-1.5 text-xs font-semibold text-[#a17320] transition-colors hover:bg-[#FFF4D6] sm:inline-block"
+        <button
+          type="button"
+          onClick={handleDisable}
+          disabled={isDisabling}
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[#F2B33D]/50 px-3 py-1.5 text-xs font-semibold text-[#a17320] transition-colors hover:bg-[#FFF4D6] disabled:cursor-not-allowed disabled:opacity-60"
         >
+          {isDisabling && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           Désactiver
-        </Link>
+        </button>
         <button
           type="button"
           onClick={handleDismiss}

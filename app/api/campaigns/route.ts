@@ -25,28 +25,35 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
     const authorId = searchParams.get('author_id')
 
-    let query = (supabaseAdmin as any)
-      .from('campaigns')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(500)
+    // PostgREST plafonne chaque requête à 1000 lignes : pagination par range
+    // pour renvoyer la totalité des campagnes (510+ en base).
+    const PAGE_SIZE = 1000
+    let rows: any[] = []
+    for (let from = 0; ; from += PAGE_SIZE) {
+      let query = (supabaseAdmin as any)
+        .from('campaigns')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(from, from + PAGE_SIZE - 1)
 
-    if (viewer.isAdmin) {
-      // Seul un admin peut filtrer/voir des statuts autres que "Publié".
-      if (status) query = query.eq('status', status)
-    } else {
-      query = query.eq('status', 'Publié')
+      if (viewer.isAdmin) {
+        // Seul un admin peut filtrer/voir des statuts autres que "Publié".
+        if (status) query = query.eq('status', status)
+      } else {
+        query = query.eq('status', 'Publié')
+      }
+
+      if (authorId) {
+        query = query.eq('author_id', authorId)
+      }
+
+      const { data, error } = await query
+      if (error) throw error
+      rows = rows.concat(data || [])
+      if (!data || data.length < PAGE_SIZE) break
     }
 
-    if (authorId) {
-      query = query.eq('author_id', authorId)
-    }
-
-    const { data, error } = await query
-
-    if (error) throw error
-
-    return NextResponse.json(projectCampaigns(data || [], viewer))
+    return NextResponse.json(projectCampaigns(rows, viewer))
   } catch (error: any) {
     console.error('Error fetching campaigns:', error)
     return NextResponse.json(

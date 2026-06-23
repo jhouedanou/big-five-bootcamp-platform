@@ -36,6 +36,7 @@ export default function SettingsPage() {
     allowRegistrations: true,
     emailNotifications: true,
     publicAccess: true,
+    promoPreview: false,
   });
   const [isLoadingGeneralSettings, setIsLoadingGeneralSettings] = useState(true);
   const [isSavingGeneralSettings, setIsSavingGeneralSettings] = useState(false);
@@ -96,6 +97,7 @@ export default function SettingsPage() {
             allowRegistrations: parseBooleanSetting(data.settings.allow_registrations, true),
             emailNotifications: parseBooleanSetting(data.settings.email_notifications, true),
             publicAccess: parseBooleanSetting(data.settings.public_access, true),
+            promoPreview: parseBooleanSetting(data.settings.promo_preview_mode, false),
           });
         }
       } catch {
@@ -216,6 +218,7 @@ export default function SettingsPage() {
             allow_registrations: String(settings.allowRegistrations),
             email_notifications: String(settings.emailNotifications),
             public_access: String(settings.publicAccess),
+            promo_preview_mode: String(settings.promoPreview),
           },
         }),
       });
@@ -625,6 +628,71 @@ export default function SettingsPage() {
                 onCheckedChange={(checked) => setSettings({ ...settings, publicAccess: checked })}
               />
             </div>
+
+            {/* LOT K — Mode preview promo (QA T28–T39) */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-foreground text-base">Mode preview promo</Label>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Affiche la mécanique promo (bannière, popup, offres checkout,
+                  compte à rebours) hors période réelle — visible UNIQUEMENT par
+                  les comptes admin, jamais par les utilisateurs normaux.
+                </p>
+              </div>
+              <Switch
+                checked={settings.promoPreview}
+                disabled={isLoadingGeneralSettings || isSavingGeneralSettings}
+                onCheckedChange={(checked) => setSettings({ ...settings, promoPreview: checked })}
+              />
+            </div>
+            {settings.promoPreview && (
+              <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                Preview promo actif : les admins voient la promo comme en période
+                réelle (01/07 → 31/08). Pensez à le désactiver après les tests QA.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Promo Preview Settings */}
+        <Card className="bg-white dark:bg-card border-gray-200 shadow-sm">
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-[#F2B33D]/10">
+                <Eye className="h-5 w-5 text-[#F2B33D]" />
+              </div>
+              <div>
+                <CardTitle className="text-foreground">Aperçu de la promotion</CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-400">
+                  Prévisualisez la mécanique promo hors période réelle
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-foreground text-base">Mode aperçu promo</Label>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Affiche bannière, popup, badges, compte à rebours et offres promo
+                </p>
+              </div>
+              <Switch
+                checked={settings.promoPreview}
+                disabled={isLoadingGeneralSettings || isSavingGeneralSettings}
+                onCheckedChange={(checked) => setSettings({ ...settings, promoPreview: checked })}
+              />
+            </div>
+            {settings.promoPreview && (
+              <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <p>
+                  Réservé aux administrateurs : seuls les comptes admin voient
+                  l'aperçu, jamais les utilisateurs normaux. Pensez à le désactiver
+                  une fois les tests terminés.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
 

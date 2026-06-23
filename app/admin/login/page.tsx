@@ -77,7 +77,7 @@ export default function AdminLoginPage() {
           </div>
         </div>
 
-        <Card className="w-full bg-white dark:bg-card/5 backdrop-blur-xl border-white/10 shadow-2xl">
+        <Card className="w-full bg-white/5 backdrop-blur-xl border-white/10 shadow-2xl">
           <CardHeader className="space-y-1 flex flex-col items-center pt-10 pb-6">
             <div className="relative mb-6">
               <div className="absolute inset-0 pointer-events-none"></div>
@@ -107,7 +107,7 @@ export default function AdminLoginPage() {
                     placeholder="admin@laveiye.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="pl-11 h-12 bg-white dark:bg-card/5 border-white/10 text-white placeholder:text-slate-500 dark:text-slate-400 focus:border-orange-500/50 focus:ring-orange-500/20 rounded-xl"
+                    className="pl-11 h-12 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-orange-500/50 focus:ring-orange-500/20 rounded-xl"
                     required
                   />
                 </div>
@@ -124,7 +124,7 @@ export default function AdminLoginPage() {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="pl-11 pr-11 h-12 bg-white dark:bg-card/5 border-white/10 text-white placeholder:text-slate-500 dark:text-slate-400 focus:border-orange-500/50 focus:ring-orange-500/20 rounded-xl"
+                    className="pl-11 pr-11 h-12 bg-white/5 border-white/10 text-white placeholder:text-slate-500 focus:border-orange-500/50 focus:ring-orange-500/20 rounded-xl"
                     required
                   />
                   <button

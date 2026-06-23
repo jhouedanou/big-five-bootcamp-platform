@@ -260,6 +260,7 @@ function FavoritesPageContent() {
           }
           return c
         }))
+        // Raccourci "Générer une campagne" retiré : générateur non validé par le client.
         toast.success(`Ajouté à la collection « ${colName} »`)
       } else if (res.status === 409) {
         toast.info(`Déjà dans « ${colName} »`)

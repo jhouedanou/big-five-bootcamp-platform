@@ -1,30 +1,35 @@
 /**
  * API Route: POST /api/payment/request
  *
- * Cree une demande de paiement PawaPay pour une inscription a un bootcamp
+ * Crée une demande de paiement Chariow pour une inscription à un bootcamp.
  *
  * Body:
  * - sessionId   : UUID de la session
  * - userEmail   : Email de l'utilisateur
- * - phoneNumber : MSISDN du client (ex. "2250707123456")
- * - provider    : Code provider PawaPay (ex. "ORANGE_CIV", "MTN_MOMO_CIV", "MOOV_CIV" — Wave non supporté)
- * - currency?   : defaut "XOF"
+ * - currency?   : défaut "XOF"
+ *
+ * Réponse: { success, paymentId, ref_command, checkoutUrl }
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
-import {
-  initiateDeposit,
-  generateRefCommand,
-  getReturnUrl,
-  getFailedUrl,
-  checkDepositStatus,
-} from '@/lib/pawapay';
+import { buildCheckoutUrl, generateRefCommand, CHARIOW_CONFIG } from '@/lib/chariow';
+
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
+function resolveBaseUrl(): string {
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.NODE_ENV === 'production' ? 'https://laveiye.com' : 'http://localhost:3000')
+  );
+}
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { sessionId, userEmail, phoneNumber, provider, currency = 'XOF' } = body;
+    const { sessionId, userEmail, currency = 'XOF' } = body;
 
     if (!sessionId || !userEmail) {
       return NextResponse.json(
@@ -33,14 +38,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!phoneNumber || !provider) {
-      return NextResponse.json(
-        { error: 'phoneNumber et provider sont requis (ex. provider: "ORANGE_CIV").' },
-        { status: 400 }
-      );
-    }
-
-    // 1. Recuperer les infos de la session
+    // 1. Récupérer les infos de la session
     const { data: session, error: sessionError } = await (supabaseAdmin as any)
       .from('sessions')
       .select(`
@@ -71,7 +69,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Verifier si un paiement existe deja
+    // 2. Vérifier si un paiement existe déjà
     const { data: existingPayment } = await (supabaseAdmin as any)
       .from('payments')
       .select('id, status')
@@ -91,7 +89,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Generer la reference (UUIDv4 pour PawaPay)
+    // 3. Générer la référence
     const ref_command = generateRefCommand('BOOTCAMP');
 
     // 4. Enregistrer le paiement
@@ -108,9 +106,14 @@ export async function POST(request: NextRequest) {
         user_email: userEmail,
         item_name: `${bootcamp.title} - Session ${new Date(session.start_date).toLocaleDateString('fr-FR')}`,
         item_description: bootcamp.tagline,
-        payment_method: 'pawapay',
-        provider,
-        client_phone: phoneNumber,
+        payment_method: 'chariow',
+        metadata: {
+          ref_command,
+          type: 'bootcamp',
+          session_id: String(sessionId),
+          bootcamp_slug: String(bootcamp.slug),
+          gateway: 'chariow',
+        },
       })
       .select()
       .single();
@@ -123,93 +126,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Initier le depot PawaPay
-    const customerMessage = `Bootcamp ${String(bootcamp.title || '').slice(0, 12)}`.slice(0, 22);
+    // 5. Construire l'URL de checkout Chariow
+    if (!CHARIOW_CONFIG.API_KEY || !CHARIOW_CONFIG.PRODUCT_ID) {
+      await (supabaseAdmin as any)
+        .from('payments')
+        .update({ status: 'failed' })
+        .eq('id', payment.id);
+      return NextResponse.json(
+        { error: 'Chariow non configuré (API_KEY/PRODUCT_ID manquants).' },
+        { status: 500 }
+      );
+    }
 
-    let pawapayResponse;
+    const baseUrl = resolveBaseUrl();
+    let checkoutUrl: string;
     try {
-      pawapayResponse = await initiateDeposit({
-        depositId: ref_command,
-        amount: String(bootcamp.price),
-        currency,
-        payer: {
-          type: 'MMO',
-          accountDetails: { phoneNumber, provider },
-        },
-        customerMessage,
-        successfulUrl: getReturnUrl(ref_command),
-        failedUrl: getFailedUrl(ref_command),
-        metadata: [
-          { ref_command },
-          { type: 'bootcamp' },
-          { session_id: String(sessionId) },
-          { bootcamp_slug: String(bootcamp.slug) },
-        ],
+      checkoutUrl = buildCheckoutUrl({
+        refCommand: ref_command,
+        email: userEmail,
+        // Mobile money confirme de façon asynchrone : on passe par /payment/pending
+        // (poll backend) au lieu de /payment/success direct, pour éviter une
+        // redirection vers le succès avant confirmation réelle du paiement.
+        successUrl: `${baseUrl}/payment/pending?ref_command=${encodeURIComponent(ref_command)}`,
+        cancelUrl: `${baseUrl}/payment/failed?ref_command=${encodeURIComponent(ref_command)}`,
       });
-    } catch (pawapayError) {
-      console.error('PawaPay initialization error:', pawapayError);
-      const errorMsg = pawapayError instanceof Error ? pawapayError.message : 'Erreur PawaPay';
+    } catch (e: any) {
       await (supabaseAdmin as any)
         .from('payments')
-        .update({
-          status: 'failed',
-          failure_code: 'INITIATION_ERROR',
-          failure_message: errorMsg,
-        })
+        .update({ status: 'failed' })
         .eq('id', payment.id);
+      console.error('[request] buildCheckoutUrl error:', e);
       return NextResponse.json(
-        { error: 'Le service de paiement est temporairement indisponible.', details: errorMsg },
-        { status: 502 }
+        { error: 'Impossible de construire l\'URL Chariow', details: e?.message },
+        { status: 500 }
       );
-    }
-
-    if (pawapayResponse.status === 'REJECTED') {
-      await (supabaseAdmin as any)
-        .from('payments')
-        .update({
-          status: 'rejected',
-          failure_code: pawapayResponse.failureReason?.failureCode,
-          failure_message: pawapayResponse.failureReason?.failureMessage,
-        })
-        .eq('id', payment.id);
-
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Paiement rejete par PawaPay',
-          failureReason: pawapayResponse.failureReason,
-        },
-        { status: 400 }
-      );
-    }
-
-    // Flow Wave : recuperer authorizationUrl
-    let authorizationUrl: string | undefined;
-    if (pawapayResponse.nextStep === 'GET_AUTH_URL') {
-      for (let i = 0; i < 3; i++) {
-        await new Promise((r) => setTimeout(r, 2000));
-        try {
-          const check = await checkDepositStatus(ref_command);
-          if (check.data?.authorizationUrl) {
-            authorizationUrl = check.data.authorizationUrl;
-            break;
-          }
-        } catch {
-          // ignore
-        }
-      }
     }
 
     return NextResponse.json({
       success: true,
       paymentId: payment.id,
       ref_command,
-      depositId: ref_command,
-      status: pawapayResponse.status,
-      nextStep: pawapayResponse.nextStep,
-      redirect_url: authorizationUrl,
-      authorizationUrl,
-      pollingUrl: `/api/payment/pawapay/status/deposit/${ref_command}`,
+      checkoutUrl,
     });
 
   } catch (error) {

@@ -1,21 +1,15 @@
 /**
  * API Route: /api/webhook (DEPRECATED)
  *
- * Ancien webhook de paiement deprecie. Utiliser les callbacks PawaPay.
- * Les nouveaux callbacks sont dans :
- *   - POST /api/payment/pawapay/callback/deposit
- *   - POST /api/payment/pawapay/callback/payout
- *   - POST /api/payment/pawapay/callback/refund
- *
- * On renvoie 410 Gone pour signaler que cette ressource n'existe plus.
+ * Ancien webhook deprecie. Utiliser le webhook Chariow :
+ *   - POST /api/webhook/chariow
  */
 
 import { NextResponse } from 'next/server';
 
 const GONE_BODY = {
   error: 'Gone',
-  message:
-    'This endpoint has been replaced by PawaPay. Use /api/payment/pawapay/callback/{deposit|payout|refund}.',
+  message: 'This endpoint has been replaced. Use /api/webhook/chariow.',
 };
 
 export async function POST() {

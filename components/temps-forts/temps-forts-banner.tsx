@@ -20,9 +20,11 @@ const ROTATE_INTERVAL_MS = 6000
 interface TempsFortsBannerProps {
   tempsFort?: TempsFort | null
   className?: string
+  /** Sans conteneur max-w-7xl : la carte remplit son parent (ex. grille du dashboard). */
+  embedded?: boolean
 }
 
-export function TempsFortsBanner({ tempsFort, className }: TempsFortsBannerProps) {
+export function TempsFortsBanner({ tempsFort, className, embedded }: TempsFortsBannerProps) {
   const overrides = useTempsFortsOverrides()
   const { tempsForts } = useTempsForts()
   const [mounted, setMounted] = useState(false)
@@ -89,11 +91,9 @@ export function TempsFortsBanner({ tempsFort, className }: TempsFortsBannerProps
 
   const hasMultiple = slides.length > 1
 
-  return (
-    <section className={className}>
-      <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+  const card = (
         <div
-          className="relative overflow-hidden rounded-2xl border border-[#F2B33D]/30 bg-[#F2B33D]/15 shadow-sm"
+          className="relative h-full overflow-hidden rounded-2xl border border-[#F2B33D]/30 bg-[#F2B33D]/15 shadow-sm"
           onMouseEnter={() => setPaused(true)}
           onMouseLeave={() => setPaused(false)}
         >
@@ -185,7 +185,15 @@ export function TempsFortsBanner({ tempsFort, className }: TempsFortsBannerProps
             <X className="h-4 w-4" />
           </button>
         </div>
-      </div>
+  )
+
+  if (embedded) {
+    return <div className={`h-full min-w-0 ${className ?? ""}`}>{card}</div>
+  }
+
+  return (
+    <section className={className}>
+      <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">{card}</div>
     </section>
   )
 }

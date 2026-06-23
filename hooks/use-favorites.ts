@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useSupabaseAuth } from './use-supabase-auth'
+import { trackEvent } from '@/lib/analytics'
 
 interface Favorite {
   id: string
@@ -150,6 +151,9 @@ export function useFavorites() {
           prev.map(f => f.id === optimisticFav.id ? json.favorite : f)
         )
       }
+
+      // Événement d'activité réelle (QA T54) : campagne sauvegardée.
+      trackEvent('campaign_saved', { campaign_id: campaignId })
 
       return true
     } catch (err: any) {

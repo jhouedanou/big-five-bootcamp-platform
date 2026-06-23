@@ -24,16 +24,31 @@ const CREATIVE_DETAIL_COLUMNS = 'id, title, slug, summary, description, thumbnai
 // Colonnes nécessaires au dashboard (liste enrichie côté connecté)
 const DASHBOARD_COLUMNS = 'id, title, summary, description, thumbnail, platforms, country, category, format, tags, created_at, video_url, images, brand, agency, year, axe, analyse, how_to_use, status, access_level, featured, publication_url, temps_fort_slugs'
 
+// PostgREST plafonne chaque requête à 1000 lignes : on pagine par range
+// pour récupérer la totalité des campagnes (510+ en base).
+const FETCH_PAGE_SIZE = 1000
+
+async function fetchAllRows(buildQuery: (from: number, to: number) => PromiseLike<{ data: any[] | null; error: any }>) {
+    let rows: any[] = []
+    for (let from = 0; ; from += FETCH_PAGE_SIZE) {
+        const { data, error } = await buildQuery(from, from + FETCH_PAGE_SIZE - 1)
+        if (error) throw error
+        rows = rows.concat(data || [])
+        if (!data || data.length < FETCH_PAGE_SIZE) break
+    }
+    return rows
+}
+
 export async function getCreatives() {
     try {
         const supabase = getSupabaseAdmin()
-        const { data, error } = await supabase
-            .from('campaigns')
-            .select(CREATIVE_LIST_COLUMNS)
-            .order('created_at', { ascending: false })
-            .limit(500)
-
-        if (error) throw error
+        const data = await fetchAllRows((from, to) =>
+            supabase
+                .from('campaigns')
+                .select(CREATIVE_LIST_COLUMNS)
+                .order('created_at', { ascending: false })
+                .range(from, to)
+        )
         return { success: true, data }
     } catch (error) {
         return { success: false, error: "Failed to fetch creatives" }
@@ -105,17 +120,17 @@ export async function getCampaignsByIds(ids: string[]) {
 export async function getDashboardCampaigns() {
     try {
         const supabase = getSupabaseAdmin()
-        const { data, error } = await supabase
-            .from('campaigns')
-            .select(DASHBOARD_COLUMNS)
-            .eq('status', 'Publié')
-            .order('created_at', { ascending: false })
-            .limit(500)
-
-        if (error) throw error
+        const data = await fetchAllRows((from, to) =>
+            supabase
+                .from('campaigns')
+                .select(DASHBOARD_COLUMNS)
+                .eq('status', 'Publié')
+                .order('created_at', { ascending: false })
+                .range(from, to)
+        )
 
         const viewer = await getViewerAccess()
-        return { success: true, data: redactPremiumFieldsList(data || [], viewer) }
+        return { success: true, data: redactPremiumFieldsList(data, viewer) }
     } catch (error) {
         return { success: false, error: "Failed to fetch dashboard campaigns" }
     }

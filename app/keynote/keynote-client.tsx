@@ -20,19 +20,45 @@ const COUNTRIES = [
   "Autre",
 ];
 
-const BENEFITS: { html: React.ReactNode }[] = [
-  { html: <><strong>Démonstration live</strong> de la plateforme en direct</> },
-  { html: <><strong>500 campagnes africaines</strong> analysées et classifiées</> },
-  { html: <><strong>Retours bêta testeurs</strong> sur cas d&apos;usage réels</> },
-  { html: <><strong>Offre exclusive</strong> réservée aux participants du keynote (48h)</> },
-];
+// Compteur de campagnes dynamique (LOT B) : le "500" historique ne sert que
+// de fallback tant que /api/stats n'a pas répondu.
+const CAMPAIGN_COUNT_FALLBACK = "500";
 
-const STATS = [
-  { num: "500", label: "Campagnes africaines analysées" },
-  { num: "7", label: "Marchés francophones couverts" },
-  { num: "4 900", label: "FCFA TTC / mois après lancement" },
-  { num: "1ère", label: "Bibliothèque créative africaine" },
-];
+function buildBenefits(campaigns: string): { html: React.ReactNode }[] {
+  return [
+    { html: <><strong>Démonstration live</strong> de la plateforme en direct</> },
+    { html: <><strong>{campaigns} campagnes africaines</strong> analysées et classifiées</> },
+    { html: <><strong>Retours bêta testeurs</strong> sur cas d&apos;usage réels</> },
+    { html: <><strong>Offre exclusive</strong> réservée aux participants du keynote (48h)</> },
+  ];
+}
+
+function buildStats(campaigns: string) {
+  return [
+    { num: campaigns, label: "Campagnes africaines analysées" },
+    { num: "7", label: "Marchés francophones couverts" },
+    { num: "4 900", label: "FCFA TTC / mois après lancement" },
+    { num: "1ère", label: "Bibliothèque créative africaine" },
+  ];
+}
+
+/** COUNT réel des campagnes publiées (via /api/stats), fallback "500". */
+function useCampaignCountLabel(): string {
+  const [label, setLabel] = useState(CAMPAIGN_COUNT_FALLBACK);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/stats")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled && d?.campaigns > 0) {
+          setLabel(new Intl.NumberFormat("fr-FR").format(d.campaigns));
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+  return label;
+}
 
 const PROBLEMS = [
   { num: "01", text: <><strong>Pas de références locales.</strong> Les campagnes africaines ne sont nulle part documentées.</> },
@@ -280,6 +306,9 @@ function RegistrationForm() {
 export default function KeynoteClient() {
   const target = useMemo(() => TARGET_DATE, []);
   const time = useCountdown(target);
+  const campaignCountLabel = useCampaignCountLabel();
+  const BENEFITS = useMemo(() => buildBenefits(campaignCountLabel), [campaignCountLabel]);
+  const STATS = useMemo(() => buildStats(campaignCountLabel), [campaignCountLabel]);
 
   const scrollToForm = () => {
     document.getElementById("keynote-form-anchor")?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -438,7 +467,7 @@ export default function KeynoteClient() {
           <p className="text-lg font-normal leading-relaxed text-[#0f0f0f] max-w-md mb-8">
             Rejoignez la keynote de lancement de{" "}
             <strong className="text-[#0f0f0f] font-bold">LAVEIYE</strong>. La première bibliothèque
-            cr&eacute;ative social media d&eacute;di&eacute;e &agrave; l&apos;Afrique francophone. 500 campagnes analys&eacute;es, 7
+            cr&eacute;ative social media d&eacute;di&eacute;e &agrave; l&apos;Afrique francophone. {campaignCountLabel} campagnes analys&eacute;es, 7
             march&eacute;s couverts.
           </p>
 

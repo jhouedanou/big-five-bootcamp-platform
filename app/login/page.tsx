@@ -148,6 +148,14 @@ export default function LoginPage() {
         description: "Redirection vers votre tableau de bord...",
       })
 
+      // Horodatage dernière connexion + event login_success (KPI actifs,
+      // statut d'activité admin — QA T54/T18). Best-effort, non bloquant.
+      try {
+        await fetch("/api/me/login-ping", { method: "POST", keepalive: true })
+      } catch {
+        // Non bloquant : le tracking ne doit pas empêcher la connexion.
+      }
+
       // Vérifie immédiatement la limite multi-appareils. Si l'utilisateur
       // dépasse le quota (cette session étant celle de trop), on l'envoie
       // sur /auth/device-limit pour libérer une place.

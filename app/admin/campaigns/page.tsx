@@ -64,7 +64,7 @@ import { toast } from "sonner";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import { CSVImporter } from "@/components/admin/csv-importer";
-import { cn, getGoogleDriveImageUrl, generateSlug, isEphemeralGoogleImageUrl, isGoogleDriveHostedUrl } from "@/lib/utils";
+import { cn, getGoogleDriveImageUrl, generateSlug, isEphemeralGoogleImageUrl, isGoogleDriveHostedUrl, getGoogleDriveViewUrl } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
 import { detectVideoPlatform, getEmbedUrl, isSupportedVideoUrl, getYouTubeThumbnail, getVideoPlatformLabel, getOriginalVideoUrl, isEmbeddableVideoUrl, platformLabelToVideoPlatform } from "@/lib/video-utils";
 import { ImageUpload, ImageUploadButton } from "@/components/ui/image-upload";
@@ -601,27 +601,40 @@ function CampaignsPageContent() {
                     {/* Thumbnail compacte */}
                     <div className="relative w-16 h-16 flex-shrink-0 rounded-md overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                       {item.imageUrl && isGoogleDriveHostedUrl(item.imageUrl) ? (
-                        // URL Google Drive : on NE charge PAS l'image (Google bloque le
-                        // hotlinking en masse → 403/429). On affiche un avertissement.
-                        <div
-                          className="flex h-full w-full flex-col items-center justify-center gap-1 bg-amber-50 dark:bg-amber-950/30 p-1 text-center"
-                          title="Google Drive bloque l'accès à cette image. Ré-uploadez-la directement."
+                        // Visuel legacy Google Drive (LOT I) : AUCUN embed Drive
+                        // (quota hotlinking → 403/429). Lien "Voir l'image" vers la
+                        // page view Drive, ouvert dans un nouvel onglet.
+                        <a
+                          href={getGoogleDriveViewUrl(item.imageUrl)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex h-full w-full flex-col items-center justify-center gap-1 bg-slate-50 dark:bg-slate-900/40 p-1 text-center hover:bg-slate-100"
+                          title="Visuel hébergé sur Google Drive (legacy). Cliquez pour le voir dans un nouvel onglet. Ré-uploadez-le pour l'afficher en miniature."
                         >
-                          <AlertTriangle className="h-4 w-4 text-amber-500" />
-                          <span className="text-[9px] leading-tight text-amber-600 dark:text-amber-400">
-                            Drive bloqué
+                          <ExternalLink className="h-4 w-4 text-slate-500" />
+                          <span className="text-[9px] leading-tight text-slate-600 dark:text-slate-400">
+                            Voir l&apos;image
                           </span>
-                        </div>
+                        </a>
                       ) : item.imageUrl ? (
-                        <img
-                          src={item.imageUrl}
-                          alt={item.title}
-                          loading="lazy"
-                          className="h-full w-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = "/placeholder.svg";
-                          }}
-                        />
+                        // QA : clic sur la vignette → visuel ouvert dans un nouvel onglet.
+                        <a
+                          href={item.imageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Ouvrir le visuel dans un nouvel onglet"
+                          className="block h-full w-full"
+                        >
+                          <img
+                            src={item.imageUrl}
+                            alt={item.title}
+                            loading="lazy"
+                            className="h-full w-full object-cover transition-opacity hover:opacity-80"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "/placeholder.svg";
+                            }}
+                          />
+                        </a>
                       ) : (
                         <div className="flex h-full w-full items-center justify-center text-gray-400">
                           {item.isVideo ? (
@@ -639,14 +652,17 @@ function CampaignsPageContent() {
                         {item.agency && <span> - {item.agency}</span>}
                       </p>
                       <div className="flex flex-wrap gap-2 mt-2">
-                        {/* Avertissement image Google Drive bloquée */}
+                        {/* Visuel legacy Google Drive (LOT I) : lien view, pas d'embed */}
                         {item.imageUrl && isGoogleDriveHostedUrl(item.imageUrl) && (
-                          <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
-                            title="Google Drive bloque l'accès aux images chargées en masse. Ré-uploadez l'image directement (bouton upload) pour qu'elle s'affiche dans la bibliothèque."
+                          <a
+                            href={getGoogleDriveViewUrl(item.imageUrl)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                            title="Visuel hébergé sur Google Drive (legacy). Ouvrir dans un nouvel onglet. Ré-uploadez-le directement pour le servir via le CDN."
                           >
-                            <AlertTriangle className="h-3 w-3" /> Image Drive bloquée — ré-uploadez
-                          </span>
+                            <ExternalLink className="h-3 w-3" /> Voir l&apos;image (Drive)
+                          </a>
                         )}
                         {/* Badge de statut */}
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -743,6 +759,25 @@ function CampaignsPageContent() {
                         <ExternalLink className="h-4 w-4 mr-2" />
                         Voir le détail
                       </DropdownMenuItem>
+                      {/* LOT I : ouverture du visuel dans un nouvel onglet
+                          (URL CDN, ou page view Drive pour le legacy). */}
+                      {item.imageUrl && (
+                        <DropdownMenuItem
+                          onClick={() =>
+                            window.open(
+                              isGoogleDriveHostedUrl(item.imageUrl)
+                                ? getGoogleDriveViewUrl(item.imageUrl)
+                                : item.imageUrl,
+                              '_blank',
+                              'noopener'
+                            )
+                          }
+                          className="hover:bg-gray-100 dark:bg-gray-800 cursor-pointer"
+                        >
+                          <Image className="h-4 w-4 mr-2" />
+                          Voir le visuel
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem
                         onClick={() => handlePublish(item)}
                         className={`hover:bg-gray-100 cursor-pointer ${
@@ -1566,8 +1601,10 @@ function CampaignsPageContent() {
                     </Label>
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 ml-6">
-                    Cochez si la campagne est principalement une vidéo (Facebook, YouTube, LinkedIn, Twitter/X). 
-                    La thumbnail sera récupérée automatiquement depuis le réseau social.
+                    Cochez si la campagne est principalement une vidéo. Vignette générée automatiquement
+                    pour <strong>YouTube</strong> (fiable). <strong>TikTok</strong> : tentée, mais l'image
+                    (CDN TikTok protégé) peut ne pas s'afficher → uploadez une capture si besoin. Autres
+                    plateformes (Facebook, Instagram, LinkedIn, X…) : uploadez une capture d'écran.
                   </p>
                 </div>
 
@@ -1585,6 +1622,34 @@ function CampaignsPageContent() {
                         onChange={(e) => {
                           const newUrl = e.target.value;
                           setFormData({ ...formData, videoUrl: newUrl });
+                        }}
+                        onBlur={async () => {
+                          // Génération auto de la vignette pour YouTube & TikTok
+                          // (sans écraser une vignette déjà renseignée). Les autres
+                          // plateformes : invitation à uploader une capture (ci-dessous).
+                          const u = formData.videoUrl?.trim();
+                          if (!u || formData.imageUrl) return;
+                          const platform = detectVideoPlatform(u);
+                          if (platform === "youtube") {
+                            const thumb = getYouTubeThumbnail(u);
+                            if (thumb) {
+                              setFormData((prev) => ({ ...prev, imageUrl: thumb }));
+                              toast.success("Vignette YouTube générée automatiquement.");
+                            }
+                            return;
+                          }
+                          if (platform === "tiktok") {
+                            try {
+                              const res = await fetch(`/api/video-thumbnail?url=${encodeURIComponent(u)}`);
+                              const data = await res.json();
+                              if (data.success && data.thumbnailUrl) {
+                                setFormData((prev) => ({ ...prev, imageUrl: data.thumbnailUrl }));
+                                toast.success("Vignette TikTok récupérée — vérifiez l'aperçu ; si vide, uploadez une capture.");
+                              }
+                            } catch {
+                              /* silencieux : l'invitation capture d'écran reste affichée */
+                            }
+                          }
                         }}
                         className="bg-white dark:bg-card border-gray-300 text-foreground placeholder:text-gray-400"
                         placeholder="https://facebook.com/.../videos/... ou youtube.com/watch?v=... ou x.com/.../status/..."
@@ -1639,13 +1704,15 @@ function CampaignsPageContent() {
                           const platform = detectVideoPlatform(formData.videoUrl || "");
                           const platformStyles: Record<string, string> = {
                             youtube: "bg-red-100 text-red-700",
+                            tiktok: "bg-neutral-900 text-white",
                             facebook: "bg-blue-100 text-blue-700",
+                            instagram: "bg-pink-100 text-pink-700",
                             twitter: "bg-gray-100 text-gray-700",
                             linkedin: "bg-sky-100 text-sky-700",
                             unknown: "bg-yellow-100 text-yellow-700",
                           };
                           return (
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${platformStyles[platform]}`}>
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${platformStyles[platform] || "bg-gray-100 text-gray-700"}`}>
                               {platform === "unknown" ? "⚠️ Plateforme non reconnue" : `✓ ${getVideoPlatformLabel(platform)} détecté`}
                             </span>
                           );
@@ -1653,9 +1720,40 @@ function CampaignsPageContent() {
                       </div>
                     )}
                     
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      💡 Plateformes supportées : YouTube, Facebook, LinkedIn, Twitter/X. Collez le lien de la publication vidéo.
-                    </p>
+                    {/* Vignette : auto pour YouTube/TikTok, sinon invitation capture d'écran */}
+                    {formData.videoUrl && formData.videoUrl.trim() && (() => {
+                      const platform = detectVideoPlatform(formData.videoUrl || "");
+                      if (platform === "youtube") {
+                        return (
+                          <p className="text-xs text-green-700 dark:text-green-400">
+                            ✓ Vignette YouTube générée automatiquement (fiable, image publique stable).
+                          </p>
+                        );
+                      }
+                      if (platform === "tiktok") {
+                        return (
+                          <p className="text-xs rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-amber-800">
+                            ℹ️ TikTok : récupération tentée automatiquement, mais l'image provient du CDN TikTok
+                            (protégé/expirant) et peut ne pas s'afficher sur le tableau de bord. Vérifiez l'aperçu
+                            ci-dessous ; si vide, <strong>uploadez une capture d'écran</strong> dans « Image principale ».
+                          </p>
+                        );
+                      }
+                      if (formData.imageUrl) {
+                        return (
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            💡 Vignette définie. Pour {getVideoPlatformLabel(platform)}, remplacez-la par une capture d'écran si besoin.
+                          </p>
+                        );
+                      }
+                      return (
+                        <p className="text-xs rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-amber-800">
+                          ⚠️ Vignette non récupérable automatiquement pour {getVideoPlatformLabel(platform)}.
+                          Faites une <strong>capture d'écran de la vidéo</strong> et uploadez-la dans
+                          « Image principale (thumbnail) » ci-dessus. Sinon le contenu s'affichera sans visuel sur le tableau de bord.
+                        </p>
+                      );
+                    })()}
                     
                     {/* Aperçu vidéo embed */}
                     {formData.videoUrl && formData.videoUrl.trim() && isSupportedVideoUrl(formData.videoUrl) && (

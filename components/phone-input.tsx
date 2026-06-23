@@ -1,21 +1,23 @@
 'use client'
 
-import { useId } from 'react'
+import { useId, useMemo, useRef, useState } from 'react'
+import { Check, ChevronDown, Search } from 'lucide-react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { cn } from '@/lib/utils'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  ALL_COUNTRIES,
+  COUNTRY_DIAL_CODES,
+  normalizeCountrySearch,
+} from '@/lib/countries'
 
 /**
- * Liste des indicatifs proposés à l'inscription. Étendre ici si besoin.
+ * Indicatif proposé à l'inscription.
  *
- * `code` est une clé interne (ISO Alpha-3 quand possible) — sert au stockage
- * en base et au pré-remplissage côté paiement (cf. `lib/pawapay-providers.ts`).
+ * `code` est une clé interne : ISO Alpha-3 pour les pays « primaires »
+ * (CIV, SEN…) — sert au stockage en base et au pré-remplissage côté paiement
+ * (cf. `lib/pawapay-providers.ts`) — sinon le code ISO Alpha-2 du pays.
  * `localLength` = nombre attendu de chiffres après l'indicatif. Sert à la
- * validation côté client. Mettre `null` pour ne pas valider la longueur.
+ * validation côté client. `null` = pas de validation de longueur.
  */
 export interface PhoneCountry {
   code: string
@@ -27,8 +29,13 @@ export interface PhoneCountry {
   mask?: string
 }
 
-export const PHONE_COUNTRIES: PhoneCountry[] = [
-  { code: 'CIV', name: "Côte d'Ivoire", flag: '🇨🇮', dialCode: '225', localLength: 10, mask: 'XX XX XX XX XX' },
+/**
+ * Pays « primaires » : indicatifs prioritaires avec validation de longueur et
+ * masque de saisie. Codes internes 3 lettres alignés avec le paiement.
+ * Affichés en tête de liste.
+ */
+const PRIMARY_COUNTRIES: PhoneCountry[] = [
+  { code: 'CIV', name: "Côte d'Ivoire", flag: '🇨🇮', dialCode: '225', localLength: 10, mask: 'XX XX XX XX XX', },
   { code: 'SEN', name: 'Sénégal',       flag: '🇸🇳', dialCode: '221', localLength: 9,  mask: 'XX XXX XX XX' },
   { code: 'BEN', name: 'Bénin',         flag: '🇧🇯', dialCode: '229', localLength: 10, mask: 'XX XX XX XX XX' },
   { code: 'CMR', name: 'Cameroun',      flag: '🇨🇲', dialCode: '237', localLength: 9,  mask: 'X XX XX XX XX' },
@@ -37,6 +44,47 @@ export const PHONE_COUNTRIES: PhoneCountry[] = [
   { code: 'MLI', name: 'Mali',          flag: '🇲🇱', dialCode: '223', localLength: 8,  mask: 'XX XX XX XX' },
   { code: 'FRA', name: 'France',        flag: '🇫🇷', dialCode: '33',  localLength: 9,  mask: 'X XX XX XX XX' },
 ]
+
+/** ISO Alpha-2 des pays primaires — exclus de la liste « reste du monde ». */
+const PRIMARY_ISO2 = new Set(['CI', 'SN', 'BJ', 'CM', 'BF', 'TG', 'ML', 'FR'])
+
+/** Convertit un code ISO Alpha-2 en emoji drapeau (regional indicators). */
+function isoToFlag(iso2: string): string {
+  return iso2
+    .toUpperCase()
+    .replace(/./g, (ch) => String.fromCodePoint(127397 + ch.charCodeAt(0)))
+}
+
+/** Tous les autres pays du monde, sans validation de longueur ni masque. */
+const REST_COUNTRIES: PhoneCountry[] = ALL_COUNTRIES.filter(
+  (c) => !PRIMARY_ISO2.has(c.code) && COUNTRY_DIAL_CODES[c.code],
+)
+  .map((c) => ({
+    code: c.code,
+    name: c.name,
+    flag: isoToFlag(c.code),
+    dialCode: COUNTRY_DIAL_CODES[c.code],
+    localLength: null,
+  }))
+  .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+
+/** Indicatifs : pays primaires en tête, puis le reste du monde (A→Z). */
+export const PHONE_COUNTRIES: PhoneCountry[] = [
+  ...PRIMARY_COUNTRIES,
+  ...REST_COUNTRIES,
+]
+
+/** Filtre par nom (insensible accents/casse) ou par indicatif saisi. */
+function filterPhoneCountries(query: string): PhoneCountry[] {
+  const q = normalizeCountrySearch(query)
+  if (!q) return PHONE_COUNTRIES
+  const digits = q.replace(/\D/g, '')
+  return PHONE_COUNTRIES.filter(
+    (c) =>
+      normalizeCountrySearch(c.name).includes(q) ||
+      (digits.length > 0 && c.dialCode.includes(digits)),
+  )
+}
 
 const COUNTRY_BY_CODE: Record<string, PhoneCountry> = Object.fromEntries(
   PHONE_COUNTRIES.map((c) => [c.code, c]),
@@ -79,7 +127,10 @@ function detectCountryFromDigits(digits: string): { country: string; remaining: 
   let d = digits
   if (d.startsWith('00')) d = d.slice(2)
 
-  const sorted = [...PHONE_COUNTRIES].sort(
+  // Détection limitée aux pays primaires (longueur locale connue) : éviter les
+  // faux positifs sur ~190 indicatifs où un numéro local commencerait par un
+  // préfixe d'un autre pays.
+  const sorted = PHONE_COUNTRIES.filter((c) => c.localLength != null).sort(
     (a, b) => b.dialCode.length - a.dialCode.length,
   )
 
@@ -151,12 +202,18 @@ export function PhoneInput({
   const country = value.country || defaultCountry
   const current = COUNTRY_BY_CODE[country] ?? COUNTRY_BY_CODE[defaultCountry]
 
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const searchRef = useRef<HTMLInputElement>(null)
+  const results = useMemo(() => filterPhoneCountries(query), [query])
+
   const handleCountry = (next: string) => {
     onChange({
       country: next,
       localDigits: '',
       e164: buildE164(next, ''),
     })
+    setOpen(false)
   }
 
   const handleDigits = (raw: string) => {
@@ -199,28 +256,73 @@ export function PhoneInput({
 
   return (
     <div className={`flex h-11 w-full rounded-md border border-input bg-white focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 ${className ?? ''}`}>
-      <Select value={country} onValueChange={handleCountry} disabled={disabled}>
-        <SelectTrigger
-          className="w-[130px] h-full rounded-r-none border-0 border-r bg-transparent focus:ring-0 focus:ring-offset-0"
-          aria-label="Indicatif pays"
-        >
-          <SelectValue>
-            <span className="flex items-center gap-1.5">
+      <Popover
+        open={open}
+        onOpenChange={(next) => {
+          if (disabled) return
+          setOpen(next)
+          if (next) {
+            setQuery('')
+            setTimeout(() => searchRef.current?.focus(), 0)
+          }
+        }}
+      >
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            disabled={disabled}
+            aria-label="Indicatif pays"
+            className="flex w-[130px] h-full items-center justify-between gap-1.5 rounded-r-none border-0 border-r px-3 bg-transparent text-sm outline-none disabled:opacity-50"
+          >
+            <span className="flex items-center gap-1.5 truncate">
               <span className="text-base leading-none">{current.flag}</span>
-              <span className="text-sm">+{current.dialCode}</span>
+              <span>+{current.dialCode}</span>
             </span>
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {PHONE_COUNTRIES.map((c) => (
-            <SelectItem key={c.code} value={c.code}>
-              <span className="mr-2">{c.flag}</span>
-              <span className="font-medium">+{c.dialCode}</span>
-              <span className="ml-2 text-xs text-muted-foreground">{c.name}</span>
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+            <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[300px] p-0" align="start">
+          <div className="flex items-center gap-2 border-b px-3 py-2">
+            <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <input
+              ref={searchRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Rechercher un pays ou un indicatif…"
+              className="h-7 w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+              aria-label="Rechercher un pays"
+            />
+          </div>
+          <ul role="listbox" className="max-h-64 overflow-y-auto p-1">
+            {results.length === 0 ? (
+              <li className="px-3 py-6 text-center text-sm text-muted-foreground">
+                Aucun pays trouvé pour «&nbsp;{query}&nbsp;»
+              </li>
+            ) : (
+              results.map((c) => {
+                const isSelected = c.code === country
+                return (
+                  <li key={c.code} role="option" aria-selected={isSelected}>
+                    <button
+                      type="button"
+                      onClick={() => handleCountry(c.code)}
+                      className={cn(
+                        'flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-sm hover:bg-accent hover:text-accent-foreground',
+                        isSelected && 'bg-accent/60 font-medium',
+                      )}
+                    >
+                      <span className="text-base leading-none">{c.flag}</span>
+                      <span className="w-12 shrink-0 font-medium">+{c.dialCode}</span>
+                      <span className="flex-1 truncate text-muted-foreground">{c.name}</span>
+                      {isSelected && <Check className="h-4 w-4 shrink-0" />}
+                    </button>
+                  </li>
+                )
+              })
+            )}
+          </ul>
+        </PopoverContent>
+      </Popover>
       <input
         id={inputId}
         type="tel"

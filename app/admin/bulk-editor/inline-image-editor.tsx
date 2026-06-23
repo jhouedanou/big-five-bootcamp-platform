@@ -27,6 +27,13 @@ import {
   RESIZE_HINT,
 } from "@/hooks/use-bulk-upload"
 import { useMediaValidation } from "@/hooks/use-media-validation"
+import {
+  isVideoFile,
+  VIDEO_UPLOAD_ERROR_TITLE,
+  VIDEO_UPLOAD_ERROR_DESCRIPTION,
+  IMAGE_TYPE_ERROR_TITLE,
+  IMAGE_TYPE_ERROR_DESCRIPTION,
+} from "@/lib/upload-messages"
 
 type DriveState = "unknown" | "checking" | "public" | "restricted"
 
@@ -53,6 +60,8 @@ export function InlineImageEditor({
   const { validate } = useMediaValidation()
 
   const [previewError, setPreviewError] = useState(false)
+  // Erreur persistante affichée en rouge dans le popover (consigne vidéo → YouTube).
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const isDrive = !!value && isGoogleDriveHostedUrl(value)
   const hasImage = !!value
   // Google bloque le hotlinking Drive en grille (403/429) → on NE charge PAS les
@@ -64,8 +73,18 @@ export function InlineImageEditor({
   const previewSrc = isDrive ? getGoogleDriveImageUrl(value) : value
 
   async function handleFile(file: File) {
+    setUploadError(null)
+    if (isVideoFile(file)) {
+      setUploadError(`${VIDEO_UPLOAD_ERROR_TITLE}. ${VIDEO_UPLOAD_ERROR_DESCRIPTION}`)
+      toast.error(VIDEO_UPLOAD_ERROR_TITLE, {
+        description: VIDEO_UPLOAD_ERROR_DESCRIPTION,
+        duration: 10000,
+      })
+      return
+    }
     if (!file.type.startsWith("image/")) {
-      toast.error(`Type non supporté : ${file.type || "inconnu"}`)
+      setUploadError(`${IMAGE_TYPE_ERROR_TITLE} (${file.type || "inconnu"}). ${IMAGE_TYPE_ERROR_DESCRIPTION}`)
+      toast.error(IMAGE_TYPE_ERROR_TITLE, { description: IMAGE_TYPE_ERROR_DESCRIPTION })
       return
     }
     if (file.size > BULK_MAX_FILE_BYTES) {
@@ -229,6 +248,13 @@ export function InlineImageEditor({
         {driveReason && (
           <p className="rounded border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
             {driveReason}
+          </p>
+        )}
+
+        {/* Erreur d'upload persistante (rouge) — notamment vidéo → YouTube */}
+        {uploadError && (
+          <p className="rounded border border-red-300 bg-red-50 p-2 text-xs font-medium text-red-700">
+            {uploadError}
           </p>
         )}
 

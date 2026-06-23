@@ -19,6 +19,7 @@ import { Loader2, ChevronLeft, ChevronRight, Check, FileText, Image, Sparkles, C
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { cn, getGoogleDriveImageUrl } from "@/lib/utils"
 import { ImageUpload } from "@/components/ui/image-upload"
+import { VideoUploadButton } from "@/components/ui/video-upload"
 
 interface CreativeFormProps {
     creative?: any
@@ -423,14 +424,20 @@ export function CreativeFormMultiStep({ creative, isEdit = false }: CreativeForm
 
                         <div className="grid gap-2">
                             <Label htmlFor="videoUrl">URL Vidéo (Optionnel)</Label>
-                            <Input 
-                                id="videoUrl" 
-                                value={formData.videoUrl} 
-                                onChange={(e) => updateField("videoUrl", e.target.value)}
-                                placeholder="https://..." 
-                            />
+                            <div className="flex gap-2">
+                                <Input
+                                    id="videoUrl"
+                                    value={formData.videoUrl}
+                                    onChange={(e) => updateField("videoUrl", e.target.value)}
+                                    placeholder="https://..."
+                                />
+                                <VideoUploadButton
+                                    onUploaded={(url) => updateField("videoUrl", url)}
+                                />
+                            </div>
                             <p className="text-xs text-muted-foreground">
-                                URL d'une vidéo YouTube, Vimeo ou fichier vidéo direct
+                                URL d&apos;une vidéo YouTube/Vimeo, ou upload direct d&apos;un fichier
+                                MP4, WebM ou MOV (max 200 Mo) vers le stockage Supabase.
                             </p>
                         </div>
                     </div>
@@ -452,6 +459,12 @@ export function CreativeFormMultiStep({ creative, isEdit = false }: CreativeForm
 
                         <div className="grid gap-2">
                             <Label>Analyse</Label>
+                            <div className="rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+                                <strong>Mise en forme exigée :</strong> structurez l&apos;analyse en
+                                paragraphes courts, avec des retours à la ligne entre chaque idée.
+                                Les analyses livrées en bloc compact ne sont pas conformes et
+                                devront être reprises avant publication.
+                            </div>
                             <RichTextEditor
                                 content={formData.analyse}
                                 onChange={(content) => updateField("analyse", content)}

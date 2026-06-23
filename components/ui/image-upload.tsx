@@ -4,9 +4,17 @@ import { useState, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Upload, X, Loader2, ImagePlus, Link2 } from "lucide-react"
+import { Upload, X, Loader2, ImagePlus, Link2, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
-import { cn, isEphemeralGoogleImageUrl } from "@/lib/utils"
+import { cn, isEphemeralGoogleImageUrl, isGoogleDriveHostedUrl } from "@/lib/utils"
+import {
+  isVideoFile,
+  VIDEO_UPLOAD_ERROR_TITLE,
+  VIDEO_UPLOAD_ERROR_DESCRIPTION,
+  IMAGE_TYPE_ERROR_TITLE,
+  IMAGE_TYPE_ERROR_DESCRIPTION,
+  IMAGE_TOO_LARGE_ERROR,
+} from "@/lib/upload-messages"
 
 interface ImageUploadProps {
   value: string
@@ -31,21 +39,38 @@ export function ImageUpload({
   const [isDragging, setIsDragging] = useState(false)
   const [showUrlInput, setShowUrlInput] = useState(false)
   const [urlInput, setUrlInput] = useState("")
+  // Erreur persistante affichée en rouge sous la zone d'upload (les toasts
+  // disparaissent trop vite pour les consignes vidéo → YouTube).
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const uploadFile = useCallback(async (file: File) => {
+    setUploadError(null)
+
+    // Vidéo dans un champ image : consigne explicite (upload YouTube).
+    if (isVideoFile(file)) {
+      setUploadError(`${VIDEO_UPLOAD_ERROR_TITLE}. ${VIDEO_UPLOAD_ERROR_DESCRIPTION}`)
+      toast.error(VIDEO_UPLOAD_ERROR_TITLE, {
+        description: VIDEO_UPLOAD_ERROR_DESCRIPTION,
+        duration: 10000,
+      })
+      return
+    }
+
     // Vérifier le type
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml']
     if (!allowedTypes.includes(file.type)) {
-      toast.error(`Type non supporté: ${file.type}`, {
-        description: "Types acceptés: JPG, PNG, WebP, GIF, SVG"
+      setUploadError(`${IMAGE_TYPE_ERROR_TITLE} (${file.type || "inconnu"}). ${IMAGE_TYPE_ERROR_DESCRIPTION}`)
+      toast.error(IMAGE_TYPE_ERROR_TITLE, {
+        description: IMAGE_TYPE_ERROR_DESCRIPTION,
       })
       return
     }
 
     // Vérifier la taille (10MB max)
     if (file.size > 10 * 1024 * 1024) {
-      toast.error("Fichier trop volumineux (max 10 MB)")
+      setUploadError(IMAGE_TOO_LARGE_ERROR)
+      toast.error(IMAGE_TOO_LARGE_ERROR)
       return
     }
 
@@ -70,6 +95,7 @@ export function ImageUpload({
       toast.success("Image uploadée avec succès !")
     } catch (error: any) {
       console.error("Upload error:", error)
+      setUploadError(`Erreur lors de l'upload : ${error.message || "veuillez réessayer."}`)
       toast.error("Erreur lors de l'upload", {
         description: error.message || "Veuillez réessayer"
       })
@@ -101,11 +127,8 @@ export function ImageUpload({
     e.preventDefault()
     setIsDragging(false)
     const file = e.dataTransfer.files?.[0]
-    if (file && file.type.startsWith('image/')) {
-      uploadFile(file)
-    } else {
-      toast.error("Veuillez déposer un fichier image")
-    }
+    // uploadFile gère les messages d'erreur détaillés (vidéo → YouTube, type, taille).
+    if (file) uploadFile(file)
   }
 
   const handleUrlSubmit = () => {
@@ -114,6 +137,16 @@ export function ImageUpload({
     if (isEphemeralGoogleImageUrl(url)) {
       toast.error("Lien Google temporaire détecté", {
         description: "Cette URL expire et renverra une erreur 403. Uploadez l'image directement à la place.",
+      })
+      return
+    }
+    // LOT I : plus aucun nouveau visuel hébergé sur Google Drive. Les quotas
+    // de diffusion Google bloquent l'affichage de manière imprévisible.
+    if (isGoogleDriveHostedUrl(url)) {
+      toast.error("Les liens Google Drive ne sont plus acceptés", {
+        description:
+          "Google limite la diffusion des fichiers Drive (affichage bloqué de façon imprévisible). Téléchargez le fichier puis uploadez-le directement : il sera servi via le CDN, sans quota.",
+        duration: 8000,
       })
       return
     }
@@ -216,6 +249,14 @@ export function ImageUpload({
         </div>
       )}
 
+      {/* Erreur d'upload persistante (rouge) — notamment vidéo → YouTube */}
+      {uploadError && (
+        <div className="flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 p-3 text-sm font-medium text-red-700">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <p>{uploadError}</p>
+        </div>
+      )}
+
       {/* Input file caché */}
       <input
         ref={fileInputRef}
@@ -297,13 +338,20 @@ export function ImageUploadButton({ onUploaded, className }: ImageUploadButtonPr
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const uploadFile = async (file: File) => {
+    if (isVideoFile(file)) {
+      toast.error(VIDEO_UPLOAD_ERROR_TITLE, {
+        description: VIDEO_UPLOAD_ERROR_DESCRIPTION,
+        duration: 10000,
+      })
+      return
+    }
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml']
     if (!allowedTypes.includes(file.type)) {
-      toast.error(`Type non supporté: ${file.type}`)
+      toast.error(IMAGE_TYPE_ERROR_TITLE, { description: IMAGE_TYPE_ERROR_DESCRIPTION })
       return
     }
     if (file.size > 10 * 1024 * 1024) {
-      toast.error("Fichier trop volumineux (max 10 MB)")
+      toast.error(IMAGE_TOO_LARGE_ERROR)
       return
     }
 

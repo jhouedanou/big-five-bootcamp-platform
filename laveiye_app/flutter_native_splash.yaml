@@ -1,0 +1,19 @@
+# Configuration du splash screen natif LAVEIYE.
+# Generer avec : dart run flutter_native_splash:create
+flutter_native_splash:
+  # Couleur de fond (couleur principale du site).
+  color: "#F2B33D"
+  # Logo centre (PNG transparent recommande).
+  image: assets/images/logo.png
+
+  # Android 12+ utilise une API splash dediee.
+  android_12:
+    color: "#F2B33D"
+    image: assets/images/logo.png
+
+  # Plateformes ciblees.
+  android: true
+  ios: true
+
+  # Mode plein ecran (sans barre de statut pendant le splash).
+  fullscreen: true

@@ -6,7 +6,9 @@ import Link from "next/link"
 import Image from "next/image"
 import dynamic from "next/dynamic"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
-import { TempsFortsBanner } from "@/components/temps-forts/temps-forts-banner"
+import { PromoTempsFortsCarousel } from "@/components/promo/promo-temps-forts-carousel"
+import { PromoPopup } from "@/components/promo/PromoPopup"
+import { WebinarDashboardBlock } from "@/components/webinars/WebinarDashboardBlock"
 import { TempsFortsPopup } from "@/components/temps-forts/temps-forts-popup"
 import type { DynamicFilterOptions } from "@/components/dashboard/filters-sidebar"
 import { ContentCard, ContentItem } from "@/components/dashboard/content-card"
@@ -22,6 +24,9 @@ import { format, parseISO, startOfWeek, subDays } from "date-fns"
 import { fr } from "date-fns/locale"
 import { isPaidPlan, canAccessPremiumContent } from "@/lib/pricing"
 import { fixBrokenEncoding } from "@/lib/utils"
+import { trackEvent } from "@/lib/analytics"
+import { fbTrack } from "@/lib/fb-pixel"
+import { FbViewContent } from "@/components/analytics/fb-events"
 
 const ParticlesBackground = dynamic(() => import("@/components/ui/particles-background").then(m => m.ParticlesBackground), { ssr: false })
 const FiltersSidebar = dynamic(() => import("@/components/dashboard/filters-sidebar").then(m => m.FiltersSidebar))
@@ -957,6 +962,11 @@ export default function DashboardPage() {
     setCommittedSearchQuery(q)
     setCurrentPage(1)
 
+    // Événement d'activité réelle (QA T54) — indépendant du quota.
+    trackEvent("search_performed", { query: q })
+    // Pixel Facebook : Search (LOT F).
+    fbTrack("Search", { search_string: q })
+
     // Verrou anti-doublon : on set la ref AVANT l'appel async pour empêcher
     // qu'un second submit (clic suggestion + Enter rapide) déclenche un
     // 2e tracking pendant que le 1er est encore in-flight.
@@ -1022,6 +1032,13 @@ export default function DashboardPage() {
       const prev = selectedFilters[category] || []
       const added = values.some((v) => !prev.includes(v))
       if (added) newlyAddedCategories.push(category)
+    }
+
+    // Événement d'activité réelle (QA T54) — indépendant du quota.
+    if (newlyAddedCategories.length > 0) {
+      trackEvent("filter_used", { categories: newlyAddedCategories })
+      // Pixel Facebook : Search — l'usage des filtres compte comme recherche (LOT F).
+      fbTrack("Search", { search_string: newlyAddedCategories.join(", "), kind: "filter" })
     }
 
     // Clic tag = soumission implicite : on commit la recherche en cours
@@ -1134,8 +1151,21 @@ export default function DashboardPage() {
           searchQuota={searchQuota}
         />
 
-        <TempsFortsBanner />
+        <FbViewContent contentName="dashboard" />
+        <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+          {/* Bannière carrousel unifiée (Temps forts + offre promo en alternance)
+              + #BigFiveDécrypte côte à côte sur desktop.
+              grid-flow-col/auto-cols-fr : si la bannière est fermée ou absente,
+              le bloc Décrypte reprend toute la largeur. */}
+          <div className="grid items-stretch gap-4 lg:grid-flow-col lg:auto-cols-fr">
+            <PromoTempsFortsCarousel embedded />
+            <div className="min-w-0">
+              <WebinarDashboardBlock />
+            </div>
+          </div>
+        </div>
         <TempsFortsPopup />
+        <PromoPopup />
 
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 

@@ -32,7 +32,6 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { usePawaPayProviders } from "@/hooks/use-pawapay-providers"
 
 // ---------------------------------------------------------------------------
 // Types & constants
@@ -239,40 +238,26 @@ export default function BrandRequestsPage() {
 
   // Action handler — accepter / refuser un devis, résilier / réactiver le renouvellement
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
-  // Paiement Mobile Money du devis
+  // Paiement Chariow du devis (redirect vers checkout hosté)
   const [payOpen, setPayOpen] = useState(false)
   const [payRequest, setPayRequest] = useState<BrandRequest | null>(null)
-  const [payPhone, setPayPhone] = useState('')
-  const [payProvider, setPayProvider] = useState('ORANGE_CIV')
   const [payLoading, setPayLoading] = useState(false)
   const [payError, setPayError] = useState<string | null>(null)
 
-  const { providers: PAWAPAY_PROVIDERS, isLoading: pawaPayProvidersLoading } = usePawaPayProviders()
-
   const openPayment = (req: BrandRequest) => {
     setPayRequest(req)
-    setPayPhone('')
     setPayError(null)
     setPayOpen(true)
   }
   const submitPayment = async () => {
     if (!payRequest) return
-    const cleaned = payPhone.replace(/\D/g, '')
-    if (cleaned.length < 9) {
-      setPayError('Numéro de téléphone invalide.')
-      return
-    }
     setPayLoading(true)
     setPayError(null)
     try {
       const res = await fetch('/api/payment/brand-request/initiate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          brandRequestId: payRequest.id,
-          phoneNumber: cleaned,
-          provider: payProvider,
-        }),
+        body: JSON.stringify({ brandRequestId: payRequest.id }),
       })
       const data = await res.json()
       if (!res.ok || data.error) {
@@ -280,12 +265,10 @@ export default function BrandRequestsPage() {
         setPayLoading(false)
         return
       }
-      // Wave : redirection
-      if (data.authorizationUrl) {
-        window.location.href = data.authorizationUrl
+      if (data.checkoutUrl || data.authorizationUrl) {
+        window.location.href = data.checkoutUrl || data.authorizationUrl
         return
       }
-      // PIN flow : page de pending
       window.location.href = `/payment/pending?ref_command=${encodeURIComponent(data.ref_command)}`
     } catch (e: any) {
       setPayError(e?.message || 'Erreur réseau.')
@@ -1733,7 +1716,7 @@ export default function BrandRequestsPage() {
                                       Payer le devis maintenant
                                     </Button>
                                     <p className="text-[11px] text-indigo-800 mt-1">
-                                      Paiement sécurisé par Mobile Money (PawaPay).
+                                      Paiement sécurisé via Chariow.
                                     </p>
                                   </div>
                                 )}
@@ -1973,41 +1956,9 @@ export default function BrandRequestsPage() {
             </div>
 
             <div className="space-y-3">
-              <div>
-                <label htmlFor="pay-provider" className="block text-xs font-semibold text-[#0F0F0F] mb-1">
-                  Opérateur Mobile Money
-                </label>
-                <select
-                  id="pay-provider"
-                  value={payProvider}
-                  onChange={(e) => setPayProvider(e.target.value)}
-                  disabled={payLoading || pawaPayProvidersLoading}
-                  className="w-full rounded-lg border border-[#F5F5F5] px-3 py-2 text-sm outline-none focus:border-[#F2B33D] disabled:opacity-50"
-                >
-                  {PAWAPAY_PROVIDERS.map((p) => (
-                    <option key={p.value} value={p.value}>{p.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="pay-phone" className="block text-xs font-semibold text-[#0F0F0F] mb-1">
-                  Numéro de téléphone
-                </label>
-                <input
-                  id="pay-phone"
-                  type="tel"
-                  inputMode="numeric"
-                  placeholder="ex. 2250707123456"
-                  value={payPhone}
-                  onChange={(e) => setPayPhone(e.target.value)}
-                  disabled={payLoading}
-                  className="w-full rounded-lg border border-[#F5F5F5] px-3 py-2 text-sm outline-none focus:border-[#F2B33D] disabled:opacity-50"
-                />
-                <p className="text-[11px] text-[#0F0F0F]/50 mt-1">
-                  Format international, sans le « + », avec l’indicatif pays.
-                </p>
-              </div>
+              <p className="text-sm text-[#0F0F0F]/70">
+                Vous serez redirigé vers la page de paiement sécurisée Chariow.
+              </p>
 
               {payError && (
                 <div className="rounded-lg bg-red-50 border border-red-200 p-2 text-xs text-red-700">

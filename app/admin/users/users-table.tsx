@@ -21,28 +21,14 @@ import {
 import { Search, ChevronLeft, ChevronRight } from "lucide-react"
 import { UserRow } from "./user-row"
 
-interface Payment {
-  id: string
-  ref_command: string
-  amount: number
-  currency: string
-  payment_method: string | null
-  status: string
-  user_email: string
-  item_name: string | null
-  created_at: string
-  completed_at: string | null
-}
-
 interface UsersTableProps {
   users: Array<Record<string, unknown>>
-  paymentsByEmail: Record<string, Payment[]>
   favoritesCounts: Record<string, number>
 }
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 
-export function UsersTable({ users, paymentsByEmail, favoritesCounts }: UsersTableProps) {
+export function UsersTable({ users, favoritesCounts }: UsersTableProps) {
   const [search, setSearch] = useState("")
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState<number>(25)
@@ -148,7 +134,6 @@ export function UsersTable({ users, paymentsByEmail, favoritesCounts }: UsersTab
                 <UserRow
                   key={user.id as string}
                   user={user}
-                  payments={paymentsByEmail[user.email as string] || []}
                   favoritesCount={favoritesCounts[user.id as string] || 0}
                 />
               ))

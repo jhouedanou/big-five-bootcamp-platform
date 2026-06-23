@@ -2,6 +2,7 @@ import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { HeroSection, FeaturesSection, PreviewSection, PricingTeaser } from "@/components/landing/hero-section"
 import { RgpdBottomSheet } from "@/components/rgpd-bottom-sheet"
+import { FbPageView } from "@/components/analytics/fb-events"
 import { homeMetadata } from "./page.metadata"
 
 export const metadata = homeMetadata
@@ -9,6 +10,7 @@ export const metadata = homeMetadata
 export default function HomePage() {
   return (
     <div className="flex min-h-screen flex-col">
+      <FbPageView page="home" />
       <Navbar />
       <main className="flex-1">
         <HeroSection />

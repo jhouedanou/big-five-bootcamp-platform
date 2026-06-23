@@ -9,10 +9,12 @@ import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/hooks/use-auth"
 import { useAuthContext } from "@/components/auth-provider"
 import { useFavorites } from "@/hooks/use-favorites"
+import { toastCampaignShortcut } from "@/lib/campaign-shortcut-toast"
 import { cn, getGoogleDriveImageUrl } from "@/lib/utils"
 import { detectVideoPlatform } from "@/lib/video-utils"
 import { canAccessPremiumContent } from "@/lib/pricing"
 import { CountryFlag } from "@/components/ui/country-flag"
+import { XLogo } from "@/components/icons/x-logo"
 import { format, parseISO } from "date-fns"
 import { fr } from "date-fns/locale"
 
@@ -60,7 +62,10 @@ const platformConfig: Record<string, { bg: string; icon: React.ReactNode }> = {
   "Instagram": { bg: "bg-gradient-to-tr from-[#833AB4] via-[#E1306C] to-[#F77737]", icon: <Instagram className="h-3.5 w-3.5 text-white" /> },
   "LinkedIn": { bg: "bg-[#0A66C2]", icon: <Linkedin className="h-3.5 w-3.5 text-white" /> },
   "TikTok": { bg: "bg-black", icon: <span className="text-xs font-bold text-white">TT</span> },
-  "Twitter/X": { bg: "bg-black", icon: <span className="text-xs font-bold text-white">X</span> },
+  "Twitter/X": { bg: "bg-black", icon: <XLogo className="h-3.5 w-3.5 text-white" /> },
+  "X": { bg: "bg-black", icon: <XLogo className="h-3.5 w-3.5 text-white" /> },
+  "Twitter": { bg: "bg-black", icon: <XLogo className="h-3.5 w-3.5 text-white" /> },
+  "X (Twitter)": { bg: "bg-black", icon: <XLogo className="h-3.5 w-3.5 text-white" /> },
   "YouTube": { bg: "bg-[#FF0000]", icon: <Youtube className="h-3.5 w-3.5 text-white" /> },
   "Outdoor": { bg: "bg-[#0A1F44]", icon: <span className="text-xs font-bold text-white">OOH</span> },
 }
@@ -95,9 +100,11 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
       window.location.href = '/login?redirect=/dashboard'
       return
     }
+    const wasFavorite = isFavorite(content.id)
     setIsToggling(true)
-    await toggleFavorite(content.id)
+    const ok = await toggleFavorite(content.id)
     setIsToggling(false)
+    if (ok && !wasFavorite) toastCampaignShortcut("Ajouté aux favoris")
   }
 
   const handleClick = async (e: React.MouseEvent) => {

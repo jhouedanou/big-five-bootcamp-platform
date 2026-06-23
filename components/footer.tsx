@@ -18,7 +18,7 @@ export function Footer() {
       .select("value")
       .eq("key", "logo_url")
       .single()
-      .then(({ data }) => {
+      .then(({ data }: { data: { value: string } | null }) => {
         if (data?.value) setLogoUrl(data.value)
       })
   }, [])

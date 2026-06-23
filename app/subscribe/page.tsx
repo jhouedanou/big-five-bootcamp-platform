@@ -3,47 +3,16 @@
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { ArrowLeft, Check, Lock, Sparkles, Loader2, Calendar, Star, Zap, Phone, Tag, X } from "lucide-react"
+import { ArrowLeft, Check, Lock, Sparkles, Loader2, Calendar, Tag, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { useSupabaseAuth } from "@/hooks/use-supabase-auth"
 import { LegalModal } from "@/components/legal-modal"
 import { SubscribeCampaignsCarousel } from "@/components/subscribe-campaigns-carousel"
-import { getOperatorLogo } from "@/lib/operator-logos"
-import {
-  PAWAPAY_COUNTRIES,
-  detectProviderFromPhone,
-  type PawaPayCountryCode,
-} from "@/lib/pawapay-providers"
-import { usePawaPayProviders } from "@/hooks/use-pawapay-providers"
+import { CountryPhoneField, phoneDigitsValid, phoneErrorMessage } from "@/components/payment/country-phone-field"
+import { fbTrack, newFbEventId } from "@/lib/fb-pixel"
 
 type PlanChoice = "basic" | "pro" | "discovery"
-
-/** Configuration par pays : indicatif, longueur locale attendue, masque d'affichage. */
-type CountryCode = PawaPayCountryCode
-
-const COUNTRIES = PAWAPAY_COUNTRIES
-
-/** Formate des chiffres bruts selon un masque (groupes séparés par espaces). */
-function formatPhoneMask(digits: string, mask: number[]): string {
-  const clean = digits.replace(/\D/g, '')
-  const parts: string[] = []
-  let cursor = 0
-  for (const groupSize of mask) {
-    if (cursor >= clean.length) break
-    parts.push(clean.slice(cursor, cursor + groupSize))
-    cursor += groupSize
-  }
-  return parts.join(' ')
-}
 
 const PLANS = {
   discovery: {
@@ -140,10 +109,8 @@ export default function SubscribePage() {
   }, [])
   const [acceptTerms, setAcceptTerms] = useState(false)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [phoneNumber, setPhoneNumber] = useState("")
-  const [country, setCountry] = useState<CountryCode>("CIV")
-  const [provider, setProvider] = useState<string>("ORANGE_CIV")
-  const { providers: pawaPayProviders, isLoading: pawaPayProvidersLoading } = usePawaPayProviders()
+  const [country, setCountry] = useState("CIV")
+  const [phone, setPhone] = useState("")
 
   // Code promo LAVEIYE — BONUS "3 mois Basic offerts", cumulable avec
   // n'importe quel plan (cf. lib/promo-codes.ts).
@@ -157,41 +124,6 @@ export default function SubscribePage() {
     bonusDurationDays: number
     bonusDurationLabel: string
   } | null>(null)
-
-  const countryConfig = COUNTRIES[country]
-  const providersForCountry = pawaPayProviders.filter(p => p.country === country)
-  const maxLocalDigits = countryConfig.localLength
-  const cleanLocal = phoneNumber.replace(/\D/g, '')
-  const isPhoneValid = cleanLocal.length === maxLocalDigits
-  // N'affiche dans le select pays que ceux qui ont au moins un opérateur actif
-  // (côté API PawaPay ou fallback). Évite l'écran "pas d'opérateur" après sélection.
-  const availableCountryCodes = (Object.keys(COUNTRIES) as CountryCode[]).filter((code) =>
-    pawaPayProviders.some((p) => p.country === code),
-  )
-
-  // Si le provider courant n'existe plus pour le pays après chargement de l'API,
-  // on retombe sur le premier provider disponible (évite un POST avec un code invalide).
-  useEffect(() => {
-    if (providersForCountry.length === 0) return
-    if (!providersForCountry.some((p) => p.value === provider)) {
-      setProvider(providersForCountry[0].value)
-    }
-  }, [providersForCountry, provider])
-
-  /** Quand on change de pays, reset l'opérateur et le numéro. */
-  const handleCountryChange = (next: CountryCode) => {
-    setCountry(next)
-    const firstProvider = pawaPayProviders.find(p => p.country === next)
-    if (firstProvider) setProvider(firstProvider.value)
-    setPhoneNumber("")
-  }
-
-  const handlePhoneChange = (raw: string) => {
-    const digits = raw.replace(/\D/g, '').slice(0, maxLocalDigits)
-    setPhoneNumber(formatPhoneMask(digits, countryConfig.mask))
-    const detected = detectProviderFromPhone(digits, country)
-    if (detected) setProvider(detected)
-  }
 
   useEffect(() => {
     if (!loading && !user) {
@@ -352,18 +284,6 @@ export default function SubscribePage() {
       return
     }
 
-    const localDigits = phoneNumber.replace(/\D/g, '')
-    if (localDigits.length !== countryConfig.localLength) {
-      alert(`Le numéro doit comporter ${countryConfig.localLength} chiffres pour ${countryConfig.name}.`)
-      return
-    }
-    if (!provider) {
-      alert("Veuillez choisir votre opérateur Mobile Money.")
-      return
-    }
-    // Format international (sans “+”) : indicatif pays + numéro local
-    const cleanedPhone = `${countryConfig.dialCode}${localDigits}`
-
     // Fix 3 — auto-appliquer si l'utilisateur a tapé un code sans cliquer "Appliquer"
     let resolvedPromoCode = appliedPromo?.code
     if (promoInput.trim() && !appliedPromo) {
@@ -394,7 +314,21 @@ export default function SubscribePage() {
       }
     }
 
+    const phoneDigits = phone.replace(/\D/g, '')
+    if (!phoneDigitsValid(country, phoneDigits)) {
+      alert(phoneErrorMessage(country))
+      return
+    }
+
     setIsProcessing(true)
+
+    // Pixel + CAPI : InitiateCheckout dédoublonné par event_id partagé (LOT F).
+    const fbEventId = newFbEventId()
+    fbTrack(
+      "InitiateCheckout",
+      { value: finalAmount, currency: "XOF", plan: selectedPlan },
+      fbEventId
+    )
 
     try {
       const response = await fetch("/api/payment/subscribe", {
@@ -405,33 +339,30 @@ export default function SubscribePage() {
           userName: userProfile?.name || user.user_metadata?.name,
           plan: selectedPlan,
           billing: isAnnual ? 'annual' : 'monthly',
-          phoneNumber: cleanedPhone,
-          provider,
-          currency: countryConfig.currency,
+          country,
+          phone: phoneDigits,
           promoCode: resolvedPromoCode,
           rawPromoInput: promoInput.trim() || undefined,
+          fbEventId,
         }),
       })
 
       const data = await response.json()
 
       if (!response.ok || !data.success) {
-        const failure = data.failureReason
-          ? `${data.failureReason.failureCode}: ${data.failureReason.failureMessage}`
-          : null
-        const message = [data.error, failure, data.details].filter(Boolean).join(" — ")
+        const message = [data.error, data.details].filter(Boolean).join(" — ")
         throw new Error(message || "Erreur lors de la création du paiement")
       }
 
       sessionStorage.setItem("payment_ref", data.ref_command)
 
-      // Flow Wave : redirection vers authorizationUrl
-      if (data.authorizationUrl || data.redirect_url) {
-        window.location.href = data.authorizationUrl || data.redirect_url
+      // Redirection vers le checkout Chariow
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl
         return
       }
 
-      // Flow PIN : redirection vers la page d'attente qui polle le statut
+      // Fallback (ne devrait pas arriver) : page d'attente
       window.location.href = `/payment/pending?ref_command=${encodeURIComponent(data.ref_command)}`
     } catch (error) {
       console.error("Erreur de paiement:", error)
@@ -797,92 +728,83 @@ export default function SubscribePage() {
           </ul>
         </div>
           </div>
-          {/* === COLONNE DROITE : Carrousel vendeur (visuel + perks dynamiques) === */}
-          <aside className="md:sticky md:top-6 md:self-start">
+          {/* === COLONNE DROITE : Carrousel vendeur + carte de paiement compacte === */}
+          <aside className="md:sticky md:top-6 md:self-start space-y-4">
             <SubscribeCampaignsCarousel plan={selectedPlan} />
+
+            {/* Carte de paiement compacte (inspirée du checkout Moneroo) */}
+            <div className="rounded-2xl border border-[#F5F5F5] bg-white p-5 shadow-sm">
+              <p className="text-xs font-medium text-[#0F0F0F]/50">Total à payer</p>
+              <p className="mt-0.5 text-3xl font-bold text-[#0F0F0F]">
+                {finalAmountFormatted} <span className="text-lg font-semibold text-[#0F0F0F]/60">XOF</span>
+              </p>
+              <p className="mt-1 text-xs text-[#0F0F0F]/50">
+                {plan.name} · {isAnnual ? 'Annuel' : 'Mensuel'}
+                {appliedPromo ? ` · +${appliedPromo.bonusDurationLabel} ${appliedPromo.bonusPlanLabel} offerts` : ''}
+              </p>
+
+              <div className="mt-4 space-y-3">
+                <CountryPhoneField
+                  country={country}
+                  onCountryChange={setCountry}
+                  phone={phone}
+                  onPhoneChange={setPhone}
+                />
+
+                <label htmlFor="terms" className="flex items-start gap-2 text-xs text-[#0F0F0F]/60">
+                  <input
+                    type="checkbox"
+                    id="terms"
+                    checked={acceptTerms}
+                    onChange={(e) => setAcceptTerms(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 rounded border-border"
+                  />
+                  <span>
+                    {"J'accepte les"}{" "}
+                    <LegalModal
+                      defaultTab="cgv"
+                      trigger={
+                        <button type="button" className="text-[#F2B33D] hover:underline">
+                          CGV et la politique de confidentialité
+                        </button>
+                      }
+                    />
+                  </span>
+                </label>
+
+                <Button
+                  onClick={handlePayment}
+                  disabled={!acceptTerms || isProcessing || !phoneDigitsValid(country, phone)}
+                  className="h-11 w-full bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-white font-bold shadow-lg shadow-[#F2B33D]/25"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Redirection...
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="mr-2 h-4 w-4" />
+                      {isDowngradeChoice ? "Programmer" : (isActive ? "Renouveler" : "Payer")}
+                    </>
+                  )}
+                </Button>
+                <p className="text-center text-[10px] text-[#0F0F0F]/40">
+                  Paiement sécurisé · Mobile Money, Wave, carte
+                </p>
+              </div>
+            </div>
           </aside>
         </div>
 
-        {/* Mobile Money — details de paiement PawaPay */}
-        <div className="mt-6 rounded-xl border border-[#F5F5F5] bg-white p-5 space-y-4">
-          <h3 className="text-sm font-semibold text-[#0F0F0F]">
-            Paiement Mobile Money
+        {/* Paiement Chariow — info redirection */}
+        <div className="mt-6 rounded-xl border border-[#F5F5F5] bg-white p-5">
+          <h3 className="text-sm font-semibold text-[#0F0F0F] mb-1.5">
+            Paiement sécurisé
           </h3>
-
-          <div className="space-y-2">
-            <Label htmlFor="pawapay-country">Pays</Label>
-            <Select value={country} onValueChange={(v) => handleCountryChange(v as CountryCode)}>
-              <SelectTrigger id="pawapay-country">
-                <SelectValue placeholder="Choisissez votre pays" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableCountryCodes.map((code) => (
-                  <SelectItem key={code} value={code}>
-                    <span className="mr-2">{COUNTRIES[code].flag}</span>
-                    {COUNTRIES[code].name}
-                    <span className="ml-2 text-xs text-[#0F0F0F]/50">+{COUNTRIES[code].dialCode}</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="pawapay-provider">Opérateur</Label>
-            <Select value={provider} onValueChange={setProvider} disabled={pawaPayProvidersLoading}>
-              <SelectTrigger id="pawapay-provider">
-                <SelectValue placeholder={pawaPayProvidersLoading ? 'Chargement…' : 'Choisissez votre opérateur'} />
-              </SelectTrigger>
-              <SelectContent>
-                {providersForCountry.map((p) => {
-                  const logo = getOperatorLogo(p.value)
-                  return (
-                    <SelectItem key={p.value} value={p.value}>
-                      <span className="flex items-center gap-2">
-                        {logo && (
-                          <img
-                            src={logo.src}
-                            alt={logo.alt}
-                            className="h-5 w-5 rounded-sm object-contain bg-white"
-                          />
-                        )}
-                        {p.label}
-                      </span>
-                    </SelectItem>
-                  )
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="pawapay-phone">Numéro de téléphone</Label>
-            <div className="relative flex items-stretch overflow-hidden rounded-md border border-input bg-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-0">
-              <span className="flex select-none items-center gap-1.5 border-r border-input bg-[#F5F5F5]/60 px-3 text-sm text-[#0F0F0F]/70">
-                <span>{countryConfig.flag}</span>
-                <span className="font-medium">+{countryConfig.dialCode}</span>
-              </span>
-              <div className="relative flex-1">
-                <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="pawapay-phone"
-                  type="tel"
-                  inputMode="numeric"
-                  autoComplete="tel-national"
-                  placeholder={countryConfig.placeholder}
-                  value={phoneNumber}
-                  onChange={(e) => handlePhoneChange(e.target.value)}
-                  className="border-0 pl-9 focus-visible:ring-0 focus-visible:ring-offset-0"
-                  disabled={isProcessing}
-                  aria-invalid={phoneNumber.length > 0 && !isPhoneValid}
-                />
-              </div>
-            </div>
-            <p className="text-xs text-[#0F0F0F]/50">
-              Saisissez votre numéro local ({countryConfig.localLength} chiffres). L’indicatif <strong>+{countryConfig.dialCode}</strong> est ajouté automatiquement.
-              Vous recevrez une notification sur votre téléphone pour confirmer avec votre code PIN.
-            </p>
-          </div>
+          <p className="text-xs text-[#0F0F0F]/60">
+            Vous serez redirigé vers la plateforme sécurisée Chariow pour finaliser votre paiement (carte bancaire, Mobile Money, Wave…). À la fin de la transaction, vous reviendrez automatiquement sur Laveiye.
+          </p>
         </div>
 
         {/* Code promo LAVEIYE */}
@@ -968,52 +890,6 @@ export default function SubscribePage() {
             </div>
           )}
         </div>
-
-        {/* Terms */}
-        <div className="mt-6 flex items-start gap-2">
-          <input
-            type="checkbox"
-            id="terms"
-            checked={acceptTerms}
-            onChange={(e) => setAcceptTerms(e.target.checked)}
-            className="mt-1 h-4 w-4 rounded border-border"
-          />
-          <label htmlFor="terms" className="text-sm text-[#0F0F0F]/60">
-            {"J'accepte les"}{" "}
-            <LegalModal
-              defaultTab="cgv"
-              trigger={
-                <button
-                  type="button"
-                  className="text-[#F2B33D] hover:underline"
-                >
-                  CGV et la politique de confidentialité
-                </button>
-              }
-            />
-          </label>
-        </div>
-
-        {/* CTA */}
-        <Button
-          onClick={handlePayment}
-          disabled={!acceptTerms || isProcessing}
-          className="mt-6 h-12 w-full shadow-lg shadow-[#F2B33D]/25 bg-[#F2B33D] hover:bg-[#F2B33D]/90 text-white font-bold text-base"
-        >
-          {isProcessing ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Redirection en cours...
-            </>
-          ) : (
-            <>
-              <Lock className="mr-2 h-4 w-4" />
-              {isDowngradeChoice
-                ? "Programmer le changement"
-                : (isActive ? "Renouveler" : "Payer")}{" "}— {finalAmountFormatted} XOF
-            </>
-          )}
-        </Button>
 
         {/* Recap */}
         <div className="mt-6 rounded-xl border border-[#F5F5F5] bg-white p-4">

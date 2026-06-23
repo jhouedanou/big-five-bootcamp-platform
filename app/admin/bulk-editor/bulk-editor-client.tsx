@@ -33,19 +33,14 @@ import {
   XCircle,
   Link2,
   Download,
-  ShieldCheck,
 } from "lucide-react"
 import { toast } from "sonner"
-import { useRouter } from "next/navigation"
-import { isGoogleDriveHostedUrl } from "@/lib/utils"
 import { useBulkUpdate } from "@/hooks/use-bulk-update"
 import { useMediaValidation } from "@/hooks/use-media-validation"
 import { InlineImageEditor } from "./inline-image-editor"
 import {
-  bulkSecureDriveImages,
   type BulkCampaign,
   type BulkEditableField,
-  type SecureDriveSummary,
 } from "@/app/actions/bulk-editor"
 
 const STATUS_OPTIONS = ["Brouillon", "En attente", "Publié"]
@@ -73,52 +68,8 @@ export function BulkEditorClient({ campaigns }: { campaigns: BulkCampaign[] }) {
   // ── Hooks métier ─────────────────────────────────────────────────────────
   const update = useBulkUpdate()
   const { validate, isValidating } = useMediaValidation()
-  const router = useRouter()
 
   const [diffOpen, setDiffOpen] = useState(false)
-
-  // ── Re-hébergement en masse des images Drive ──────────────────────────────
-  const driveCount = useMemo(
-    () => campaigns.filter((c) => c.thumbnail && isGoogleDriveHostedUrl(c.thumbnail)).length,
-    [campaigns],
-  )
-  const [securing, setSecuring] = useState(false)
-  const [secureResult, setSecureResult] = useState<SecureDriveSummary | null>(null)
-  const [secureOpen, setSecureOpen] = useState(false)
-
-  const handleSecureAll = async () => {
-    setSecuring(true)
-    try {
-      const res = await bulkSecureDriveImages()
-      setSecureResult(res)
-      setSecureOpen(true)
-      if (res.success) {
-        toast.success(`${res.secured ?? 0} image(s) sécurisée(s), ${res.restricted ?? 0} restreinte(s)`)
-        router.refresh() // recharge les thumbnails re-hébergées
-      } else {
-        toast.error(res.error || "Échec")
-      }
-    } finally {
-      setSecuring(false)
-    }
-  }
-
-  const exportSecureCsv = () => {
-    const items = (secureResult?.items || []).filter((i) => i.status !== "secured")
-    if (items.length === 0) return
-    const rows = [
-      ["id", "slug", "title", "status", "reason", "oldUrl"],
-      ...items.map((i) => [i.id, i.slug ?? "", i.title ?? "", i.status, i.reason ?? "", i.oldUrl]),
-    ]
-    const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n")
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "drive-secure-report.csv"
-    a.click()
-    URL.revokeObjectURL(url)
-  }
 
   const brands = useMemo(() => {
     const set = new Set<string>()
@@ -245,26 +196,6 @@ export function BulkEditorClient({ campaigns }: { campaigns: BulkCampaign[] }) {
 
   return (
     <div className="space-y-5">
-      {/* ── Bandeau images Drive ── */}
-      {driveCount > 0 && (
-        <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm dark:border-amber-800 dark:bg-amber-950">
-          <ShieldCheck className="h-5 w-5 text-amber-600 shrink-0" />
-          <span className="text-amber-800 dark:text-amber-200">
-            <strong>{driveCount}</strong> image(s) hébergée(s) sur Google Drive (cassées pour les
-            utilisateurs). Re-hébergez-les sur Supabase en une passe.
-          </span>
-          <Button
-            size="sm"
-            className="ml-auto bg-amber-600 hover:bg-amber-700 text-white"
-            onClick={handleSecureAll}
-            disabled={securing}
-          >
-            {securing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
-            Sécuriser toutes les images Drive
-          </Button>
-        </div>
-      )}
-
       {/* ── Barre de filtres ── */}
       <div className="flex flex-wrap items-center gap-3">
         <Input
@@ -431,58 +362,6 @@ export function BulkEditorClient({ campaigns }: { campaigns: BulkCampaign[] }) {
               {update.isApplying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Appliquer
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Dialog résultat re-hébergement Drive ── */}
-      <Dialog open={secureOpen} onOpenChange={setSecureOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Re-hébergement des images Drive</DialogTitle>
-            <DialogDescription>
-              {secureResult?.success
-                ? `${secureResult.secured ?? 0} sécurisée(s) · ${secureResult.restricted ?? 0} restreinte(s) · ${secureResult.errors ?? 0} erreur(s) sur ${secureResult.totalDrive ?? 0}`
-                : secureResult?.error}
-            </DialogDescription>
-          </DialogHeader>
-          {secureResult?.items && secureResult.items.some((i) => i.status !== "secured") && (
-            <div className="max-h-72 overflow-auto rounded border text-xs">
-              <table className="w-full">
-                <thead className="sticky top-0 bg-muted">
-                  <tr>
-                    <th className="px-2 py-1 text-left">Campagne</th>
-                    <th className="px-2 py-1 text-left">Statut</th>
-                    <th className="px-2 py-1 text-left">Raison</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {secureResult.items
-                    .filter((i) => i.status !== "secured")
-                    .map((i) => (
-                      <tr key={i.id} className="border-t">
-                        <td className="px-2 py-1">{i.title ?? i.slug ?? i.id}</td>
-                        <td className="px-2 py-1">
-                          {i.status === "restricted" ? (
-                            <span className="text-amber-600">restreint</span>
-                          ) : (
-                            <span className="text-destructive">erreur</span>
-                          )}
-                        </td>
-                        <td className="px-2 py-1 text-muted-foreground">{i.reason}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          <DialogFooter>
-            {secureResult?.items && secureResult.items.some((i) => i.status !== "secured") && (
-              <Button variant="outline" onClick={exportSecureCsv}>
-                <Download className="mr-2 h-4 w-4" /> Rapport CSV
-              </Button>
-            )}
-            <Button onClick={() => setSecureOpen(false)}>Fermer</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

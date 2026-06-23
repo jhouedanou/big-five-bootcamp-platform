@@ -47,6 +47,7 @@ import { FolderPlus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
+import { trackEvent } from "@/lib/analytics";
 
 const SwipeableCarousel = dynamic(() => import("@/components/ui/swipeable-carousel").then(m => m.SwipeableCarousel), { ssr: false });
 
@@ -227,6 +228,14 @@ export default function ContentDetailClient({ id }: { id: string }) {
         try {
           sessionStorage.setItem(trackedKey, Date.now().toString());
         } catch { /* ignore */ }
+
+        // Événement d'activité réelle : consultation campagne (QA T54 —
+        // met à jour last_activity_at + KPI actifs via /api/analytics/track).
+        trackEvent("campaign_viewed", {
+          campaign_id: id,
+          title: content?.title,
+          brand: content?.brand,
+        });
 
         // Bottom sheet : afficher le compteur de consultations restantes à chaque
         // consultation pour les utilisateurs gratuits (auto-fermeture après 4s).
@@ -589,7 +598,12 @@ export default function ContentDetailClient({ id }: { id: string }) {
     try {
       const ok = await toggleFavorite(content.id);
       if (ok) {
-        toast.success(shouldFavorite ? "Campagne sauvegardée" : "Campagne retirée des favoris");
+        if (shouldFavorite) {
+          // Raccourci "Générer une campagne" retiré : générateur non validé par le client.
+          toast.success("Campagne sauvegardée");
+        } else {
+          toast.success("Campagne retirée des favoris");
+        }
       }
     } finally {
       setIsToggling(false);

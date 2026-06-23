@@ -36,17 +36,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    // LOT E : fenêtre = 7 jours GLISSANTS précédant l'envoi, calculée
+    // automatiquement depuis la date d'envoi (envoi lundi → semaine écoulée).
+    // L'ancien calcul ("depuis lundi 00:00") ne couvrait que quelques heures
+    // quand le cron tournait le lundi matin.
     const now = new Date()
-    const lastMonday = new Date(now)
-    lastMonday.setDate(now.getDate() - ((now.getDay() + 6) % 7))
-    lastMonday.setHours(0, 0, 0, 0)
+    const windowStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
 
-    // 1. Récupérer les nouvelles campagnes de la semaine
+    // 1. Récupérer les campagnes ajoutées sur les 7 derniers jours
     const { data: newCampaigns, error: campaignsError } = await (supabaseAdmin as any)
       .from('campaigns')
-      .select('id, title, description, brand, category, country, thumbnail, slug, platforms, format, featured')
+      .select('id, title, description, brand, category, axe, country, thumbnail, slug, platforms, format, featured')
       .eq('status', 'Publié')
-      .gte('created_at', lastMonday.toISOString())
+      .gte('created_at', windowStart.toISOString())
       .order('created_at', { ascending: false })
 
     if (campaignsError) {
@@ -83,23 +85,27 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, message: 'Aucun destinataire', sent: 0 })
     }
 
-    // 3. Analyser les campagnes : industries, pays, marques
+    // 3. Analyser les campagnes de la PÉRIODE uniquement (LOT E) :
+    //    marques, secteurs, pays et axes créatifs recalculés dynamiquement.
     const industries = new Set<string>()
     const countries = new Set<string>()
     const brands = new Set<string>()
+    const axes = new Set<string>()
     const featuredCampaigns = newCampaigns.filter((c: any) => c.featured)
 
     newCampaigns.forEach((c: any) => {
       if (c.category) industries.add(c.category)
       if (c.country) countries.add(c.country)
       if (c.brand) brands.add(c.brand)
+      if (Array.isArray(c.axe)) c.axe.forEach((a: string) => a && axes.add(a))
     })
 
     const industriesList = Array.from(industries)
     const countriesList = Array.from(countries)
+    const axesList = Array.from(axes)
 
     // 4. Construire le HTML éditorialisé
-    const weekLabel = lastMonday.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+    const weekLabel = windowStart.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://laveiye.com'
 
     // Top campagnes à mettre en avant (featured d'abord, puis les plus récentes)
@@ -142,6 +148,11 @@ export async function GET(request: NextRequest) {
     // Tags pays
     const countryTags = countriesList.slice(0, 6).map(c =>
       `<span style="display: inline-block; background: #e0f2fe; color: #0369a1; padding: 4px 12px; border-radius: 50px; font-size: 12px; font-weight: 500; margin: 2px 4px 2px 0;">${c}</span>`
+    ).join('')
+
+    // Tags axes créatifs (période uniquement)
+    const axisTags = axesList.slice(0, 6).map(a =>
+      `<span style="display: inline-block; background: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 50px; font-size: 12px; font-weight: 500; margin: 2px 4px 2px 0;">${a}</span>`
     ).join('')
 
     const emailHtml = `
@@ -203,6 +214,14 @@ export async function GET(request: NextRequest) {
       <div>${countryTags}</div>
     </div>
 
+    ${axesList.length > 0 ? `
+    <!-- Axes créatifs -->
+    <div style="padding: 0 24px 20px;">
+      <h3 style="color: #0F0F0F; font-size: 14px; font-weight: 700; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px;">Axes créatifs</h3>
+      <div>${axisTags}</div>
+    </div>
+    ` : ''}
+
     <!-- Campagne vedette -->
     ${starCampaign ? `
     <div style="padding: 0 24px 20px;">
@@ -255,7 +274,7 @@ export async function GET(request: NextRequest) {
     let sent = 0
     let failed = 0
 
-    if (process.env.GMAIL_PRIVATE_KEY) {
+    if (process.env.GMAIL_PRIVATE_KEY || process.env.RESEND_API_KEY) {
       const fromAddr = process.env.GMAIL_FROM || 'Laveiye <support@laveiye.com>'
       for (const user of users) {
         const result = await sendMail({
@@ -272,7 +291,7 @@ export async function GET(request: NextRequest) {
         }
       }
     } else {
-      console.log(`[SIMULATION] Envoi de ${users.length} emails (GMAIL_PRIVATE_KEY non configuré)`)
+      console.log(`[SIMULATION] Envoi de ${users.length} emails (ni GMAIL_PRIVATE_KEY ni RESEND_API_KEY configurés)`)
       sent = users.length
     }
 
@@ -287,7 +306,7 @@ export async function GET(request: NextRequest) {
       recipients: users.length,
       sent,
       failed,
-      week_start: lastMonday.toISOString(),
+      window_start: windowStart.toISOString(),
     })
   } catch (error: any) {
     console.error('Erreur cron weekly-email:', error)

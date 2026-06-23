@@ -6,8 +6,6 @@ import { Wallet } from 'lucide-react'
 import { getSupabaseAdmin } from '@/lib/supabase-server'
 import { BalanceCards, type PaymentTotals } from './balance-cards'
 import { PaymentsTable, type PaymentRow, type PayoutRow } from './payments-table'
-import { LiveBalances } from './live-balances'
-import { LiveDeposits } from './live-deposits'
 import { MonthFilter } from './month-filter'
 
 export const dynamic = 'force-dynamic'
@@ -135,8 +133,8 @@ export default async function AdminPaymentsPage({
             </h1>
           </div>
           <p className="text-muted-foreground mt-2">
-            Historique des paiements PawaPay et solde disponible (calculé localement,
-            sans appel API externe). Onboarding/sandbox exclus — uniquement
+            Historique des paiements Chariow / Moneroo et solde disponible (calculé
+            localement, sans appel API externe). Onboarding/sandbox exclus — uniquement
             transactions depuis le{' '}
             {new Date(LIVE_SINCE).toLocaleDateString('fr-FR', {
               day: '2-digit',
@@ -149,13 +147,9 @@ export default async function AdminPaymentsPage({
         <MonthFilter liveSince={LIVE_SINCE} selected={selectedMonth} />
       </div>
 
-      <LiveBalances />
-
-      <LiveDeposits />
-
       <div>
         <p className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 font-medium mb-2">
-          Vue interne (depuis la base, hors frais PawaPay)
+          Vue interne (depuis la base, hors frais Chariow / Moneroo)
           {selectedMonth && ` — ${selectedMonth}`}
         </p>
         <BalanceCards totals={totals} />

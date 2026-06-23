@@ -1,56 +1,45 @@
 /**
  * Route PUBLIQUE : POST /api/payment/brand-request/[id]/pay
  *
- * Initie un paiement Mobile Money (PawaPay) pour le devis d'une demande de
- * suivi de marque, **sans authentification**. Cette route est appelée depuis
- * la page publique /pay/brand-request/[id], dont le lien est envoyé par
- * l'admin au client.
+ * Initie un paiement Chariow pour le devis d'une demande de suivi de marque,
+ * **sans authentification**. Cette route est appelée depuis la page publique
+ * /pay/brand-request/[id], dont le lien est envoyé par l'admin au client.
  *
  * Sécurité : la connaissance de l'UUID `brand_requests.id` (non énumérable)
  * sert de jeton d'accès. La route refuse :
  *  - les demandes déjà payées (paid_at non null) ou inactives (cancelled/rejected)
  *  - les demandes sans devis_amount > 0
  *
- * Body :
- * {
- *   phoneNumber: string  // MSISDN complet, ex. "22507xxxxxxxx"
- *   provider: string     // ex. "ORANGE_CIV", "MTN_MOMO_BEN", "FREE_SEN" (Wave non supporté par PawaPay)
- * }
+ * Body : {} (rien — Chariow gère la collecte des infos client)
  *
  * Effets :
  *  - Insère un paiement dans `payments` avec metadata.type = 'brand_request'
  *  - Bascule la demande en statut `in_payment`
- *  - Le callback PawaPay (deposit) finalisera : `completed` + `paid_at`.
+ *  - Le webhook Chariow finalisera : `completed` + `paid_at`.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { randomUUID } from 'crypto'
 import { supabaseAdmin } from '@/lib/supabase'
-import { initiateDeposit, PUBLIC_BASE_URL } from '@/lib/pawapay'
+import { buildCheckoutUrl, generateRefCommand, CHARIOW_CONFIG } from '@/lib/chariow'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
+function resolveBaseUrl(): string {
+  return (
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.NODE_ENV === 'production' ? 'https://laveiye.com' : 'http://localhost:3000')
+  )
+}
+
 export async function POST(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params
     if (!id) return NextResponse.json({ error: 'ID requis' }, { status: 400 })
-
-    const body = await request.json().catch(() => ({}))
-    const { phoneNumber, provider } = body as {
-      phoneNumber?: string
-      provider?: string
-    }
-
-    if (!phoneNumber || !provider) {
-      return NextResponse.json(
-        { error: 'Champs requis manquants : phoneNumber, provider' },
-        { status: 400 }
-      )
-    }
 
     const { data: req, error: reqError } = await (supabaseAdmin as any)
       .from('brand_requests')
@@ -64,7 +53,6 @@ export async function POST(
       return NextResponse.json({ error: 'Demande introuvable' }, { status: 404 })
     }
 
-    // Refus : déjà payée
     if (req.paid_at) {
       return NextResponse.json(
         { error: 'Cette demande est déjà payée.' },
@@ -72,7 +60,6 @@ export async function POST(
       )
     }
 
-    // Refus : statuts terminaux
     if (req.status === 'cancelled' || req.status === 'rejected') {
       return NextResponse.json(
         { error: 'Cette demande n\'accepte plus de paiement.' },
@@ -87,26 +74,25 @@ export async function POST(
       )
     }
 
-    const depositId = randomUUID()
-    const cleanedPhone = String(phoneNumber).replace(/\D/g, '')
-    const amountStr = String(Math.round(Number(req.devis_amount)))
+    const ref_command = generateRefCommand('BRAND')
+    const amount = Math.round(Number(req.devis_amount))
     const currency = req.devis_currency || 'XOF'
 
     const { error: insertError } = await (supabaseAdmin as any)
       .from('payments')
       .insert({
-        ref_command: depositId,
-        amount: Number(amountStr),
+        ref_command,
+        amount,
         currency,
         status: 'pending',
-        payment_method: 'pawapay',
-        provider,
-        client_phone: cleanedPhone,
+        payment_method: 'chariow',
         metadata: {
           type: 'brand_request',
           brand_request_id: req.id,
           brand_name: req.brand_name,
           user_id: req.user_id,
+          ref_command,
+          gateway: 'chariow',
         },
         created_at: new Date().toISOString(),
       })
@@ -123,52 +109,36 @@ export async function POST(
       })
       .eq('id', req.id)
 
-    const customerMessage = `Devis ${String(req.brand_name || '').slice(0, 14)}`.slice(0, 22)
-    const response = await initiateDeposit({
-      depositId,
-      amount: amountStr,
-      currency,
-      payer: {
-        type: 'MMO',
-        accountDetails: {
-          phoneNumber: cleanedPhone,
-          provider,
-        },
-      },
-      customerMessage,
-      successfulUrl: `${PUBLIC_BASE_URL}/payment/success?ref=${depositId}`,
-      failedUrl: `${PUBLIC_BASE_URL}/payment/cancel?ref=${depositId}`,
-    })
-
-    if (response.status === 'REJECTED') {
-      await (supabaseAdmin as any)
-        .from('payments')
-        .update({
-          status: 'rejected',
-          failure_code: response.failureReason?.failureCode,
-          failure_message: response.failureReason?.failureMessage,
-        })
-        .eq('ref_command', depositId)
-
+    if (!CHARIOW_CONFIG.API_KEY || !CHARIOW_CONFIG.PRODUCT_ID) {
       return NextResponse.json(
-        {
-          error:
-            response.failureReason?.failureMessage ||
-            'Paiement refusé par l\'opérateur',
-          status: 'REJECTED',
-          ref_command: depositId,
-        },
-        { status: 400 }
+        { error: 'Chariow non configuré (API_KEY/PRODUCT_ID manquants).' },
+        { status: 500 }
+      )
+    }
+
+    const baseUrl = resolveBaseUrl()
+    let checkoutUrl: string
+    try {
+      checkoutUrl = buildCheckoutUrl({
+        refCommand: ref_command,
+        // Mobile money confirme de façon asynchrone : on passe par /payment/pending
+        // (poll backend) au lieu de /payment/success direct, pour éviter une
+        // redirection vers le succès avant confirmation réelle du paiement.
+        successUrl: `${baseUrl}/payment/pending?ref_command=${encodeURIComponent(ref_command)}`,
+        cancelUrl: `${baseUrl}/payment/failed?ref_command=${encodeURIComponent(ref_command)}`,
+      })
+    } catch (e: any) {
+      console.error('[brand-request/:id/pay] buildCheckoutUrl error:', e)
+      return NextResponse.json(
+        { error: 'Impossible de construire l\'URL Chariow', details: e?.message },
+        { status: 500 }
       )
     }
 
     return NextResponse.json({
       success: true,
-      ref_command: depositId,
-      depositId,
-      status: response.status,
-      nextStep: response.nextStep,
-      authorizationUrl: (response as any).authorizationUrl,
+      ref_command,
+      checkoutUrl,
     })
   } catch (error: any) {
     console.error('[brand-request/:id/pay] error', error)

@@ -6,6 +6,7 @@ import { useTheme } from "next-themes"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { DARK_MODE_ENABLED } from "@/lib/theme-config"
 
 export function ThemeToggle({ className }: { className?: string }) {
   const [mounted, setMounted] = useState(false)
@@ -14,6 +15,9 @@ export function ThemeToggle({ className }: { className?: string }) {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // LOT D : mode sombre désactivé → le toggle est masqué partout.
+  if (!DARK_MODE_ENABLED) return null
 
   const isDark = mounted && resolvedTheme === "dark"
 

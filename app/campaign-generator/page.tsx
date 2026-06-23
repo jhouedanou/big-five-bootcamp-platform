@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
@@ -1092,5 +1093,13 @@ function CampaignGeneratorContent() {
 }
 
 export default function CampaignGeneratorPage() {
-  return <CampaignGeneratorContent />
+  // Générateur de campagnes masqué : fonctionnalité non validée par le client.
+  // La page redirige vers le tableau de bord ; aucun accès direct par URL.
+  // Pour réactiver : remettre `return <CampaignGeneratorContent />` et
+  // SHOW_CAMPAIGN_GENERATOR = true dans dashboard-navbar.
+  const router = useRouter()
+  useEffect(() => {
+    router.replace("/dashboard")
+  }, [router])
+  return null
 }

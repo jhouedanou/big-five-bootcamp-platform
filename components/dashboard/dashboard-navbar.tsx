@@ -20,6 +20,10 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { ThemeToggle } from "@/components/theme-toggle"
 
+// Générateur de campagnes masqué : fonctionnalité non validée par le client.
+// Repasser à `true` pour réafficher l'entrée de navigation une fois validée.
+const SHOW_CAMPAIGN_GENERATOR = false
+
 export function DashboardNavbar({
   searchQuery: externalSearchQuery,
   onSearchChange,
@@ -277,7 +281,7 @@ export function DashboardNavbar({
                 Collections
               </Link>
             )}
-            {isPremium && (
+            {SHOW_CAMPAIGN_GENERATOR && isPremium && (
               <Link
                 href="/campaign-generator"
                 className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground flex items-center gap-1"
@@ -781,7 +785,7 @@ export function DashboardNavbar({
                 Collections
               </Link>
             )}
-            {isPremium && (
+            {SHOW_CAMPAIGN_GENERATOR && isPremium && (
               <Link
                 href="/campaign-generator"
                 className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground flex items-center gap-1.5"

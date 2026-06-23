@@ -31,11 +31,26 @@ function getSupabase() {
   return _supabase;
 }
 
-/** Mappe un statut Chariow vers notre statut interne. */
-function mapChariowStatus(status: string | undefined): 'completed' | 'failed' | 'pending' {
+/**
+ * Mappe un statut Chariow vers notre statut interne.
+ * `abandoned` (client a quitté le checkout) est distingué de `failed`
+ * (paiement refusé) → état `canceled`, message UI différent.
+ */
+function mapChariowStatus(
+  status: string | undefined
+): 'completed' | 'failed' | 'canceled' | 'pending' {
   const s = String(status || '').toLowerCase();
   if (s === 'paid' || s === 'completed' || s === 'successful') return 'completed';
-  if (s === 'failed' || s === 'canceled' || s === 'cancelled' || s === 'rejected') return 'failed';
+  if (s === 'abandoned') return 'canceled';
+  if (
+    s === 'failed' ||
+    s === 'canceled' ||
+    s === 'cancelled' ||
+    s === 'rejected' ||
+    s === 'expired' ||
+    s === 'refunded'
+  )
+    return 'failed';
   return 'pending';
 }
 
@@ -91,6 +106,31 @@ export async function POST(
           status: paymentData.status,
           amount: paymentData.final_amount || paymentData.amount,
           completed_at: paymentData.completed_at,
+        },
+      });
+    }
+
+    // Contexte de paiement pour orienter le bouton "Réessayer" côté navigateur
+    // (un devis brand_request doit revenir sur sa page de paiement, pas /subscribe).
+    const paymentType = paymentData.metadata?.type as string | undefined;
+    const brandRequestId = paymentData.metadata?.brand_request_id as string | undefined;
+
+    // Statut terminal négatif déjà posé en base (par le webhook : échec / abandon).
+    // Inutile de re-poller Chariow : on renvoie l'état final pour que la page
+    // d'attente cesse de tourner et affiche le bon message.
+    const terminalNegative = ['failed', 'rejected', 'canceled', 'refunded'];
+    if (terminalNegative.includes(paymentData.status)) {
+      return NextResponse.json({
+        success: false,
+        message: `Payment ${paymentData.status}`,
+        payment: {
+          ref_command: paymentData.ref_command,
+          status: paymentData.status === 'rejected' ? 'rejected' : paymentData.status,
+          type: paymentType,
+          brandRequestId,
+          failureReason: paymentData.failure_message
+            ? { failureMessage: paymentData.failure_message }
+            : undefined,
         },
       });
     }
@@ -173,20 +213,31 @@ export async function POST(
       });
     }
 
-    // 4. Si failed : mettre à jour la base
-    if (mappedStatus === 'failed') {
+    // 4. Si failed / canceled (abandon) : mettre à jour la base et renvoyer
+    // l'état terminal pour stopper le poll côté navigateur.
+    if (mappedStatus === 'failed' || mappedStatus === 'canceled') {
       await supabase
         .from('payments')
-        .update({ status: 'failed' } as any)
+        .update({
+          status: mappedStatus,
+          failure_message:
+            mappedStatus === 'canceled' ? 'Paiement abandonné' : 'Paiement échoué',
+        } as any)
         .eq('id', paymentData.id);
 
       return NextResponse.json({
         success: false,
-        message: 'Payment failed',
+        message: mappedStatus === 'canceled' ? 'Payment abandoned' : 'Payment failed',
         payment: {
           ref_command: paymentData.ref_command,
           status: mappedStatus,
+          type: paymentType,
+          brandRequestId,
           chariow_status: verifiedData?.status,
+          failureReason: {
+            failureMessage:
+              mappedStatus === 'canceled' ? 'Paiement abandonné' : 'Paiement échoué',
+          },
         },
       });
     }
@@ -198,6 +249,8 @@ export async function POST(
       payment: {
         ref_command: paymentData.ref_command,
         status: paymentData.status,
+        type: paymentType,
+        brandRequestId,
         chariow_status: verifiedData?.status,
       },
     });

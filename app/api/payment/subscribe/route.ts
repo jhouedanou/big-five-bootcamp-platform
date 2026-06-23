@@ -431,7 +431,13 @@ export async function POST(request: NextRequest) {
         firstName,
         lastName,
         phone: { number: phoneDigits, country_code: countryIso },
-        redirectUrl: `${baseUrl}/payment/success?ref_command=${encodeURIComponent(ref_command)}`,
+        // Mobile money (Orange/MTN) confirme le paiement de façon asynchrone via
+        // USSD sur le téléphone. Chariow redirige le navigateur dès la sortie du
+        // checkout, souvent AVANT la confirmation réelle → "redirection indue".
+        // On renvoie donc vers /payment/pending, qui poll /api/payment/check
+        // (re-vérifié côté serveur via getSale + webhook) et ne bascule sur
+        // /payment/success qu'une fois le statut réellement `completed`.
+        redirectUrl: `${baseUrl}/payment/pending?ref_command=${encodeURIComponent(ref_command)}`,
         customMetadata: { ref_command },
         paymentCurrency: currency,
       });

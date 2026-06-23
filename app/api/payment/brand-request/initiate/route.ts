@@ -145,7 +145,10 @@ export async function POST(request: NextRequest) {
       checkoutUrl = buildCheckoutUrl({
         refCommand: ref_command,
         email: user.email || undefined,
-        successUrl: `${baseUrl}/payment/success?ref_command=${encodeURIComponent(ref_command)}`,
+        // Mobile money confirme de façon asynchrone : on passe par /payment/pending
+        // (poll backend) au lieu de /payment/success direct, pour éviter une
+        // redirection vers le succès avant confirmation réelle du paiement.
+        successUrl: `${baseUrl}/payment/pending?ref_command=${encodeURIComponent(ref_command)}`,
         cancelUrl: `${baseUrl}/payment/failed?ref_command=${encodeURIComponent(ref_command)}`,
       })
     } catch (e: any) {

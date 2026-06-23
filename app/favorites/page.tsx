@@ -260,12 +260,8 @@ function FavoritesPageContent() {
           }
           return c
         }))
-        toast.success(`Ajouté à la collection « ${colName} »`, {
-          action: {
-            label: "Générer une campagne",
-            onClick: () => { window.location.href = "/campaign-generator" },
-          },
-        })
+        // Raccourci "Générer une campagne" retiré : générateur non validé par le client.
+        toast.success(`Ajouté à la collection « ${colName} »`)
       } else if (res.status === 409) {
         toast.info(`Déjà dans « ${colName} »`)
       } else {

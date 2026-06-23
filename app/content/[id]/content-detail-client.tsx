@@ -599,14 +599,8 @@ export default function ContentDetailClient({ id }: { id: string }) {
       const ok = await toggleFavorite(content.id);
       if (ok) {
         if (shouldFavorite) {
-          toast.success("Campagne sauvegardée", {
-            action: {
-              label: "Générer une campagne",
-              onClick: () => {
-                window.location.href = "/campaign-generator";
-              },
-            },
-          });
+          // Raccourci "Générer une campagne" retiré : générateur non validé par le client.
+          toast.success("Campagne sauvegardée");
         } else {
           toast.success("Campagne retirée des favoris");
         }

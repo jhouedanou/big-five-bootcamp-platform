@@ -91,7 +91,87 @@ export async function POST(request: NextRequest) {
       return new NextResponse('OK', { status: 200 });
     }
 
-    // 2. Re-vérification côté API Chariow (jamais confiance au body seul)
+    // 2. Issue NÉGATIVE annoncée par l'événement Pulse.
+    // Chariow envoie `abandoned.sale` (client a quitté le checkout) et
+    // `failed.sale` (paiement refusé). On marque le paiement terminal pour que le
+    // navigateur (page /payment/pending qui poll) cesse d'attendre.
+    //
+    // Garde anti-falsification / anti-course : si on connaît un saleId, on
+    // demande le vrai statut à Chariow AVANT de poser un état négatif. La
+    // signature webhook peut être désactivée (secret absent), donc un POST forgé
+    // — ou un événement en retard — ne doit JAMAIS annuler un paiement
+    // réellement payé ou encore en cours. Sans saleId (abandon sans vente
+    // créée), on fait confiance à l'événement.
+    const pulseEvent = String(payload.event || payload.type || '').toLowerCase();
+    if (/abandon/.test(pulseEvent) || /fail/.test(pulseEvent)) {
+      const isAbandoned = /abandon/.test(pulseEvent);
+      const negStatus = isAbandoned ? 'canceled' : 'failed';
+
+      const negVerifyId = saleId || payment.provider_transaction_id;
+      if (negVerifyId) {
+        try {
+          const verified = await getSale(negVerifyId);
+          const vs = String(verified?.status || '').toLowerCase();
+          if (
+            vs === 'paid' ||
+            vs === 'completed' ||
+            vs === 'successful' ||
+            vs === 'pending' ||
+            vs === ''
+          ) {
+            console.log(
+              `[chariow/webhook] event négatif ${pulseEvent} ignoré pour ${payment.ref_command} (statut réel: ${vs || 'inconnu'})`
+            );
+            return new NextResponse('OK', { status: 200 });
+          }
+        } catch (e) {
+          console.error(
+            '[chariow/webhook] getSale (negatif) échec, on applique l\'événement:',
+            e
+          );
+        }
+      }
+
+      const { error: negError } = await (supabaseAdmin as any)
+        .from('payments')
+        .update({
+          status: negStatus,
+          provider_transaction_id: saleId || payment.provider_transaction_id,
+          failure_code: payload?.failure_code || payload?.error_code || null,
+          failure_message:
+            payload?.failure_message ||
+            payload?.message ||
+            (isAbandoned ? 'Paiement abandonné' : 'Paiement échoué'),
+          ipn_data: { payload } as any,
+        })
+        .eq('id', payment.id);
+      if (negError) {
+        console.error('[chariow/webhook] update payment (negatif) error:', negError);
+      }
+
+      // Pour un devis (brand_request), le statut avait été basculé sur
+      // `in_payment` à l'initiation. Après abandon/échec, on le ramène à
+      // `quote_accepted` pour qu'il ne reste pas coincé « en paiement ».
+      const meta = (payment.metadata || {}) as any;
+      if (meta.type === 'brand_request' && meta.brand_request_id) {
+        const { error: brError } = await (supabaseAdmin as any)
+          .from('brand_requests')
+          .update({ status: 'quote_accepted' })
+          .eq('id', meta.brand_request_id)
+          .eq('status', 'in_payment');
+        if (brError) {
+          console.error('[chariow/webhook] reset brand_request status error:', brError);
+        }
+      }
+
+      console.log(
+        `[chariow/webhook] Paiement ${payment.ref_command} → ${negStatus} (event=${pulseEvent})`
+      );
+      return new NextResponse('OK', { status: 200 });
+    }
+
+    // 3. Vente réussie (ou event absent = legacy) :
+    // re-vérification côté API Chariow (jamais confiance au body seul).
     let verifiedStatus: 'completed' | 'failed' | 'pending' = 'pending';
     let verifiedData: any = null;
     if (saleId) {

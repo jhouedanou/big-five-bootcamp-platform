@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button"
 const MAX_POLL_MS = 5 * 60 * 1000 // 5 minutes
 const POLL_INTERVAL_MS = 4000
 
-type Status = "pending" | "completed" | "failed" | "rejected" | "duplicate"
+type Status = "pending" | "completed" | "failed" | "rejected" | "canceled" | "timeout"
 
 function PaymentPendingInner() {
   const router = useRouter()
@@ -27,12 +27,25 @@ function PaymentPendingInner() {
   const [gatewayStatus, setGatewayStatus] = useState<string | undefined>()
   const [failureMessage, setFailureMessage] = useState<string | undefined>()
   const [authUrl, setAuthUrl] = useState<string | undefined>()
+  const [paymentType, setPaymentType] = useState<string | undefined>()
+  const [brandRequestId, setBrandRequestId] = useState<string | undefined>()
   const [elapsed, setElapsed] = useState(0)
+  // Incrémenté par "Vérifier à nouveau" pour relancer le cycle de polling.
+  const [pollNonce, setPollNonce] = useState(0)
   const startedAt = useRef(Date.now())
+
+  // Cible du bouton "Réessayer" : un paiement de devis (brand_request) doit
+  // revenir sur sa page de paiement, pas sur la page d'abonnement.
+  const retryHref =
+    paymentType === "brand_request" && brandRequestId
+      ? `/pay/brand-request/${brandRequestId}`
+      : "/subscribe"
 
   useEffect(() => {
     if (!refCommand) return
     let cancelled = false
+    // Réinitialise la fenêtre à chaque (re)lancement du cycle de polling.
+    startedAt.current = Date.now()
 
     async function poll() {
       try {
@@ -52,12 +65,15 @@ function PaymentPendingInner() {
         if (data?.payment?.failureReason?.failureMessage) {
           setFailureMessage(data.payment.failureReason.failureMessage)
         }
+        if (data?.payment?.type) setPaymentType(data.payment.type)
+        if (data?.payment?.brandRequestId) setBrandRequestId(data.payment.brandRequestId)
 
         if (s === "completed") {
           setTimeout(() => router.push(`/payment/success?ref_command=${encodeURIComponent(refCommand)}`), 1200)
           return
         }
-        if (s === "failed" || s === "rejected") {
+        // États terminaux négatifs : on arrête de poller.
+        if (s === "failed" || s === "rejected" || s === "canceled") {
           return
         }
       } catch (err) {
@@ -67,6 +83,11 @@ function PaymentPendingInner() {
       if (Date.now() - startedAt.current < MAX_POLL_MS && !cancelled) {
         setElapsed(Date.now() - startedAt.current)
         setTimeout(poll, POLL_INTERVAL_MS)
+      } else if (!cancelled) {
+        // Fenêtre de 5 min écoulée sans statut final : on sort du spinner et on
+        // affiche un écran terminal "non confirmé" (le webhook peut encore
+        // arriver et activer l'accès plus tard).
+        setStatus("timeout")
       }
     }
 
@@ -74,7 +95,7 @@ function PaymentPendingInner() {
     return () => {
       cancelled = true
     }
-  }, [refCommand, router])
+  }, [refCommand, router, pollNonce])
 
   if (!refCommand) {
     return (
@@ -146,23 +167,67 @@ function PaymentPendingInner() {
           </>
         )}
 
-        {(status === "failed" || status === "rejected") && (
+        {(status === "failed" || status === "rejected" || status === "canceled") && (
           <>
-            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-red-50">
-              <XCircle className="h-10 w-10 text-red-600" />
+            <div
+              className={`mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full ${
+                status === "canceled" ? "bg-amber-50" : "bg-red-50"
+              }`}
+            >
+              <XCircle
+                className={`h-10 w-10 ${
+                  status === "canceled" ? "text-amber-600" : "text-red-600"
+                }`}
+              />
             </div>
             <h1 className="text-2xl font-bold text-[#0F0F0F]">
-              Paiement {status === "rejected" ? "rejeté" : "échoué"}
+              {status === "canceled"
+                ? "Paiement abandonné"
+                : status === "rejected"
+                ? "Paiement rejeté"
+                : "Paiement échoué"}
             </h1>
-            {failureMessage && (
-              <p className="mt-3 text-[#0F0F0F]/70">{failureMessage}</p>
-            )}
+            <p className="mt-3 text-[#0F0F0F]/70">
+              {failureMessage ||
+                (status === "canceled"
+                  ? "Vous avez quitté la page de paiement avant de le finaliser."
+                  : "Le paiement n'a pas abouti. Aucun montant n'a été débité.")}
+            </p>
             <div className="mt-6 flex justify-center gap-3">
               <Button asChild variant="outline">
                 <Link href="/dashboard">Retour</Link>
               </Button>
               <Button asChild className="bg-[#F2B33D] hover:bg-[#F2B33D]/90">
-                <Link href="/subscribe">Réessayer</Link>
+                <Link href={retryHref}>Réessayer</Link>
+              </Button>
+            </div>
+          </>
+        )}
+
+        {status === "timeout" && (
+          <>
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#F2B33D]/10">
+              <Smartphone className="h-10 w-10 text-[#F2B33D]" />
+            </div>
+            <h1 className="text-2xl font-bold text-[#0F0F0F]">Paiement non confirmé</h1>
+            <p className="mt-3 text-[#0F0F0F]/70">
+              Nous n'avons pas reçu la confirmation à temps. Si vous avez été
+              débité, votre accès sera activé automatiquement dès réception —
+              rafraîchissez cette page dans quelques minutes. Sinon, réessayez.
+            </p>
+            <div className="mt-6 flex justify-center gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setElapsed(0)
+                  setStatus("pending")
+                  setPollNonce((n) => n + 1)
+                }}
+              >
+                Vérifier à nouveau
+              </Button>
+              <Button asChild className="bg-[#F2B33D] hover:bg-[#F2B33D]/90">
+                <Link href={retryHref}>Réessayer</Link>
               </Button>
             </div>
           </>

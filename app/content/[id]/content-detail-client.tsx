@@ -25,6 +25,7 @@ import {
   Eye,
   Sparkles,
   UserPlus,
+  Wand2,
 } from "lucide-react";
 import { sanitizeHtml } from "@/lib/sanitize-html";
 import { useAuth } from "@/hooks/use-auth";
@@ -975,6 +976,30 @@ export default function ContentDetailClient({ id }: { id: string }) {
                     </Button>
                   )}
                 </div>
+
+                {/* Passerelle vers le studio : le secteur et le canal de la campagne
+                    consultée pré-remplissent le brief. Le visuel n'est pas transmis —
+                    l'utilisateur téléverse sa propre référence, ce qui évite de faire
+                    ressortir une création premium hors de son cadre d'accès. */}
+                {!isFreeUser && (
+                  <div className="mt-3 border-t border-border pt-3">
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="min-h-11 w-full gap-2 whitespace-normal border-[#F2B33D]/40 px-3 py-2 text-center leading-tight hover:border-[#F2B33D] hover:bg-[#FFF6E3] hover:text-[#0F0F0F]"
+                    >
+                      <Link
+                        href={`/studio-pub?${new URLSearchParams({
+                          ...(content.category ? { secteur: content.category } : {}),
+                          ...(content.platforms?.[0] ? { canal: content.platforms[0] } : {}),
+                        }).toString()}`}
+                      >
+                        <Wand2 className="h-4 w-4" />
+                        S&apos;en inspirer dans le studio
+                      </Link>
+                    </Button>
+                  </div>
+                )}
                 <div className="mt-3 flex justify-center border-t border-border pt-3">
                   <ReactionButtons campaignId={content.id} />
                 </div>

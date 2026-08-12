@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { Menu, X, Search, User, LogOut, Settings, CreditCard, Crown, Sparkles, Clock, Users, Heart, MousePointer, Building2, FolderOpen, SlidersHorizontal, ArrowRight, LibraryBig, Flame, Eye, Video } from "lucide-react"
+import { Menu, X, Search, User, LogOut, Settings, CreditCard, Crown, Sparkles, Clock, Users, Heart, MousePointer, Building2, FolderOpen, SlidersHorizontal, ArrowRight, LibraryBig, Flame, Eye, Video, Wand2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
 import { useAuthContext } from "@/components/auth-provider"
@@ -288,6 +288,15 @@ export function DashboardNavbar({
               >
                 <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
                 Générateur
+              </Link>
+            )}
+            {isPremium && (
+              <Link
+                href="/studio-pub"
+                className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground flex items-center gap-1"
+              >
+                <Wand2 className="h-3.5 w-3.5" aria-hidden="true" />
+                Studio
               </Link>
             )}
             <Link
@@ -793,6 +802,16 @@ export function DashboardNavbar({
               >
                 <Sparkles className="h-4 w-4" aria-hidden="true" />
                 Générateur de campagnes
+              </Link>
+            )}
+            {isPremium && (
+              <Link
+                href="/studio-pub"
+                className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground flex items-center gap-1.5"
+                onClick={() => setIsOpen(false)}
+              >
+                <Wand2 className="h-4 w-4" aria-hidden="true" />
+                Studio publicitaire
               </Link>
             )}
             {/* Bouton abonnement mobile */}

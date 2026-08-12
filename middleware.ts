@@ -20,6 +20,7 @@ function shouldRunAuthMiddleware(pathname: string) {
     pathname.startsWith('/library') ||
     pathname.startsWith('/community') ||
     pathname.startsWith('/campaign-generator') ||
+    pathname.startsWith('/studio-pub') ||
     pathname.startsWith('/account-deletion') ||
     pathname.startsWith('/paywall') ||
     pathname.startsWith('/decrypte') ||
@@ -55,6 +56,8 @@ function shouldNoIndexPath(pathname: string) {
     pathname.startsWith('/pay') ||
     pathname.startsWith('/payment') ||
     pathname.startsWith('/paywall') ||
+    pathname.startsWith('/studio-pub') ||
+    pathname.startsWith('/campaign-generator') ||
     pathname.startsWith('/notifications') ||
     pathname.startsWith('/decrypte') ||
     pathname.startsWith('/temps-forts') ||

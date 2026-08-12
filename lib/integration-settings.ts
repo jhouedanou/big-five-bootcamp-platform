@@ -25,6 +25,8 @@ export interface IntegrationField {
   envVar: string
   group: 'tracking' | 'ia'
   placeholder?: string
+  /** Présent = choix fermé, rendu en liste déroulante côté admin. */
+  options?: Array<{ value: string; label: string }>
 }
 
 export const INTEGRATION_FIELDS: IntegrationField[] = [
@@ -71,6 +73,24 @@ export const INTEGRATION_FIELDS: IntegrationField[] = [
     secret: true,
     envVar: 'GROQ_API_KEY',
     group: 'ia',
+  },
+  {
+    key: 'image_model',
+    label: 'Génération d’images — modèle',
+    help:
+      'Moteur utilisé par le studio publicitaire. « Automatique » : FLUX.2 Klein (Cloudflare) si le compte est configuré, sinon le service gratuit intégré ; en cas d’échec, la chaîne passe au moteur suivant. Les modèles Leonardo sont des modèles partenaires facturés à l’usage par Cloudflare (≈ 3 à 7 centimes l’image), Klein ≈ 0,3 centime.',
+    secret: false,
+    envVar: 'STUDIO_IMAGE_MODEL',
+    group: 'ia',
+    options: [
+      { value: '', label: 'Automatique (recommandé)' },
+      { value: 'cf:flux-2-klein-4b', label: 'FLUX.2 Klein 4B — Cloudflare (rapide, économique)' },
+      { value: 'cf:phoenix-1.0', label: 'Leonardo Phoenix — Cloudflare (qualité, texte soigné)' },
+      { value: 'cf:lucid-origin', label: 'Leonardo Lucid Origin — Cloudflare (qualité, direction artistique)' },
+      { value: 'cf:flux-1-schnell', label: 'FLUX.1 Schnell — Cloudflare (économique, carré uniquement)' },
+      { value: 'pollinations', label: 'Service gratuit intégré (communautaire)' },
+      { value: 'gemini', label: 'Google Gemini (nécessite clé + facturation)' },
+    ],
   },
   {
     key: 'cloudflare_account_id',

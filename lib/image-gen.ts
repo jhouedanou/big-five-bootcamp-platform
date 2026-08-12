@@ -56,53 +56,92 @@ export class ImageGenError extends Error {
  * Produit une image à partir du prompt (et éventuellement d'une référence).
  * Lève une ImageGenError porteuse d'un message affichable.
  *
- * Ordre des fournisseurs :
- *  1. Gemini, si une clé est configurée ET que l'appel aboutit — meilleure
- *     qualité, seul à recevoir l'image de référence et à respecter tous les
- *     formats. Nécessite la facturation Google.
- *  2. Cloudflare Workers AI (FLUX schnell), si compte + jeton configurés —
- *     quota quotidien gratuit sans carte bancaire, service sous contrat.
- *     Limite : sortie carrée uniquement, donc pour un format 9:16/4:5/16:9
- *     explicitement demandé, Pollinations passe devant (fidélité au format
- *     avant fiabilité) et Cloudflare reste en dernier recours.
- *  3. Pollinations (FLUX), sans clé ni compte — communautaire, testé en réel
- *     (~1,5 s, prompts longs OK) mais sans garantie de disponibilité.
- * Texte seul pour 2 et 3 : la logique de la référence voyage via l'analyse de
- * l'agent 1, conforme au brief (« ne jamais copier le visuel »).
+ * Le moteur se choisit dans /admin/integrations (champ « modèle »). En
+ * « Automatique » : FLUX.2 Klein via Cloudflare quand le compte est configuré
+ * (moteur principal), repli qualité sur les modèles Leonardo, puis service
+ * gratuit intégré. Un modèle choisi explicitement passe en tête, la chaîne
+ * automatique restant derrière lui en secours. Gemini reste branché dans
+ * l'abstraction pour le jour où une clé facturée existe.
+ * Les modèles hors Gemini ne reçoivent que du texte : la logique de la
+ * référence voyage via l'analyse de l'agent 1, conforme au brief.
  */
+
+/** Modèles Workers AI disponibles pour le studio. */
+const CF_MODELS: Record<
+  string,
+  { path: string; label: string; supportsDimensions: boolean }
+> = {
+  'flux-2-klein-4b': {
+    path: '@cf/black-forest-labs/flux-2-klein-4b',
+    label: 'FLUX.2 Klein 4B',
+    supportsDimensions: false,
+  },
+  'phoenix-1.0': {
+    path: '@cf/leonardo/phoenix-1.0',
+    label: 'Leonardo Phoenix',
+    supportsDimensions: true,
+  },
+  'lucid-origin': {
+    path: '@cf/leonardo/lucid-origin',
+    label: 'Leonardo Lucid Origin',
+    supportsDimensions: true,
+  },
+  'flux-1-schnell': {
+    path: '@cf/black-forest-labs/flux-1-schnell',
+    label: 'FLUX.1 Schnell',
+    supportsDimensions: false,
+  },
+}
+
 export async function generateImage(input: ImageGenInput): Promise<GeneratedImage> {
   const config = await getIntegrationValues([
     'gemini_api_key',
     'cloudflare_account_id',
     'cloudflare_api_token',
+    'image_model',
   ])
 
-  const attempts: Array<() => Promise<GeneratedImage>> = []
+  const cloudflareReady = !!(config.cloudflare_account_id && config.cloudflare_api_token)
 
-  if (config.gemini_api_key) {
-    attempts.push(() => generateWithGemini(input, config.gemini_api_key))
-  }
+  type Attempt = { key: string; run: () => Promise<GeneratedImage> }
+  const cf = (model: string): Attempt => ({
+    key: 'cf:' + model,
+    run: () =>
+      generateWithCloudflare(input, config.cloudflare_account_id, config.cloudflare_api_token, model),
+  })
+  const pollinations: Attempt = { key: 'pollinations', run: () => generateWithPollinations(input) }
+  const gemini: Attempt = { key: 'gemini', run: () => generateWithGemini(input, config.gemini_api_key) }
 
-  const cloudflareReady = config.cloudflare_account_id && config.cloudflare_api_token
-  const { width, height } = dimensionsFor(input.format)
-  const wantsSquare = width === height
+  // Chaîne automatique : Klein d'abord, repli qualité Leonardo, gratuit ensuite.
+  const auto: Attempt[] = []
+  if (cloudflareReady) auto.push(cf('flux-2-klein-4b'), cf('phoenix-1.0'), cf('lucid-origin'))
+  auto.push(pollinations)
 
-  const cloudflare = () =>
-    generateWithCloudflare(input, config.cloudflare_account_id, config.cloudflare_api_token)
-  const pollinations = () => generateWithPollinations(input)
-
-  if (cloudflareReady && wantsSquare) {
-    attempts.push(cloudflare, pollinations)
-  } else if (cloudflareReady) {
-    attempts.push(pollinations, cloudflare)
-  } else {
+  // Choix explicite : le modèle demandé passe en tête, l'automatique en secours.
+  const attempts: Attempt[] = []
+  const choice = (config.image_model || '').trim()
+  if (choice.startsWith('cf:')) {
+    const model = choice.slice(3)
+    if (CF_MODELS[model] && cloudflareReady) attempts.push(cf(model))
+    else if (CF_MODELS[model]) {
+      console.warn(`Modèle ${model} choisi mais Cloudflare non configuré — chaîne automatique.`)
+    }
+  } else if (choice === 'pollinations') {
     attempts.push(pollinations)
+  } else if (choice === 'gemini' && config.gemini_api_key) {
+    attempts.push(gemini)
   }
+  attempts.push(...auto)
 
   let lastError: ImageGenError | null = null
+  const tried = new Set<string>()
   for (const attempt of attempts) {
+    // Un moteur déjà tenté ne l'est pas deux fois (choix explicite = tête de
+    // la chaîne automatique, par exemple).
+    if (tried.has(attempt.key)) continue
+    tried.add(attempt.key)
     try {
-      return await attempt()
+      return await attempt.run()
     } catch (error) {
       if (!(error instanceof ImageGenError)) throw error
       lastError = error
@@ -121,25 +160,40 @@ export async function generateImage(input: ImageGenInput): Promise<GeneratedImag
 }
 
 /**
- * Cloudflare Workers AI — FLUX.1 schnell. Réponse JSON `{ result: { image } }`
- * en base64, toujours carrée (le modèle n'expose pas de dimensions).
+ * Cloudflare Workers AI. Réponse JSON `{ result: { image } }` en base64.
+ * Les modèles Leonardo acceptent width/height (≤ 2500) ; les FLUX Klein et
+ * Schnell n'exposent pas de dimensions — on n'envoie que le prompt.
  */
 async function generateWithCloudflare(
   input: ImageGenInput,
   accountId: string,
-  token: string
+  token: string,
+  model: string
 ): Promise<GeneratedImage> {
+  const spec = CF_MODELS[model]
+  if (!spec) {
+    throw new ImageGenError(`Modèle Cloudflare inconnu: ${model}`, "Modèle de génération inconnu.", 502)
+  }
+  const body: Record<string, unknown> = {
+    prompt: (input.diffusionPrompt || input.prompt).slice(0, 2048),
+  }
+  if (spec.supportsDimensions) {
+    const { width, height } = dimensionsFor(input.format)
+    body.width = width
+    body.height = height
+  }
+
   let response: Response
   try {
     response = await fetch(
-      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/ai/run/@cf/black-forest-labs/flux-1-schnell`,
+      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/ai/run/${spec.path}`,
       {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt: (input.diffusionPrompt || input.prompt).slice(0, 2048) }),
+        body: JSON.stringify(body),
         signal: AbortSignal.timeout(TIMEOUT_MS),
       }
     )
@@ -159,8 +213,8 @@ async function generateWithCloudflare(
     console.error('Cloudflare AI a répondu', response.status, detail)
     if (response.status === 429) {
       throw new ImageGenError(
-        'Quota Cloudflare atteint (429)',
-        "Le quota quotidien gratuit de Cloudflare est atteint. Réessayez demain.",
+        `Quota Cloudflare atteint (429, ${spec.label})`,
+        `Le quota Cloudflare est atteint pour ${spec.label}. Réessayez plus tard ou choisissez un autre modèle dans Intégrations.`,
         429
       )
     }
@@ -191,7 +245,7 @@ async function generateWithCloudflare(
   // Le type n'est pas annoncé dans la réponse JSON : on lit la signature.
   const mimeType = buffer[0] === 0x89 && buffer[1] === 0x50 ? 'image/png' : 'image/jpeg'
 
-  return { buffer, mimeType, provider: 'cloudflare-flux-schnell' }
+  return { buffer, mimeType, provider: 'cloudflare-' + model }
 }
 
 /** Dimensions par format demandé ; 4:5 par défaut (feed Instagram/Facebook). */

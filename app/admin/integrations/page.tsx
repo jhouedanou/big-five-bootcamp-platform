@@ -17,6 +17,7 @@ interface Field {
   envVar: string;
   group: "tracking" | "ia";
   placeholder?: string;
+  options?: Array<{ value: string; label: string }>;
 }
 
 interface Status {
@@ -187,22 +188,39 @@ export default function AdminIntegrationsPage() {
                             {field.help}
                           </p>
 
-                          <Input
-                            id={field.key}
-                            type={field.secret ? "password" : "text"}
-                            autoComplete="off"
-                            spellCheck={false}
-                            value={draft ?? (field.secret ? "" : status?.display || "")}
-                            placeholder={
-                              field.secret && status?.configured
-                                ? `Actuellement ${status.display} — saisissez une nouvelle valeur pour la remplacer`
-                                : field.placeholder || ""
-                            }
-                            onChange={(e) =>
-                              setDrafts((prev) => ({ ...prev, [field.key]: e.target.value }))
-                            }
-                            className="font-mono text-sm"
-                          />
+                          {field.options ? (
+                            <select
+                              id={field.key}
+                              value={draft ?? status?.display ?? ""}
+                              onChange={(e) =>
+                                setDrafts((prev) => ({ ...prev, [field.key]: e.target.value }))
+                              }
+                              className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[#F2B33D]/40"
+                            >
+                              {field.options.map((opt) => (
+                                <option key={opt.value} value={opt.value}>
+                                  {opt.label}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <Input
+                              id={field.key}
+                              type={field.secret ? "password" : "text"}
+                              autoComplete="off"
+                              spellCheck={false}
+                              value={draft ?? (field.secret ? "" : status?.display || "")}
+                              placeholder={
+                                field.secret && status?.configured
+                                  ? `Actuellement ${status.display} — saisissez une nouvelle valeur pour la remplacer`
+                                  : field.placeholder || ""
+                              }
+                              onChange={(e) =>
+                                setDrafts((prev) => ({ ...prev, [field.key]: e.target.value }))
+                              }
+                              className="font-mono text-sm"
+                            />
+                          )}
 
                           {status?.fromEnv && (
                             <p className="text-xs text-muted-foreground">

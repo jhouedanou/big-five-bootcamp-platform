@@ -675,8 +675,16 @@
   background: var(--primary);
 }
 
-.sidebar-content h3,h1,h2, p{
-  margin:2px 0 ;
+/* Sélecteur volontairement scopé : l'ancienne forme « .sidebar-content h3, h1,
+   h2, p » appliquait 2px de marge à TOUS les titres et paragraphes du site et,
+   étant hors des couches Tailwind, écrasait silencieusement les utilitaires de
+   marge (mx-auto, mb-*) partout — dont le centrage du rappel CTA de la landing
+   étude. */
+.sidebar-content h3,
+.sidebar-content h1,
+.sidebar-content h2,
+.sidebar-content p {
+  margin: 2px 0;
 }
 
 /* Tiptap Rich Text Editor Styles */

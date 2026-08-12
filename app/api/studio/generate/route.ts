@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
     // Agent 1 → agent 2, enchaînés sans intervention.
     const analysis = await analyzeReference(reference)
     const prompt = buildGenerationPrompt(brief, analysis)
-    const image = await generateImage({ prompt, reference })
+    const image = await generateImage({ prompt, reference, format: brief.format })
 
     const ext = image.mimeType.includes('jpeg') ? 'jpg' : 'png'
     const resultPath = `${user.id}/${generationId}.${ext}`

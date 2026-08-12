@@ -28,6 +28,8 @@ export interface ImageGenInput {
   prompt: string
   /** Création de référence, transmise au modèle pour qu'il en reprenne la logique. */
   reference?: { base64: string; mimeType: string } | null
+  /** Format demandé par l'utilisateur (« 1:1 », « 4:5 », « 9:16 »…). */
+  format?: string | null
 }
 
 export class ImageGenError extends Error {
@@ -46,16 +48,84 @@ export class ImageGenError extends Error {
 /**
  * Produit une image à partir du prompt (et éventuellement d'une référence).
  * Lève une ImageGenError porteuse d'un message affichable.
+ *
+ * Ordre des fournisseurs :
+ *  1. Gemini, si une clé est configurée ET que l'appel aboutit — meilleure
+ *     qualité, et seul à recevoir l'image de référence.
+ *  2. Pollinations (FLUX), sans clé ni compte — repli automatique quand Gemini
+ *     échoue (typiquement : 429 immédiat de l'offre gratuite, la facturation
+ *     Google étant un préalable pour ce modèle et pas toujours activable).
+ *     Testé en réel : ~1,5 s par image, prompt long accepté. Texte seul — la
+ *     logique de la référence voyage via l'analyse de l'agent 1, ce qui reste
+ *     conforme au brief (« ne jamais copier le visuel »).
  */
 export async function generateImage(input: ImageGenInput): Promise<GeneratedImage> {
   const apiKey = await getIntegrationValue('gemini_api_key')
-  if (!apiKey) {
+
+  if (apiKey) {
+    try {
+      return await generateWithGemini(input, apiKey)
+    } catch (error) {
+      if (!(error instanceof ImageGenError)) throw error
+      console.warn(`Gemini indisponible (${error.message}) — repli sur Pollinations.`)
+    }
+  }
+
+  return generateWithPollinations(input)
+}
+
+/** Dimensions par format demandé ; 4:5 par défaut (feed Instagram/Facebook). */
+function dimensionsFor(format?: string | null): { width: number; height: number } {
+  const f = (format || '').replace(/\s/g, '')
+  if (f.includes('9:16') || /stor(y|ies)/i.test(f)) return { width: 1080, height: 1920 }
+  if (f.includes('16:9')) return { width: 1280, height: 720 }
+  if (f.includes('1:1') || /carr/i.test(f)) return { width: 1080, height: 1080 }
+  return { width: 1080, height: 1350 }
+}
+
+async function generateWithPollinations(input: ImageGenInput): Promise<GeneratedImage> {
+  const { width, height } = dimensionsFor(input.format)
+  // nologo : pas de filigrane ; private : l'image ne rejoint pas la galerie
+  // publique du service — ce sont des créations clientes.
+  const url =
+    `https://image.pollinations.ai/prompt/${encodeURIComponent(input.prompt)}` +
+    `?width=${width}&height=${height}&model=flux&nologo=true&private=true`
+
+  let response: Response
+  try {
+    response = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) })
+  } catch (error: any) {
+    const timedOut = error?.name === 'TimeoutError' || error?.name === 'AbortError'
     throw new ImageGenError(
-      'gemini_api_key absente',
-      "La génération d'images n'est pas encore configurée. Un administrateur doit renseigner la clé dans Intégrations.",
-      503
+      `Appel Pollinations échoué: ${error?.message || error}`,
+      timedOut
+        ? "La génération a pris trop de temps. Réessayez dans un instant."
+        : "Le service de génération est momentanément injoignable.",
+      timedOut ? 504 : 502
     )
   }
+
+  const mimeType = response.headers.get('content-type') || ''
+  if (!response.ok || !mimeType.startsWith('image/')) {
+    console.error('Pollinations a répondu', response.status, mimeType)
+    throw new ImageGenError(
+      `Pollinations ${response.status} (${mimeType})`,
+      "Le service de génération a renvoyé une erreur. Réessayez dans un instant.",
+      502
+    )
+  }
+
+  return {
+    buffer: Buffer.from(await response.arrayBuffer()),
+    mimeType,
+    provider: 'pollinations-flux',
+  }
+}
+
+async function generateWithGemini(
+  input: ImageGenInput,
+  apiKey: string
+): Promise<GeneratedImage> {
 
   const parts: any[] = []
   if (input.reference) {

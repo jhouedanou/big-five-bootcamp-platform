@@ -74,9 +74,9 @@ export const INTEGRATION_FIELDS: IntegrationField[] = [
   },
   {
     key: 'gemini_api_key',
-    label: 'Google Gemini — clé d’API',
+    label: 'Google Gemini — clé d’API (optionnelle)',
     help:
-      'Génération des visuels publicitaires. aistudio.google.com › Get API key. Attention : sur l’offre gratuite, Google exploite les contenus soumis pour améliorer ses produits — activez la facturation avant d’ouvrir la fonction aux abonnés.',
+      'Génération des visuels publicitaires en qualité supérieure, avec prise en compte directe de l’image de référence. Nécessite la facturation Google activée — sans elle, ce modèle refuse dès la première requête. Laissez vide pour utiliser le service gratuit intégré (FLUX), qui fonctionne sans compte.',
     secret: true,
     envVar: 'GEMINI_API_KEY',
     group: 'ia',

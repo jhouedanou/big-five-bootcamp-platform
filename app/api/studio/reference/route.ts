@@ -11,6 +11,25 @@ const MAX_BYTES = 8 * 1024 * 1024
 const ALLOWED = ['image/png', 'image/jpeg', 'image/webp']
 
 /**
+ * Crée le bucket s'il manque. La migration 15 le déclare, mais l'insert direct
+ * dans storage.buckets ne passe pas sur toutes les instances Supabase — le
+ * bucket était absent en production alors que la table existait, d'où les
+ * échecs d'upload. L'API Storage est la voie fiable ; même pattern que
+ * /api/upload/video.
+ */
+async function ensureBucketExists(admin: ReturnType<typeof getSupabaseAdmin>) {
+  const { data: buckets } = await admin.storage.listBuckets()
+  if (buckets?.some((b) => b.name === BUCKET)) return
+
+  const { error } = await admin.storage.createBucket(BUCKET, {
+    public: false,
+    fileSizeLimit: MAX_BYTES,
+    allowedMimeTypes: ALLOWED,
+  })
+  if (error && !error.message.includes('already exists')) throw error
+}
+
+/**
  * POST /api/studio/reference
  * Multipart: file
  *
@@ -67,6 +86,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    await ensureBucketExists(admin)
 
     const ext = file.type.split('/')[1]?.replace('jpeg', 'jpg') || 'png'
     // Chemin préfixé par l'utilisateur : la référence d'un abonné n'est jamais

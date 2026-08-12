@@ -1,163 +1,363 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
-import Image from "next/image";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
+  ArrowUp,
   Download,
   ImagePlus,
   Loader2,
   RotateCcw,
   Sparkles,
-  TriangleAlert,
   Wand2,
-  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar";
 import { useRequireActiveSubscription } from "@/hooks/use-require-active-subscription";
-import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
-const REQUIRED = [
-  { key: "secteur", label: "Secteur", placeholder: "Banque, télécoms, FMCG…" },
-  { key: "produit", label: "Produit", placeholder: "Compte épargne, forfait data…" },
-  { key: "cible", label: "Cible", placeholder: "Jeunes actifs urbains 25-35 ans" },
-  { key: "canal", label: "Canal", placeholder: "Instagram, Facebook, affichage…" },
-  { key: "ton", label: "Ton", placeholder: "Complice, institutionnel, humoristique…" },
-  { key: "emotion", label: "Émotion", placeholder: "Fierté, soulagement, urgence…" },
-  { key: "objectif", label: "Objectif", placeholder: "Acquisition, notoriété, adoption…" },
-] as const;
+/**
+ * Studio publicitaire — parcours conversationnel.
+ *
+ * L'utilisateur est guidé question par question, façon messagerie : une seule
+ * chose à faire à chaque instant, des suggestions cliquables pour aller vite,
+ * et la génération part toute seule à la fin. Le back-end reste inchangé
+ * (une soumission unique vers /api/studio/generate) : la conversation est
+ * purement une couche de guidage côté client.
+ */
 
-const OPTIONAL = [
-  { key: "promesse", label: "Promesse", placeholder: "Ce que la marque garantit" },
-  { key: "marque", label: "Marque", placeholder: "Laissez vide pour ne pas l'afficher" },
-  { key: "texte", label: "Texte à intégrer", placeholder: "Accroche à faire figurer" },
-  { key: "contraintes", label: "Contraintes", placeholder: "Mentions légales, interdits…" },
-  { key: "format", label: "Format", placeholder: "1:1, 4:5, 9:16" },
-  { key: "charte", label: "Charte graphique", placeholder: "Couleurs, typographies" },
-] as const;
+interface FieldStep {
+  key: string;
+  question: string;
+  placeholder: string;
+  /** Réponses rapides cliquables ; la saisie libre reste toujours possible. */
+  chips?: string[];
+}
 
-interface Result {
+const REQUIRED_STEPS: FieldStep[] = [
+  {
+    key: "secteur",
+    question: "Quel est le secteur de votre projet ?",
+    placeholder: "Ex. : banque, télécoms, cosmétique…",
+    chips: ["Banque / Finance", "Télécoms", "FMCG", "E-commerce", "Tech", "Transport"],
+  },
+  {
+    key: "produit",
+    question: "Quel produit ou service voulez-vous mettre en avant ?",
+    placeholder: "Ex. : compte épargne rémunéré, forfait data illimité…",
+  },
+  {
+    key: "cible",
+    question: "À qui s'adresse cette publicité ?",
+    placeholder: "Ex. : jeunes actifs urbains 25-35 ans",
+  },
+  {
+    key: "canal",
+    question: "Sur quel canal sera-t-elle diffusée ?",
+    placeholder: "Ex. : Instagram, affichage urbain…",
+    chips: ["Instagram", "Facebook", "TikTok", "LinkedIn", "YouTube", "Affichage"],
+  },
+  {
+    key: "ton",
+    question: "Quel ton doit-elle adopter ?",
+    placeholder: "Ex. : complice, institutionnel…",
+    chips: ["Complice", "Institutionnel", "Humoristique", "Premium", "Énergique"],
+  },
+  {
+    key: "emotion",
+    question: "Quelle émotion voulez-vous provoquer ?",
+    placeholder: "Ex. : fierté, soulagement, urgence…",
+    chips: ["Fierté", "Confiance", "Joie", "Urgence", "Soulagement", "Ambition"],
+  },
+  {
+    key: "objectif",
+    question: "Quel est l'objectif business ?",
+    placeholder: "Ex. : acquisition, notoriété…",
+    chips: ["Acquisition", "Notoriété", "Engagement", "Adoption d'un service", "Vente", "Génération de leads"],
+  },
+];
+
+const EXTRA_STEPS: FieldStep[] = [
+  { key: "marque", question: "Quelle marque doit apparaître ?", placeholder: "Nom exact de la marque" },
+  { key: "promesse", question: "Quelle est la promesse à faire passer ?", placeholder: "Ce que la marque garantit" },
+  { key: "texte", question: "Quel texte doit figurer dans l'image ?", placeholder: "Accroche exacte à intégrer" },
+  { key: "format", question: "Quel format d'image ?", placeholder: "Ex. : 1:1, 4:5, 9:16" },
+  { key: "charte", question: "Décrivez la charte graphique à respecter.", placeholder: "Couleurs, typographies…" },
+  { key: "contraintes", question: "Quelles contraintes faut-il respecter ?", placeholder: "Mentions légales, interdits…" },
+];
+
+const EXTRA_LABELS: Record<string, string> = {
+  marque: "La marque",
+  promesse: "La promesse",
+  texte: "Le texte à intégrer",
+  format: "Le format",
+  charte: "La charte graphique",
+  contraintes: "Les contraintes",
+};
+
+type Stage =
+  | { kind: "reference" }
+  | { kind: "field"; step: FieldStep; required: boolean }
+  | { kind: "extras" }
+  | { kind: "generating" }
+  | { kind: "done" };
+
+interface GenResult {
   imageUrl: string | null;
   analysis: string | null;
   framework: string | null;
   remaining?: number;
 }
 
+interface Message {
+  id: number;
+  role: "assistant" | "user";
+  text?: string;
+  imageUrl?: string;
+  result?: GenResult;
+  error?: boolean;
+}
+
+let nextId = 1;
+
 export default function StudioPubPage() {
   return (
     <Suspense fallback={null}>
-      <StudioContent />
+      <StudioConversation />
     </Suspense>
   );
 }
 
-function StudioContent() {
-  // Le hook redirige lui-même un utilisateur sans abonnement actif ; on attend
-  // simplement la fin de sa vérification avant d'afficher quoi que ce soit.
-  const { checking: checkingSubscription } = useRequireActiveSubscription();
+function StudioConversation() {
+  const { checking } = useRequireActiveSubscription();
   const searchParams = useSearchParams();
 
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [stage, setStage] = useState<Stage>({ kind: "reference" });
   const [brief, setBrief] = useState<Record<string, string>>({});
   const [referencePath, setReferencePath] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [generating, setGenerating] = useState(false);
-  const [missing, setMissing] = useState<string[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<Result | null>(null);
+  const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [remaining, setRemaining] = useState<number | null>(null);
+
   const fileRef = useRef<HTMLInputElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const startedRef = useRef(false);
 
-  // Arrivée depuis une fiche campagne : on pré-remplit ce qu'on connaît déjà,
-  // l'utilisateur n'a plus qu'à décrire son propre projet.
+  const say = useCallback((msg: Omit<Message, "id">) => {
+    setMessages((prev) => [...prev, { ...msg, id: nextId++ }]);
+  }, []);
+
+  // Fil toujours calé sur le dernier message.
   useEffect(() => {
-    const seed: Record<string, string> = {};
-    const secteur = searchParams.get("secteur");
-    const marque = searchParams.get("marque");
-    const canal = searchParams.get("canal");
-    if (secteur) seed.secteur = secteur;
-    if (canal) seed.canal = canal;
-    if (marque) seed.marque = "";
-    if (Object.keys(seed).length) setBrief((prev) => ({ ...seed, ...prev }));
-  }, [searchParams]);
+    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [messages, stage]);
 
-  const set = (key: string, value: string) =>
-    setBrief((prev) => ({ ...prev, [key]: value }));
+  // Ouverture de la conversation (une seule fois, pré-remplissage inclus).
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+
+    const seeded: Record<string, string> = {};
+    const secteur = searchParams.get("secteur");
+    const canal = searchParams.get("canal");
+    if (secteur) seeded.secteur = secteur;
+    if (canal) seeded.canal = canal;
+    if (Object.keys(seeded).length) setBrief(seeded);
+
+    say({
+      role: "assistant",
+      text: "Bonjour ! Je vais vous aider à créer une nouvelle publicité à partir d'une création qui vous inspire. Sa logique — accroche, émotion, structure — sera transposée à votre projet, sans jamais copier le visuel d'origine.",
+    });
+    if (seeded.secteur || seeded.canal) {
+      const parts = [
+        seeded.secteur ? `le secteur « ${seeded.secteur} »` : null,
+        seeded.canal ? `le canal « ${seeded.canal} »` : null,
+      ].filter(Boolean);
+      say({
+        role: "assistant",
+        text: `J'ai repris ${parts.join(" et ")} de la campagne que vous consultiez — vous pourrez me corriger si besoin.`,
+      });
+    }
+    say({
+      role: "assistant",
+      text: "Pour commencer, envoyez-moi votre création de référence (PNG, JPEG ou WebP, 8 Mo max) avec le bouton ci-dessous.",
+    });
+  }, [say, searchParams]);
+
+  /** Prochaine question obligatoire sans réponse, ou passage aux précisions. */
+  const advance = useCallback(
+    (currentBrief: Record<string, string>) => {
+      const next = REQUIRED_STEPS.find((s) => !String(currentBrief[s.key] || "").trim());
+      if (next) {
+        say({ role: "assistant", text: next.question });
+        setStage({ kind: "field", step: next, required: true });
+      } else {
+        say({
+          role: "assistant",
+          text: "J'ai tout ce qu'il me faut. Voulez-vous ajouter une précision, ou est-ce que je lance la génération ?",
+        });
+        setStage({ kind: "extras" });
+      }
+      setTimeout(() => inputRef.current?.focus(), 50);
+    },
+    [say]
+  );
 
   const uploadReference = async (file: File) => {
-    setUploading(true);
-    setError(null);
+    if (busy) return;
+    setBusy(true);
+
+    const localPreview = URL.createObjectURL(file);
+    say({ role: "user", imageUrl: localPreview });
+
     try {
       const body = new FormData();
       body.append("file", file);
       const res = await fetch("/api/studio/reference", { method: "POST", body });
       const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
-        setError(data.error || "L'envoi de l'image a échoué.");
+        say({
+          role: "assistant",
+          error: true,
+          text: `${data.error || "L'envoi de l'image a échoué."} Réessayez avec le bouton ci-dessous.`,
+        });
         return;
       }
+
       setReferencePath(data.path);
-      setPreviewUrl(data.previewUrl);
+      say({ role: "assistant", text: "Bien reçu, votre référence est enregistrée." });
+      advance(brief);
     } catch {
-      setError("Erreur réseau pendant l'envoi de l'image.");
+      say({
+        role: "assistant",
+        error: true,
+        text: "Erreur réseau pendant l'envoi. Vérifiez votre connexion puis réessayez.",
+      });
     } finally {
-      setUploading(false);
+      setBusy(false);
     }
   };
 
-  const generate = async () => {
-    if (generating) return;
+  const generate = useCallback(
+    async (finalBrief: Record<string, string>) => {
+      setStage({ kind: "generating" });
+      say({
+        role: "assistant",
+        text: "Parfait, je m'y mets : j'analyse votre référence puis je génère la création. Comptez une minute environ — ne fermez pas cette page.",
+      });
 
-    // Vérification de complétude côté formulaire : les champs sont connus
-    // d'avance, inutile de faire un aller-retour serveur pour l'apprendre.
-    const missingLabels = REQUIRED.filter((f) => !String(brief[f.key] || "").trim()).map(
-      (f) => f.label
-    );
-    setMissing(missingLabels);
-    setError(null);
+      try {
+        const res = await fetch("/api/studio/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ referencePath, brief: finalBrief }),
+        });
+        const data = await res.json().catch(() => ({}));
 
-    if (!referencePath) {
-      setError("Ajoutez une création de référence avant de lancer la génération.");
+        if (!res.ok) {
+          say({
+            role: "assistant",
+            error: true,
+            text: data.error || "La génération a échoué. On réessaie ?",
+          });
+          setStage({ kind: "extras" });
+          return;
+        }
+
+        if (typeof data.remaining === "number") setRemaining(data.remaining);
+        say({
+          role: "assistant",
+          result: {
+            imageUrl: data.imageUrl,
+            analysis: data.analysis,
+            framework: data.framework,
+            remaining: data.remaining,
+          },
+        });
+        setStage({ kind: "done" });
+      } catch {
+        say({
+          role: "assistant",
+          error: true,
+          text: "Erreur réseau pendant la génération. Votre brief est conservé — dites « générer » pour réessayer.",
+        });
+        setStage({ kind: "extras" });
+      }
+    },
+    [referencePath, say]
+  );
+
+  /** Réponse à une question (obligatoire ou précision), saisie ou puce. */
+  const handleFieldAnswer = (raw: string) => {
+    const answer = raw.trim();
+    if (!answer || busy || stage.kind !== "field") return;
+    setInput("");
+    say({ role: "user", text: answer });
+    const updated = { ...brief, [stage.step.key]: answer };
+    setBrief(updated);
+
+    if (stage.required) {
+      advance(updated);
+    } else {
+      say({
+        role: "assistant",
+        text: `${EXTRA_LABELS[stage.step.key] || "C'est"} noté. Autre chose, ou je génère ?`,
+      });
+      setStage({ kind: "extras" });
+    }
+  };
+
+  /** Réponse au carrefour des précisions : générer, ou nommer une précision. */
+  const handleAnswer = (raw: string) => {
+    const answer = raw.trim();
+    if (!answer || busy || stage.kind !== "extras") return;
+    setInput("");
+    say({ role: "user", text: answer });
+    const lower = answer.toLowerCase();
+
+    // « générer », « non », « c'est bon »… : on part en génération.
+    if (/g[ée]n[ée]r|lance|c'est (bon|tout)|^non\b|^ok\b|^go\b/.test(lower)) {
+      generate(brief);
       return;
     }
-    if (missingLabels.length > 0) return;
 
-    setGenerating(true);
-    setResult(null);
-    try {
-      const res = await fetch("/api/studio/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ referencePath, brief }),
-      });
-      const data = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        if (data.missing?.length) setMissing(data.missing);
-        setError(data.error || "La génération a échoué.");
-        return;
-      }
-
-      setResult({
-        imageUrl: data.imageUrl,
-        analysis: data.analysis,
-        framework: data.framework,
-        remaining: data.remaining,
-      });
-      toast.success("Création générée");
-    } catch {
-      setError("Erreur réseau pendant la génération.");
-    } finally {
-      setGenerating(false);
+    // Une précision nommée ? (« marque », « le format »…)
+    const matched = EXTRA_STEPS.find((s) =>
+      lower.includes(s.key === "texte" ? "texte" : s.key)
+    );
+    if (matched) {
+      say({ role: "assistant", text: matched.question });
+      setStage({ kind: "field", step: matched, required: false });
+      return;
     }
+
+    say({
+      role: "assistant",
+      text: "Je n'ai pas compris. Choisissez une précision ci-dessous, ou cliquez sur « Générer la création ».",
+    });
   };
 
-  if (checkingSubscription) {
+  const submit = () => {
+    if (stage.kind === "field") handleFieldAnswer(input);
+    else handleAnswer(input);
+  };
+
+  const restart = () => {
+    setBrief({});
+    setReferencePath(null);
+    setRemaining(null);
+    setStage({ kind: "reference" });
+    say({
+      role: "assistant",
+      text: "On repart de zéro. Envoyez-moi la nouvelle création de référence.",
+    });
+  };
+
+  if (checking) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -165,293 +365,255 @@ function StudioContent() {
     );
   }
 
+  const chips =
+    stage.kind === "field" && stage.step.chips
+      ? stage.step.chips
+      : stage.kind === "extras"
+        ? EXTRA_STEPS.map((s) => EXTRA_LABELS[s.key])
+        : [];
+
+  const composerEnabled = stage.kind === "field" || stage.kind === "extras";
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-background">
       <DashboardNavbar />
 
-      <main className="mx-auto max-w-6xl space-y-8 px-4 py-8 sm:px-6">
-        <header className="space-y-2">
-          <h1 className="flex items-center gap-2 text-2xl font-bold sm:text-3xl">
-            <Wand2 className="h-7 w-7 text-[#F2B33D]" />
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 sm:px-6">
+        <header className="flex items-center justify-between gap-3 border-b border-border py-4">
+          <h1 className="flex items-center gap-2 text-lg font-bold">
+            <Wand2 className="h-5 w-5 text-[#F2B33D]" />
             Studio publicitaire
           </h1>
-          <p className="max-w-3xl text-sm text-muted-foreground">
-            Partez d&apos;une création qui vous inspire et décrivez votre projet. La création
-            de référence est analysée, puis sa logique — accroche, émotion, structure du
-            message — est transposée à votre secteur. Le visuel d&apos;origine n&apos;est
-            jamais copié.
-          </p>
+          <div className="flex items-center gap-3">
+            {remaining !== null && (
+              <span className="text-xs text-muted-foreground">
+                {remaining} génération{remaining > 1 ? "s" : ""} restante{remaining > 1 ? "s" : ""} aujourd&apos;hui
+              </span>
+            )}
+            <Button variant="ghost" size="sm" onClick={restart}>
+              <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+              Recommencer
+            </Button>
+          </div>
         </header>
 
-        <div className="grid gap-8 lg:grid-cols-[1fr_420px]">
-          {/* ---------------- Formulaire ---------------- */}
-          <div className="space-y-6">
-            <Card>
-              <CardContent className="space-y-3 p-5">
-                <Label className="text-base font-semibold">Création de référence</Label>
-                <p className="text-sm text-muted-foreground">
-                  Une publicité existante dont vous voulez reprendre la mécanique.
-                  PNG, JPEG ou WebP, 8 Mo maximum.
-                </p>
+        {/* ---- Fil de conversation ---- */}
+        <div
+          className="flex-1 space-y-4 overflow-y-auto py-6"
+          aria-live="polite"
+          aria-label="Conversation avec le studio"
+        >
+          {messages.map((msg) => (
+            <MessageBubble key={msg.id} msg={msg} onRegenerate={() => generate(brief)} />
+          ))}
 
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) uploadReference(file);
-                    e.target.value = "";
-                  }}
-                />
+          {stage.kind === "generating" && (
+            <div className="flex items-center gap-2 pl-11 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin text-[#F2B33D]" />
+              Analyse et génération en cours…
+            </div>
+          )}
 
-                {previewUrl ? (
-                  <div className="relative w-fit">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- URL signée temporaire */}
-                    <img
-                      src={previewUrl}
-                      alt="Création de référence"
-                      className="max-h-64 rounded-lg border border-border object-contain"
-                    />
-                    <button
-                      type="button"
-                      aria-label="Retirer l'image"
-                      onClick={() => {
-                        setReferencePath(null);
-                        setPreviewUrl(null);
-                      }}
-                      className="absolute -right-2 -top-2 grid h-7 w-7 place-items-center rounded-full border border-border bg-background shadow-sm"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <Button
-                    variant="outline"
-                    disabled={uploading}
-                    onClick={() => fileRef.current?.click()}
-                  >
-                    {uploading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Envoi…
-                      </>
-                    ) : (
-                      <>
-                        <ImagePlus className="mr-1.5 h-4 w-4" />
-                        Choisir une image
-                      </>
-                    )}
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
+          <div ref={endRef} />
+        </div>
 
-            <Card>
-              <CardContent className="space-y-4 p-5">
-                <div>
-                  <Label className="text-base font-semibold">Votre projet</Label>
-                  <p className="text-sm text-muted-foreground">Tous ces champs sont nécessaires.</p>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {REQUIRED.map((field) => {
-                    const isMissing = missing.includes(field.label);
-                    return (
-                      <div key={field.key} className="space-y-1.5">
-                        <Label htmlFor={field.key}>
-                          {field.label}
-                          <span className="ml-0.5 text-[#F2B33D]">*</span>
-                        </Label>
-                        <Input
-                          id={field.key}
-                          value={brief[field.key] || ""}
-                          placeholder={field.placeholder}
-                          onChange={(e) => set(field.key, e.target.value)}
-                          className={isMissing ? "border-destructive" : undefined}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="space-y-4 p-5">
-                <div>
-                  <Label className="text-base font-semibold">Précisions (facultatif)</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Plus vous en dites, plus le résultat colle à votre intention.
-                  </p>
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {OPTIONAL.map((field) => (
-                    <div key={field.key} className="space-y-1.5">
-                      <Label htmlFor={field.key}>{field.label}</Label>
-                      {field.key === "contraintes" ? (
-                        <Textarea
-                          id={field.key}
-                          rows={2}
-                          value={brief[field.key] || ""}
-                          placeholder={field.placeholder}
-                          onChange={(e) => set(field.key, e.target.value)}
-                        />
-                      ) : (
-                        <Input
-                          id={field.key}
-                          value={brief[field.key] || ""}
-                          placeholder={field.placeholder}
-                          onChange={(e) => set(field.key, e.target.value)}
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {missing.length > 0 && (
-              <div
-                role="alert"
-                className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm"
+        {/* ---- Suggestions ---- */}
+        {chips.length > 0 && !busy && (
+          <div className="flex flex-wrap gap-2 pb-3">
+            {chips.map((chip) => (
+              <button
+                key={chip}
+                type="button"
+                onClick={() =>
+                  stage.kind === "field" ? handleFieldAnswer(chip) : handleAnswer(chip)
+                }
+                className="rounded-full border border-border bg-card px-3.5 py-1.5 text-sm transition-colors hover:border-[#F2B33D] hover:bg-[#FFF6E3] hover:text-[#0F0F0F] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F2B33D]"
               >
-                <p className="mb-1 font-semibold text-destructive">
-                  Il manque {missing.length === 1 ? "un élément" : "des éléments"} :
-                </p>
-                <p className="text-muted-foreground">{missing.join(" · ")}</p>
-              </div>
-            )}
-
-            {error && (
-              <div
-                role="alert"
-                className="flex gap-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm"
+                {chip}
+              </button>
+            ))}
+            {stage.kind === "extras" && (
+              <button
+                type="button"
+                onClick={() => handleAnswer("générer")}
+                className="rounded-full bg-[#F2B33D] px-4 py-1.5 text-sm font-bold text-[#0F0F0F] transition-[filter] hover:brightness-95"
               >
-                <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-                <p className="text-muted-foreground">{error}</p>
-              </div>
+                <Sparkles className="mr-1.5 inline h-3.5 w-3.5" />
+                Générer la création
+              </button>
             )}
+          </div>
+        )}
 
+        {/* ---- Composeur ---- */}
+        <div className="sticky bottom-0 border-t border-border bg-background pb-5 pt-3">
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) uploadReference(file);
+              e.target.value = "";
+            }}
+          />
+
+          {stage.kind === "reference" ? (
             <Button
               size="lg"
-              onClick={generate}
-              disabled={generating || uploading}
-              className="w-full bg-[#F2B33D] text-[#0F0F0F] hover:bg-[#E4A82F] sm:w-auto"
+              disabled={busy}
+              onClick={() => fileRef.current?.click()}
+              className="w-full bg-[#F2B33D] text-[#0F0F0F] hover:bg-[#E4A82F]"
             >
-              {generating ? (
+              {busy ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Analyse et génération en cours…
+                  Envoi de l&apos;image…
                 </>
               ) : (
                 <>
-                  <Sparkles className="mr-2 h-5 w-5" />
-                  Générer la création
+                  <ImagePlus className="mr-2 h-5 w-5" />
+                  Envoyer ma création de référence
                 </>
               )}
             </Button>
-          </div>
-
-          {/* ---------------- Résultat ---------------- */}
-          <aside className="space-y-4 lg:sticky lg:top-6 lg:self-start">
-            {generating && (
-              <Card>
-                <CardContent className="space-y-3 p-6 text-center">
-                  <Loader2 className="mx-auto h-8 w-8 animate-spin text-[#F2B33D]" />
-                  <p className="font-semibold">Analyse et génération en cours…</p>
-                  <p className="text-sm text-muted-foreground">
-                    Comptez une minute environ. Ne fermez pas cette page.
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-
-            {result && !generating && (
-              <>
-                <Card>
-                  <CardContent className="space-y-3 p-4">
-                    {result.imageUrl ? (
-                      <>
-                        {/* eslint-disable-next-line @next/next/no-img-element -- URL signée temporaire */}
-                        <img
-                          src={result.imageUrl}
-                          alt="Création générée"
-                          className="w-full rounded-lg border border-border"
-                        />
-                        <div className="flex flex-wrap gap-2">
-                          <Button asChild variant="outline" size="sm">
-                            <a href={result.imageUrl} download target="_blank" rel="noopener noreferrer">
-                              <Download className="mr-1.5 h-4 w-4" />
-                              Télécharger
-                            </a>
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={generate}>
-                            <RotateCcw className="mr-1.5 h-4 w-4" />
-                            Relancer
-                          </Button>
-                        </div>
-                        {typeof result.remaining === "number" && (
-                          <p className="text-xs text-muted-foreground">
-                            {result.remaining} génération{result.remaining > 1 ? "s" : ""} restante
-                            {result.remaining > 1 ? "s" : ""} aujourd&apos;hui.
-                          </p>
-                        )}
-                      </>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Aucune image n&apos;a été retournée.
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {(result.analysis || result.framework) && (
-                  <Card>
-                    <CardContent className="space-y-3 p-4 text-sm">
-                      <p className="font-semibold">Ce qui a servi de base</p>
-                      {result.analysis && (
-                        <div>
-                          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                            Analyse de la référence
-                          </p>
-                          <p className="text-muted-foreground">{result.analysis}</p>
-                        </div>
-                      )}
-                      {result.framework && (
-                        <div>
-                          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                            Mécanique transposée
-                          </p>
-                          <p className="text-muted-foreground">{result.framework}</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
-              </>
-            )}
-
-            {!generating && !result && (
-              <Card className="border-dashed">
-                <CardContent className="space-y-2 p-6 text-center text-sm text-muted-foreground">
-                  <Sparkles className="mx-auto h-7 w-7 text-[#F2B33D]/60" />
-                  <p>La création générée apparaîtra ici, avec l&apos;analyse qui l&apos;a inspirée.</p>
-                  <p className="text-xs">
-                    Besoin d&apos;inspiration ?{" "}
-                    <Link href="/dashboard" className="underline hover:text-foreground">
-                      Parcourez la bibliothèque
-                    </Link>
-                    .
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </aside>
+          ) : (
+            <form
+              className="flex items-center gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                submit();
+              }}
+            >
+              <input
+                ref={inputRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                disabled={!composerEnabled || busy}
+                placeholder={
+                  stage.kind === "field"
+                    ? stage.step.placeholder
+                    : stage.kind === "extras"
+                      ? "Répondez, ou cliquez sur « Générer la création »"
+                      : "Génération en cours…"
+                }
+                aria-label="Votre réponse"
+                className="h-12 flex-1 rounded-full border border-border bg-card px-5 text-[15px] outline-none transition-colors focus:border-[#F2B33D] focus:ring-2 focus:ring-[#F2B33D]/25 disabled:opacity-60"
+              />
+              <Button
+                type="submit"
+                size="icon"
+                disabled={!composerEnabled || busy || !input.trim()}
+                aria-label="Envoyer"
+                className="h-12 w-12 shrink-0 rounded-full bg-[#F2B33D] text-[#0F0F0F] hover:bg-[#E4A82F]"
+              >
+                <ArrowUp className="h-5 w-5" />
+              </Button>
+            </form>
+          )}
         </div>
       </main>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------- Bulles */
+
+function MessageBubble({ msg, onRegenerate }: { msg: Message; onRegenerate: () => void }) {
+  if (msg.role === "user") {
+    return (
+      <div className="flex justify-end">
+        <div className="max-w-[85%] rounded-2xl rounded-br-md bg-[#F2B33D] px-4 py-2.5 text-[15px] text-[#0F0F0F]">
+          {msg.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- aperçu local/URL signée
+            <img
+              src={msg.imageUrl}
+              alt="Votre création de référence"
+              className="max-h-56 rounded-lg"
+            />
+          ) : (
+            msg.text
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex gap-3">
+      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#F2B33D]/15">
+        <Sparkles className="h-4 w-4 text-[#F2B33D]" />
+      </div>
+
+      {msg.result ? (
+        <ResultBubble result={msg.result} onRegenerate={onRegenerate} />
+      ) : (
+        <div
+          className={cn(
+            "max-w-[85%] rounded-2xl rounded-tl-md px-4 py-2.5 text-[15px] leading-relaxed",
+            msg.error
+              ? "border border-destructive/40 bg-destructive/5 text-foreground"
+              : "bg-muted/60 text-foreground"
+          )}
+        >
+          {msg.text}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ResultBubble({ result, onRegenerate }: { result: GenResult; onRegenerate: () => void }) {
+  return (
+    <div className="max-w-[85%] space-y-3 rounded-2xl rounded-tl-md border border-border bg-card p-4">
+      <p className="text-[15px] font-semibold">Voici votre création :</p>
+
+      {result.imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element -- URL signée temporaire
+        <img
+          src={result.imageUrl}
+          alt="Création générée"
+          className="w-full rounded-lg border border-border"
+        />
+      ) : (
+        <p className="text-sm text-muted-foreground">Aucune image n&apos;a été retournée.</p>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        {result.imageUrl && (
+          <Button asChild size="sm" className="bg-[#F2B33D] text-[#0F0F0F] hover:bg-[#E4A82F]">
+            <a href={result.imageUrl} download target="_blank" rel="noopener noreferrer">
+              <Download className="mr-1.5 h-4 w-4" />
+              Télécharger
+            </a>
+          </Button>
+        )}
+        <Button variant="outline" size="sm" onClick={onRegenerate}>
+          <RotateCcw className="mr-1.5 h-4 w-4" />
+          Une autre version
+        </Button>
+      </div>
+
+      {(result.analysis || result.framework) && (
+        <details className="rounded-lg bg-muted/40 p-3 text-sm">
+          <summary className="cursor-pointer font-semibold">
+            Ce que j&apos;ai retenu de votre référence
+          </summary>
+          {result.analysis && <p className="mt-2 text-muted-foreground">{result.analysis}</p>}
+          {result.framework && (
+            <p className="mt-2 text-muted-foreground">{result.framework}</p>
+          )}
+        </details>
+      )}
+
+      <p className="text-xs text-muted-foreground">
+        Besoin d&apos;inspiration pour une prochaine référence ?{" "}
+        <Link href="/dashboard" className="underline hover:text-foreground">
+          Parcourez la bibliothèque
+        </Link>
+        .
+      </p>
     </div>
   );
 }

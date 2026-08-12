@@ -1793,7 +1793,19 @@ function CampaignsPageContent() {
                   />
                 </div>
 
-                {/* Analyse with WYSIWYG — saves to analyse in DB */}
+                {/* Analyse + Comment s'en servir — colonnes analyse / how_to_use.
+                    Ces deux champs ne sont plus rendus sur la page publique depuis
+                    l'arrivée de la section Commentaires, mais restent alimentés :
+                    ce sont des champs premium (lib/content-access.ts) et les
+                    sources du générateur IA (app/actions/campaign-generator.ts). */}
+                <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 p-3 text-xs text-gray-600 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-400">
+                  <strong className="font-semibold">Usage interne.</strong> « Analyse » et
+                  « Comment s&apos;en servir » ne sont plus affichés sur la fiche campagne
+                  côté site — cet espace accueille désormais les commentaires. Continuez
+                  à les remplir : ils alimentent le générateur de campagnes par IA et
+                  restent réservés aux abonnés.
+                </div>
+
                 <div className="space-y-2">
                   <Label className="text-gray-700 dark:text-gray-300">Analyse</Label>
                   <RichTextEditor
@@ -1804,9 +1816,8 @@ function CampaignsPageContent() {
                   />
                 </div>
 
-                {/* Comment s'en servir — saves to how_to_use in DB */}
                 <div className="space-y-2">
-                  <Label className="text-gray-700 dark:text-gray-300">Comment s'en servir</Label>
+                  <Label className="text-gray-700 dark:text-gray-300">Comment s&apos;en servir</Label>
                   <RichTextEditor
                     content={formData.howToUse || ""}
                     onChange={(content) => setFormData({ ...formData, howToUse: content })}

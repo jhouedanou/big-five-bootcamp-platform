@@ -1,5 +1,5 @@
 import 'server-only'
-import { getIntegrationValue } from '@/lib/integration-settings'
+import { getIntegrationValue, getIntegrationValues } from '@/lib/integration-settings'
 
 /**
  * Génération d'images — abstraction fournisseur.
@@ -51,27 +51,140 @@ export class ImageGenError extends Error {
  *
  * Ordre des fournisseurs :
  *  1. Gemini, si une clé est configurée ET que l'appel aboutit — meilleure
- *     qualité, et seul à recevoir l'image de référence.
- *  2. Pollinations (FLUX), sans clé ni compte — repli automatique quand Gemini
- *     échoue (typiquement : 429 immédiat de l'offre gratuite, la facturation
- *     Google étant un préalable pour ce modèle et pas toujours activable).
- *     Testé en réel : ~1,5 s par image, prompt long accepté. Texte seul — la
- *     logique de la référence voyage via l'analyse de l'agent 1, ce qui reste
- *     conforme au brief (« ne jamais copier le visuel »).
+ *     qualité, seul à recevoir l'image de référence et à respecter tous les
+ *     formats. Nécessite la facturation Google.
+ *  2. Cloudflare Workers AI (FLUX schnell), si compte + jeton configurés —
+ *     quota quotidien gratuit sans carte bancaire, service sous contrat.
+ *     Limite : sortie carrée uniquement, donc pour un format 9:16/4:5/16:9
+ *     explicitement demandé, Pollinations passe devant (fidélité au format
+ *     avant fiabilité) et Cloudflare reste en dernier recours.
+ *  3. Pollinations (FLUX), sans clé ni compte — communautaire, testé en réel
+ *     (~1,5 s, prompts longs OK) mais sans garantie de disponibilité.
+ * Texte seul pour 2 et 3 : la logique de la référence voyage via l'analyse de
+ * l'agent 1, conforme au brief (« ne jamais copier le visuel »).
  */
 export async function generateImage(input: ImageGenInput): Promise<GeneratedImage> {
-  const apiKey = await getIntegrationValue('gemini_api_key')
+  const config = await getIntegrationValues([
+    'gemini_api_key',
+    'cloudflare_account_id',
+    'cloudflare_api_token',
+  ])
 
-  if (apiKey) {
+  const attempts: Array<() => Promise<GeneratedImage>> = []
+
+  if (config.gemini_api_key) {
+    attempts.push(() => generateWithGemini(input, config.gemini_api_key))
+  }
+
+  const cloudflareReady = config.cloudflare_account_id && config.cloudflare_api_token
+  const { width, height } = dimensionsFor(input.format)
+  const wantsSquare = width === height
+
+  const cloudflare = () =>
+    generateWithCloudflare(input, config.cloudflare_account_id, config.cloudflare_api_token)
+  const pollinations = () => generateWithPollinations(input)
+
+  if (cloudflareReady && wantsSquare) {
+    attempts.push(cloudflare, pollinations)
+  } else if (cloudflareReady) {
+    attempts.push(pollinations, cloudflare)
+  } else {
+    attempts.push(pollinations)
+  }
+
+  let lastError: ImageGenError | null = null
+  for (const attempt of attempts) {
     try {
-      return await generateWithGemini(input, apiKey)
+      return await attempt()
     } catch (error) {
       if (!(error instanceof ImageGenError)) throw error
-      console.warn(`Gemini indisponible (${error.message}) — repli sur Pollinations.`)
+      lastError = error
+      console.warn(`Fournisseur d'images indisponible (${error.message}) — suivant.`)
     }
   }
 
-  return generateWithPollinations(input)
+  throw (
+    lastError ||
+    new ImageGenError(
+      'aucun fournisseur',
+      "Aucun service de génération n'est disponible pour le moment. Réessayez dans un instant.",
+      503
+    )
+  )
+}
+
+/**
+ * Cloudflare Workers AI — FLUX.1 schnell. Réponse JSON `{ result: { image } }`
+ * en base64, toujours carrée (le modèle n'expose pas de dimensions).
+ */
+async function generateWithCloudflare(
+  input: ImageGenInput,
+  accountId: string,
+  token: string
+): Promise<GeneratedImage> {
+  let response: Response
+  try {
+    response = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(accountId)}/ai/run/@cf/black-forest-labs/flux-1-schnell`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ prompt: input.prompt.slice(0, 2048) }),
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      }
+    )
+  } catch (error: any) {
+    const timedOut = error?.name === 'TimeoutError' || error?.name === 'AbortError'
+    throw new ImageGenError(
+      `Appel Cloudflare échoué: ${error?.message || error}`,
+      "Le service de génération est momentanément injoignable.",
+      timedOut ? 504 : 502
+    )
+  }
+
+  const data = await response.json().catch(() => null)
+
+  if (!response.ok || !data?.success) {
+    const detail = JSON.stringify(data?.errors || data || {}).slice(0, 300)
+    console.error('Cloudflare AI a répondu', response.status, detail)
+    if (response.status === 429) {
+      throw new ImageGenError(
+        'Quota Cloudflare atteint (429)',
+        "Le quota quotidien gratuit de Cloudflare est atteint. Réessayez demain.",
+        429
+      )
+    }
+    if (response.status === 401 || response.status === 403) {
+      throw new ImageGenError(
+        `Cloudflare ${response.status}`,
+        "Cloudflare a refusé le jeton d'API. Vérifiez l'identifiant de compte et le jeton dans Intégrations.",
+        502
+      )
+    }
+    throw new ImageGenError(
+      `Cloudflare ${response.status}: ${detail}`,
+      "Le service de génération a renvoyé une erreur. Réessayez dans un instant.",
+      502
+    )
+  }
+
+  const base64 = data?.result?.image
+  if (typeof base64 !== 'string' || !base64) {
+    throw new ImageGenError(
+      'Réponse Cloudflare sans image',
+      "Aucune image n'a été produite. Réessayez dans un instant.",
+      502
+    )
+  }
+
+  const buffer = Buffer.from(base64, 'base64')
+  // Le type n'est pas annoncé dans la réponse JSON : on lit la signature.
+  const mimeType = buffer[0] === 0x89 && buffer[1] === 0x50 ? 'image/png' : 'image/jpeg'
+
+  return { buffer, mimeType, provider: 'cloudflare-flux-schnell' }
 }
 
 /** Dimensions par format demandé ; 4:5 par défaut (feed Instagram/Facebook). */

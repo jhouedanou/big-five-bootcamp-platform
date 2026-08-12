@@ -73,6 +73,25 @@ export const INTEGRATION_FIELDS: IntegrationField[] = [
     group: 'ia',
   },
   {
+    key: 'cloudflare_account_id',
+    label: 'Cloudflare — identifiant de compte',
+    help:
+      'Pour la génération d’images via Workers AI (quota quotidien gratuit, sans carte bancaire). Tableau de bord Cloudflare › Workers & Pages : l’« Account ID » est dans la colonne de droite.',
+    secret: false,
+    envVar: 'CLOUDFLARE_ACCOUNT_ID',
+    group: 'ia',
+    placeholder: '32 caractères hexadécimaux',
+  },
+  {
+    key: 'cloudflare_api_token',
+    label: 'Cloudflare — jeton d’API',
+    help:
+      'Créez-le dans Mon profil › Jetons d’API › Créer un jeton, avec le modèle « Workers AI » (lecture/édition). Les deux champs Cloudflare doivent être remplis pour activer ce fournisseur.',
+    secret: true,
+    envVar: 'CLOUDFLARE_API_TOKEN',
+    group: 'ia',
+  },
+  {
     key: 'gemini_api_key',
     label: 'Google Gemini — clé d’API (optionnelle)',
     help:

@@ -19,11 +19,7 @@ import { useActiveBanners } from "./useActiveBanners"
 import { Countdown } from "./Countdown"
 import { trackEvent } from "@/lib/analytics"
 import { PROMO_TEXT } from "@/lib/promo"
-import {
-  buildBannerUrl,
-  isExternalLink,
-  type DashboardBanner,
-} from "@/lib/dashboard-banners"
+import { buildBannerUrl, type DashboardBanner } from "@/lib/dashboard-banners"
 
 const DISMISSED_KEY = "laveiye:dashboard-hero-dismissed"
 const ROTATE_INTERVAL_MS = 6000
@@ -259,7 +255,10 @@ export function PromoTempsFortsCarousel({ className, embedded }: Props) {
  */
 function BannerCard({ banner }: { banner: DashboardBanner }) {
   const href = buildBannerUrl(banner)
-  const external = isExternalLink(banner.linkUrl)
+  // Toujours un nouvel onglet — exigence explicite du brief bannière (« redirige
+  // vers une landing page externe, dans un nouvel onglet »), y compris quand la
+  // landing vit dans la même application : l'utilisateur ne perd pas son dashboard.
+  const external = true
 
   const onClick = () => {
     trackEvent(

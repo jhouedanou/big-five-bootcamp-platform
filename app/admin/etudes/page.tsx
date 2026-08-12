@@ -389,7 +389,10 @@ export default function AdminStudiesPage() {
                 <table className="w-full min-w-[880px] text-sm">
                   <thead className="border-b border-border bg-muted/40 text-left">
                     <tr>
-                      {["Date", "Nom", "Email", "Téléphone", "Entreprise", "Source", "PDF"].map(
+                      {/* Les neuf champs listés au brief bannière (§7 « Détail des
+                          contacts ») : nom, email, téléphone, entreprise, fonction
+                          (sous le nom), source, campagne, date et étude. */}
+                      {["Date", "Nom", "Email", "Téléphone", "Entreprise", "Étude", "Source", "Campagne", "PDF"].map(
                         (h) => (
                           <th key={h} className="whitespace-nowrap px-4 py-3 font-semibold">
                             {h}
@@ -415,8 +418,14 @@ export default function AdminStudiesPage() {
                         <td className="px-4 py-3">{lead.email}</td>
                         <td className="whitespace-nowrap px-4 py-3">{lead.phone}</td>
                         <td className="px-4 py-3">{lead.company || "—"}</td>
+                        <td className="max-w-[180px] truncate px-4 py-3 text-muted-foreground">
+                          {studies.find((s) => s.id === lead.study_id)?.title || "—"}
+                        </td>
                         <td className="px-4 py-3">
                           <Badge variant="secondary">{lead.utm_source || "direct"}</Badge>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">
+                          {lead.utm_campaign || "—"}
                         </td>
                         <td className="px-4 py-3">
                           {lead.downloaded_at ? (

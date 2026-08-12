@@ -269,10 +269,16 @@ function StudioConversation() {
         const data = await res.json().catch(() => ({}));
 
         if (!res.ok) {
+          // Brief incomplet : le serveur renvoie la liste des champs manquants
+          // (état exigé par le brief IA). Inatteignable via la conversation, qui
+          // garantit la complétude — mais l'état doit exister et être lisible.
+          const missing: string[] = Array.isArray(data.missing) ? data.missing : [];
           say({
             role: "assistant",
             error: true,
-            text: data.error || "La génération a échoué. On réessaie ?",
+            text: missing.length
+              ? `Il me manque encore : ${missing.join(", ")}. Reprenons — répondez aux questions ci-dessous.`
+              : data.error || "La génération a échoué. On réessaie ?",
           });
           setStage({ kind: "extras" });
           return;

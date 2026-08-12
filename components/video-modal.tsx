@@ -47,9 +47,12 @@ export function VideoModal({
   const [slowLoading, setSlowLoading] = useState(false);
 
   const originalUrl = getOriginalVideoUrl(videoUrl || "");
+  // L'URL du fichier fait foi, le libellé déclaré de la campagne n'est qu'un
+  // repli — même priorité que la fiche campagne. L'inverse affichait « Ouvrir
+  // sur Facebook » et une orientation portrait pour une vidéo hébergée sur Drive.
   const declared = platformLabelToVideoPlatform(platformLabel);
   const detected = detectVideoPlatform(originalUrl);
-  const platform = declared !== "unknown" ? declared : detected;
+  const platform = detected !== "unknown" ? detected : declared;
   const displayLabel = getVideoPlatformLabel(platform);
   const embedUrl = getEmbedUrl(videoUrl || "");
   const canEmbed = isEmbeddableVideoUrl(videoUrl || "");

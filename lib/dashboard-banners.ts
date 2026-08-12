@@ -101,8 +101,3 @@ export function isBannerLive(banner: DashboardBanner, now = new Date()): boolean
   if (banner.endsAt && new Date(banner.endsAt) < now) return false
   return true
 }
-
-/** Le lien ouvre-t-il un autre site ? Détermine target/rel. */
-export function isExternalLink(linkUrl: string): boolean {
-  return /^https?:\/\//i.test(linkUrl)
-}

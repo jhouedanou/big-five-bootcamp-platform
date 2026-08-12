@@ -58,10 +58,11 @@ export class ImageGenError extends Error {
  *
  * Le moteur se choisit dans /admin/integrations (champ « modèle »). En
  * « Automatique » : FLUX.2 Klein via Cloudflare quand le compte est configuré
- * (moteur principal), repli qualité sur les modèles Leonardo, puis service
- * gratuit intégré. Un modèle choisi explicitement passe en tête, la chaîne
- * automatique restant derrière lui en secours. Gemini reste branché dans
- * l'abstraction pour le jour où une clé facturée existe.
+ * et que le format est carré (les FLUX Cloudflare n'exposent pas de
+ * dimensions), service intégré sinon ; chaque échec passe au moteur suivant.
+ * Un modèle choisi explicitement passe en tête, la chaîne automatique restant
+ * derrière lui en secours. Gemini reste branché dans l'abstraction pour le
+ * jour où une clé facturée existe.
  * Les modèles hors Gemini ne reçoivent que du texte : la logique de la
  * référence voyage via l'analyse de l'agent 1, conforme au brief.
  */
@@ -69,23 +70,18 @@ export class ImageGenError extends Error {
 /**
  * Modèles Workers AI disponibles pour le studio — gratuits uniquement, par
  * décision d'équipe : seuls les modèles hébergés par Cloudflare sont couverts
- * par le quota quotidien gratuit. Les modèles partenaires (Leonardo Phoenix,
- * Lucid Origin) sont facturés dès la première image et ont été retirés ; les
- * rebrancher = les rajouter ici et dans les options de lib/integration-settings.
+ * par le quota quotidien gratuit. Les modèles partenaires, facturés dès la
+ * première image, ont été retirés ; en rebrancher un = l'ajouter ici et dans
+ * les options de lib/integration-settings (et gérer ses dimensions s'il en a).
  */
-const CF_MODELS: Record<
-  string,
-  { path: string; label: string; supportsDimensions: boolean }
-> = {
+const CF_MODELS: Record<string, { path: string; label: string }> = {
   'flux-2-klein-4b': {
     path: '@cf/black-forest-labs/flux-2-klein-4b',
     label: 'FLUX.2 Klein 4B',
-    supportsDimensions: false,
   },
   'flux-1-schnell': {
     path: '@cf/black-forest-labs/flux-1-schnell',
     label: 'FLUX.1 Schnell',
-    supportsDimensions: false,
   },
 }
 
@@ -166,8 +162,8 @@ export async function generateImage(input: ImageGenInput): Promise<GeneratedImag
 
 /**
  * Cloudflare Workers AI. Réponse JSON `{ result: { image } }` en base64.
- * Les modèles Leonardo acceptent width/height (≤ 2500) ; les FLUX Klein et
- * Schnell n'exposent pas de dimensions — on n'envoie que le prompt.
+ * Les FLUX Klein et Schnell n'exposent pas de dimensions — seul le prompt
+ * part, la sortie est au format natif du modèle (carré).
  */
 async function generateWithCloudflare(
   input: ImageGenInput,
@@ -181,11 +177,6 @@ async function generateWithCloudflare(
   }
   const body: Record<string, unknown> = {
     prompt: (input.diffusionPrompt || input.prompt).slice(0, 2048),
-  }
-  if (spec.supportsDimensions) {
-    const { width, height } = dimensionsFor(input.format)
-    body.width = width
-    body.height = height
   }
 
   let response: Response

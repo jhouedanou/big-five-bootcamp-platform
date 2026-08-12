@@ -7,9 +7,11 @@ import { getIntegrationValues } from "@/lib/integration-settings"
  * Relaie les événements critiques vers GA4 même sans gtag client (webhooks,
  * routes serveur). Best-effort : ne lève jamais, ne bloque jamais l'appelant.
  *
- * Config (env) :
- *  - GA4_MEASUREMENT_ID  (ex: G-H34KN567Q2) — fallback NEXT_PUBLIC_GA_ID
- *  - GA4_API_SECRET      (créé dans Admin GA4 → Flux de données → MP API secrets)
+ * Config : identifiant de mesure et secret d'API saisis dans /admin/integrations
+ * (clés `ga4_measurement_id` / `ga4_api_secret`), avec repli sur les variables
+ * d'environnement GA4_MEASUREMENT_ID (fallback NEXT_PUBLIC_GA_ID) et
+ * GA4_API_SECRET — le secret se crée dans Admin GA4 → Flux de données →
+ * Secrets de l'API Measurement Protocol.
  */
 
 const MEASUREMENT_ID =

@@ -255,10 +255,6 @@ export function PromoTempsFortsCarousel({ className, embedded }: Props) {
  */
 function BannerCard({ banner }: { banner: DashboardBanner }) {
   const href = buildBannerUrl(banner)
-  // Toujours un nouvel onglet — exigence explicite du brief bannière (« redirige
-  // vers une landing page externe, dans un nouvel onglet »), y compris quand la
-  // landing vit dans la même application : l'utilisateur ne perd pas son dashboard.
-  const external = true
 
   const onClick = () => {
     trackEvent(
@@ -277,10 +273,11 @@ function BannerCard({ banner }: { banner: DashboardBanner }) {
     <a
       href={href}
       onClick={onClick}
-      // Lien externe : nouvel onglet, et `noopener` pour que la page ouverte
-      // ne puisse pas manipuler celle-ci via window.opener.
-      target={external ? "_blank" : undefined}
-      rel={external ? "noopener noreferrer" : undefined}
+      // Toujours un nouvel onglet — exigence explicite du brief bannière, y
+      // compris pour une landing interne : l'utilisateur ne perd pas son
+      // dashboard. `noopener` empêche la page ouverte de manipuler celle-ci.
+      target="_blank"
+      rel="noopener noreferrer"
       className="group block h-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F2B33D]"
     >
       {banner.imageUrl && (

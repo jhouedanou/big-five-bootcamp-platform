@@ -64,12 +64,13 @@ export async function GET(request: NextRequest) {
 
     const rows: any[] = []
     for (let offset = 0; offset < EXPORT_MAX_ROWS; offset += BATCH) {
+      // Filtres avant pagination : sans effet fonctionnel avec supabase-js
+      // (simple constructeur d'URL), mais l'ordre logique se lit tel quel.
       let query = admin
         .from('study_leads')
         .select('*')
         .order('created_at', { ascending: false })
-        .range(offset, offset + BATCH - 1)
-      query = applyLeadFilters(query, filters)
+      query = applyLeadFilters(query, filters).range(offset, offset + BATCH - 1)
 
       const { data, error } = await query
       if (error) {

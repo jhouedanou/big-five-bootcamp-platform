@@ -1,12 +1,14 @@
+import "server-only"
 import { createHash } from "crypto"
 import { getIntegrationValues } from "@/lib/integration-settings"
 
 /**
  * Meta Conversions API (LOT F) — doublage serveur des conversions critiques
- * (CompleteRegistration, InitiateCheckout, Purchase).
+ * (Lead, CompleteRegistration, InitiateCheckout, Purchase).
  *
- * - Token : FB_CAPI_ACCESS_TOKEN, exclusivement en variable d'environnement.
- *   JAMAIS committé, JAMAIS exposé côté client (import "server-only").
+ * - Jeton et pixel : configurés dans /admin/integrations (chiffrés en base),
+ *   avec repli sur FB_CAPI_ACCESS_TOKEN en variable d'environnement. Jamais
+ *   committés ni exposés côté client (import "server-only" ci-dessus).
  * - Dédoublonnage : event_id partagé avec le pixel client (fbTrack).
  * - Purchase : déclenché sur confirmation effective du paiement (webhook),
  *   avec value + currency XOF.

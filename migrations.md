@@ -16,17 +16,21 @@ Exécuter dans le **SQL Editor Supabase**, de haut en bas. Toutes idempotentes
 | 8 | `supabase/migrations/08_20260607_user_activity_access.sql` | `users.last_activity_at` + normalisation `access_type` en codes + vue `admin_users` (activity) | #2 (`admin_users`, colonnes users) |
 | 9 | `supabase/migrations/09_20260612_admin_users_phone.sql` | Vue `admin_users` : `phone_number = coalesce(phone_e164, phone_number)` — fixe téléphone vide dans /admin/audience | #8 (vue `admin_users`) |
 | 10 | `supabase/migrations/10_20260623_admin_users_security_invoker.sql` | Vue `admin_users` recréée en `security_invoker = on` (la vue applique la RLS de l'appelant). Postgres 15+ | #9 (vue `admin_users`) |
-| 11 | `supabase/migrations/11_20260812_campaign_comments.sql` | Tables `campaign_comments`, `comment_reports` + index + RLS + GRANTs colonne (flags de modération réservés au serveur) | #1 (`set_updated_at`), table `campaigns` |
-| 12 | `supabase/migrations/12_20260812_studies.sql` | Tables `studies` (seed Tome 1 Finance), `study_leads` + bucket privé `studies` + index `analytics_events(event_name, created_at)` + RLS | #1 (`set_updated_at`, `analytics_events`) |
+| 11 | `supabase/migrations/11_20260812_campaign_comments.sql` | Tables `campaign_comments`, `comment_reports` + index + RLS + GRANTs colonne (flags de modération réservés au serveur) | **aucune** — table `campaigns` uniquement |
+| 12 | `supabase/migrations/12_20260812_studies.sql` | Tables `studies` (seed Tome 1 Finance), `study_leads` + bucket privé `studies` + RLS. Index de funnel sur `analytics_events` créé seulement si la table existe | **aucune** |
 
 ## Règle simple
 
 - **#1 obligatoirement en premier** : crée `set_updated_at()` + `analytics_events` + `profiles` (réutilisés partout).
 - Ensuite **#2**, puis le reste dans l'ordre numérique.
 - Dépendances clés : **#4 après #3** · **#6 après #5** · **#8 après #2** · **#10 après #9**.
-- **#11** est indépendante du reste du lot (hors `set_updated_at()` de #1) : elle peut
-  être exécutée seule pour activer la section Commentaires.
-- **#12** est indépendante elle aussi. Elle crée le bucket privé `studies` mais laisse
+- **#11 et #12 sont autonomes** : elles redéfinissent elles-mêmes `set_updated_at()`
+  (`create or replace`, définition identique à #1) et peuvent donc être exécutées
+  seules sur une base où #1 n'a jamais tourné. Rejouer #1 ensuite ne casse rien.
+- **#12** crée l'index de funnel sur `analytics_events` **seulement si la table
+  existe**. Si elle est absente, la migration réussit avec un `NOTICE` : les
+  études fonctionnent, mais les KPI de `/admin/etudes` nécessiteront #1.
+- **#12** ensuite : Elle crée le bucket privé `studies` mais laisse
   `studies.file_path` à `null` : la landing `/etudes/finance` et la capture de leads
   fonctionnent immédiatement, l'email annonçant un envoi à venir. Pour activer le
   téléchargement, déposer le PDF dans le bucket puis

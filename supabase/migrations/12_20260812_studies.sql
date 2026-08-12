@@ -5,8 +5,21 @@
 -- Bucket : studies (privé — le PDF ne doit jamais avoir d'URL publique devinable,
 --          l'accès passe par un lien signé généré à la demande)
 --
--- Dépend de #1 (fonction public.set_updated_at(), table analytics_events).
+-- Autonome : aucune dépendance à une autre migration.
 -- =============================================================================
+
+-- Fonction utilitaire updated_at. Définie à l'identique dans #1, reprise ici
+-- pour que cette migration puisse tourner seule sur une base où #1 n'a pas été
+-- exécutée. `create or replace` : rejouer #1 ensuite ne casse rien.
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
 
 create table if not exists public.studies (
   id          uuid primary key default gen_random_uuid(),
@@ -71,8 +84,20 @@ create index if not exists study_leads_source_idx  on public.study_leads(utm_sou
 -- Le tableau de bord admin agrège analytics_events par nom d'événement et par
 -- période (visites, formulaires ouverts, téléchargements) — sans cet index, le
 -- filtrage se fait en seq scan sur toute la table.
-create index if not exists analytics_events_name_created_idx
-  on public.analytics_events(event_name, created_at desc);
+-- Conditionnel : analytics_events est créée par #1, qui n'a pas forcément tourné.
+-- Son absence ne doit pas faire échouer la mise en place des études.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.tables
+    where table_schema = 'public' and table_name = 'analytics_events'
+  ) then
+    create index if not exists analytics_events_name_created_idx
+      on public.analytics_events(event_name, created_at desc);
+  else
+    raise notice 'Table analytics_events absente : index de funnel non créé. Exécuter la migration 01 pour les KPI de /admin/etudes.';
+  end if;
+end $$;
 
 -- -----------------------------------------------------------------------------
 -- RLS

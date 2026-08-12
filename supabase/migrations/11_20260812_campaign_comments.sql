@@ -7,8 +7,21 @@
 -- restent en base : ce sont des champs premium (lib/content-access.ts) et les
 -- sources du générateur IA (app/actions/campaign-generator.ts). Ne pas les droper.
 --
--- Dépend de #1 (fonction public.set_updated_at()).
+-- Autonome : ne dépend que de la table `campaigns` et de auth.users.
 -- =============================================================================
+
+-- Fonction utilitaire updated_at. Définie à l'identique dans #1, reprise ici
+-- pour que cette migration puisse tourner seule sur une base où #1 n'a pas été
+-- exécutée. `create or replace` : rejouer #1 ensuite ne casse rien.
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
 
 create table if not exists public.campaign_comments (
   id            uuid primary key default gen_random_uuid(),

@@ -1,4 +1,5 @@
 import "server-only"
+import { getIntegrationValues } from "@/lib/integration-settings"
 
 /**
  * GA4 Measurement Protocol (côté serveur).
@@ -38,7 +39,13 @@ export async function sendGA4ServerEvent(
   params: Record<string, any> = {},
   clientId?: string | null
 ): Promise<boolean> {
-  if (!API_SECRET || !MEASUREMENT_ID) return false
+  // Identifiants lus depuis /admin/integrations, avec repli sur les constantes
+  // d'environnement définies en haut de ce fichier.
+  const configured = await getIntegrationValues(["ga4_measurement_id", "ga4_api_secret"])
+  const measurementId = configured.ga4_measurement_id || MEASUREMENT_ID
+  const apiSecret = configured.ga4_api_secret || API_SECRET
+
+  if (!apiSecret || !measurementId) return false
 
   // MP exige un client_id. À défaut, on en dérive un stable depuis l'event
   // (les rapports temps réel restent corrects ; pas de stitching session).
@@ -47,8 +54,8 @@ export async function sendGA4ServerEvent(
   try {
     const res = await fetch(
       `https://www.google-analytics.com/mp/collect?measurement_id=${encodeURIComponent(
-        MEASUREMENT_ID
-      )}&api_secret=${encodeURIComponent(API_SECRET)}`,
+        measurementId
+      )}&api_secret=${encodeURIComponent(apiSecret)}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

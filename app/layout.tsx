@@ -3,10 +3,24 @@ import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import './globals.css'
 
-// Identifiant GA4. Externalisé en variable d'environnement pour pouvoir basculer
-// de propriété (ou couper la mesure sur un environnement de test) sans toucher
-// au code ; la valeur historique reste le défaut pour ne rien casser en prod.
-const GA_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-H34KN567Q2'
+/**
+ * Identifiant GA4 du script client.
+ *
+ * Lu depuis /admin/integrations, avec repli sur la variable d'environnement puis
+ * sur la valeur historique. La lecture se fait ici, dans un composant serveur :
+ * un aller-retour côté navigateur avant de charger gtag ferait perdre des vues.
+ */
+const FALLBACK_GA_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-H34KN567Q2'
+
+async function resolveGaId(): Promise<string> {
+  try {
+    const { getIntegrationValue } = await import('@/lib/integration-settings')
+    return (await getIntegrationValue('ga4_measurement_id')) || FALLBACK_GA_ID
+  } catch {
+    // Base injoignable : la mesure ne doit pas empêcher la page de s'afficher.
+    return FALLBACK_GA_ID
+  }
+}
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://laveiye.com'
 
@@ -50,11 +64,13 @@ export const viewport: Viewport = {
 import { Providers } from "@/components/providers"
 import { TawkTo } from "@/components/tawk-to"
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const GA_ID = await resolveGaId()
+
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>

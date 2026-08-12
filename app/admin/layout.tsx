@@ -31,6 +31,7 @@ import {
   Layers,
   MessageSquare,
   BookOpen,
+  KeyRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -54,6 +55,7 @@ const sidebarLinks = [
   { href: "/admin/keynote", label: "Keynote 21 mai", icon: Megaphone, description: "Inscriptions & codes promo" },
   { href: "/admin/decrypte", label: "#BigFiveDecrypte", icon: Sparkles, description: "Inscriptions session Pro" },
   { href: "/admin/webinars", label: "Webinaires", icon: Video, description: "Sessions & inscriptions" },
+  { href: "/admin/integrations", label: "Intégrations", icon: KeyRound, description: "Clés Analytics, Meta & IA" },
   { href: "/admin/branding", label: "Branding", icon: Palette, description: "Logo et identité" },
   { href: "/admin/settings", label: "Paramètres", icon: Settings, description: "Configuration" },
 ];

@@ -1,4 +1,5 @@
 import { createHash } from "crypto"
+import { getIntegrationValues } from "@/lib/integration-settings"
 
 /**
  * Meta Conversions API (LOT F) — doublage serveur des conversions critiques
@@ -11,8 +12,12 @@ import { createHash } from "crypto"
  *   avec value + currency XOF.
  */
 
-const FB_PIXEL_ID = "1889630218258683"
-const GRAPH_URL = `https://graph.facebook.com/v21.0/${FB_PIXEL_ID}/events`
+/** Pixel par défaut, si rien n'est saisi dans /admin/integrations. */
+const DEFAULT_FB_PIXEL_ID = "1889630218258683"
+
+function graphUrl(pixelId: string): string {
+  return `https://graph.facebook.com/v21.0/${pixelId}/events`
+}
 
 function sha256(value: string): string {
   return createHash("sha256").update(value).digest("hex")
@@ -40,10 +45,17 @@ export interface FbCapiEventInput {
  * retourne { ok } pour log éventuel. No-op si le token n'est pas configuré.
  */
 export async function sendFbCapiEvent(input: FbCapiEventInput): Promise<{ ok: boolean; error?: string }> {
-  const token = process.env.FB_CAPI_ACCESS_TOKEN
+  // Jeton et pixel lus depuis /admin/integrations, avec repli sur les variables
+  // d'environnement. Faire tourner un jeton compromis ne demande donc plus de
+  // déploiement — c'est l'intérêt principal de ce basculement.
+  const { meta_capi_token: token, meta_pixel_id: pixelId } = await getIntegrationValues([
+    "meta_capi_token",
+    "meta_pixel_id",
+  ])
+
   if (!token) {
     // Pas configuré : silencieux (environnements de dev/test).
-    return { ok: false, error: "FB_CAPI_ACCESS_TOKEN non configuré" }
+    return { ok: false, error: "Jeton Conversions API non configuré" }
   }
 
   const userData: Record<string, unknown> = {}
@@ -75,7 +87,8 @@ export async function sendFbCapiEvent(input: FbCapiEventInput): Promise<{ ok: bo
   }
 
   try {
-    const response = await fetch(`${GRAPH_URL}?access_token=${encodeURIComponent(token)}`, {
+    const url = graphUrl(pixelId || DEFAULT_FB_PIXEL_ID)
+    const response = await fetch(`${url}?access_token=${encodeURIComponent(token)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

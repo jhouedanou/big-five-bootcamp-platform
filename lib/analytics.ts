@@ -45,6 +45,13 @@ export type AnalyticsEventName =
   | "webinar_registration_completed"
   | "webinar_confirmation_email_sent"
   | "webinar_calendar_added"
+  // Funnel d'acquisition (brief trackers, niveaux 2 et 3)
+  // NB : le pixel Meta « CompleteRegistration » est déjà déclenché à la
+  // création de compte (app/register/page.tsx). Le brief place plutôt cet
+  // événement à la complétion du profil — le corriger casserait les audiences
+  // Meta existantes, donc on ajoute ici la mesure GA4/Supabase sans y toucher.
+  | "sign_up"
+  | "email_verified"
   // Bannières éditoriales du dashboard (table dashboard_banners)
   | "banner_impression"
   | "banner_click"

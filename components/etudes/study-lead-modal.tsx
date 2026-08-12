@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { StudyContent } from "@/lib/studies";
 import { trackEvent } from "@/lib/analytics";
+import { fbTrack } from "@/lib/fb-pixel";
 
 interface UtmParams {
   utm_source?: string;
@@ -113,6 +114,13 @@ export function StudyLeadModal({ open, onClose, study, utm }: Props) {
         },
         true
       );
+
+      // Pixel Meta avec l'event_id renvoyé par le serveur : celui-ci a déjà
+      // envoyé le même Lead via la Conversions API, Meta dédoublonne sur cet
+      // identifiant. Sans consentement marketing, fbTrack est un no-op.
+      if (data.eventId) {
+        fbTrack("Lead", { content_name: study.title }, data.eventId);
+      }
 
       // Trois issues distinctes : fichier prêt, fichier pas encore déposé, ou
       // email en échec. Le lead est enregistré dans les trois cas — le message

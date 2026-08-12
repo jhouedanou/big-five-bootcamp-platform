@@ -3,7 +3,10 @@ import type { Metadata, Viewport } from 'next'
 import Script from 'next/script'
 import './globals.css'
 
-const GA_ID = 'G-H34KN567Q2'
+// Identifiant GA4. Externalisé en variable d'environnement pour pouvoir basculer
+// de propriété (ou couper la mesure sur un environnement de test) sans toucher
+// au code ; la valeur historique reste le défaut pour ne rien casser en prod.
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-H34KN567Q2'
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://laveiye.com'
 

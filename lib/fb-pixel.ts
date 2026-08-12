@@ -84,6 +84,7 @@ export function fbTrack(
     | "PageView"
     | "ViewContent"
     | "Search"
+    | "Lead"
     | "CompleteRegistration"
     | "InitiateCheckout"
     | "Purchase",

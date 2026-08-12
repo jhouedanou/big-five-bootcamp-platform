@@ -15,6 +15,7 @@ import { LegalModal } from "@/components/legal-modal"
 import { createClient } from "@/lib/supabase"
 import { PhoneInput, isValidPhone, type PhoneInputValue } from "@/components/phone-input"
 import { fbTrack, newFbEventId } from "@/lib/fb-pixel"
+import { trackEvent } from "@/lib/analytics"
 
 function formatNumber(n: number): string {
   if (n >= 1000) {
@@ -156,6 +157,11 @@ export default function RegisterPage() {
 
       // Pixel : compte créé (doublé côté serveur via CAPI, même event_id).
       fbTrack("CompleteRegistration", {}, fbEventId)
+
+      // Mesure GA4 / Supabase du niveau « Sign Up » du brief trackers.
+      // Ajoutée en plus du pixel ci-dessus, pas à la place : renommer
+      // l'événement Meta casserait les audiences déjà constituées.
+      trackEvent("sign_up", { needs_email_confirmation: !!data.needsEmailConfirmation }, true)
 
       if (data.needsEmailConfirmation) {
         toast.success("Compte créé ! 📧", {

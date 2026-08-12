@@ -19,7 +19,10 @@ function sha256(value: string): string {
 }
 
 export interface FbCapiEventInput {
-  eventName: "CompleteRegistration" | "InitiateCheckout" | "Purchase"
+  // `Lead` ajouté pour le funnel des études téléchargeables : la soumission du
+  // formulaire est une conversion serveur, donc fiable même si le pixel client
+  // est bloqué. Cf. brief trackers, niveau 1.
+  eventName: "CompleteRegistration" | "InitiateCheckout" | "Purchase" | "Lead"
   /** event_id partagé avec le pixel pour le dédoublonnage. */
   eventId: string
   email?: string | null

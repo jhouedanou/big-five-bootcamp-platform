@@ -1,8 +1,9 @@
 "use client"
 
-import { Suspense } from "react"
+import { Suspense, useEffect } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
+import { trackEvent } from "@/lib/analytics"
 import { CheckCircle2, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,6 +21,14 @@ function AuthVerifiedContent() {
   // le flow de confirmation d'email (QA T53).
   const next = sanitizeNext(searchParams.get("next"))
   const loginHref = next ? `/login?redirect=${encodeURIComponent(next)}` : "/login"
+
+  // Niveau 3 du brief trackers. Cette page n'est atteinte qu'après un clic sur
+  // le lien de confirmation reçu par email : l'événement mesure donc bien une
+  // adresse validée. L'utilisateur n'est pas encore connecté, l'événement est
+  // donc anonyme — /api/analytics/track l'accepte.
+  useEffect(() => {
+    trackEvent("email_verified", { source: "web" }, true)
+  }, [])
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#F5F5F5] via-white to-white p-4">

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomUUID } from 'crypto'
 import { getSupabaseAdmin } from '@/lib/supabase-server'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { sendStudyDeliveryEmail } from '@/lib/study-emails'
@@ -171,11 +172,35 @@ export async function POST(request: NextRequest) {
       console.error('Envoi email étude échoué:', emailResult.error)
     }
 
+    // Conversion Meta côté serveur. Contrairement au pixel, elle n'est pas
+    // bloquée par un adblocker. `eventId` est renvoyé au client pour qu'il
+    // déclenche le même événement avec le même identifiant : Meta dédoublonne.
+    // Uniquement sur une vraie nouvelle inscription — un renvoi de lien ne doit
+    // pas gonfler le compte de conversions.
+    const eventId = randomUUID()
+    if (!alreadyRegistered) {
+      void import('@/lib/fb-capi')
+        .then(({ sendFbCapiEvent }) =>
+          sendFbCapiEvent({
+            eventName: 'Lead',
+            eventId,
+            email,
+            phone,
+            eventSourceUrl: request.headers.get('referer') || undefined,
+            clientIp: ip,
+            userAgent: request.headers.get('user-agent'),
+            customData: { content_name: (study as any).title, study_slug: slug },
+          })
+        )
+        .catch((err) => console.error('CAPI Lead échoué:', err))
+    }
+
     return NextResponse.json({
       success: true,
       alreadyRegistered,
       emailSent: emailResult.ok,
       fileAvailable: !!(study as any).file_path,
+      eventId: alreadyRegistered ? null : eventId,
     })
   } catch (error) {
     console.error('Erreur POST study lead:', error)

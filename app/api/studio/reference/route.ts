@@ -61,7 +61,10 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   const isAdmin = (profile as any)?.role === 'admin'
-  if (!isAdmin && !canAccessPremiumContent(profile as any)) {
+  // canAccessPremiumContent attend le NOM du plan, pas l'objet profil — lui
+  // passer l'objet faisait planter (plan || '').toLowerCase() en 500 pour tout
+  // utilisateur non-admin en base. Le repro n'était pas passé par cette branche.
+  if (!isAdmin && !canAccessPremiumContent((profile as any)?.plan)) {
     return NextResponse.json(
       { error: 'Le studio publicitaire est réservé aux abonnés.', code: 'premium_required' },
       { status: 403 }

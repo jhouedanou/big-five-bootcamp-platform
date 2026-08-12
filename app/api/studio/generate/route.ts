@@ -41,7 +41,8 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
 
   const isAdmin = (profile as any)?.role === 'admin'
-  if (!isAdmin && !canAccessPremiumContent(profile as any)) {
+  // Le NOM du plan, pas l'objet profil — cf. même correction dans reference/route.ts.
+  if (!isAdmin && !canAccessPremiumContent((profile as any)?.plan)) {
     return NextResponse.json(
       {
         error: 'Le studio publicitaire est réservé aux abonnés.',

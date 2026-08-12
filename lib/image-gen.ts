@@ -66,7 +66,13 @@ export class ImageGenError extends Error {
  * référence voyage via l'analyse de l'agent 1, conforme au brief.
  */
 
-/** Modèles Workers AI disponibles pour le studio. */
+/**
+ * Modèles Workers AI disponibles pour le studio — gratuits uniquement, par
+ * décision d'équipe : seuls les modèles hébergés par Cloudflare sont couverts
+ * par le quota quotidien gratuit. Les modèles partenaires (Leonardo Phoenix,
+ * Lucid Origin) sont facturés dès la première image et ont été retirés ; les
+ * rebrancher = les rajouter ici et dans les options de lib/integration-settings.
+ */
 const CF_MODELS: Record<
   string,
   { path: string; label: string; supportsDimensions: boolean }
@@ -75,16 +81,6 @@ const CF_MODELS: Record<
     path: '@cf/black-forest-labs/flux-2-klein-4b',
     label: 'FLUX.2 Klein 4B',
     supportsDimensions: false,
-  },
-  'phoenix-1.0': {
-    path: '@cf/leonardo/phoenix-1.0',
-    label: 'Leonardo Phoenix',
-    supportsDimensions: true,
-  },
-  'lucid-origin': {
-    path: '@cf/leonardo/lucid-origin',
-    label: 'Leonardo Lucid Origin',
-    supportsDimensions: true,
   },
   'flux-1-schnell': {
     path: '@cf/black-forest-labs/flux-1-schnell',
@@ -112,10 +108,19 @@ export async function generateImage(input: ImageGenInput): Promise<GeneratedImag
   const pollinations: Attempt = { key: 'pollinations', run: () => generateWithPollinations(input) }
   const gemini: Attempt = { key: 'gemini', run: () => generateWithGemini(input, config.gemini_api_key) }
 
-  // Chaîne automatique : Klein d'abord, repli qualité Leonardo, gratuit ensuite.
+  // Chaîne automatique. Les FLUX Cloudflare sortent en carré uniquement : pour
+  // un format vertical/horizontal explicitement demandé, le service intégré
+  // (qui respecte les dimensions) passe devant — fidélité au format d'abord.
+  const { width, height } = dimensionsFor(input.format)
+  const wantsSquare = width === height
   const auto: Attempt[] = []
-  if (cloudflareReady) auto.push(cf('flux-2-klein-4b'), cf('phoenix-1.0'), cf('lucid-origin'))
-  auto.push(pollinations)
+  if (cloudflareReady && wantsSquare) {
+    auto.push(cf('flux-2-klein-4b'), cf('flux-1-schnell'), pollinations)
+  } else if (cloudflareReady) {
+    auto.push(pollinations, cf('flux-2-klein-4b'), cf('flux-1-schnell'))
+  } else {
+    auto.push(pollinations)
+  }
 
   // Choix explicite : le modèle demandé passe en tête, l'automatique en secours.
   const attempts: Attempt[] = []

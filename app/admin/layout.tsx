@@ -42,6 +42,7 @@ const sidebarLinks = [
   { href: "/admin/bulk-editor", label: "Éditeur en masse", icon: Layers, description: "Images, vidéos & métadonnées" },
   { href: "/admin/temps-forts", label: "Temps forts", icon: CalendarHeart, description: "Événements & campagnes" },
   { href: "/admin/commentaires", label: "Commentaires", icon: MessageSquare, description: "Modération & signalements" },
+  { href: "/admin/bannieres", label: "Bannières", icon: Megaphone, description: "Dashboard & campagnes UTM" },
   { href: "/admin/users", label: "Utilisateurs", icon: Users, description: "Gérer les accès" },
   { href: "/admin/audience", label: "Segmentation", icon: Filter, description: "Filtres, tags & KPI" },
   { href: "/admin/brand-requests", label: "Veille concurrentielle", icon: Building2, description: "Demandes de veille" },

@@ -15,9 +15,15 @@ import { useTempsFortsOverrides } from "@/components/temps-forts/use-temps-forts
 import { useTempsForts } from "@/components/temps-forts/use-temps-forts"
 import { useAuthContext } from "@/components/auth-provider"
 import { useActivePromo } from "./useActivePromo"
+import { useActiveBanners } from "./useActiveBanners"
 import { Countdown } from "./Countdown"
 import { trackEvent } from "@/lib/analytics"
 import { PROMO_TEXT } from "@/lib/promo"
+import {
+  buildBannerUrl,
+  isExternalLink,
+  type DashboardBanner,
+} from "@/lib/dashboard-banners"
 
 const DISMISSED_KEY = "laveiye:dashboard-hero-dismissed"
 const ROTATE_INTERVAL_MS = 6000
@@ -34,7 +40,10 @@ function isActivePro(profile: any): boolean {
   )
 }
 
-type Slide = { kind: "tf"; tf: TempsFort } | { kind: "promo" }
+type Slide =
+  | { kind: "tf"; tf: TempsFort }
+  | { kind: "promo" }
+  | { kind: "banner"; banner: DashboardBanner }
 
 interface Props {
   className?: string
@@ -53,6 +62,7 @@ export function PromoTempsFortsCarousel({ className, embedded }: Props) {
   const { tempsForts } = useTempsForts()
   const { userProfile, isAuthenticated } = useAuthContext()
   const { promo, loading: promoLoading, preview } = useActivePromo()
+  const { banners } = useActiveBanners()
 
   const [mounted, setMounted] = useState(false)
   const [dismissed, setDismissed] = useState(false)
@@ -60,6 +70,7 @@ export function PromoTempsFortsCarousel({ className, embedded }: Props) {
   const [paused, setPaused] = useState(false)
   const [promoExpired, setPromoExpired] = useState(false)
   const promoViewedRef = useRef(false)
+  const bannerSeenRef = useRef<Set<string>>(new Set())
 
   // Temps forts à afficher (même logique que la bannière historique).
   const tfSlides = useMemo<TempsFort[]>(() => {
@@ -84,12 +95,14 @@ export function PromoTempsFortsCarousel({ className, embedded }: Props) {
     !promoExpired &&
     (preview || !isActivePro(userProfile))
 
-  // Diapos unifiées : Temps forts puis promo (alternance au défilement).
+  // Diapos unifiées : bannières éditoriales d'abord (campagne en cours, donc
+  // priorité), puis Temps forts, puis promo.
   const slides = useMemo<Slide[]>(() => {
-    const list: Slide[] = tfSlides.map((tf) => ({ kind: "tf", tf }))
+    const list: Slide[] = banners.map((banner) => ({ kind: "banner" as const, banner }))
+    list.push(...tfSlides.map((tf) => ({ kind: "tf" as const, tf })))
     if (promoVisible) list.push({ kind: "promo" })
     return list
-  }, [tfSlides, promoVisible])
+  }, [banners, tfSlides, promoVisible])
 
   const version = overrides?.version ?? 1
 
@@ -128,6 +141,26 @@ export function PromoTempsFortsCarousel({ className, embedded }: Props) {
     }
   }, [current, promo])
 
+  // Une impression par bannière et par session de page : le carrousel tourne en
+  // boucle, compter chaque rotation gonflerait artificiellement le dénominateur
+  // du taux de conversion.
+  useEffect(() => {
+    if (current?.kind !== "banner") return
+    const { banner } = current
+    if (bannerSeenRef.current.has(banner.id)) return
+    bannerSeenRef.current.add(banner.id)
+    trackEvent(
+      "banner_impression",
+      {
+        banner_id: banner.id,
+        banner_title: banner.title,
+        utm_campaign: banner.utmCampaign,
+        source: "dashboard",
+      },
+      true
+    )
+  }, [current])
+
   if (!mounted || dismissed || slides.length === 0 || !current) return null
 
   const closeBanner = () => {
@@ -146,6 +179,8 @@ export function PromoTempsFortsCarousel({ className, embedded }: Props) {
     >
       {current.kind === "tf" ? (
         <TempsFortCard tf={current.tf} index={index} total={slides.length} hasMultiple={hasMultiple} />
+      ) : current.kind === "banner" ? (
+        <BannerCard banner={current.banner} />
       ) : (
         promo && (
           <PromoCard
@@ -178,7 +213,13 @@ export function PromoTempsFortsCarousel({ className, embedded }: Props) {
           <div className="absolute bottom-3 left-6 flex items-center gap-1.5 sm:left-8">
             {slides.map((slide, i) => (
               <button
-                key={slide.kind === "tf" ? slide.tf.id : "promo"}
+                key={
+                  slide.kind === "tf"
+                    ? slide.tf.id
+                    : slide.kind === "banner"
+                      ? slide.banner.id
+                      : "promo"
+                }
                 type="button"
                 onClick={() => setIndex(i)}
                 aria-label={`Aller à la diapositive ${i + 1}`}
@@ -209,6 +250,72 @@ export function PromoTempsFortsCarousel({ className, embedded }: Props) {
     <section className={className}>
       <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">{card}</div>
     </section>
+  )
+}
+
+/**
+ * Diapo bannière éditoriale (table dashboard_banners), pilotée depuis
+ * /admin/bannieres. Toute la surface est cliquable, comme demandé au brief.
+ */
+function BannerCard({ banner }: { banner: DashboardBanner }) {
+  const href = buildBannerUrl(banner)
+  const external = isExternalLink(banner.linkUrl)
+
+  const onClick = () => {
+    trackEvent(
+      "banner_click",
+      {
+        banner_id: banner.id,
+        banner_title: banner.title,
+        utm_campaign: banner.utmCampaign,
+        source: "dashboard",
+      },
+      true
+    )
+  }
+
+  return (
+    <a
+      href={href}
+      onClick={onClick}
+      // Lien externe : nouvel onglet, et `noopener` pour que la page ouverte
+      // ne puisse pas manipuler celle-ci via window.opener.
+      target={external ? "_blank" : undefined}
+      rel={external ? "noopener noreferrer" : undefined}
+      className="group block h-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F2B33D]"
+    >
+      {banner.imageUrl && (
+        <div className="absolute inset-y-0 right-0 hidden w-1/2 md:block">
+          <Image
+            src={banner.imageUrl}
+            alt=""
+            fill
+            sizes="50vw"
+            className="object-cover"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#FFF4D6] via-[#FFF4D6]/50 to-transparent dark:from-card dark:via-card/50" />
+        </div>
+      )}
+
+      <div className="relative flex h-full flex-col justify-center gap-2 px-6 py-6 sm:px-8 md:max-w-[58%]">
+        <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-foreground/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide">
+          <Sparkles className="h-3 w-3" />
+          À la une
+        </span>
+
+        <h3 className="text-lg font-bold leading-snug sm:text-xl">{banner.title}</h3>
+
+        {banner.body && (
+          <p className="line-clamp-2 max-w-xl text-sm text-muted-foreground">{banner.body}</p>
+        )}
+
+        <span className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-full bg-[#F2B33D] px-4 py-2 text-sm font-bold text-[#0F0F0F] transition-transform group-hover:translate-x-0.5">
+          {banner.ctaLabel}
+          <ArrowRight className="h-4 w-4" />
+        </span>
+      </div>
+    </a>
   )
 }
 

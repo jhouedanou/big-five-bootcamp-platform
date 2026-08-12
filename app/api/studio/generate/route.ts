@@ -194,7 +194,9 @@ export async function POST(request: NextRequest) {
     })
   } catch (error: any) {
     if (error instanceof ImageGenError) {
-      return await fail(error.message, error.userMessage)
+      // Le statut vient de l'erreur : un quota fournisseur est un 429, pas un
+      // 500 — le navigateur et les logs racontent alors la vraie histoire.
+      return await fail(error.message, error.userMessage, error.status)
     }
     return await fail(
       `Erreur inattendue: ${error?.message || error}`,

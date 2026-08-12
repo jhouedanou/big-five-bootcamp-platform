@@ -34,7 +34,9 @@ export class ImageGenError extends Error {
   constructor(
     message: string,
     /** Message destiné à l'utilisateur, sans détail technique. */
-    readonly userMessage: string
+    readonly userMessage: string,
+    /** Statut HTTP à renvoyer au client — un quota n'est pas un 500. */
+    readonly status: number = 502
   ) {
     super(message)
     this.name = 'ImageGenError'
@@ -50,7 +52,8 @@ export async function generateImage(input: ImageGenInput): Promise<GeneratedImag
   if (!apiKey) {
     throw new ImageGenError(
       'gemini_api_key absente',
-      "La génération d'images n'est pas encore configurée. Un administrateur doit renseigner la clé dans Intégrations."
+      "La génération d'images n'est pas encore configurée. Un administrateur doit renseigner la clé dans Intégrations.",
+      503
     )
   }
 
@@ -91,15 +94,20 @@ export async function generateImage(input: ImageGenInput): Promise<GeneratedImag
     console.error('Gemini a répondu', response.status, detail.slice(0, 400))
 
     if (response.status === 429) {
+      // Vérifié en conditions réelles : l'offre gratuite refuse ce modèle dès
+      // la première requête (generate_content_free_tier_requests ≈ 0). Un 429
+      // immédiat signifie donc « facturation non activée », pas « revenez demain ».
       throw new ImageGenError(
-        'Quota Gemini dépassé',
-        "Le quota de génération du jour est atteint côté fournisseur. Réessayez demain."
+        'Quota Gemini dépassé (429)',
+        "Le quota du fournisseur d'images est atteint. Si cela se produit dès la première utilisation, la facturation du compte Google n'est pas activée — c'est un préalable pour ce modèle. Voir avec un administrateur (Intégrations).",
+        429
       )
     }
     if (response.status === 400 || response.status === 403) {
       throw new ImageGenError(
         `Gemini ${response.status}`,
-        "La génération a été refusée. Vérifiez la clé d'API dans Intégrations, ou reformulez votre brief."
+        "La génération a été refusée. Vérifiez la clé d'API dans Intégrations, ou reformulez votre brief.",
+        502
       )
     }
     throw new ImageGenError(

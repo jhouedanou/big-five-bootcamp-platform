@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin, getAuthenticatedUser } from '@/lib/supabase-server'
 import { canAccessPremiumContent } from '@/lib/pricing'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
+import { safeErrorMessage } from '@/lib/api-errors'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -110,7 +111,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ path, previewUrl: signed?.signedUrl || null })
   } catch (error: any) {
-    console.error('Erreur POST référence studio:', error?.message || error)
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+    // Pile complète côté serveur + cause résumée dans la réponse : un 500 nu
+    // est indiagnosticable depuis le navigateur.
+    console.error('Erreur POST référence studio:', error?.stack || error)
+    return NextResponse.json(
+      { error: 'Erreur serveur', details: safeErrorMessage(error) },
+      { status: 500 }
+    )
   }
 }

@@ -11,12 +11,79 @@ import { useAuthContext } from "@/components/auth-provider"
 import { useFavorites } from "@/hooks/use-favorites"
 import { toastCampaignShortcut } from "@/lib/campaign-shortcut-toast"
 import { cn, getGoogleDriveImageUrl } from "@/lib/utils"
-import { detectVideoPlatform } from "@/lib/video-utils"
+import { detectVideoPlatform, isDirectVideoFile } from "@/lib/video-utils"
 import { canAccessPremiumContent } from "@/lib/pricing"
 import { CountryFlag } from "@/components/ui/country-flag"
 import { XLogo } from "@/components/icons/x-logo"
 import { format, parseISO } from "date-fns"
 import { fr } from "date-fns/locale"
+
+/**
+ * Prévisualisation vidéo au survol (brief vidéos, priorité 4).
+ *
+ * Montée uniquement au survol — rien n'est téléchargé tant que le curseur
+ * n'est pas sur la carte — après un court délai pour ne pas déclencher au
+ * simple passage. Silencieuse, en boucle ; au départ du curseur le composant
+ * est démonté et la vignette avec son bouton Play réapparaissent.
+ *
+ * Réservée aux fichiers vidéo directs (mp4/webm, bucket `videos`) : les pages
+ * d'intégration Drive ou sociales ne permettent pas d'aperçu muet fiable. Sur
+ * écran tactile (pas de survol), le comportement du brief est « lecture au
+ * clic » : le tap ouvre la fiche, où le lecteur se lance — rien à monter ici.
+ */
+function HoverVideoPreview({ src, active }: { src: string; active: boolean }) {
+  const [ready, setReady] = React.useState(false)
+  const [failed, setFailed] = React.useState(false)
+
+  React.useEffect(() => {
+    if (!active) setReady(false)
+  }, [active])
+
+  if (!active || failed) return null
+
+  return (
+    <video
+      src={src}
+      muted
+      loop
+      playsInline
+      autoPlay
+      preload="metadata"
+      aria-hidden="true"
+      onCanPlay={() => setReady(true)}
+      onError={() => setFailed(true)}
+      className={cn(
+        // z-[4] : au-dessus de l'image, sous le verrou premium (z-[5]).
+        "absolute inset-0 z-[4] h-full w-full object-cover transition-opacity duration-200",
+        ready ? "opacity-100" : "opacity-0"
+      )}
+    />
+  )
+}
+
+/** Survol différé : vrai 250 ms après l'entrée, faux dès la sortie. */
+function useDelayedHover(delayMs = 250) {
+  const [hovering, setHovering] = React.useState(false)
+  const timerRef = React.useRef<number | null>(null)
+
+  const onMouseEnter = React.useCallback(() => {
+    timerRef.current = window.setTimeout(() => setHovering(true), delayMs)
+  }, [delayMs])
+
+  const onMouseLeave = React.useCallback(() => {
+    if (timerRef.current) window.clearTimeout(timerRef.current)
+    setHovering(false)
+  }, [])
+
+  React.useEffect(
+    () => () => {
+      if (timerRef.current) window.clearTimeout(timerRef.current)
+    },
+    []
+  )
+
+  return { hovering, onMouseEnter, onMouseLeave }
+}
 
 export interface ContentItem {
   id: string
@@ -89,6 +156,12 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
   // Verrou Premium : seuls les abonnés Basic ou Pro (ou admins) peuvent ouvrir une campagne premium.
   // Free et Basic voient l'image floutée et la navigation est bloquée côté carte.
   const isPremiumLocked = isPremium && !isAdmin && !canAccessPremiumContent(userPlan)
+
+  // Prévisualisation au survol : fichiers vidéo directs seulement, jamais sur
+  // un contenu verrouillé (l'aperçu contournerait le flou premium).
+  const canHoverPreview =
+    !!content.isVideo && !!content.videoUrl && !isPremiumLocked && isDirectVideoFile(content.videoUrl)
+  const { hovering, onMouseEnter, onMouseLeave } = useDelayedHover()
   const { isFavorite, toggleFavorite, isAuthenticated, loading: favLoading } = useFavorites()
   const [isToggling, setIsToggling] = React.useState(false)
   const isCurrentFavorite = isFavorite(content.id)
@@ -256,7 +329,14 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
           ? "ring-2 ring-amber-400/80 shadow-lg shadow-amber-400/20 hover:shadow-amber-400/30 hover:ring-amber-300"
           : "hover:shadow-[#F2B33D]/10"
       }`}>
-        <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-[#0A1F44] to-[#1a3a6e]">
+        <div
+          className="relative aspect-square overflow-hidden bg-gradient-to-br from-[#0A1F44] to-[#1a3a6e]"
+          onMouseEnter={canHoverPreview ? onMouseEnter : undefined}
+          onMouseLeave={canHoverPreview ? onMouseLeave : undefined}
+        >
+          {canHoverPreview && (
+            <HoverVideoPreview src={content.videoUrl!} active={hovering} />
+          )}
           {content.imageUrl ? (
             <Image
               src={getGoogleDriveImageUrl(content.imageUrl) || "/placeholder.svg"}

@@ -68,6 +68,7 @@ import { cn, getGoogleDriveImageUrl, generateSlug, isEphemeralGoogleImageUrl, is
 import { DatePicker } from "@/components/ui/date-picker";
 import { detectVideoPlatform, getEmbedUrl, isSupportedVideoUrl, getYouTubeThumbnail, getVideoPlatformLabel, getOriginalVideoUrl, isEmbeddableVideoUrl, platformLabelToVideoPlatform } from "@/lib/video-utils";
 import { ImageUpload, ImageUploadButton } from "@/components/ui/image-upload";
+import { VideoUploadButton } from "@/components/ui/video-upload";
 import { useTempsForts } from "@/components/temps-forts/use-temps-forts";
 import { VideoModal } from "@/components/video-modal";
 
@@ -1700,7 +1701,28 @@ function CampaignsPageContent() {
                         </Button>
                       )}
                     </div>
-                    
+
+                    {/* Hébergement direct du fichier (bucket `videos`) : lecture
+                        instantanée dans le lecteur interne ET prévisualisation au
+                        survol sur le dashboard — impossible avec un lien Drive ou
+                        social. Le bouton remplit le champ URL ci-dessus. */}
+                    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-[#F2B33D]/50 bg-[#FFF6E3]/50 p-3 dark:bg-[#F2B33D]/10">
+                      <VideoUploadButton
+                        onUploaded={(url) => {
+                          setFormData((prev) => ({ ...prev, videoUrl: url }));
+                          toast.success("Vidéo hébergée sur la plateforme", {
+                            description:
+                              "Lecture interne garantie et aperçu au survol activé sur le dashboard.",
+                          });
+                        }}
+                      />
+                      <p className="min-w-[200px] flex-1 text-xs text-gray-600 dark:text-gray-400">
+                        <strong>Recommandé :</strong> téléversez le fichier (MP4/WebM/MOV,
+                        200 Mo max) plutôt qu&apos;un lien Drive — lecture immédiate et{" "}
+                        <strong>aperçu au survol</strong> sur le tableau de bord.
+                      </p>
+                    </div>
+
                     {/* Indicateur de plateforme détectée */}
                     {formData.videoUrl && formData.videoUrl.trim() && (
                       <div className="flex items-center gap-2">

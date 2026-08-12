@@ -316,6 +316,18 @@ export function getYouTubeThumbnail(url: string): string | null {
 }
 
 /**
+ * Vrai si l'URL pointe directement sur un fichier vidéo lisible par `<video>` :
+ * extension explicite, ou fichier du bucket Supabase `videos`. C'est la
+ * condition de la prévisualisation au survol — les pages d'intégration
+ * (YouTube, Drive, réseaux sociaux) ne permettent pas d'aperçu muet fiable.
+ */
+export function isDirectVideoFile(url: string): boolean {
+  if (!url) return false;
+  if (/\.(mp4|webm|mov|m4v|ogv)(\?|#|$)/i.test(url)) return true;
+  return /\/storage\/v1\/object\/(public|sign)\/videos\//.test(url);
+}
+
+/**
  * Génère l'URL de la vignette d'une vidéo hébergée sur Google Drive.
  *
  * Drive expose un endpoint de vignette pour tout fichier qu'il sait prévisualiser,

@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin, getAuthenticatedUser } from '@/lib/supabase-server'
 import { canAccessPremiumContent } from '@/lib/pricing'
-import { missingFields, analyzeReference, buildGenerationPrompt } from '@/lib/ad-studio'
+import {
+  missingFields,
+  analyzeReference,
+  buildGenerationPrompt,
+  buildTextIntent,
+  buildDiffusionPrompt,
+} from '@/lib/ad-studio'
 import { generateImage, ImageGenError } from '@/lib/image-gen'
 
 export const runtime = 'nodejs'
@@ -152,8 +158,18 @@ export async function POST(request: NextRequest) {
 
     // Agent 1 → agent 2, enchaînés sans intervention.
     const analysis = await analyzeReference(reference)
+    const intent = await buildTextIntent(brief, analysis)
+    // Deux prompts pour deux familles de modèles : instructions (Gemini, et
+    // copiable dans ChatGPT), description de scène (FLUX). Envoyer les
+    // instructions à un modèle de diffusion produisait des images médiocres.
     const prompt = buildGenerationPrompt(brief, analysis)
-    const image = await generateImage({ prompt, reference, format: brief.format })
+    const diffusionPrompt = await buildDiffusionPrompt(brief, analysis, intent)
+    const image = await generateImage({
+      prompt,
+      diffusionPrompt,
+      reference,
+      format: brief.format,
+    })
 
     const ext = image.mimeType.includes('jpeg') ? 'jpg' : 'png'
     const resultPath = `${user.id}/${generationId}.${ext}`
@@ -169,7 +185,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    await admin
+    const { error: doneError } = await admin
       .from('ad_generations')
       .update({
         status: 'done',
@@ -177,9 +193,27 @@ export async function POST(request: NextRequest) {
         framework_text: analysis?.framework || null,
         result_path: resultPath,
         provider: image.provider,
+        chatgpt_prompt: prompt,
+        text_intent: intent,
         completed_at: new Date().toISOString(),
       })
       .eq('id', generationId)
+
+    // Colonnes du kit absentes (migration 16 non exécutée) : on retombe sur la
+    // mise à jour minimale — le kit reste dans la réponse, seule sa persistance saute.
+    if (doneError && (doneError as any).code === '42703') {
+      await admin
+        .from('ad_generations')
+        .update({
+          status: 'done',
+          analysis_text: analysis?.analysis || null,
+          framework_text: analysis?.framework || null,
+          result_path: resultPath,
+          provider: image.provider,
+          completed_at: new Date().toISOString(),
+        })
+        .eq('id', generationId)
+    }
 
     const { data: signed } = await admin.storage
       .from(BUCKET)
@@ -191,6 +225,10 @@ export async function POST(request: NextRequest) {
       imageUrl: signed?.signedUrl || null,
       analysis: analysis?.analysis || null,
       framework: analysis?.framework || null,
+      // Kit créatif : prompt copiable dans ChatGPT + intention de texte.
+      chatgptPrompt: prompt,
+      textIntent: intent,
+      provider: image.provider,
       remaining: Math.max(0, DAILY_QUOTA - (count ?? 0) - 1),
     })
   } catch (error: any) {

@@ -137,6 +137,135 @@ export async function analyzeReference(reference: {
   }
 }
 
+export interface TextIntent {
+  accroche: string
+  texte_secondaire: string
+  cta: string
+}
+
+/**
+ * Intention de texte : l'accroche, le texte secondaire et l'appel à l'action
+ * que la création devrait porter. Produite par Groq quand la clé est là ;
+ * sinon, dérivée du brief lui-même — jamais bloquante.
+ */
+export async function buildTextIntent(
+  brief: AdBrief,
+  analysis: ReferenceAnalysis | null
+): Promise<TextIntent> {
+  const fallback: TextIntent = {
+    accroche: (brief.texte || brief.promesse || `${brief.produit || 'Votre offre'}, tout simplement.`).slice(0, 90),
+    texte_secondaire: (brief.promesse && brief.texte ? brief.promesse : `Pensé pour ${brief.cible || 'vous'}.`).slice(0, 140),
+    cta: 'En savoir plus',
+  }
+
+  const apiKey = await getIntegrationValue('groq_api_key')
+  if (!apiKey) return fallback
+
+  try {
+    const response = await fetch(GROQ_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.8,
+        max_tokens: 300,
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content:
+              "Tu es concepteur-rédacteur publicitaire senior pour le marché africain francophone. Réponds STRICTEMENT en JSON avec les clés accroche (percutante, 8 mots maximum), texte_secondaire (1 phrase courte qui porte la promesse) et cta (2 à 4 mots, verbe d'action). Français impeccable, pas de jargon, pas de marque inventée.",
+          },
+          {
+            role: 'user',
+            content:
+              `Brief : secteur ${brief.secteur} ; produit ${brief.produit} ; cible ${brief.cible} ; canal ${brief.canal} ; ton ${brief.ton} ; émotion ${brief.emotion} ; objectif ${brief.objectif}.` +
+              (brief.promesse ? ` Promesse : ${brief.promesse}.` : '') +
+              (brief.texte ? ` Texte imposé à intégrer tel quel dans l'accroche : « ${brief.texte} ».` : '') +
+              (analysis ? ` Mécanique de la référence : ${analysis.framework}` : ''),
+          },
+        ],
+      }),
+      signal: AbortSignal.timeout(15_000),
+    })
+    if (!response.ok) return fallback
+
+    const data = await response.json()
+    const parsed = JSON.parse(data?.choices?.[0]?.message?.content || '{}')
+    return {
+      accroche: String(parsed.accroche || fallback.accroche).slice(0, 90),
+      texte_secondaire: String(parsed.texte_secondaire || fallback.texte_secondaire).slice(0, 140),
+      cta: String(parsed.cta || fallback.cta).slice(0, 40),
+    }
+  } catch (error: any) {
+    console.error('Intention de texte échouée:', error?.message || error)
+    return fallback
+  }
+}
+
+/**
+ * Prompt descriptif pour les modèles de diffusion (FLUX via Pollinations ou
+ * Cloudflare). Ces modèles ne suivent pas des instructions — « ne copie pas »,
+ * « adapte au canal » — ils peignent la scène qu'on leur décrit. Leur envoyer
+ * le prompt d'instructions donnait des images médiocres : il faut une
+ * description visuelle concrète, en anglais (meilleur suivi), avec un seul
+ * texte court à rendre (le lettrage est le point faible de ces modèles).
+ * Produit par Groq quand la clé est là, sinon assemblé depuis le brief.
+ */
+export async function buildDiffusionPrompt(
+  brief: AdBrief,
+  analysis: ReferenceAnalysis | null,
+  intent: TextIntent
+): Promise<string> {
+  const fallback =
+    `Professional advertising photograph for a ${brief.secteur || 'consumer'} brand, ` +
+    `promoting ${brief.produit || 'a product'}. Scene featuring ${brief.cible || 'a happy customer'} in a modern African urban setting, ` +
+    `authentic and aspirational, ${brief.ton || 'warm'} mood evoking ${brief.emotion || 'confidence'}. ` +
+    `Bold headline text overlay in French: "${intent.accroche}". ` +
+    `Clean composition with clear focal point, professional studio lighting, vivid colors, high detail, ` +
+    `shot on medium format camera, advertising campaign quality. No watermark.`
+
+  const apiKey = await getIntegrationValue('groq_api_key')
+  if (!apiKey) return fallback
+
+  try {
+    const response = await fetch(GROQ_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.8,
+        max_tokens: 260,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You write prompts for FLUX, a diffusion image model. Output ONE paragraph in English, under 110 words, purely descriptive — no instructions, no negations, no marketing jargon. Describe: the concrete scene (who, where, doing what), African francophone urban context when relevant, photographic style, lighting, mood, composition. Include exactly one short French text overlay, quoted. Never invent brand names or logos.',
+          },
+          {
+            role: 'user',
+            content:
+              `Ad brief — sector: ${brief.secteur}; product: ${brief.produit}; audience: ${brief.cible}; ` +
+              `channel: ${brief.canal}; tone: ${brief.ton}; emotion: ${brief.emotion}; goal: ${brief.objectif}. ` +
+              (brief.charte ? `Visual identity: ${brief.charte}. ` : '') +
+              (analysis ? `Mechanic to transpose (not copy): ${analysis.framework} ` : '') +
+              `French text overlay to render: "${intent.accroche}".`,
+          },
+        ],
+      }),
+      signal: AbortSignal.timeout(15_000),
+    })
+    if (!response.ok) return fallback
+
+    const data = await response.json()
+    const text = String(data?.choices?.[0]?.message?.content || '').trim()
+    return text.length > 30 ? text.slice(0, 900) : fallback
+  } catch (error: any) {
+    console.error('Prompt de diffusion échoué:', error?.message || error)
+    return fallback
+  }
+}
+
 /** Libellé lisible d'un champ, pour l'injection dans le prompt de génération. */
 function line(label: string, value: string | undefined): string {
   const v = String(value || '').trim()

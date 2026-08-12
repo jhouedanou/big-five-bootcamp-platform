@@ -1,6 +1,6 @@
 # Migrations à exécuter (Supabase SQL Editor)
 
-Ordre d'exécution = **ordre numérique des préfixes de fichier** (`01_` → `15_`).
+Ordre d'exécution = **ordre numérique des préfixes de fichier** (`01_` → `16_`).
 Exécuter dans le **SQL Editor Supabase**, de haut en bas. Toutes idempotentes
 (ré-exécutables sans casse si doute).
 
@@ -21,6 +21,7 @@ Exécuter dans le **SQL Editor Supabase**, de haut en bas. Toutes idempotentes
 | 13 | `supabase/migrations/13_20260812_dashboard_banners.sql` | Table `dashboard_banners` + index + RLS (fenêtre de dates évaluée en base) + seed de la bannière étude, inactive | **aucune** |
 | 14 | `supabase/migrations/14_20260812_studies_content.sql` | Colonnes de contenu éditorial sur `studies` (textes, `slides`/`benefits`/`faq` en jsonb + contraintes) + seed du contenu actuel du Tome 1 | #12 (table `studies`) |
 | 15 | `supabase/migrations/15_20260812_ad_generations.sql` | Table `ad_generations` (historique + compteur de quota) + bucket privé `ad-studio` + RLS | **aucune** |
+| 16 | `supabase/migrations/16_20260812_ad_generations_kit.sql` | Colonnes `chatgpt_prompt` + `text_intent` sur `ad_generations` (kit créatif). Sans elle, le kit est renvoyé à l'écran mais non archivé | #15 |
 
 ## Règle simple
 

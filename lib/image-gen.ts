@@ -25,7 +25,14 @@ export interface GeneratedImage {
 }
 
 export interface ImageGenInput {
+  /** Prompt d'instructions — pour Gemini, qui suit des consignes. */
   prompt: string
+  /**
+   * Prompt purement descriptif pour les modèles de diffusion (FLUX). Sans lui,
+   * `prompt` est utilisé partout — mais les diffusions rendent nettement mieux
+   * une description de scène qu'une liste de règles.
+   */
+  diffusionPrompt?: string | null
   /** Création de référence, transmise au modèle pour qu'il en reprenne la logique. */
   reference?: { base64: string; mimeType: string } | null
   /** Format demandé par l'utilisateur (« 1:1 », « 4:5 », « 9:16 »…). */
@@ -132,7 +139,7 @@ async function generateWithCloudflare(
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt: input.prompt.slice(0, 2048) }),
+        body: JSON.stringify({ prompt: (input.diffusionPrompt || input.prompt).slice(0, 2048) }),
         signal: AbortSignal.timeout(TIMEOUT_MS),
       }
     )
@@ -201,7 +208,7 @@ async function generateWithPollinations(input: ImageGenInput): Promise<Generated
   // nologo : pas de filigrane ; private : l'image ne rejoint pas la galerie
   // publique du service — ce sont des créations clientes.
   const url =
-    `https://image.pollinations.ai/prompt/${encodeURIComponent(input.prompt)}` +
+    `https://image.pollinations.ai/prompt/${encodeURIComponent(input.diffusionPrompt || input.prompt)}` +
     `?width=${width}&height=${height}&model=flux&nologo=true&private=true`
 
   let response: Response

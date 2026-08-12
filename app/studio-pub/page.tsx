@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
   ArrowUp,
+  Check,
+  Copy,
   Download,
   ImagePlus,
   Loader2,
@@ -103,10 +105,18 @@ type Stage =
   | { kind: "generating" }
   | { kind: "done" };
 
+interface TextIntent {
+  accroche: string;
+  texte_secondaire: string;
+  cta: string;
+}
+
 interface GenResult {
   imageUrl: string | null;
   analysis: string | null;
   framework: string | null;
+  chatgptPrompt?: string | null;
+  textIntent?: TextIntent | null;
   remaining?: number;
 }
 
@@ -275,6 +285,8 @@ function StudioConversation() {
             imageUrl: data.imageUrl,
             analysis: data.analysis,
             framework: data.framework,
+            chatgptPrompt: data.chatgptPrompt,
+            textIntent: data.textIntent,
             remaining: data.remaining,
           },
         });
@@ -595,6 +607,28 @@ function ResultBubble({ result, onRegenerate }: { result: GenResult; onRegenerat
         </Button>
       </div>
 
+      {result.textIntent && (
+        <div className="space-y-2 rounded-lg border border-[#F2B33D]/40 bg-[#FFF6E3]/60 p-3 text-sm dark:bg-[#F2B33D]/10">
+          <p className="font-semibold">Intention de texte</p>
+          <dl className="space-y-1.5">
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Accroche</dt>
+              <dd className="m-0 font-medium">« {result.textIntent.accroche} »</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Texte secondaire</dt>
+              <dd className="m-0 text-muted-foreground">{result.textIntent.texte_secondaire}</dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Appel à l&apos;action</dt>
+              <dd className="m-0 text-muted-foreground">{result.textIntent.cta}</dd>
+            </div>
+          </dl>
+        </div>
+      )}
+
+      {result.chatgptPrompt && <PromptToCopy prompt={result.chatgptPrompt} />}
+
       {(result.analysis || result.framework) && (
         <details className="rounded-lg bg-muted/40 p-3 text-sm">
           <summary className="cursor-pointer font-semibold">
@@ -615,5 +649,48 @@ function ResultBubble({ result, onRegenerate }: { result: GenResult; onRegenerat
         .
       </p>
     </div>
+  );
+}
+
+/** Prompt complet à coller dans ChatGPT (ou tout autre générateur d'images). */
+function PromptToCopy({ prompt }: { prompt: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(prompt);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      /* navigateur sans presse-papiers : la sélection manuelle reste possible */
+    }
+  };
+
+  return (
+    <details className="rounded-lg bg-muted/40 p-3 text-sm">
+      <summary className="cursor-pointer font-semibold">
+        Prompt pour ChatGPT (ou un autre générateur)
+      </summary>
+      <p className="mt-2 text-xs text-muted-foreground">
+        Collez-le tel quel dans ChatGPT pour retravailler le visuel avec un rendu de
+        texte souvent plus soigné — le brief et la logique de votre référence y sont déjà.
+      </p>
+      <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap rounded-md border border-border bg-background p-2.5 text-xs leading-relaxed">
+        {prompt}
+      </pre>
+      <Button size="sm" variant="outline" className="mt-2" onClick={copy}>
+        {copied ? (
+          <>
+            <Check className="mr-1.5 h-3.5 w-3.5 text-emerald-600" />
+            Copié
+          </>
+        ) : (
+          <>
+            <Copy className="mr-1.5 h-3.5 w-3.5" />
+            Copier le prompt
+          </>
+        )}
+      </Button>
+    </details>
   );
 }

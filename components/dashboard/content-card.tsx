@@ -303,23 +303,33 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
             <div className="absolute right-2.5 bottom-2.5">
               {(() => {
                 const vp = detectVideoPlatform(content.videoUrl || "");
+                // instagram, tiktok et drive sont des plateformes reconnues par
+                // lib/video-utils.ts mais manquaient ici : `vpStyles[vp]` valait
+                // undefined, ce qui produisait une pastille transparente sans
+                // libellé. Le repli sur `unknown` couvre désormais tout ajout futur.
                 const vpStyles: Record<string, string> = {
                   youtube: "bg-red-600",
                   facebook: "bg-[#1877F2]",
+                  instagram: "bg-[#C13584]",
+                  tiktok: "bg-black",
                   twitter: "bg-black",
                   linkedin: "bg-[#0A66C2]",
+                  drive: "bg-[#0F9D58]",
                   unknown: "bg-gray-600",
                 };
                 const vpLabels: Record<string, string> = {
                   youtube: "▶ YT",
                   facebook: "▶ FB",
+                  instagram: "▶ IG",
+                  tiktok: "▶ TT",
                   twitter: "▶ X",
                   linkedin: "▶ LI",
+                  drive: "▶ Drive",
                   unknown: "▶",
                 };
                 return (
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold text-white shadow-lg ${vpStyles[vp]}`}>
-                    {vpLabels[vp]}
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold text-white shadow-lg ${vpStyles[vp] || vpStyles.unknown}`}>
+                    {vpLabels[vp] || vpLabels.unknown}
                   </span>
                 );
               })()}

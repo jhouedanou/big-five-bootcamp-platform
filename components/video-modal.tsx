@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -30,10 +30,10 @@ interface VideoModalProps {
   title: string;
 }
 
-// Délai au-delà duquel, si l'iframe n'a pas déclenché `onLoad`, on considère
-// que la plateforme refuse l'intégration (X-Frame-Options / frame-ancestors)
-// et on bascule vers l'ouverture dans un nouvel onglet.
-const EMBED_LOAD_TIMEOUT_MS = 4500;
+// Délai au-delà duquel on propose une porte de sortie manuelle si l'iframe n'a
+// pas déclenché `onLoad`. Le lien de secours s'affiche, mais rien ne s'ouvre
+// tout seul (cf. commentaire de l'effet plus bas).
+const EMBED_SLOW_MS = 6000;
 
 export function VideoModal({
   open,
@@ -44,6 +44,7 @@ export function VideoModal({
   title,
 }: VideoModalProps) {
   const loadedRef = useRef(false);
+  const [slowLoading, setSlowLoading] = useState(false);
 
   const originalUrl = getOriginalVideoUrl(videoUrl || "");
   const declared = platformLabelToVideoPlatform(platformLabel);
@@ -55,19 +56,25 @@ export function VideoModal({
   const orientation = getVideoOrientation(platformLabel, format);
   const isPortrait = orientation === "portrait";
 
-  // Fallback runtime : si l'iframe ne charge pas (refus d'intégration),
-  // ouvrir la vidéo dans un nouvel onglet et fermer la modale.
+  // L'ancienne version ouvrait automatiquement un nouvel onglet et fermait la
+  // modale si l'iframe n'avait pas chargé en 4,5 s. Deux défauts : sur une
+  // connexion lente une vidéo parfaitement intégrable était éjectée du lecteur,
+  // et le cas qu'on voulait attraper — un fichier Drive privé — déclenche bien
+  // `onLoad` (il affiche sa page « demander l'accès »), donc n'était jamais
+  // détecté. On se contente désormais d'afficher un lien de secours ; c'est
+  // l'utilisateur qui décide de sortir du lecteur.
   useEffect(() => {
-    if (!open || !canEmbed) return;
+    if (!open || !canEmbed) {
+      setSlowLoading(false);
+      return;
+    }
     loadedRef.current = false;
+    setSlowLoading(false);
     const timer = setTimeout(() => {
-      if (!loadedRef.current && originalUrl) {
-        window.open(originalUrl, "_blank", "noopener,noreferrer");
-        onOpenChange(false);
-      }
-    }, EMBED_LOAD_TIMEOUT_MS);
+      if (!loadedRef.current) setSlowLoading(true);
+    }, EMBED_SLOW_MS);
     return () => clearTimeout(timer);
-  }, [open, canEmbed, originalUrl, onOpenChange]);
+  }, [open, canEmbed]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -124,6 +131,24 @@ export function VideoModal({
                 </a>
               </Button>
             )}
+          </div>
+        )}
+
+        {/* Porte de sortie manuelle quand l'intégration tarde ou reste bloquée
+            (fichier Drive non partagé, connexion lente). Rien ne s'ouvre sans
+            action de l'utilisateur. */}
+        {slowLoading && canEmbed && originalUrl && (
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+            <p className="mb-2">
+              La vidéo met du temps à s&apos;afficher. Si elle reste vide, le fichier
+              n&apos;est peut-être pas partagé publiquement.
+            </p>
+            <Button asChild variant="outline" size="sm">
+              <a href={originalUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                Ouvrir sur {displayLabel}
+              </a>
+            </Button>
           </div>
         )}
       </DialogContent>

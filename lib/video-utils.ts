@@ -316,14 +316,29 @@ export function getYouTubeThumbnail(url: string): string | null {
 }
 
 /**
- * Récupère une thumbnail vidéo si possible (actuellement seul YouTube expose
- * une thumbnail fiable sans appel API authentifié). Facebook/Instagram/TikTok
- * nécessitent leur oEmbed/Graph API → null ici, le composant affiche un
- * placeholder (icône vidéo). Aucun appel réseau n'est fait, donc pas de 429.
+ * Génère l'URL de la vignette d'une vidéo hébergée sur Google Drive.
+ *
+ * Drive expose un endpoint de vignette pour tout fichier qu'il sait prévisualiser,
+ * vidéos comprises. Il ne fonctionne que si le fichier est partagé « toute
+ * personne disposant du lien » — sinon l'image renvoie une erreur et le composant
+ * retombe sur le placeholder via son `onError`.
+ */
+export function getGoogleDriveThumbnail(url: string, width = 800): string | null {
+  const id = extractGoogleDriveFileId(getOriginalVideoUrl(url));
+  if (!id) return null;
+  return `https://drive.google.com/thumbnail?id=${id}&sz=w${width}`;
+}
+
+/**
+ * Récupère une thumbnail vidéo si possible, sans appel réseau (donc pas de 429).
+ * YouTube et Google Drive exposent une vignette par URL ; Facebook, Instagram,
+ * TikTok et LinkedIn imposent leur oEmbed/Graph API → null ici, le composant
+ * affiche un placeholder.
  */
 export function getVideoThumbnail(url: string): string | null {
   const platform = detectVideoPlatform(getOriginalVideoUrl(url));
   if (platform === "youtube") return getYouTubeThumbnail(url);
+  if (platform === "drive") return getGoogleDriveThumbnail(url);
   return null;
 }
 
@@ -372,7 +387,9 @@ export function parseVideoUrl(url: string): VideoInfo {
     case "drive":
       videoId = extractGoogleDriveFileId(originalUrl);
       embedUrl = videoId ? `https://drive.google.com/file/d/${videoId}/preview` : originalUrl;
-      thumbnailUrl = null;
+      // Vignette disponible si le fichier est partagé publiquement ; sinon
+      // l'image échoue au chargement et le composant montre le placeholder.
+      thumbnailUrl = videoId ? `https://drive.google.com/thumbnail?id=${videoId}&sz=w800` : null;
       break;
   }
 

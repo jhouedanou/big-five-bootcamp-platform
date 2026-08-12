@@ -984,12 +984,17 @@ export default function ContentDetailClient({ id }: { id: string }) {
             {/* Video player — embed multi-plateforme (affiché dans les 2 tabs si présent) */}
             {content.video_url && (() => {
               const originalVideoUrl = getOriginalVideoUrl(content.video_url);
-              // Priorise la plateforme déclarée de la campagne ; sinon détection URL.
               const declaredLabel = content.platforms?.find(Boolean) || "";
-              const declaredPlatform = platformLabelToVideoPlatform(declaredLabel);
-              const videoPlatform = declaredPlatform !== "unknown"
-                ? declaredPlatform
-                : detectVideoPlatform(originalVideoUrl);
+              // La plateforme est déduite de l'URL du fichier vidéo, pas du
+              // libellé déclaré de la campagne. Une campagne « Facebook »
+              // hébergée sur Drive doit se lire dans le lecteur Drive : c'est
+              // l'inversion de priorité qui rendait la lecture imprévisible
+              // d'une campagne à l'autre. Le libellé déclaré ne sert plus que
+              // de repli quand l'URL n'est pas reconnue.
+              const detectedPlatform = detectVideoPlatform(originalVideoUrl);
+              const videoPlatform = detectedPlatform !== "unknown"
+                ? detectedPlatform
+                : platformLabelToVideoPlatform(declaredLabel);
               const embedUrl = getEmbedUrl(content.video_url);
               const platformLabel = declaredLabel || getVideoPlatformLabel(videoPlatform);
 

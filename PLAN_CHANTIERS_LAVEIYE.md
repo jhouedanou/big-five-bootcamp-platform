@@ -130,6 +130,16 @@ Utilisateur connecté poste → visible immédiatement ; déconnecté → lectur
 
 ## Phase 1 — Landing page `/etudes/finance` + capture leads (chantier A + C-schéma)
 
+> **État : livré, build vert, vérifié en navigateur.** Page publique et indexable
+> (aucun `X-Robots-Tag`, présente au sitemap), zéro défilement horizontal à 320 px,
+> modale conforme au brief (4 champs obligatoires, 2 optionnels, consentement,
+> honeypot hors parcours clavier), carrousel 4 pages fonctionnel.
+> Visuels extraits du prototype : 1 Mo de PNG base64 → 292 Ko de WebP
+> (`scripts/extract-etude-assets.mjs`, rejouable).
+> Reste : exécuter la migration 12, déposer le PDF dans le bucket `studies` puis
+> renseigner `studies.file_path`. Tant que `file_path` est `null`, le lead est
+> capturé et l'email annonce un envoi à venir — la campagne peut démarrer sans le PDF.
+
 ### Assets
 - Extraire les images base64 du prototype (`~/Downloads/prototype_landing_page_bigfive_etude_laveiye.html`) : cover + Préambule + Sommaire + Contenu UBA → WebP optimisés dans `public/etudes/finance/`.
 - PDF étude → bucket Supabase **privé** `studies` (jamais d'URL publique directe).

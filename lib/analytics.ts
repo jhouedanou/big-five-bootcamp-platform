@@ -45,6 +45,13 @@ export type AnalyticsEventName =
   | "webinar_registration_completed"
   | "webinar_confirmation_email_sent"
   | "webinar_calendar_added"
+  // Études téléchargeables (landing publique /etudes/[slug])
+  // Ces quatre événements forment le funnel lu par /admin/etudes : ils sont
+  // persistés dans analytics_events même pour un visiteur anonyme.
+  | "study_page_view"
+  | "study_form_open"
+  | "study_form_submitted"
+  | "study_download"
   // Bibliothèque / contenu
   | "login_success"
   | "campaign_viewed"

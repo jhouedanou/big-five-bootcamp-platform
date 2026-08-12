@@ -1,8 +1,16 @@
 import type { MetadataRoute } from "next"
+import { getStudySlugs } from "@/lib/studies"
 
 const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://laveiye.com").replace(/\/$/, "")
 
 type SitemapEntry = MetadataRoute.Sitemap[number]
+
+/** Landings d'étude — publiques et indexables, cibles des campagnes. */
+const studyRoutes: SitemapEntry[] = getStudySlugs().map((slug) => ({
+  url: `${siteUrl}/etudes/${slug}`,
+  changeFrequency: "monthly",
+  priority: 0.9,
+}))
 
 const staticRoutes: SitemapEntry[] = [
   {
@@ -68,5 +76,5 @@ const staticRoutes: SitemapEntry[] = [
 ]
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  return staticRoutes
+  return [...staticRoutes, ...studyRoutes]
 }

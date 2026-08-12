@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { getStudyContent, getStudySlugs } from '@/lib/studies'
+import { getStudy, getAllStudySlugs } from '@/lib/studies-server'
 import { StudyLandingClient } from './study-landing-client'
 
 /**
@@ -9,7 +9,13 @@ import { StudyLandingClient } from './study-landing-client'
  * Contrairement au reste de l'application, cette page est publique ET
  * indexable : elle est la destination des bannières et des campagnes. Voir
  * middleware.ts — `/etudes` doit rester hors de la liste `noindex`.
+ *
+ * Le contenu vient de la table `studies` (éditable depuis /admin/etudes), avec
+ * repli sur lib/studies.ts. Régénération périodique plutôt que rendu à chaque
+ * requête : la page reste rapide et bien indexée, et une modification faite en
+ * admin apparaît au plus tard cinq minutes après.
  */
+export const revalidate = 300
 
 function siteUrl(): string {
   return (
@@ -19,8 +25,9 @@ function siteUrl(): string {
   ).replace(/\/$/, '')
 }
 
-export function generateStaticParams() {
-  return getStudySlugs().map((slug) => ({ slug }))
+export async function generateStaticParams() {
+  const slugs = await getAllStudySlugs()
+  return slugs.map((slug) => ({ slug }))
 }
 
 export async function generateMetadata({
@@ -29,30 +36,33 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>
 }): Promise<Metadata> {
   const { slug } = await params
-  const study = getStudyContent(slug)
+  const study = await getStudy(slug)
   if (!study) return { title: 'Étude introuvable' }
 
-  const title = `${study.title} — ${study.subtitle}`
+  const { content } = study
+  const title = content.subtitle ? `${content.title} — ${content.subtitle}` : content.title
   const url = `${siteUrl()}/etudes/${slug}`
-  const image = `${siteUrl()}${study.cover.src}`
+  const image = content.cover.src.startsWith('http')
+    ? content.cover.src
+    : `${siteUrl()}${content.cover.src}`
 
   return {
     title,
-    description: study.metaDescription,
+    description: content.metaDescription,
     alternates: { canonical: url },
     openGraph: {
       type: 'article',
       url,
       title,
-      description: study.metaDescription,
+      description: content.metaDescription,
       siteName: 'Big Five',
       locale: 'fr_FR',
-      images: [{ url: image, alt: study.cover.alt }],
+      images: [{ url: image, alt: content.cover.alt }],
     },
     twitter: {
       card: 'summary_large_image',
       title,
-      description: study.metaDescription,
+      description: content.metaDescription,
       images: [image],
     },
   }
@@ -64,8 +74,10 @@ export default async function StudyLandingPage({
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await params
-  const study = getStudyContent(slug)
-  if (!study) notFound()
+  const study = await getStudy(slug)
 
-  return <StudyLandingClient study={study} />
+  // Une étude désactivée depuis l'admin cesse d'être servie.
+  if (!study || !study.isActive) notFound()
+
+  return <StudyLandingClient study={study.content} />
 }

@@ -19,6 +19,7 @@ Exécuter dans le **SQL Editor Supabase**, de haut en bas. Toutes idempotentes
 | 11 | `supabase/migrations/11_20260812_campaign_comments.sql` | Tables `campaign_comments`, `comment_reports` + index + RLS + GRANTs colonne (flags de modération réservés au serveur) | **aucune** — table `campaigns` uniquement |
 | 12 | `supabase/migrations/12_20260812_studies.sql` | Tables `studies` (seed Tome 1 Finance), `study_leads` + bucket privé `studies` + RLS. Index de funnel sur `analytics_events` créé seulement si la table existe | **aucune** |
 | 13 | `supabase/migrations/13_20260812_dashboard_banners.sql` | Table `dashboard_banners` + index + RLS (fenêtre de dates évaluée en base) + seed de la bannière étude, inactive | **aucune** |
+| 14 | `supabase/migrations/14_20260812_studies_content.sql` | Colonnes de contenu éditorial sur `studies` (textes, `slides`/`benefits`/`faq` en jsonb + contraintes) + seed du contenu actuel du Tome 1 | #12 (table `studies`) |
 
 ## Règle simple
 
@@ -27,6 +28,9 @@ Exécuter dans le **SQL Editor Supabase**, de haut en bas. Toutes idempotentes
 - Dépendances clés : **#4 après #3** · **#6 après #5** · **#8 après #2** · **#10 après #9**.
 - **#13** est autonome et livre la bannière **inactive** : l'équipe l'active depuis
   `/admin/bannieres` une fois le visuel et les dates de campagne arrêtés.
+- **#14 après #12**. Tant qu'elle n'est pas exécutée, la landing affiche le contenu
+  codé dans `lib/studies.ts` : rien ne casse, mais `/admin/etudes` ne peut pas
+  encore modifier les textes.
 - **#11, #12 et #13 sont autonomes** : elles redéfinissent elles-mêmes `set_updated_at()`
   (`create or replace`, définition identique à #1) et peuvent donc être exécutées
   seules sur une base où #1 n'a jamais tourné. Rejouer #1 ensuite ne casse rien.

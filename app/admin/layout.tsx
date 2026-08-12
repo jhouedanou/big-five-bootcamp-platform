@@ -30,6 +30,7 @@ import {
   Video,
   Layers,
   MessageSquare,
+  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -43,6 +44,7 @@ const sidebarLinks = [
   { href: "/admin/temps-forts", label: "Temps forts", icon: CalendarHeart, description: "Événements & campagnes" },
   { href: "/admin/commentaires", label: "Commentaires", icon: MessageSquare, description: "Modération & signalements" },
   { href: "/admin/bannieres", label: "Bannières", icon: Megaphone, description: "Dashboard & campagnes UTM" },
+  { href: "/admin/etudes", label: "Études", icon: BookOpen, description: "Contenu, PDF & contacts" },
   { href: "/admin/users", label: "Utilisateurs", icon: Users, description: "Gérer les accès" },
   { href: "/admin/audience", label: "Segmentation", icon: Filter, description: "Filtres, tags & KPI" },
   { href: "/admin/brand-requests", label: "Veille concurrentielle", icon: Building2, description: "Demandes de veille" },

@@ -332,11 +332,14 @@ function CampaignsPageContent() {
       slug: formData.slug || generateSlug(formData.title),
     };
     
-    if (editingCampaign) {
-      await updateCampaign(editingCampaign.id, processedFormData);
-    } else {
-      await addCampaign(processedFormData);
-    }
+    const saved = editingCampaign
+      ? await updateCampaign(editingCampaign.id, processedFormData)
+      : await addCampaign(processedFormData);
+
+    // Sur échec, on garde le dialogue ouvert : le toast d'erreur explique la
+    // cause et la saisie reste intacte pour réessayer.
+    if (!saved) return;
+
     setIsDialogOpen(false);
     setCurrentStep(1);
   };
@@ -371,11 +374,24 @@ function CampaignsPageContent() {
     setIsBatchDeleting(true);
     try {
       const ids = Array.from(selectedIds);
+      const failed: string[] = [];
       for (const id of ids) {
-        await deleteCampaign(id);
+        const ok = await deleteCampaign(id);
+        if (!ok) failed.push(id);
       }
-      toast.success(`${ids.length} campagne${ids.length > 1 ? "s" : ""} supprimée${ids.length > 1 ? "s" : ""}`);
-      setSelectedIds(new Set());
+
+      const deleted = ids.length - failed.length;
+      if (deleted > 0) {
+        toast.success(`${deleted} campagne${deleted > 1 ? "s" : ""} supprimée${deleted > 1 ? "s" : ""}`);
+      }
+      if (failed.length > 0) {
+        toast.error(
+          `${failed.length} suppression${failed.length > 1 ? "s" : ""} échouée${failed.length > 1 ? "s" : ""}`,
+          { description: "Ces campagnes sont toujours en base — voir les erreurs ci-dessus." }
+        );
+      }
+      // Ne garder sélectionnées que celles qui ont résisté, pour pouvoir réessayer.
+      setSelectedIds(new Set(failed));
     } catch (error) {
       toast.error("Erreur lors de la suppression");
     } finally {
@@ -410,15 +426,13 @@ function CampaignsPageContent() {
           <div className="flex-1">
             <h3 className="text-sm font-medium text-amber-800">Mode démonstration</h3>
             <p className="text-sm text-amber-700 mt-1">
-              Vous voyez des données d'exemple car la connexion à la base de données n'est pas disponible.
+              Campagnes d&apos;exemple : <strong>rien de ce que vous faites ici n&apos;est
+              enregistré en base</strong>. Ce mode s&apos;active uniquement avec
+              <code className="mx-1 rounded bg-amber-100 px-1">NEXT_PUBLIC_ADMIN_DEMO=true</code>
+              et une table <code className="rounded bg-amber-100 px-1">campaigns</code> absente.
               {userEmail && (
                 <span className="block mt-1">
                   <strong>Connecté avec :</strong> {userEmail}
-                </span>
-              )}
-              {!userEmail && (
-                <span className="block mt-1 text-red-600">
-                  ⚠️ Aucune session détectée. Veuillez vous reconnecter.
                 </span>
               )}
             </p>
@@ -1587,34 +1601,24 @@ function CampaignsPageContent() {
                   </p>
                 </div>
 
-                {/* Video checkbox — Ceci est une publication vidéo */}
-                <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 dark:bg-gray-900/40 p-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="camp-video"
-                      checked={formData.isVideo || false}
-                      onCheckedChange={(checked) => setFormData({ ...formData, isVideo: !!checked })}
-                    />
-                    <Label htmlFor="camp-video" className="cursor-pointer text-gray-700 dark:text-gray-300 font-medium">
-                      <Video className="h-4 w-4 inline mr-1.5" />
-                      Ceci est une publication vidéo
-                    </Label>
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 ml-6">
-                    Cochez si la campagne est principalement une vidéo. Vignette générée automatiquement
-                    pour <strong>YouTube</strong> (fiable). <strong>TikTok</strong> : tentée, mais l'image
-                    (CDN TikTok protégé) peut ne pas s'afficher → uploadez une capture si besoin. Autres
-                    plateformes (Facebook, Instagram, LinkedIn, X…) : uploadez une capture d'écran.
-                  </p>
-                </div>
-
-                {/* URL Video — Visible uniquement si isVideo est coché */}
-                {formData.isVideo && (
-                  <div className="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                {/* URL de la vidéo — source de vérité unique.
+                    L'ancienne case « Ceci est une publication vidéo » a été retirée :
+                    elle n'avait aucune colonne en base (mapToDbRecord ne la mappait
+                    pas) et était de toute façon recalculée en `!!video_url` au
+                    rechargement. Cocher sans remplir l'URL ne produisait rien, et
+                    remplir l'URL sans cocher créait quand même une vidéo. */}
+                <div className="space-y-2">
                     <Label htmlFor="camp-video-url" className="text-gray-700 dark:text-gray-300">
                       <Video className="h-4 w-4 inline mr-1" />
                       URL de la vidéo
                     </Label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Renseignez ce champ pour que la campagne soit traitée comme une vidéo — laissez-le
+                      vide sinon. À ne pas confondre avec « Lien vers la publication d&apos;origine », qui
+                      pointe vers le post social. Vignette auto pour <strong>YouTube</strong> (fiable) et
+                      <strong> Google Drive</strong>. <strong>TikTok</strong> : tentée, mais l&apos;image
+                      (CDN protégé) peut ne pas s&apos;afficher. Autres plateformes : uploadez une capture.
+                    </p>
                     <div className="flex gap-2">
                       <Input
                         id="camp-video-url"
@@ -1709,6 +1713,10 @@ function CampaignsPageContent() {
                             instagram: "bg-pink-100 text-pink-700",
                             twitter: "bg-gray-100 text-gray-700",
                             linkedin: "bg-sky-100 text-sky-700",
+                            // `drive` est une plateforme reconnue par lib/video-utils.ts
+                            // mais manquait ici : une URL Drive valide s'affichait
+                            // « Plateforme non reconnue ».
+                            drive: "bg-emerald-100 text-emerald-700",
                             unknown: "bg-yellow-100 text-yellow-700",
                           };
                           return (
@@ -1767,8 +1775,7 @@ function CampaignsPageContent() {
                         />
                       </div>
                     )}
-                  </div>
-                )}
+                </div>
               </div>
             )}
 

@@ -109,9 +109,14 @@ export async function GET(request: NextRequest) {
     
     if (error) {
       console.error('Error fetching campaigns:', error)
-      return NextResponse.json({ error: error.message, campaigns: [] }, { status: 500 })
+      // `code` est remonté au client pour qu'il distingue une table absente
+      // (42P01) d'une erreur de droits ou de contrainte — cf. AdminContext.
+      return NextResponse.json(
+        { error: error.message, code: error.code, campaigns: [] },
+        { status: 500 }
+      )
     }
-    
+
     return NextResponse.json({ campaigns: data || [] })
   } catch (error: any) {
     console.error('API error:', error)
@@ -167,7 +172,7 @@ export async function POST(request: NextRequest) {
     
     if (error) {
       console.error('Error creating campaign:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: error.message, code: error.code }, { status: 500 })
     }
     
     return NextResponse.json({ campaign: data })
@@ -225,7 +230,7 @@ export async function PUT(request: NextRequest) {
     
     if (error) {
       console.error('Error updating campaign:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: error.message, code: error.code }, { status: 500 })
     }
     
     return NextResponse.json({ campaign: data })
@@ -262,7 +267,7 @@ export async function DELETE(request: NextRequest) {
     
     if (error) {
       console.error('Error deleting campaign:', error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ error: error.message, code: error.code }, { status: 500 })
     }
     
     return NextResponse.json({ success: true })

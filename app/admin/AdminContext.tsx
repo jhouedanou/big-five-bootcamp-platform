@@ -17,13 +17,64 @@ type AdminContextType = {
   isUsingLocalData: boolean;
   userEmail: string | null;
   logout: () => void;
-  addCampaign: (item: Omit<ContentItem, "id">) => void;
-  updateCampaign: (id: string, item: Partial<ContentItem>) => void;
-  deleteCampaign: (id: string) => void;
+  /** Résout à `true` si la campagne a bien été persistée en base. */
+  addCampaign: (item: Omit<ContentItem, "id">) => Promise<boolean>;
+  updateCampaign: (id: string, item: Partial<ContentItem>) => Promise<boolean>;
+  deleteCampaign: (id: string) => Promise<boolean>;
   refreshCampaigns: () => Promise<void>;
 };
 
 const AdminContext = createContext<AdminContextType | undefined>(undefined);
+
+/**
+ * Mode démonstration : jeu de campagnes factices en mémoire, pour travailler
+ * l'UI sans base. Opt-in explicite — il ne doit JAMAIS s'activer tout seul.
+ *
+ * Historique : ce mode se déclenchait sur n'importe quel échec d'appel API
+ * (401 de session expirée compris), affichait des toasts de succès et laissait
+ * croire que les campagnes étaient enregistrées alors que rien ne partait en
+ * base. C'est ce qui a bloqué l'ajout de campagnes vidéo.
+ */
+const DEMO_MODE = process.env.NEXT_PUBLIC_ADMIN_DEMO === "true";
+
+/** Code Postgres « undefined_table » — le seul cas où « table absente » est vrai. */
+const PG_UNDEFINED_TABLE = "42P01";
+
+function isMissingTable(result: any): boolean {
+  if (!result) return false;
+  if (result.code === PG_UNDEFINED_TABLE) return true;
+  return (
+    typeof result.error === "string" &&
+    /relation .* does not exist/i.test(result.error)
+  );
+}
+
+/**
+ * Traduit un échec d'appel à /api/admin/campaigns en message affichable.
+ * Chaque cause a son message : c'est ce qui manquait pour diagnostiquer.
+ */
+function describeFailure(
+  status: number,
+  result: any
+): { title: string; description: string } {
+  if (status === 401) {
+    return {
+      title: "Session expirée",
+      description:
+        "Reconnectez-vous : vos modifications n'ont pas été enregistrées.",
+    };
+  }
+  if (isMissingTable(result)) {
+    return {
+      title: "Table « campaigns » introuvable",
+      description: "Exécutez les migrations Supabase (voir migrations.md).",
+    };
+  }
+  return {
+    title: "Enregistrement échoué",
+    description: result?.error || `Erreur serveur (HTTP ${status}).`,
+  };
+}
 
 export function AdminProvider({ children }: { children: ReactNode }) {
   const [campaigns, setCampaigns] = useState<ContentItem[]>([]);
@@ -332,29 +383,18 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       console.log('API response status:', response.status)
       
       if (!response.ok) {
-        const errorData = await response.json();
-        console.warn('API admin/campaigns non disponible:', errorData.error);
-        // En mode développement, afficher un message plus explicite
-        if (process.env.NODE_ENV === 'development') {
-          console.info('💡 Pour accéder aux campagnes, connectez-vous avec un compte admin.')
-        }
-        setCampaigns(getSampleCampaigns());
-        setIsUsingLocalData(true);
-        return;
+        const errorData = await response.json().catch(() => ({}));
+        return handleLoadFailure(response.status, errorData);
       }
-      
-      const { campaigns: data, error } = await response.json();
+
+      const { campaigns: data, error, code } = await response.json();
 
       if (error) {
-        // Table campaigns n'existe pas encore
-        console.warn('Table campaigns non disponible:', error);
-        setCampaigns(getSampleCampaigns());
-        setIsUsingLocalData(true);
-        return;
+        return handleLoadFailure(500, { error, code });
       }
 
       if (!data || data.length === 0) {
-        // Pas de campagnes, mais la table existe - ne pas utiliser de données d'exemple
+        // Table présente mais vide : c'est un état normal, pas une panne.
         setCampaigns([]);
         setIsUsingLocalData(false);
         return;
@@ -395,11 +435,39 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
       setCampaigns(formattedCampaigns);
     } catch (error: any) {
-      console.warn('Erreur chargement campagnes, utilisation des données exemple:', error?.message || error);
-      setCampaigns(getSampleCampaigns());
+      console.error('Erreur réseau chargement campagnes:', error?.message || error);
+      setCampaigns([]);
+      setIsUsingLocalData(false);
+      toast.error("Impossible de charger les campagnes", {
+        description: "Vérifiez votre connexion, puis rechargez la page.",
+      });
     } finally {
       setCampaignsLoading(false);
     }
+  };
+
+  /**
+   * Échec de chargement. On n'affiche jamais de données factices à la place des
+   * vraies : une liste vide + une erreur explicite valent mieux qu'un catalogue
+   * fictif sur lequel l'admin croirait travailler.
+   */
+  const handleLoadFailure = (status: number, result: any) => {
+    const { title, description } = describeFailure(status, result);
+    console.warn('Chargement campagnes échoué:', status, result?.error);
+
+    // Seul cas où le mode démo est légitime : opt-in explicite ET table absente.
+    if (DEMO_MODE && isMissingTable(result)) {
+      setCampaigns(getSampleCampaigns());
+      setIsUsingLocalData(true);
+      toast.warning("Mode démonstration", {
+        description: "Table absente : campagnes d'exemple, rien n'est persisté.",
+      });
+      return;
+    }
+
+    setCampaigns([]);
+    setIsUsingLocalData(false);
+    toast.error(title, { description });
   };
 
   const logout = async () => {
@@ -437,8 +505,12 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   };
 
   // Campaign Actions
-  const addCampaign = async (campaignData: Omit<ContentItem, "id">) => {
-    // Si on utilise des données locales (table non disponible), ajouter localement
+  //
+  // Règle commune aux trois mutations : en cas d'échec, on remonte `false` et un
+  // toast d'erreur. Aucune écriture locale de secours, aucun toast de succès —
+  // l'admin doit voir immédiatement que rien n'a été enregistré.
+  const addCampaign = async (campaignData: Omit<ContentItem, "id">): Promise<boolean> => {
+    // Mode démo (opt-in) : ajout en mémoire, annoncé comme tel.
     if (isUsingLocalData) {
       const newCampaign: ContentItem = {
         ...campaignData,
@@ -446,138 +518,127 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       };
       setCampaigns(prev => [newCampaign, ...prev]);
       invalidateTempsFortsCache();
-      toast.success("Campagne ajoutée localement", {
-        description: "Note: La base de données n'est pas configurée. Les données seront perdues au rechargement."
+      toast.warning("Ajoutée en mode démonstration", {
+        description: "Non enregistrée : les données seront perdues au rechargement.",
       });
-      return;
+      return true;
     }
 
     try {
       const record = mapToDbRecord(campaignData);
       if (!record.status) record.status = 'Brouillon';
-      
-      // Utiliser l'API admin
+
       const response = await fetch('/api/admin/campaigns', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify(record),
       });
-      
-      const result = await response.json();
-      
+
+      const result = await response.json().catch(() => ({}));
+
       if (!response.ok || result.error) {
-        // Si erreur DB, basculer en mode local
-        console.warn('DB non disponible, ajout local:', result.error);
-        const newCampaign: ContentItem = {
-          ...campaignData,
-          id: `local-${Date.now()}`,
-        };
-        setCampaigns(prev => [newCampaign, ...prev]);
-        invalidateTempsFortsCache();
-        setIsUsingLocalData(true);
-        toast.success("Campagne ajoutée localement", {
-          description: "La table 'campaigns' n'existe pas dans Supabase. Exécutez le schéma SQL."
-        });
-        return;
+        const { title, description } = describeFailure(response.status, result);
+        console.error('Création campagne échouée:', response.status, result?.error);
+        toast.error(title, { description });
+        return false;
       }
+
       toast.success("Campagne ajoutée avec succès");
       await loadCampaignsFromSupabase();
       invalidateTempsFortsCache();
+      return true;
     } catch (error: any) {
-      console.error('Error creating campaign:', error);
-      // Fallback local
-      const newCampaign: ContentItem = {
-        ...campaignData,
-        id: `local-${Date.now()}`,
-      };
-      setCampaigns(prev => [newCampaign, ...prev]);
-      invalidateTempsFortsCache();
-      setIsUsingLocalData(true);
-      toast.warning("Campagne ajoutée en mode hors-ligne", {
-        description: "Configurez Supabase pour persister les données."
+      console.error('Erreur réseau création campagne:', error);
+      toast.error("Enregistrement échoué", {
+        description: "Erreur réseau — la campagne n'a pas été créée. Réessayez.",
       });
+      return false;
     }
   };
 
-  const updateCampaign = async (id: string, updatedData: Partial<ContentItem>) => {
-    // Si données locales ou ID local
+  const updateCampaign = async (
+    id: string,
+    updatedData: Partial<ContentItem>
+  ): Promise<boolean> => {
+    // Mode démo, ou ligne qui n'existe que côté client.
     if (isUsingLocalData || id.startsWith('local-') || id.startsWith('sample-')) {
-      setCampaigns(prev => prev.map(c => 
+      setCampaigns(prev => prev.map(c =>
         c.id === id ? { ...c, ...updatedData } : c
       ));
       invalidateTempsFortsCache();
-      toast.success("Campagne mise à jour localement");
-      return;
+      toast.warning("Mise à jour en mode démonstration", {
+        description: "Non enregistrée en base.",
+      });
+      return true;
     }
 
     try {
       const record = mapToDbRecord(updatedData);
-      
-      // Utiliser l'API admin
+
       const response = await fetch('/api/admin/campaigns', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ id, ...record }),
       });
-      
-      const result = await response.json();
-      
+
+      const result = await response.json().catch(() => ({}));
+
       if (!response.ok || result.error) {
-        // Fallback local
-        setCampaigns(prev => prev.map(c => 
-          c.id === id ? { ...c, ...updatedData } : c
-        ));
-        invalidateTempsFortsCache();
-        toast.success("Campagne mise à jour localement");
-        return;
+        const { title, description } = describeFailure(response.status, result);
+        console.error('Mise à jour campagne échouée:', response.status, result?.error);
+        toast.error(title, { description });
+        return false;
       }
+
       toast.success("Campagne mise à jour avec succès");
       await loadCampaignsFromSupabase();
       invalidateTempsFortsCache();
+      return true;
     } catch (error: any) {
-      console.error('Error updating campaign:', error);
-      setCampaigns(prev => prev.map(c => 
-        c.id === id ? { ...c, ...updatedData } : c
-      ));
-      invalidateTempsFortsCache();
-      toast.warning("Mise à jour locale uniquement");
+      console.error('Erreur réseau mise à jour campagne:', error);
+      toast.error("Mise à jour échouée", {
+        description: "Erreur réseau — aucune modification enregistrée. Réessayez.",
+      });
+      return false;
     }
   };
 
-  const deleteCampaign = async (id: string) => {
-    // Si données locales ou ID local
+  const deleteCampaign = async (id: string): Promise<boolean> => {
+    // Mode démo, ou ligne qui n'existe que côté client.
     if (isUsingLocalData || id.startsWith('local-') || id.startsWith('sample-')) {
       setCampaigns(prev => prev.filter(c => c.id !== id));
       invalidateTempsFortsCache();
-      toast.success("Campagne supprimée");
-      return;
+      return true;
     }
 
     try {
-      // Utiliser l'API admin
       const response = await fetch(`/api/admin/campaigns?id=${id}`, {
         method: 'DELETE',
         credentials: 'include',
       });
-      
-      const result = await response.json();
-      
+
+      const result = await response.json().catch(() => ({}));
+
       if (!response.ok || result.error) {
-        setCampaigns(prev => prev.filter(c => c.id !== id));
-        invalidateTempsFortsCache();
-        toast.success("Campagne supprimée localement");
-        return;
+        const { title, description } = describeFailure(response.status, result);
+        console.error('Suppression campagne échouée:', response.status, result?.error);
+        // Ne PAS retirer la ligne de la liste : elle est toujours en base.
+        toast.error(title, { description });
+        return false;
       }
+
       toast.success("Campagne supprimée");
       await loadCampaignsFromSupabase();
       invalidateTempsFortsCache();
+      return true;
     } catch (error: any) {
-      console.error('Error deleting campaign:', error);
-      setCampaigns(prev => prev.filter(c => c.id !== id));
-      invalidateTempsFortsCache();
-      toast.warning("Suppression locale uniquement");
+      console.error('Erreur réseau suppression campagne:', error);
+      toast.error("Suppression échouée", {
+        description: "Erreur réseau — la campagne est toujours en base. Réessayez.",
+      });
+      return false;
     }
   };
 

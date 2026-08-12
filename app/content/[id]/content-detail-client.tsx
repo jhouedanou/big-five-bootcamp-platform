@@ -41,6 +41,7 @@ import { isPaidPlan, canAccessPremiumContent } from "@/lib/pricing";
 import { useRequireActiveSubscription } from "@/hooks/use-require-active-subscription";
 import { UpgradePopup } from "@/components/upgrade-popup";
 import { ReactionButtons } from "@/components/ui/reaction-buttons";
+import { CommentsSection } from "@/components/comments/comments-section";
 import { AddToCollectionModal } from "@/components/collections/add-to-collection-modal";
 import { ConsultationBottomSheet } from "@/components/consultation-bottom-sheet";
 import { FolderPlus } from "lucide-react";
@@ -138,7 +139,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
   const [collectionModalOpen, setCollectionModalOpen] = useState(false);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
   const [readProgress, setReadProgress] = useState(0);
-  const [activeTab, setActiveTab] = useState<"axe" | "utilisation">("axe");
+  const [activeTab, setActiveTab] = useState<"commentaires" | "utilisation">("commentaires");
   const articleRef = useRef<HTMLDivElement>(null);
   const [userPlan, setUserPlan] = useState("");
   const [monthlyClicks, setMonthlyClicks] = useState(0);
@@ -610,10 +611,10 @@ export default function ContentDetailClient({ id }: { id: string }) {
     }
   };
 
-  const handleJumpToAnalysis = () => {
-    setActiveTab("axe");
+  const handleJumpToComments = () => {
+    setActiveTab("commentaires");
     requestAnimationFrame(() => {
-      document.getElementById("campaign-analysis")?.scrollIntoView({
+      document.getElementById("campaign-comments")?.scrollIntoView({
         behavior: "smooth",
         block: "start",
       });
@@ -910,8 +911,8 @@ export default function ContentDetailClient({ id }: { id: string }) {
                   onAddToCollection={handleAddToCollection}
                   onShare={handleShare}
                   onToggleFavorite={handleToggleFavorite}
-                  floatingActionLabel="Voir l'analyse"
-                  onFloatingAction={handleJumpToAnalysis}
+                  floatingActionLabel="Voir les commentaires"
+                  onFloatingAction={handleJumpToComments}
                   isFavorited={isFavorite(content.id)}
                 />
 
@@ -1082,16 +1083,16 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 <button
                   type="button"
                   role="tab"
-                  aria-selected={activeTab === "axe"}
-                  onClick={() => setActiveTab("axe")}
+                  aria-selected={activeTab === "commentaires"}
+                  onClick={() => setActiveTab("commentaires")}
                   className={cn(
                     "whitespace-nowrap rounded-full px-5 py-2 text-sm font-semibold transition-all duration-200 sm:px-6",
-                    activeTab === "axe"
+                    activeTab === "commentaires"
                       ? "bg-[#F2B33D] text-white shadow-sm"
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  Analyse stratégique
+                  Commentaires
                 </button>
                 <button
                   type="button"
@@ -1110,46 +1111,13 @@ export default function ContentDetailClient({ id }: { id: string }) {
               </div>
             </div>
 
-            {/* ---- Onglet AXE : Analyse + Comment s'en servir ---- */}
-            {activeTab === "axe" && (
-              <div className="space-y-6">
-                {content.analyse && (
-                  <Card className="border-l-4 border-l-[#F2B33D] shadow-sm">
-                    <CardContent className="p-6">
-                      <h2 className="font-bold text-lg mb-3">Analyse</h2>
-                      <div
-                        className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
-                        dangerouslySetInnerHTML={{ __html: formatDescription(content.analyse) }}
-                      />
-                    </CardContent>
-                  </Card>
-                )}
-
-                {content.how_to_use && (
-                  <Card className="border-l-4 border-l-[#F2B33D] shadow-sm">
-                    <CardContent className="p-6">
-                      <h2 className="font-bold text-lg mb-3">Comment s'en servir</h2>
-                      <div
-                        className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
-                        dangerouslySetInnerHTML={{ __html: formatDescription(content.how_to_use) }}
-                      />
-                    </CardContent>
-                  </Card>
-                )}
-
-                {!content.analyse && !content.how_to_use && content.description && (
-                  <Card className="border-l-4 border-l-[#F2B33D] shadow-sm">
-                    <CardContent className="p-6">
-                      <h2 className="font-bold text-lg mb-3">Analyse</h2>
-                      <div
-                        className="text-muted-foreground leading-relaxed prose prose-sm dark:prose-invert max-w-none"
-                        dangerouslySetInnerHTML={{ __html: formatDescription(content.description) }}
-                      />
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            )}
+            {/* ---- Onglet COMMENTAIRES ----
+                 Remplace les anciennes sections « Analyse » / « Comment s'en servir ».
+                 Les colonnes campaigns.analyse et campaigns.how_to_use restent
+                 alimentées en base : champs premium (lib/content-access.ts) et
+                 sources du générateur IA (app/actions/campaign-generator.ts).
+                 Le retrait est volontairement UI seulement. */}
+            {activeTab === "commentaires" && <CommentsSection campaignId={content.id} />}
 
             {/* ---- Onglet UTILISATION : Description + Tags ---- */}
             {activeTab === "utilisation" && (

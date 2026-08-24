@@ -4,6 +4,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { StudyContent } from "@/lib/studies";
 import { trackEvent } from "@/lib/analytics";
 import { fbTrack, hasMarketingConsent } from "@/lib/fb-pixel";
+import { CountrySelect } from "@/components/ui/country-select";
+import { COUNTRY_DIAL_CODES } from "@/lib/countries";
 
 interface UtmParams {
   utm_source?: string;
@@ -24,7 +26,13 @@ interface FormState {
   firstName: string;
   lastName: string;
   email: string;
+  /** Numéro NATIONAL seul : l'indicatif vient du pays choisi. */
   phone: string;
+  /** Nom français du pays (ex. « Côte d'Ivoire »). */
+  country: string;
+  /** ISO 3166-1 alpha-2, source de l'indicatif téléphonique. */
+  countryCode: string;
+  sector: string;
   company: string;
   jobTitle: string;
   consent: boolean;
@@ -37,6 +45,9 @@ const EMPTY: FormState = {
   lastName: "",
   email: "",
   phone: "",
+  country: "",
+  countryCode: "",
+  sector: "",
   company: "",
   jobTitle: "",
   consent: false,
@@ -50,11 +61,40 @@ type Status =
 
 export function StudyLeadModal({ open, onClose, study, utm }: Props) {
   const [form, setForm] = useState<FormState>(EMPTY);
+  const [sectors, setSectors] = useState<string[]>([]);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [submitting, setSubmitting] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const firstFieldRef = useRef<HTMLInputElement>(null);
   const titleId = useId();
+  const sectorListId = useId();
+
+  // Indicatif déduit du pays choisi. Stocké au moment de l'envoi seulement :
+  // le champ de saisie ne contient que le numéro national.
+  const dialCode = form.countryCode ? `+${COUNTRY_DIAL_CODES[form.countryCode] || ""}` : "";
+
+  // Secteurs : même source de vérité que la bibliothèque (table `sectors`),
+  // pour que les leads soient comparables aux campagnes. Chargés à l'ouverture
+  // seulement — la modale n'est affichée qu'à la demande.
+  useEffect(() => {
+    if (!open || sectors.length) return;
+    let cancelled = false;
+    fetch("/api/sectors")
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return;
+        const names = ((d.sectors || []) as Array<{ name?: string }>)
+          .map((s) => s.name)
+          .filter((n): n is string => !!n);
+        setSectors(names);
+      })
+      .catch(() => {
+        /* liste indisponible : le champ reste saisissable en texte libre */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, sectors.length]);
 
   // Échap ferme la modale, et le scroll de la page est gelé pendant l'ouverture
   // pour que la position de défilement soit intacte à la fermeture.
@@ -85,6 +125,11 @@ export function StudyLeadModal({ open, onClose, study, utm }: Props) {
     e.preventDefault();
     if (submitting) return;
 
+    if (!form.countryCode) {
+      setStatus({ kind: "error", message: "Sélectionnez votre pays." });
+      return;
+    }
+
     setSubmitting(true);
     setStatus({ kind: "idle" });
 
@@ -98,6 +143,9 @@ export function StudyLeadModal({ open, onClose, study, utm }: Props) {
         body: JSON.stringify({
           slug: study.slug,
           ...form,
+          // Numéro complet en E.164 : l'indicatif du pays choisi est préfixé au
+          // numéro national, sans espaces. C'est cette forme qui est stockée.
+          phone: `${dialCode}${form.phone.replace(/\D/g, "")}`,
           ...utm,
           marketingConsent: hasMarketingConsent(),
         }),
@@ -249,16 +297,57 @@ export function StudyLeadModal({ open, onClose, study, utm }: Props) {
                 />
               </Field>
 
-              <Field label="Numéro de contact ou WhatsApp" required className="sm:col-span-2">
-                <input
-                  type="tel"
-                  required
-                  maxLength={40}
-                  value={form.phone}
-                  onChange={(e) => set("phone", e.target.value)}
-                  className={inputClass}
-                  autoComplete="tel"
+              <Field label="Pays" required className="sm:col-span-2">
+                <CountrySelect
+                  value={form.country || null}
+                  onChange={(c) =>
+                    setForm((prev) => ({ ...prev, country: c.name, countryCode: c.code }))
+                  }
+                  placeholder="Sélectionnez votre pays"
                 />
+              </Field>
+
+              {/* L'indicatif est imposé par le pays : les numéros collectés sont
+                  homogènes et exploitables, contrairement à une saisie libre. */}
+              <Field label="Numéro de contact ou WhatsApp" required className="sm:col-span-2">
+                <div className="flex items-stretch gap-2">
+                  <span
+                    className="inline-flex shrink-0 items-center rounded-lg border border-[#e5e5e5] bg-[#f7f7f7] px-3 text-sm font-semibold text-[#4e4e4e]"
+                    aria-label="Indicatif téléphonique"
+                  >
+                    {dialCode || "+—"}
+                  </span>
+                  <input
+                    type="tel"
+                    required
+                    inputMode="numeric"
+                    maxLength={20}
+                    disabled={!form.countryCode}
+                    value={form.phone}
+                    onChange={(e) => set("phone", e.target.value.replace(/[^\d\s]/g, ""))}
+                    className={`${inputClass} flex-1 disabled:cursor-not-allowed disabled:bg-[#f7f7f7]`}
+                    autoComplete="tel-national"
+                    placeholder={form.countryCode ? "07 00 00 00 00" : "Choisissez d'abord votre pays"}
+                  />
+                </div>
+              </Field>
+
+              <Field label="Secteur d'activité" required className="sm:col-span-2">
+                <input
+                  type="text"
+                  required
+                  list={sectorListId}
+                  maxLength={100}
+                  value={form.sector}
+                  onChange={(e) => set("sector", e.target.value)}
+                  className={inputClass}
+                  placeholder="Fintech, Banque, Retail…"
+                />
+                <datalist id={sectorListId}>
+                  {sectors.map((name) => (
+                    <option key={name} value={name} />
+                  ))}
+                </datalist>
               </Field>
 
               <Field label="Entreprise">

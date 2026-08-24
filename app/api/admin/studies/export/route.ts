@@ -24,6 +24,8 @@ const COLUMNS: Array<[header: string, key: string]> = [
   ['Nom', 'last_name'],
   ['Email', 'email'],
   ['Téléphone', 'phone'],
+  ['Pays', 'country'],
+  ["Secteur d'activité", 'sector'],
   ['Entreprise', 'company'],
   ['Fonction', 'job_title'],
   ['Étude', '_study'],

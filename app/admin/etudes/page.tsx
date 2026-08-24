@@ -25,6 +25,9 @@ interface Lead {
   last_name: string;
   email: string;
   phone: string;
+  /** Ajoutés par la migration #18 : absents des leads antérieurs. */
+  country: string | null;
+  sector: string | null;
   company: string | null;
   job_title: string | null;
   utm_source: string | null;
@@ -386,13 +389,13 @@ export default function AdminStudiesPage() {
           ) : (
             <Card>
               <CardContent className="overflow-x-auto p-0">
-                <table className="w-full min-w-[880px] text-sm">
+                <table className="w-full min-w-[1040px] text-sm">
                   <thead className="border-b border-border bg-muted/40 text-left">
                     <tr>
                       {/* Les neuf champs listés au brief bannière (§7 « Détail des
                           contacts ») : nom, email, téléphone, entreprise, fonction
                           (sous le nom), source, campagne, date et étude. */}
-                      {["Date", "Nom", "Email", "Téléphone", "Entreprise", "Étude", "Source", "Campagne", "PDF"].map(
+                      {["Date", "Nom", "Email", "Téléphone", "Pays", "Secteur", "Entreprise", "Étude", "Source", "Campagne", "PDF"].map(
                         (h) => (
                           <th key={h} className="whitespace-nowrap px-4 py-3 font-semibold">
                             {h}
@@ -417,6 +420,8 @@ export default function AdminStudiesPage() {
                         </td>
                         <td className="px-4 py-3">{lead.email}</td>
                         <td className="whitespace-nowrap px-4 py-3">{lead.phone}</td>
+                        <td className="whitespace-nowrap px-4 py-3">{lead.country || "—"}</td>
+                        <td className="px-4 py-3">{lead.sector || "—"}</td>
                         <td className="px-4 py-3">{lead.company || "—"}</td>
                         <td className="max-w-[180px] truncate px-4 py-3 text-muted-foreground">
                           {studies.find((s) => s.id === lead.study_id)?.title || "—"}

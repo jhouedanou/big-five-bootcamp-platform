@@ -26,8 +26,9 @@ function clean(value: unknown, max: number): string {
 
 /**
  * POST /api/etudes/lead
- * Body: { slug, firstName, lastName, email, phone, company?, jobTitle?,
- *         consent, utm_source?, utm_medium?, utm_campaign?, utm_content?,
+ * Body: { slug, firstName, lastName, email, phone, country, countryCode,
+ *         sector, company?, jobTitle?, consent, marketingConsent?,
+ *         utm_source?, utm_medium?, utm_campaign?, utm_content?,
  *         referrer?, website? (honeypot) }
  *
  * Enregistre le lead puis envoie l'étude par email. Un email déjà enregistré
@@ -61,6 +62,11 @@ export async function POST(request: NextRequest) {
     const lastName = clean((payload as any).lastName, LIMITS.last_name)
     const email = clean((payload as any).email, LIMITS.email).toLowerCase()
     const phone = clean((payload as any).phone, LIMITS.phone)
+    // Pays et secteur : demandés par le brief « Formulaire de collecte ». Le
+    // pays porte aussi l'indicatif du numéro, déjà préfixé côté formulaire.
+    const country = clean((payload as any).country, 100)
+    const countryCode = clean((payload as any).countryCode, 2).toUpperCase()
+    const sector = clean((payload as any).sector, 100)
     const company = clean((payload as any).company, LIMITS.company) || null
     const jobTitle = clean((payload as any).jobTitle, LIMITS.job_title) || null
     const consent = (payload as any).consent === true
@@ -68,6 +74,23 @@ export async function POST(request: NextRequest) {
     if (!firstName || !lastName || !email || !phone) {
       return NextResponse.json(
         { error: 'Prénom, nom, email et numéro de contact sont obligatoires.' },
+        { status: 400 }
+      )
+    }
+    if (!country || !countryCode) {
+      return NextResponse.json({ error: 'Le pays est obligatoire.' }, { status: 400 })
+    }
+    if (!sector) {
+      return NextResponse.json(
+        { error: "Le secteur d'activité est obligatoire." },
+        { status: 400 }
+      )
+    }
+    // Le formulaire envoie un numéro déjà en E.164 : on refuse ce qui n'y
+    // ressemble pas, sinon la contrainte d'indicatif ne sert à rien.
+    if (!/^\+\d{7,20}$/.test(phone)) {
+      return NextResponse.json(
+        { error: 'Numéro invalide. Vérifiez le pays et le numéro saisi.' },
         { status: 400 }
       )
     }
@@ -117,6 +140,9 @@ export async function POST(request: NextRequest) {
       last_name: lastName,
       email,
       phone,
+      country,
+      country_code: countryCode,
+      sector,
       company,
       job_title: jobTitle,
       consent,
@@ -189,7 +215,12 @@ export async function POST(request: NextRequest) {
             eventSourceUrl: request.headers.get('referer') || undefined,
             clientIp: ip,
             userAgent: request.headers.get('user-agent'),
-            customData: { content_name: (study as any).title, study_slug: slug },
+            customData: {
+              content_name: (study as any).title,
+              study_slug: slug,
+              country: countryCode,
+              sector,
+            },
             // Refus marketing : la conversion part quand même (elle est réelle
             // et constatée côté serveur), mais sans les identifiants issus du
             // navigateur, qui ne servent qu'au rapprochement publicitaire.

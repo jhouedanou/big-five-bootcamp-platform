@@ -49,6 +49,16 @@ export const INTEGRATION_FIELDS: IntegrationField[] = [
     group: 'tracking',
   },
   {
+    key: 'gtm_container_id',
+    label: 'Google Tag Manager — identifiant du conteneur',
+    help:
+      'Commence par GTM-. Une fois renseigné, GTM devient le pilote des balises : la balise Google Analytics codée dans le site est retirée automatiquement pour éviter de compter chaque page deux fois. Configurez alors GA4 et le pixel Meta dans le conteneur.',
+    secret: false,
+    envVar: 'NEXT_PUBLIC_GTM_ID',
+    group: 'tracking',
+    placeholder: 'GTM-XXXXXXX',
+  },
+  {
     key: 'meta_pixel_id',
     label: 'Meta — identifiant du pixel',
     help: 'Suite de chiffres, visible dans Meta Events Manager.',

@@ -8,17 +8,13 @@ import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 
-const CONSENT_STORAGE_KEY = "laveiye-rgpd-consent-v1"
-const CONSENT_COOKIE_NAME = "laveiye_rgpd_consent"
-const CONSENT_MAX_AGE_SECONDS = 60 * 60 * 24 * 365
-
-type ConsentPayload = {
-  necessary: true
-  analytics: boolean
-  marketing: boolean
-  acceptedAt: string
-  version: 1
-}
+import {
+  CONSENT_COOKIE_NAME,
+  CONSENT_EVENT,
+  CONSENT_MAX_AGE_SECONDS,
+  CONSENT_STORAGE_KEY,
+  type ConsentPayload,
+} from "@/lib/consent"
 
 type PreferenceRowProps = {
   title: string
@@ -88,7 +84,7 @@ export function RgpdBottomSheet() {
       try {
         window.localStorage.setItem(CONSENT_STORAGE_KEY, JSON.stringify(payload))
         document.cookie = `${CONSENT_COOKIE_NAME}=${cookieValue}; Max-Age=${CONSENT_MAX_AGE_SECONDS}; Path=/; SameSite=Lax`
-        window.dispatchEvent(new CustomEvent("laveiye:rgpd-consent", { detail: payload }))
+        window.dispatchEvent(new CustomEvent(CONSENT_EVENT, { detail: payload }))
       } catch {
         document.cookie = `${CONSENT_COOKIE_NAME}=${cookieValue}; Max-Age=${CONSENT_MAX_AGE_SECONDS}; Path=/; SameSite=Lax`
       }

@@ -11,29 +11,37 @@
  *   API (lib/fb-capi.ts) avec dédoublonnage par event_id partagé.
  */
 
-export const FB_PIXEL_ID = "1889630218258683"
+import { hasMarketingConsent } from "@/lib/consent"
 
-const CONSENT_STORAGE_KEY = "laveiye-rgpd-consent-v1"
+/** Repli si l'identifiant n'a pas été posé par le layout. */
+const FALLBACK_FB_PIXEL_ID = "1889630218258683"
 
 declare global {
   interface Window {
     fbq?: (...args: any[]) => void
     _fbq?: unknown
+    /** Posé dans le <head> par app/layout.tsx, depuis /admin/integrations. */
+    __LAVEIYE_FB_PIXEL_ID__?: string
   }
 }
 
-/** Consentement marketing accordé ? (lecture du stockage du bandeau RGPD) */
-export function hasMarketingConsent(): boolean {
-  if (typeof window === "undefined") return false
-  try {
-    const raw = window.localStorage.getItem(CONSENT_STORAGE_KEY)
-    if (!raw) return false
-    const payload = JSON.parse(raw) as { marketing?: boolean }
-    return payload.marketing === true
-  } catch {
-    return false
-  }
+/**
+ * Identifiant du pixel réellement utilisé par le navigateur.
+ *
+ * Il était codé en dur : changer le pixel dans /admin/integrations ne modifiait
+ * que la moitié serveur, le navigateur continuait d'envoyer sur l'ancien. Les
+ * deux moitiés du couple Pixel/CAPI pouvaient donc pointer sur deux pixels
+ * différents, et la déduplication n'avait plus aucune chance de fonctionner.
+ */
+export function getFbPixelId(): string {
+  if (typeof window === "undefined") return FALLBACK_FB_PIXEL_ID
+  const fromLayout = window.__LAVEIYE_FB_PIXEL_ID__
+  return typeof fromLayout === "string" && fromLayout.trim()
+    ? fromLayout.trim()
+    : FALLBACK_FB_PIXEL_ID
 }
+
+export { hasMarketingConsent }
 
 let pixelLoaded = false
 
@@ -63,7 +71,7 @@ export function loadFbPixel(): void {
     document.head.appendChild(script)
   }
 
-  w.fbq("init", FB_PIXEL_ID)
+  w.fbq("init", getFbPixelId())
 }
 
 /** event_id partagé pixel/CAPI pour le dédoublonnage Meta. */

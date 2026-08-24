@@ -1,7 +1,6 @@
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import { HeroSection, FeaturesSection, PreviewSection, PricingTeaser } from "@/components/landing/hero-section"
-import { RgpdBottomSheet } from "@/components/rgpd-bottom-sheet"
 import { FbPageView } from "@/components/analytics/fb-events"
 import { homeMetadata } from "./page.metadata"
 
@@ -23,7 +22,6 @@ export default function HomePage() {
         </section>
       </main>
       <Footer />
-      <RgpdBottomSheet />
     </div>
   )
 }

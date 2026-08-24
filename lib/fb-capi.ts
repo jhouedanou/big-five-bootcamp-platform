@@ -40,6 +40,19 @@ export interface FbCapiEventInput {
   clientIp?: string | null
   userAgent?: string | null
   customData?: Record<string, unknown>
+  /**
+   * Consentement marketing du visiteur, relayé par le client.
+   *
+   * L'événement serveur part quand même sur un refus — c'est le comportement
+   * attendu en recette : la conversion existe, elle est constatée côté serveur
+   * sur des données que l'utilisateur a lui-même saisies. En revanche les
+   * identifiants issus du navigateur (adresse IP, user-agent) ne sont pas
+   * transmis : ils ne servent qu'au rapprochement publicitaire, précisément ce
+   * que le visiteur a refusé (brief §13).
+   *
+   * `undefined` = pas d'information : comportement historique conservé.
+   */
+  marketingConsent?: boolean
 }
 
 /**
@@ -67,8 +80,11 @@ export async function sendFbCapiEvent(input: FbCapiEventInput): Promise<{ ok: bo
   if (input.phone) {
     userData.ph = [sha256(input.phone.replace(/\D/g, ""))]
   }
-  if (input.clientIp) userData.client_ip_address = input.clientIp
-  if (input.userAgent) userData.client_user_agent = input.userAgent
+  const browserIdentifiersAllowed = input.marketingConsent !== false
+  if (browserIdentifiersAllowed) {
+    if (input.clientIp) userData.client_ip_address = input.clientIp
+    if (input.userAgent) userData.client_user_agent = input.userAgent
+  }
 
   const customData: Record<string, unknown> = { ...(input.customData ?? {}) }
   if (typeof input.value === "number") customData.value = input.value

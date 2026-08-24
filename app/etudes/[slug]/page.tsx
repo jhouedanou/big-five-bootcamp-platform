@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getStudy, getAllStudySlugs } from '@/lib/studies-server'
 import { StudyLandingClient } from './study-landing-client'
+import { FbPageView } from '@/components/analytics/fb-events'
 
 /**
  * Landing publique de téléchargement d'une étude.
@@ -79,5 +80,12 @@ export default async function StudyLandingPage({
   // Une étude désactivée depuis l'admin cesse d'être servie.
   if (!study || !study.isActive) notFound()
 
-  return <StudyLandingClient study={study.content} />
+  return (
+    <>
+      {/* PageView Meta sur la principale page d'atterrissage publicitaire : elle
+          n'en émettait aucun, seul l'événement GA4 partait. */}
+      <FbPageView page={`etude:${slug}`} />
+      <StudyLandingClient study={study.content} />
+    </>
+  )
 }

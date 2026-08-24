@@ -9,6 +9,8 @@
  * relaie aussi vers POST /api/analytics/track qui écrit dans Supabase.
  */
 
+import { LEGACY_EVENT_MAP, pushDataLayer } from "@/lib/datalayer"
+
 export type AnalyticsEventName =
   | "onboarding_started"
   | "onboarding_completed"
@@ -159,9 +161,30 @@ export function getGaClientId(): string | undefined {
   return m?.[1]
 }
 
+/**
+ * Traduit un événement Laveiye en événement métier du brief et le pousse dans
+ * le dataLayer, d'où GTM le reprend.
+ *
+ * Le vocabulaire du dataLayer est FERMÉ (cf. lib/datalayer.ts) : un événement
+ * interne sans correspondance ne part pas. GTM ne doit contenir que ce que le
+ * brief a spécifié, sinon le conteneur se remplit d'événements non contractuels
+ * dont personne ne connaît la sémantique.
+ */
+function pushBusinessEvent(name: AnalyticsEventName, params: Record<string, any> = {}) {
+  const businessEvent = LEGACY_EVENT_MAP[name]
+  if (!businessEvent) return
+  const { source, ...rest } = params
+  pushDataLayer(businessEvent, rest, {
+    source_context: typeof source === "string" ? source : undefined,
+    event_id: typeof params.event_id === "string" ? params.event_id : undefined,
+  })
+}
+
 /** Envoie un événement à GA4 si gtag est disponible. */
 export function trackGA4(name: AnalyticsEventName, params: Record<string, any> = {}) {
   if (typeof window === "undefined") return
+  // Toujours pousser l'événement métier : c'est GTM qui décide des destinations.
+  pushBusinessEvent(name, params)
   if (typeof window.gtag === "function") {
     window.gtag("event", name, params)
   } else if (Array.isArray(window.dataLayer)) {

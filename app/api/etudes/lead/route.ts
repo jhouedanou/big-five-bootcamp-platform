@@ -190,6 +190,10 @@ export async function POST(request: NextRequest) {
             clientIp: ip,
             userAgent: request.headers.get('user-agent'),
             customData: { content_name: (study as any).title, study_slug: slug },
+            // Refus marketing : la conversion part quand même (elle est réelle
+            // et constatée côté serveur), mais sans les identifiants issus du
+            // navigateur, qui ne servent qu'au rapprochement publicitaire.
+            marketingConsent: (payload as any).marketingConsent === true,
           })
         )
         .catch((err) => console.error('CAPI Lead échoué:', err))

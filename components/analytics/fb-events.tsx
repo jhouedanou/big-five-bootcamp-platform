@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { fbTrack, hasMarketingConsent } from "@/lib/fb-pixel"
+import { CONSENT_EVENT } from "@/lib/consent"
 
 type FbEventName = "PageView" | "ViewContent" | "Search"
 
@@ -26,8 +27,8 @@ function useFbEventOnMount(event: FbEventName, params: Record<string, unknown>) 
 
     fire()
     // Consentement accordé après le montage (acceptation du bandeau).
-    window.addEventListener("laveiye:rgpd-consent", fire)
-    return () => window.removeEventListener("laveiye:rgpd-consent", fire)
+    window.addEventListener(CONSENT_EVENT, fire)
+    return () => window.removeEventListener(CONSENT_EVENT, fire)
   }, [event])
 }
 

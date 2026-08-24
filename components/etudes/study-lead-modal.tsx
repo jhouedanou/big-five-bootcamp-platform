@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { StudyContent } from "@/lib/studies";
 import { trackEvent } from "@/lib/analytics";
-import { fbTrack } from "@/lib/fb-pixel";
+import { fbTrack, hasMarketingConsent } from "@/lib/fb-pixel";
 
 interface UtmParams {
   utm_source?: string;
@@ -92,7 +92,15 @@ export function StudyLeadModal({ open, onClose, study, utm }: Props) {
       const res = await fetch("/api/etudes/lead", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slug: study.slug, ...form, ...utm }),
+        // Le choix RGPD est relayé au serveur : l'événement Meta serveur part
+        // dans tous les cas (il constate une conversion réelle), mais sans les
+        // identifiants du navigateur si le visiteur a refusé le marketing.
+        body: JSON.stringify({
+          slug: study.slug,
+          ...form,
+          ...utm,
+          marketingConsent: hasMarketingConsent(),
+        }),
       });
       const data = await res.json().catch(() => ({}));
 

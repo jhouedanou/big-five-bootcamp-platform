@@ -55,6 +55,20 @@ export interface LibraryMetadata {
 }
 
 /**
+ * Champs de fusion écrits par `syncUsersWithAudience`.
+ *
+ * Mailchimp REFUSE un contact dont les merge fields ne sont pas déclarés dans
+ * l'audience : la synchronisation les crée donc si besoin, sinon elle
+ * échouerait sur chaque contact avec un message peu parlant.
+ */
+export const SYNC_MERGE_FIELDS: MergeFieldDef[] = [
+  { tag: 'FNAME', name: 'Prénom', type: 'text' },
+  { tag: 'LNAME', name: 'Nom', type: 'text' },
+  { tag: 'PLAN', name: 'Offre', type: 'text' },
+  { tag: 'SUBSTATUS', name: 'Statut abonnement', type: 'text' },
+]
+
+/**
  * Service Mailchimp — gère la configuration, le test de connexion,
  * la synchronisation des utilisateurs et l'envoi de métadonnées.
  */
@@ -319,6 +333,20 @@ export class MailchimpService {
 
     if (!config.apiKey || !config.audienceId) {
       return { success: false, synced: 0, errors: ['Configuration Mailchimp incomplète'] }
+    }
+
+    // Les champs doivent exister AVANT le premier contact envoyé, sinon
+    // Mailchimp rejette toute la synchronisation.
+    const fields = await this.ensureMergeFields(SYNC_MERGE_FIELDS, { create: true })
+    if (!fields.ok) {
+      return { success: false, synced: 0, errors: [fields.error] }
+    }
+    if (fields.createErrors.length) {
+      return {
+        success: false,
+        synced: 0,
+        errors: fields.createErrors.map((e) => `Champ ${e.tag} : ${e.error}`),
+      }
     }
 
     const supabase = getSupabaseAdmin()

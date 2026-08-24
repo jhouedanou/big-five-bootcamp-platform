@@ -29,12 +29,6 @@ import {
 
 export const dynamic = 'force-dynamic'
 
-/** Champs de fusion nécessaires au segment de l'alerte hebdomadaire. */
-const WEEKLY_MERGE_FIELDS = [
-  { tag: 'PLAN', name: 'Offre', type: 'text' as const },
-  { tag: 'SUBSTATUS', name: 'Statut abonnement', type: 'text' as const },
-]
-
 export async function GET(request: NextRequest) {
   try {
     // Vérification de sécurité
@@ -117,16 +111,9 @@ export async function GET(request: NextRequest) {
     const html = buildWeeklyDigestHtml(digest)
     const subject = buildWeeklyDigestSubject(digest)
 
-    // 3. Mailchimp : champs de fusion, synchronisation, segment, envoi.
+    // 3. Mailchimp : synchronisation (qui crée les champs de fusion au besoin),
+    //    segment, puis envoi.
     const mailchimp = getMailchimpService()
-
-    const mergeFields = await mailchimp.ensureMergeFields(WEEKLY_MERGE_FIELDS, { create: true })
-    if (!mergeFields.ok) {
-      return NextResponse.json(
-        { error: `Champs de fusion Mailchimp : ${mergeFields.error}` },
-        { status: 502 }
-      )
-    }
 
     // Le segment lit PLAN et SUBSTATUS : sans cette synchronisation, il
     // refléterait l'état de la semaine précédente — un compte résilié entre

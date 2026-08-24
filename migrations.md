@@ -1,6 +1,6 @@
 # Migrations à exécuter (Supabase SQL Editor)
 
-Ordre d'exécution = **ordre numérique des préfixes de fichier** (`01_` → `16_`).
+Ordre d'exécution = **ordre numérique des préfixes de fichier** (`01_` → `18_`).
 Exécuter dans le **SQL Editor Supabase**, de haut en bas. Toutes idempotentes
 (ré-exécutables sans casse si doute).
 
@@ -22,12 +22,15 @@ Exécuter dans le **SQL Editor Supabase**, de haut en bas. Toutes idempotentes
 | 14 | `supabase/migrations/14_20260812_studies_content.sql` | Colonnes de contenu éditorial sur `studies` (textes, `slides`/`benefits`/`faq` en jsonb + contraintes) + seed du contenu actuel du Tome 1 | #12 (table `studies`) |
 | 15 | `supabase/migrations/15_20260812_ad_generations.sql` | Table `ad_generations` (historique + compteur de quota) + bucket privé `ad-studio` + RLS | **aucune** |
 | 16 | `supabase/migrations/16_20260812_ad_generations_kit.sql` | Colonnes `chatgpt_prompt` + `text_intent` sur `ad_generations` (kit créatif). Sans elle, le kit est renvoyé à l'écran mais non archivé | #15 |
+| 17 | `supabase/migrations/17_20260824_banner_display_mode.sql` | Colonne `display_mode` sur `dashboard_banners` (`editorial` \| `image`) + contrainte. Sans elle, le mode « Visuel complet » de /admin/bannieres reste sans effet | #13 (table `dashboard_banners`) |
+| 18 | `supabase/migrations/18_20260824_study_leads_country_sector.sql` | Colonnes `country`, `country_code`, `sector` sur `study_leads` + index. Sans elle, le formulaire d'étude échoue à l'enregistrement | #12 (table `study_leads`) |
 
 ## Règle simple
 
 - **#1 obligatoirement en premier** : crée `set_updated_at()` + `analytics_events` + `profiles` (réutilisés partout).
 - Ensuite **#2**, puis le reste dans l'ordre numérique.
-- Dépendances clés : **#4 après #3** · **#6 après #5** · **#8 après #2** · **#10 après #9**.
+- Dépendances clés : **#4 après #3** · **#6 après #5** · **#8 après #2** · **#10 après #9** ·
+  **#17 après #13** · **#18 après #12**.
 - **#13** est autonome et livre la bannière **inactive** : l'équipe l'active depuis
   `/admin/bannieres` une fois le visuel et les dates de campagne arrêtés.
 - **#14 après #12**. Tant qu'elle n'est pas exécutée, la landing affiche le contenu

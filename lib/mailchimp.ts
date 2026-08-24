@@ -324,7 +324,7 @@ export class MailchimpService {
     const supabase = getSupabaseAdmin()
     const { data: users, error } = await supabase
       .from('users')
-      .select('email, name, plan, subscription_status')
+      .select('email, name, plan, subscription_status, email_unsubscribed')
 
     if (error) {
       return { success: false, synced: 0, errors: [`Erreur récupération utilisateurs: ${error.message}`] }
@@ -352,6 +352,9 @@ export class MailchimpService {
         const subscriberHash = await this.md5(user.email.toLowerCase())
         const url = `${baseUrl}/lists/${config.audienceId}/members/${subscriberHash}`
 
+        // `subscription_status` était lu depuis la base mais jamais transmis :
+        // impossible de construire un segment « abonnés actifs » côté
+        // Mailchimp, alors que c'est exactement l'audience de l'alerte hebdo.
         const body: any = {
           email_address: user.email,
           status_if_new: 'subscribed',
@@ -359,7 +362,17 @@ export class MailchimpService {
             FNAME: user.name?.split(' ')[0] || '',
             LNAME: user.name?.split(' ').slice(1).join(' ') || '',
             PLAN: getPlanDisplayName(user.plan),
+            SUBSTATUS: user.subscription_status || 'none',
           },
+        }
+
+        // Un désabonnement enregistré côté Laveiye doit se voir dans Mailchimp,
+        // sinon la campagne partirait quand même. L'inverse (désabonnement
+        // fait dans Mailchimp) est déjà respecté : Mailchimp n'envoie pas à un
+        // membre désabonné, et une synchronisation ne le réabonne jamais —
+        // `status` n'est posé QUE pour désabonner.
+        if (user.email_unsubscribed === true) {
+          body.status = 'unsubscribed'
         }
 
         // Ajouter le tag par défaut si configuré
@@ -388,6 +401,147 @@ export class MailchimpService {
     }
 
     return { success: true, synced, errors }
+  }
+
+  /**
+   * URL de base de l'API pour la configuration chargée.
+   * Lève si la clé est absente ou mal formée — les appelants remontent
+   * l'erreur telle quelle plutôt que d'échouer silencieusement.
+   */
+  private async apiBase(): Promise<{ baseUrl: string; config: MailchimpConfig }> {
+    if (!this.config) await this.loadConfig()
+    const config = this.config!
+    if ((config as any).apiKeyUnreadable) {
+      throw new Error(
+        'La clé API Mailchimp stockée est illisible. Resaisissez-la dans Paramètres → Mailchimp.'
+      )
+    }
+    if (!config.apiKey || !config.audienceId) {
+      throw new Error('Configuration Mailchimp incomplète (clé API ou audience manquante).')
+    }
+    return { baseUrl: `https://${this.getDataCenter(config.apiKey)}.api.mailchimp.com/3.0`, config }
+  }
+
+  private async request(path: string, init: RequestInit = {}): Promise<any> {
+    const { baseUrl, config } = await this.apiBase()
+    const res = await fetch(`${baseUrl}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `apikey ${config.apiKey}`,
+        'Content-Type': 'application/json',
+        ...(init.headers || {}),
+      },
+    })
+    const text = await res.text()
+    const data = text ? JSON.parse(text) : {}
+    if (!res.ok) {
+      throw new Error(data.detail || data.title || `Mailchimp ${res.status}`)
+    }
+    return data
+  }
+
+  /**
+   * Segment de l'alerte hebdomadaire : abonnés actifs, hors offre gratuite.
+   *
+   * Créé à la demande et réutilisé ensuite (Mailchimp refuse deux segments de
+   * même nom). Les conditions portent sur les merge fields écrits par
+   * `syncUsersWithAudience` — la synchronisation doit donc précéder l'envoi.
+   */
+  async ensureWeeklySegment(name = 'Laveiye — alertes hebdo'): Promise<{ id: number; name: string }> {
+    const { config } = await this.apiBase()
+
+    const existing = await this.request(
+      `/lists/${config.audienceId}/segments?count=200&type=saved`
+    )
+    const found = (existing.segments || []).find((s: any) => s.name === name)
+    if (found) return { id: found.id, name: found.name }
+
+    const created = await this.request(`/lists/${config.audienceId}/segments`, {
+      method: 'POST',
+      body: JSON.stringify({
+        name,
+        options: {
+          match: 'all',
+          conditions: [
+            {
+              condition_type: 'TextMerge',
+              field: 'SUBSTATUS',
+              op: 'is',
+              value: 'active',
+            },
+            {
+              condition_type: 'TextMerge',
+              field: 'PLAN',
+              op: 'not',
+              value: getPlanDisplayName('Free'),
+            },
+          ],
+        },
+      }),
+    })
+
+    return { id: created.id, name: created.name }
+  }
+
+  /**
+   * Crée une campagne régulière, y pose le HTML, puis l'envoie.
+   *
+   * L'alerte hebdomadaire passait par un envoi transactionnel par utilisateur.
+   * Le contenu étant strictement identique pour tout le monde, une campagne
+   * unique fait le même travail — et le désabonnement, les statistiques
+   * d'ouverture et la conformité sont alors gérés par Mailchimp, qui est
+   * l'outil d'emailing de l'équipe.
+   */
+  async sendCampaign(input: {
+    subject: string
+    title: string
+    html: string
+    segmentId?: number
+    /** Ne pas envoyer : la campagne reste en brouillon (répétition). */
+    dryRun?: boolean
+  }): Promise<{ ok: true; campaignId: string; sent: boolean } | { ok: false; error: string }> {
+    try {
+      const { config } = await this.apiBase()
+
+      if (!config.fromEmail || !config.fromName) {
+        return {
+          ok: false,
+          error: "Expéditeur Mailchimp non configuré (nom et email d'envoi).",
+        }
+      }
+
+      const campaign = await this.request('/campaigns', {
+        method: 'POST',
+        body: JSON.stringify({
+          type: 'regular',
+          recipients: {
+            list_id: config.audienceId,
+            ...(input.segmentId ? { segment_opts: { saved_segment_id: input.segmentId } } : {}),
+          },
+          settings: {
+            subject_line: input.subject,
+            title: input.title,
+            from_name: config.fromName,
+            reply_to: config.fromEmail,
+            auto_footer: false,
+          },
+        }),
+      })
+
+      await this.request(`/campaigns/${campaign.id}/content`, {
+        method: 'PUT',
+        body: JSON.stringify({ html: input.html }),
+      })
+
+      if (input.dryRun) {
+        return { ok: true, campaignId: campaign.id, sent: false }
+      }
+
+      await this.request(`/campaigns/${campaign.id}/actions/send`, { method: 'POST' })
+      return { ok: true, campaignId: campaign.id, sent: true }
+    } catch (err: any) {
+      return { ok: false, error: err?.message || 'Erreur Mailchimp' }
+    }
   }
 
   /**

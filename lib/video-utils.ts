@@ -1,9 +1,21 @@
 /**
  * Utilitaires pour la gestion des vidéos multi-plateforme
- * Supporte: YouTube, Facebook, LinkedIn, Twitter/X, Instagram, TikTok, Google Drive
+ * Supporte: YouTube, Facebook, LinkedIn, Twitter/X, Instagram, TikTok, Google
+ * Drive, livid.com, et les fichiers vidéo directs (bucket `videos`, .mp4/.webm…).
  */
 
-export type VideoPlatform = "youtube" | "facebook" | "linkedin" | "twitter" | "instagram" | "tiktok" | "drive" | "unknown";
+export type VideoPlatform =
+  | "youtube"
+  | "facebook"
+  | "linkedin"
+  | "twitter"
+  | "instagram"
+  | "tiktok"
+  | "drive"
+  | "livid"
+  /** Fichier lisible tel quel par `<video>` : bucket `videos` ou URL en .mp4/.webm/… */
+  | "file"
+  | "unknown";
 
 export interface VideoInfo {
   platform: VideoPlatform;
@@ -27,6 +39,13 @@ export function detectVideoPlatform(url: string): VideoPlatform {
   if (u.includes("linkedin.com")) return "linkedin";
   if (u.includes("twitter.com") || u.includes("x.com") || u.includes("t.co")) return "twitter";
   if (u.includes("drive.google.com")) return "drive";
+  if (u.includes("livid.com")) return "livid";
+
+  // En dernier : un fichier servi directement (bucket `videos`, ou n'importe
+  // quelle URL en .mp4/.webm/…). Sans cette branche, une vidéo téléversée
+  // depuis l'admin ressortait « Plateforme non reconnue », sans aperçu, sans
+  // vignette, et le lecteur affichait « ne peut pas être intégrée ici ».
+  if (isDirectVideoFile(url)) return "file";
 
   return "unknown";
 }
@@ -271,6 +290,13 @@ export function getEmbedUrl(url: string): string {
     case "drive": {
       return getGoogleDriveEmbedUrl(originalUrl);
     }
+    case "file":
+      // Lu par une balise <video>, pas par une iframe : l'URL est l'URL.
+      return originalUrl;
+    case "livid":
+      // Aucun motif d'intégration documenté à ce jour : on renvoie la page,
+      // le lecteur bascule sur le lien externe via isEmbeddableVideoUrl.
+      return originalUrl;
     default:
       return originalUrl;
   }
@@ -299,6 +325,10 @@ export function isEmbeddableVideoUrl(url: string): boolean {
       return !!getLinkedInEmbedUrl(originalUrl);
     case "drive":
       return !!extractGoogleDriveFileId(originalUrl);
+    case "file":
+      return true; // <video src> — lecture directe garantie
+    case "livid":
+      return false; // motif d'intégration inconnu → lien externe
     default:
       return false;
   }
@@ -403,6 +433,12 @@ export function parseVideoUrl(url: string): VideoInfo {
       // l'image échoue au chargement et le composant montre le placeholder.
       thumbnailUrl = videoId ? `https://drive.google.com/thumbnail?id=${videoId}&sz=w800` : null;
       break;
+    case "file":
+      // Pas de vignette par URL : elle est capturée à l'upload et stockée dans
+      // le champ « Image principale » de la campagne.
+      embedUrl = originalUrl;
+      thumbnailUrl = null;
+      break;
   }
 
   return {
@@ -440,6 +476,8 @@ export function platformLabelToVideoPlatform(
   if (l.includes("linkedin")) return "linkedin";
   if (l.includes("twitter") || l === "x" || l.includes("x.com")) return "twitter";
   if (l.includes("drive") || l.includes("google drive")) return "drive";
+  if (l.includes("livid")) return "livid";
+  if (l.includes("fichier")) return "file";
   return "unknown";
 }
 
@@ -450,14 +488,41 @@ export function platformLabelToVideoPlatform(
  * Shorts), 16/9 sinon.
  */
 export function getVideoOrientation(
-  platformLabel: string | null | undefined,
+  platform: VideoPlatform | string | null | undefined,
   format?: string | null,
+  url?: string | null,
 ): "portrait" | "landscape" {
   const f = (format || "").toLowerCase();
   if (/(story|reel|short|vertical|portrait)/.test(f)) return "portrait";
-  const p = platformLabelToVideoPlatform(platformLabel);
+
+  // L'URL tranche avant la plateforme : un Reel Facebook ou un Short YouTube
+  // est vertical alors que sa plateforme est « paysage » par défaut. C'est ce
+  // qui coupait les vidéos dans le lecteur (recette du 19/08).
+  const u = (url || "").toLowerCase();
+  if (u && /\/(reel|reels|shorts|tv|stories)\//.test(u)) return "portrait";
+
+  const p = isVideoPlatform(platform) ? platform : platformLabelToVideoPlatform(platform);
   if (p === "tiktok" || p === "instagram") return "portrait";
   return "landscape";
+}
+
+/** Vrai si la valeur est déjà une VideoPlatform (et non un libellé humain). */
+function isVideoPlatform(value: unknown): value is VideoPlatform {
+  return (
+    typeof value === "string" &&
+    [
+      "youtube",
+      "facebook",
+      "linkedin",
+      "twitter",
+      "instagram",
+      "tiktok",
+      "drive",
+      "livid",
+      "file",
+      "unknown",
+    ].includes(value)
+  );
 }
 
 /**
@@ -472,6 +537,8 @@ export function getVideoPlatformLabel(platform: VideoPlatform): string {
     linkedin: "LinkedIn",
     twitter: "Twitter/X",
     drive: "Google Drive",
+    livid: "livid.com",
+    file: "Fichier vidéo",
     unknown: "Vidéo",
   };
   return labels[platform];

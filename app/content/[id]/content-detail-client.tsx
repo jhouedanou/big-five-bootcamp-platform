@@ -124,6 +124,54 @@ function truncateText(text: string, maxLength: number): string {
   return `${text.slice(0, maxLength).trim()}...`;
 }
 
+/**
+ * Passerelle vers le studio publicitaire.
+ *
+ * Le secteur et le canal de la campagne consultée pré-remplissent le brief. Le
+ * visuel n'est pas transmis : l'utilisateur téléverse sa propre référence, ce
+ * qui évite de faire ressortir une création premium hors de son cadre d'accès.
+ *
+ * Monté dans les DEUX blocs Actions (mobile et desktop) : il n'existait que
+ * dans le bloc mobile, donc invisible sur ordinateur (recette du 19/08).
+ *
+ * Un compte Free voit le bouton mais est redirigé vers l'offre : le masquer
+ * laissait croire que la fonctionnalité n'existait pas.
+ */
+function StudioGatewayButton({
+  content,
+  isFreeUser,
+}: {
+  content: { category?: string | null; platforms?: string[] | null }
+  isFreeUser: boolean
+}) {
+  const href = isFreeUser
+    ? "/pricing?source=studio"
+    : `/studio-pub?${new URLSearchParams({
+        ...(content.category ? { secteur: content.category } : {}),
+        ...(content.platforms?.[0] ? { canal: content.platforms[0] } : {}),
+      }).toString()}`
+
+  return (
+    <div className="mt-3 border-t border-border pt-3">
+      <Button
+        asChild
+        variant="outline"
+        className="min-h-11 w-full gap-2 whitespace-normal border-[#F2B33D]/40 px-3 py-2 text-center leading-tight hover:border-[#F2B33D] hover:bg-[#FFF6E3] hover:text-[#0F0F0F]"
+      >
+        <Link href={href}>
+          <Wand2 className="h-4 w-4" />
+          S&apos;en inspirer dans le studio
+        </Link>
+      </Button>
+      {isFreeUser && (
+        <p className="mt-1.5 text-center text-xs text-muted-foreground">
+          Inclus à partir de l&apos;offre Basic.
+        </p>
+      )}
+    </div>
+  )
+}
+
 export default function ContentDetailClient({ id }: { id: string }) {
   // Force le choix d'un plan : redirige vers /subscribe?required=1
   // si l'utilisateur n'a pas d'abonnement actif.
@@ -981,25 +1029,7 @@ export default function ContentDetailClient({ id }: { id: string }) {
                     consultée pré-remplissent le brief. Le visuel n'est pas transmis —
                     l'utilisateur téléverse sa propre référence, ce qui évite de faire
                     ressortir une création premium hors de son cadre d'accès. */}
-                {!isFreeUser && (
-                  <div className="mt-3 border-t border-border pt-3">
-                    <Button
-                      asChild
-                      variant="outline"
-                      className="min-h-11 w-full gap-2 whitespace-normal border-[#F2B33D]/40 px-3 py-2 text-center leading-tight hover:border-[#F2B33D] hover:bg-[#FFF6E3] hover:text-[#0F0F0F]"
-                    >
-                      <Link
-                        href={`/studio-pub?${new URLSearchParams({
-                          ...(content.category ? { secteur: content.category } : {}),
-                          ...(content.platforms?.[0] ? { canal: content.platforms[0] } : {}),
-                        }).toString()}`}
-                      >
-                        <Wand2 className="h-4 w-4" />
-                        S&apos;en inspirer dans le studio
-                      </Link>
-                    </Button>
-                  </div>
-                )}
+                <StudioGatewayButton content={content} isFreeUser={isFreeUser} />
                 <div className="mt-3 flex justify-center border-t border-border pt-3">
                   <ReactionButtons campaignId={content.id} />
                 </div>
@@ -1021,7 +1051,13 @@ export default function ContentDetailClient({ id }: { id: string }) {
                 ? detectedPlatform
                 : platformLabelToVideoPlatform(declaredLabel);
               const embedUrl = getEmbedUrl(content.video_url);
-              const platformLabel = declaredLabel || getVideoPlatformLabel(videoPlatform);
+              // Même priorité que le lecteur : c'est l'URL qui décide. Le libellé
+              // déclaré affichait « Voir la vidéo Facebook » sur un post Instagram
+              // dès que la campagne était étiquetée Facebook (recette du 19/08).
+              const platformLabel =
+                detectedPlatform !== "unknown"
+                  ? getVideoPlatformLabel(videoPlatform)
+                  : declaredLabel || getVideoPlatformLabel(videoPlatform);
 
               if (videoPlatform === "linkedin" || videoPlatform === "facebook" || videoPlatform === "instagram" || videoPlatform === "tiktok") {
                 const iconBg = videoPlatform === "linkedin"
@@ -1079,6 +1115,31 @@ export default function ContentDetailClient({ id }: { id: string }) {
                       title={content.title}
                     />
                   </>
+                );
+              }
+
+              // Fichier hébergé sur la plateforme : lecture native, aucune iframe.
+              if (videoPlatform === "file") {
+                return (
+                  <Card>
+                    <CardContent className="p-4">
+                      <h2 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                        <Video className="h-5 w-5" />
+                        Vidéo
+                      </h2>
+                      <div className="overflow-hidden rounded-lg bg-black">
+                        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                        <video
+                          src={embedUrl}
+                          controls
+                          playsInline
+                          preload="metadata"
+                          poster={getGoogleDriveImageUrl(content.thumbnail || "") || undefined}
+                          className="h-auto max-h-[70vh] w-full"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
                 );
               }
 
@@ -1342,6 +1403,8 @@ export default function ContentDetailClient({ id }: { id: string }) {
                     </Link>
                   )}
                 </div>
+
+                <StudioGatewayButton content={content} isFreeUser={isFreeUser} />
 
                 <div className="border-t border-border pt-4">
                   <p className="mb-2 text-sm font-semibold text-muted-foreground">Réactions</p>

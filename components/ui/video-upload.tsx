@@ -5,12 +5,17 @@ import { Button } from "@/components/ui/button"
 import { Loader2, Upload, Video } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { captureVideoPoster } from "@/lib/video-poster"
 
 const VIDEO_MAX_BYTES = 200 * 1024 * 1024 // garder aligné avec /api/upload/video
 const VIDEO_ALLOWED_TYPES = ["video/mp4", "video/webm", "video/quicktime"]
 
 interface VideoUploadButtonProps {
-  onUploaded: (url: string) => void
+  /**
+   * `posterUrl` est l'image capturée dans la vidéo et hébergée sur la
+   * plateforme. Absente si le navigateur n'a pas su décoder le fichier.
+   */
+  onUploaded: (url: string, posterUrl?: string) => void
   className?: string
 }
 
@@ -65,8 +70,28 @@ export function VideoUploadButton({ onUploaded, className }: VideoUploadButtonPr
         throw new Error(`Échec de l'envoi vers le stockage (${putRes.status}). ${text.slice(0, 120)}`)
       }
 
-      onUploaded(data.publicUrl)
-      toast.success("Vidéo uploadée avec succès !")
+      // 3) Vignette : capturée sur le fichier local puis hébergée. Sans elle la
+      //    campagne s'affiche sans visuel sur le tableau de bord.
+      let posterUrl: string | undefined
+      try {
+        const poster = await captureVideoPoster(file)
+        if (poster) {
+          const form = new FormData()
+          form.append("file", poster)
+          const posterRes = await fetch("/api/upload", { method: "POST", body: form })
+          const posterData = await posterRes.json().catch(() => ({}))
+          if (posterRes.ok && posterData.url) posterUrl = posterData.url
+        }
+      } catch {
+        /* silencieux : l'admin peut toujours uploader une image à la main */
+      }
+
+      onUploaded(data.publicUrl, posterUrl)
+      toast.success(
+        posterUrl
+          ? "Vidéo uploadée — vignette générée automatiquement."
+          : "Vidéo uploadée avec succès !"
+      )
     } catch (error: any) {
       toast.error("Erreur lors de l'upload vidéo", {
         description: error?.message || "Veuillez réessayer.",

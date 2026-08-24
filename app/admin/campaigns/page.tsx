@@ -66,7 +66,7 @@ import { sanitizeHtml } from "@/lib/sanitize-html";
 import { CSVImporter } from "@/components/admin/csv-importer";
 import { cn, getGoogleDriveImageUrl, generateSlug, isEphemeralGoogleImageUrl, isGoogleDriveHostedUrl, getGoogleDriveViewUrl } from "@/lib/utils";
 import { DatePicker } from "@/components/ui/date-picker";
-import { detectVideoPlatform, getEmbedUrl, isSupportedVideoUrl, getYouTubeThumbnail, getVideoPlatformLabel, getOriginalVideoUrl, isEmbeddableVideoUrl, platformLabelToVideoPlatform } from "@/lib/video-utils";
+import { detectVideoPlatform, getEmbedUrl, isSupportedVideoUrl, getVideoThumbnail, getVideoPlatformLabel, getOriginalVideoUrl, isEmbeddableVideoUrl, platformLabelToVideoPlatform, isDirectVideoFile } from "@/lib/video-utils";
 import { ImageUpload, ImageUploadButton } from "@/components/ui/image-upload";
 import { VideoUploadButton } from "@/components/ui/video-upload";
 import { useTempsForts } from "@/components/temps-forts/use-temps-forts";
@@ -1629,18 +1629,20 @@ function CampaignsPageContent() {
                           setFormData({ ...formData, videoUrl: newUrl });
                         }}
                         onBlur={async () => {
-                          // Génération auto de la vignette pour YouTube & TikTok
-                          // (sans écraser une vignette déjà renseignée). Les autres
-                          // plateformes : invitation à uploader une capture (ci-dessous).
+                          // Génération auto de la vignette (sans écraser une vignette déjà
+                          // renseignée). YouTube et Google Drive exposent une image par URL —
+                          // Drive était oublié ici alors que le helper existait déjà, d'où
+                          // « aucune vignette » sur un lien Drive (recette du 19/08).
+                          // TikTok passe par l'API. Autres plateformes : capture manuelle.
                           const u = formData.videoUrl?.trim();
                           if (!u || formData.imageUrl) return;
                           const platform = detectVideoPlatform(u);
-                          if (platform === "youtube") {
-                            const thumb = getYouTubeThumbnail(u);
-                            if (thumb) {
-                              setFormData((prev) => ({ ...prev, imageUrl: thumb }));
-                              toast.success("Vignette YouTube générée automatiquement.");
-                            }
+                          const byUrl = getVideoThumbnail(u);
+                          if (byUrl) {
+                            setFormData((prev) => ({ ...prev, imageUrl: byUrl }));
+                            toast.success(
+                              `Vignette ${getVideoPlatformLabel(platform)} générée automatiquement.`
+                            );
                             return;
                           }
                           if (platform === "tiktok") {
@@ -1671,15 +1673,14 @@ function CampaignsPageContent() {
                             toast.info("Récupération de la thumbnail...");
                             
                             try {
-                              // YouTube: thumbnail synchrone
+                              // YouTube et Drive exposent une vignette par URL : pas de réseau,
+                              // pas d'image expirante. Drive manquait ici.
                               const platform = detectVideoPlatform(videoUrl);
-                              if (platform === "youtube") {
-                                const thumb = getYouTubeThumbnail(videoUrl);
-                                if (thumb) {
-                                  setFormData({ ...formData, imageUrl: thumb });
-                                  toast.success("Thumbnail YouTube récupérée !");
-                                  return;
-                                }
+                              const byUrl = getVideoThumbnail(videoUrl);
+                              if (byUrl) {
+                                setFormData({ ...formData, imageUrl: byUrl });
+                                toast.success(`Thumbnail ${getVideoPlatformLabel(platform)} récupérée !`);
+                                return;
                               }
                               
                               // Autres plateformes: appel API
@@ -1702,25 +1703,53 @@ function CampaignsPageContent() {
                       )}
                     </div>
 
-                    {/* Hébergement direct du fichier (bucket `videos`) : lecture
-                        instantanée dans le lecteur interne ET prévisualisation au
-                        survol sur le dashboard — impossible avec un lien Drive ou
-                        social. Le bouton remplit le champ URL ci-dessus. */}
-                    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-dashed border-[#F2B33D]/50 bg-[#FFF6E3]/50 p-3 dark:bg-[#F2B33D]/10">
-                      <VideoUploadButton
-                        onUploaded={(url) => {
-                          setFormData((prev) => ({ ...prev, videoUrl: url }));
-                          toast.success("Vidéo hébergée sur la plateforme", {
-                            description:
-                              "Lecture interne garantie et aperçu au survol activé sur le dashboard.",
-                          });
-                        }}
-                      />
-                      <p className="min-w-[200px] flex-1 text-xs text-gray-600 dark:text-gray-400">
-                        <strong>Recommandé :</strong> téléversez le fichier (MP4/WebM/MOV,
-                        200 Mo max) plutôt qu&apos;un lien Drive — lecture immédiate et{" "}
-                        <strong>aperçu au survol</strong> sur le tableau de bord.
+                    {/* Consigne d'hébergement des vidéos.
+
+                        Le stockage de la plateforme est limité : le téléversement direct
+                        reste possible mais ne peut pas être la voie normale. Pour une
+                        vidéo Instagram, Facebook, TikTok ou Drive, la voie fiable est de
+                        la republier sur le compte YouTube de l'entreprise — lecture,
+                        vignette et orientation y sont gérées de bout en bout. */}
+                    <div className="space-y-2 rounded-lg border border-dashed border-[#F2B33D]/50 bg-[#FFF6E3]/50 p-3 dark:bg-[#F2B33D]/10">
+                      <p className="text-xs font-semibold text-gray-800 dark:text-gray-200">
+                        Vidéo Instagram, Facebook, TikTok ou Drive ? Republiez-la.
                       </p>
+                      <ol className="list-decimal space-y-1 pl-4 text-xs text-gray-600 dark:text-gray-400">
+                        <li>
+                          Téléchargez la vidéo depuis le post d&apos;origine (extension de
+                          navigateur de téléchargement vidéo).
+                        </li>
+                        <li>
+                          Réuploadez-la sur le <strong>compte YouTube de l&apos;entreprise</strong>{" "}
+                          (en « non répertoriée ») ou sur <strong>livid.com</strong>.
+                        </li>
+                        <li>Collez ce nouveau lien dans le champ ci-dessus.</li>
+                      </ol>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        YouTube est la seule plateforme gérée de bout en bout : lecture dans la
+                        fiche, vignette automatique et format vertical reconnu pour les Shorts.
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2 border-t border-[#F2B33D]/30 pt-2">
+                        <VideoUploadButton
+                          onUploaded={(url, posterUrl) => {
+                            setFormData((prev) => ({
+                              ...prev,
+                              videoUrl: url,
+                              // Ne jamais écraser une vignette déjà choisie par l'admin.
+                              imageUrl: prev.imageUrl || posterUrl || prev.imageUrl,
+                            }));
+                            toast.success("Vidéo hébergée sur la plateforme", {
+                              description:
+                                "Lecture interne garantie et aperçu au survol activé sur le tableau de bord.",
+                            });
+                          }}
+                        />
+                        <p className="min-w-[200px] flex-1 text-xs text-gray-500 dark:text-gray-500">
+                          Téléversement direct (MP4/WebM/MOV, 200 Mo max) — à réserver aux vidéos
+                          qu&apos;on ne peut pas republier : <strong>le stockage de la plateforme
+                          est limité</strong>.
+                        </p>
+                      </div>
                     </div>
 
                     {/* Indicateur de plateforme détectée */}
@@ -1739,11 +1768,21 @@ function CampaignsPageContent() {
                             // mais manquait ici : une URL Drive valide s'affichait
                             // « Plateforme non reconnue ».
                             drive: "bg-emerald-100 text-emerald-700",
+                            // Fichier hébergé sur la plateforme : une vidéo téléversée
+                            // depuis l'admin ressortait « Plateforme non reconnue ».
+                            file: "bg-emerald-100 text-emerald-700",
+                            livid: "bg-indigo-100 text-indigo-700",
                             unknown: "bg-yellow-100 text-yellow-700",
                           };
+                          const label =
+                            platform === "unknown"
+                              ? "⚠️ Plateforme non reconnue"
+                              : platform === "file"
+                                ? "✓ Fichier hébergé sur la plateforme"
+                                : `✓ ${getVideoPlatformLabel(platform)} détecté`;
                           return (
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${platformStyles[platform] || "bg-gray-100 text-gray-700"}`}>
-                              {platform === "unknown" ? "⚠️ Plateforme non reconnue" : `✓ ${getVideoPlatformLabel(platform)} détecté`}
+                              {label}
                             </span>
                           );
                         })()}
@@ -1757,6 +1796,21 @@ function CampaignsPageContent() {
                         return (
                           <p className="text-xs text-green-700 dark:text-green-400">
                             ✓ Vignette YouTube générée automatiquement (fiable, image publique stable).
+                          </p>
+                        );
+                      }
+                      if (platform === "file") {
+                        return (
+                          <p className="text-xs text-green-700 dark:text-green-400">
+                            ✓ Vignette capturée dans la vidéo au moment du téléversement.
+                          </p>
+                        );
+                      }
+                      if (platform === "drive") {
+                        return (
+                          <p className="text-xs text-green-700 dark:text-green-400">
+                            ✓ Vignette Google Drive générée automatiquement — à condition que le
+                            fichier soit partagé « toute personne disposant du lien ».
                           </p>
                         );
                       }
@@ -1785,8 +1839,20 @@ function CampaignsPageContent() {
                       );
                     })()}
                     
-                    {/* Aperçu vidéo embed */}
-                    {formData.videoUrl && formData.videoUrl.trim() && isSupportedVideoUrl(formData.videoUrl) && (
+                    {/* Aperçu vidéo. Un fichier hébergé se lit avec <video> :
+                        une iframe sur un .mp4 donne un lecteur nu et incohérent. */}
+                    {formData.videoUrl && formData.videoUrl.trim() && isDirectVideoFile(formData.videoUrl) ? (
+                      <div className="mt-2 overflow-hidden rounded-lg border border-gray-200 bg-black">
+                        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                        <video
+                          src={formData.videoUrl}
+                          controls
+                          playsInline
+                          preload="metadata"
+                          className="h-auto max-h-80 w-full"
+                        />
+                      </div>
+                    ) : formData.videoUrl && formData.videoUrl.trim() && isSupportedVideoUrl(formData.videoUrl) ? (
                       <div className="mt-2 rounded-lg overflow-hidden border border-gray-200">
                         <iframe
                           src={convertToVideoEmbed(formData.videoUrl)}
@@ -1796,7 +1862,7 @@ function CampaignsPageContent() {
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         />
                       </div>
-                    )}
+                    ) : null}
                 </div>
               </div>
             )}

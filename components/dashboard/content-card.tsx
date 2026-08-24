@@ -11,7 +11,7 @@ import { useAuthContext } from "@/components/auth-provider"
 import { useFavorites } from "@/hooks/use-favorites"
 import { toastCampaignShortcut } from "@/lib/campaign-shortcut-toast"
 import { cn, getGoogleDriveImageUrl } from "@/lib/utils"
-import { detectVideoPlatform, isDirectVideoFile } from "@/lib/video-utils"
+import { detectVideoPlatform, isDirectVideoFile, getVideoThumbnail } from "@/lib/video-utils"
 import { canAccessPremiumContent } from "@/lib/pricing"
 import { CountryFlag } from "@/components/ui/country-flag"
 import { XLogo } from "@/components/icons/x-logo"
@@ -162,6 +162,12 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
   const canHoverPreview =
     !!content.isVideo && !!content.videoUrl && !isPremiumLocked && isDirectVideoFile(content.videoUrl)
   const { hovering, onMouseEnter, onMouseLeave } = useDelayedHover()
+
+  // Sans image principale, YouTube et Drive exposent une vignette déductible de
+  // l'URL. Avant, la carte tombait directement sur les initiales : une campagne
+  // vidéo sans thumbnail s'affichait sans aucun visuel (recette du 19/08).
+  const displayImageUrl =
+    content.imageUrl || (content.videoUrl ? getVideoThumbnail(content.videoUrl) : null)
   const { isFavorite, toggleFavorite, isAuthenticated, loading: favLoading } = useFavorites()
   const [isToggling, setIsToggling] = React.useState(false)
   const isCurrentFavorite = isFavorite(content.id)
@@ -206,10 +212,17 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
             : "hover:shadow-[#F2B33D]/10"
         }`}>
           {/* Image compacte à gauche */}
-          <div className="relative w-32 h-32 sm:w-40 sm:h-40 flex-shrink-0 overflow-hidden bg-gradient-to-br from-[#0A1F44] to-[#1a3a6e]">
-            {content.imageUrl ? (
+          <div
+            className="relative w-32 h-32 sm:w-40 sm:h-40 flex-shrink-0 overflow-hidden bg-gradient-to-br from-[#0A1F44] to-[#1a3a6e]"
+            onMouseEnter={canHoverPreview ? onMouseEnter : undefined}
+            onMouseLeave={canHoverPreview ? onMouseLeave : undefined}
+          >
+            {canHoverPreview && (
+              <HoverVideoPreview src={content.videoUrl!} active={hovering} />
+            )}
+            {displayImageUrl ? (
               <Image
-                src={getGoogleDriveImageUrl(content.imageUrl) || "/placeholder.svg"}
+                src={getGoogleDriveImageUrl(displayImageUrl) || "/placeholder.svg"}
                 alt={content.title}
                 fill
                 sizes="160px"
@@ -337,9 +350,9 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
           {canHoverPreview && (
             <HoverVideoPreview src={content.videoUrl!} active={hovering} />
           )}
-          {content.imageUrl ? (
+          {displayImageUrl ? (
             <Image
-              src={getGoogleDriveImageUrl(content.imageUrl) || "/placeholder.svg"}
+              src={getGoogleDriveImageUrl(displayImageUrl) || "/placeholder.svg"}
               alt={content.title}
               fill
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -395,6 +408,8 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
                   twitter: "bg-black",
                   linkedin: "bg-[#0A66C2]",
                   drive: "bg-[#0F9D58]",
+                  file: "bg-[#F2B33D]",
+                  livid: "bg-indigo-600",
                   unknown: "bg-gray-600",
                 };
                 const vpLabels: Record<string, string> = {
@@ -405,6 +420,8 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
                   twitter: "▶ X",
                   linkedin: "▶ LI",
                   drive: "▶ Drive",
+                  file: "▶ Vidéo",
+                  livid: "▶ livid",
                   unknown: "▶",
                 };
                 return (

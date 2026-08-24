@@ -56,8 +56,14 @@ export function VideoModal({
   const displayLabel = getVideoPlatformLabel(platform);
   const embedUrl = getEmbedUrl(videoUrl || "");
   const canEmbed = isEmbeddableVideoUrl(videoUrl || "");
-  const orientation = getVideoOrientation(platformLabel, format);
-  const isPortrait = orientation === "portrait";
+  // Orientation calculée sur la plateforme RÉELLE et sur l'URL, pas sur le
+  // libellé déclaré : un Reel Facebook est vertical, une campagne étiquetée
+  // Instagram mais hébergée sur YouTube ne l'est pas.
+  const orientation = getVideoOrientation(platform, format, originalUrl);
+  // Un fichier direct porte ses propres dimensions : on les lit et on applique
+  // le ratio exact, plus fiable que n'importe quelle heuristique.
+  const [fileRatio, setFileRatio] = useState<number | null>(null);
+  const isPortrait = fileRatio !== null ? fileRatio < 1 : orientation === "portrait";
 
   // L'ancienne version ouvrait automatiquement un nouvel onglet et fermait la
   // modale si l'iframe n'avait pas chargé en 4,5 s. Deux défauts : sur une
@@ -67,7 +73,9 @@ export function VideoModal({
   // détecté. On se contente désormais d'afficher un lien de secours ; c'est
   // l'utilisateur qui décide de sortir du lecteur.
   useEffect(() => {
-    if (!open || !canEmbed) {
+    // Le fichier direct est lu par <video>, jamais par une iframe : pas de
+    // `onLoad` à attendre, donc pas de garde-fou « ça tarde » à armer.
+    if (!open || !canEmbed || platform === "file") {
       setSlowLoading(false);
       return;
     }
@@ -77,7 +85,7 @@ export function VideoModal({
       if (!loadedRef.current) setSlowLoading(true);
     }, EMBED_SLOW_MS);
     return () => clearTimeout(timer);
-  }, [open, canEmbed]);
+  }, [open, canEmbed, platform]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -88,7 +96,30 @@ export function VideoModal({
             {title}
           </DialogTitle>
         </DialogHeader>
-        {canEmbed && embedUrl ? (
+        {platform === "file" && embedUrl ? (
+          <div
+            className={
+              isPortrait
+                ? "mx-auto w-full max-w-[360px] overflow-hidden rounded-lg bg-black"
+                : "overflow-hidden rounded-lg bg-black"
+            }
+          >
+            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+            <video
+              src={embedUrl}
+              controls
+              playsInline
+              preload="metadata"
+              className="h-auto max-h-[70vh] w-full"
+              onLoadedMetadata={(e) => {
+                const el = e.currentTarget;
+                if (el.videoWidth && el.videoHeight) {
+                  setFileRatio(el.videoWidth / el.videoHeight);
+                }
+              }}
+            />
+          </div>
+        ) : canEmbed && embedUrl ? (
           isPortrait ? (
             <div className="mx-auto w-full max-w-[360px]">
               <div className="rounded-lg overflow-hidden bg-black">

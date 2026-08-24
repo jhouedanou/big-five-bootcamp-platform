@@ -256,6 +256,13 @@ export function PromoTempsFortsCarousel({ className, embedded }: Props) {
 function BannerCard({ banner }: { banner: DashboardBanner }) {
   const href = buildBannerUrl(banner)
 
+  // Un visuel de graphiste porte déjà son titre, son texte et son bouton : le
+  // cadrer sur la moitié de la carte et le recouvrir d'un dégradé le rend
+  // illisible (recette du 18/08). En mode `image` on affiche donc le visuel
+  // entier, sans surimpression. Sans visuel, ce mode n'a rien à montrer — on
+  // retombe sur le rendu éditorial plutôt que d'afficher une carte vide.
+  const fullImage = banner.displayMode === "image" && !!banner.imageUrl
+
   const onClick = () => {
     trackEvent(
       "banner_click",
@@ -280,37 +287,55 @@ function BannerCard({ banner }: { banner: DashboardBanner }) {
       rel="noopener noreferrer"
       className="group block h-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F2B33D]"
     >
-      {banner.imageUrl && (
-        <div className="absolute inset-y-0 right-0 hidden w-1/2 md:block">
+      {fullImage ? (
+        // `object-contain` et non `object-cover` : rien ne doit être rogné,
+        // c'est tout l'objet du mode. Le titre reste en `alt`, il ne s'affiche
+        // pas par-dessus le visuel.
+        <div className="relative h-full min-h-56 w-full">
           <Image
-            src={banner.imageUrl}
-            alt=""
+            src={banner.imageUrl as string}
+            alt={banner.title}
             fill
-            sizes="50vw"
-            className="object-cover"
+            sizes="(max-width: 1024px) 100vw, 50vw"
+            className="object-contain"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#FFF4D6] via-[#FFF4D6]/50 to-transparent dark:from-card dark:via-card/50" />
         </div>
+      ) : (
+        <>
+          {banner.imageUrl && (
+            <div className="absolute inset-y-0 right-0 hidden w-1/2 md:block">
+              <Image
+                src={banner.imageUrl}
+                alt=""
+                fill
+                sizes="50vw"
+                className="object-cover"
+                priority
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-[#FFF4D6] via-[#FFF4D6]/50 to-transparent dark:from-card dark:via-card/50" />
+            </div>
+          )}
+
+          <div className="relative flex h-full min-h-56 flex-col justify-center gap-2 px-6 py-6 sm:px-8 md:max-w-[58%]">
+            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-foreground/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide">
+              <Sparkles className="h-3 w-3" />
+              À la une
+            </span>
+
+            <h3 className="text-lg font-bold leading-snug sm:text-xl">{banner.title}</h3>
+
+            {banner.body && (
+              <p className="line-clamp-2 max-w-xl text-sm text-muted-foreground">{banner.body}</p>
+            )}
+
+            <span className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-full bg-[#F2B33D] px-4 py-2 text-sm font-bold text-[#0F0F0F] transition-transform group-hover:translate-x-0.5">
+              {banner.ctaLabel}
+              <ArrowRight className="h-4 w-4" />
+            </span>
+          </div>
+        </>
       )}
-
-      <div className="relative flex h-full flex-col justify-center gap-2 px-6 py-6 sm:px-8 md:max-w-[58%]">
-        <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-foreground/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide">
-          <Sparkles className="h-3 w-3" />
-          À la une
-        </span>
-
-        <h3 className="text-lg font-bold leading-snug sm:text-xl">{banner.title}</h3>
-
-        {banner.body && (
-          <p className="line-clamp-2 max-w-xl text-sm text-muted-foreground">{banner.body}</p>
-        )}
-
-        <span className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-full bg-[#F2B33D] px-4 py-2 text-sm font-bold text-[#0F0F0F] transition-transform group-hover:translate-x-0.5">
-          {banner.ctaLabel}
-          <ArrowRight className="h-4 w-4" />
-        </span>
-      </div>
     </a>
   )
 }

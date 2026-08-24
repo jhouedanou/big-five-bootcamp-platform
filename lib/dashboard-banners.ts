@@ -3,12 +3,20 @@
  * Types + helpers partagés entre les routes API, l'admin et le carrousel.
  */
 
+/**
+ * Mode d'affichage de la bannière.
+ * - `editorial` : titre, texte et CTA du formulaire, le visuel accompagne.
+ * - `image` : le visuel porte déjà sa mise en page, il occupe toute la carte.
+ */
+export type BannerDisplayMode = 'editorial' | 'image'
+
 export interface DashboardBanner {
   id: string
   title: string
   body: string | null
   ctaLabel: string
   imageUrl: string | null
+  displayMode: BannerDisplayMode
   linkUrl: string
   utmSource: string | null
   utmMedium: string | null
@@ -30,6 +38,9 @@ export function mapBannerRow(row: any): DashboardBanner {
     body: row.body ?? null,
     ctaLabel: row.cta_label || 'En savoir plus',
     imageUrl: row.image_url ?? null,
+    // Colonne ajoutée par la migration #17 : une base pas encore migrée renvoie
+    // `undefined`, on retombe alors sur le rendu historique.
+    displayMode: row.display_mode === 'image' ? 'image' : 'editorial',
     linkUrl: row.link_url,
     utmSource: row.utm_source ?? null,
     utmMedium: row.utm_medium ?? null,
@@ -51,6 +62,9 @@ export function mapBannerToDb(input: Partial<DashboardBanner>): Record<string, u
   if (input.body !== undefined) record.body = input.body || null
   if (input.ctaLabel !== undefined) record.cta_label = input.ctaLabel
   if (input.imageUrl !== undefined) record.image_url = input.imageUrl || null
+  if (input.displayMode !== undefined) {
+    record.display_mode = input.displayMode === 'image' ? 'image' : 'editorial'
+  }
   if (input.linkUrl !== undefined) record.link_url = input.linkUrl
   if (input.utmSource !== undefined) record.utm_source = input.utmSource || null
   if (input.utmMedium !== undefined) record.utm_medium = input.utmMedium || null

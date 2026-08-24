@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +32,7 @@ const EMPTY: Draft = {
   body: "",
   ctaLabel: "Télécharger l'étude",
   imageUrl: "",
+  displayMode: "editorial",
   linkUrl: "/etudes/finance",
   utmSource: "laveiye",
   utmMedium: "banner",
@@ -63,6 +65,10 @@ export default function AdminBannersPage() {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Mode « Visuel complet » : le visuel porte sa propre mise en page, les champs
+  // de texte du formulaire ne sont donc pas affichés sur le dashboard.
+  const isFullImage = draft?.displayMode === "image";
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -304,33 +310,75 @@ export default function AdminBannersPage() {
 
           {draft && (
             <div className="space-y-4">
+              <fieldset className="space-y-3 rounded-lg border border-border p-4">
+                <legend className="px-1 text-sm font-semibold">Mode d&apos;affichage</legend>
+                <RadioGroup
+                  value={draft.displayMode}
+                  onValueChange={(v) =>
+                    setDraft({ ...draft, displayMode: v === "image" ? "image" : "editorial" })
+                  }
+                  className="gap-3"
+                >
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <RadioGroupItem value="editorial" className="mt-1" />
+                    <span className="text-sm">
+                      <span className="font-medium">Bannière éditoriale</span>
+                      <span className="block text-xs text-muted-foreground">
+                        Le titre, le texte et le bouton sont saisis ici. Le visuel les
+                        accompagne sur la moitié droite de la carte.
+                      </span>
+                    </span>
+                  </label>
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <RadioGroupItem value="image" className="mt-1" />
+                    <span className="text-sm">
+                      <span className="font-medium">Visuel complet</span>
+                      <span className="block text-xs text-muted-foreground">
+                        Le visuel occupe toute la carte, sans texte par-dessus. À choisir
+                        quand la bannière fournie porte déjà son titre et son bouton.
+                      </span>
+                    </span>
+                  </label>
+                </RadioGroup>
+              </fieldset>
+
               <div className="space-y-2">
-                <Label>Titre *</Label>
+                <Label>{isFullImage ? "Titre (interne)" : "Titre *"}</Label>
                 <Input
                   value={draft.title}
                   onChange={(e) => setDraft({ ...draft, title: e.target.value })}
                   placeholder="L'étude Big Five est disponible"
                 />
+                {isFullImage && (
+                  <p className="text-xs text-muted-foreground">
+                    Non affiché sur le dashboard en mode « Visuel complet » : sert à
+                    retrouver la bannière ici, et de description alternative du visuel.
+                  </p>
+                )}
               </div>
 
-              <div className="space-y-2">
-                <Label>Texte</Label>
-                <Textarea
-                  rows={2}
-                  value={draft.body || ""}
-                  onChange={(e) => setDraft({ ...draft, body: e.target.value })}
-                  placeholder="Téléchargez notre étude pour découvrir…"
-                />
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
+              {!isFullImage && (
                 <div className="space-y-2">
-                  <Label>Libellé du bouton</Label>
-                  <Input
-                    value={draft.ctaLabel}
-                    onChange={(e) => setDraft({ ...draft, ctaLabel: e.target.value })}
+                  <Label>Texte</Label>
+                  <Textarea
+                    rows={2}
+                    value={draft.body || ""}
+                    onChange={(e) => setDraft({ ...draft, body: e.target.value })}
+                    placeholder="Téléchargez notre étude pour découvrir…"
                   />
                 </div>
+              )}
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                {!isFullImage && (
+                  <div className="space-y-2">
+                    <Label>Libellé du bouton</Label>
+                    <Input
+                      value={draft.ctaLabel}
+                      onChange={(e) => setDraft({ ...draft, ctaLabel: e.target.value })}
+                    />
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>Lien de destination *</Label>
                   <Input
@@ -342,11 +390,28 @@ export default function AdminBannersPage() {
               </div>
 
               <ImageUpload
-                label="Visuel de la bannière"
+                label={isFullImage ? "Visuel de la bannière *" : "Visuel de la bannière"}
                 value={draft.imageUrl || ""}
                 onChange={(url) => setDraft({ ...draft, imageUrl: url })}
                 placeholder="Bannière fournie par l'équipe créative"
+                /* En mode « Visuel complet », l'aperçu doit montrer ce que verra
+                   l'utilisateur : cadre large et image entière, pas une vignette
+                   carrée recadrée qui donne une idée fausse du rendu. */
+                previewClassName={isFullImage ? "w-full aspect-[16/5]" : "w-32 h-32"}
+                previewFit={isFullImage ? "contain" : "cover"}
               />
+              {isFullImage && (
+                <p className="text-xs text-muted-foreground">
+                  Format conseillé : <strong>1200 × 375 px</strong> (ratio 16/5). Le visuel
+                  n&apos;est jamais rogné — un ratio très différent laissera des marges.
+                </p>
+              )}
+              {isFullImage && !draft.imageUrl && (
+                <p className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  Sans visuel, ce mode n&apos;a rien à afficher : la bannière retombera sur le
+                  rendu éditorial.
+                </p>
+              )}
 
               <fieldset className="space-y-3 rounded-lg border border-border p-4">
                 <legend className="px-1 text-sm font-semibold">Paramètres de campagne</legend>

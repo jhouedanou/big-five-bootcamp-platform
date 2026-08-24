@@ -23,6 +23,12 @@ interface ImageUploadProps {
   required?: boolean
   className?: string
   previewClassName?: string
+  /**
+   * Cadrage de l'aperçu. `contain` quand le visuel doit être jugé en entier
+   * (bannière « visuel complet ») : un `cover` recadre et donne à l'admin une
+   * idée fausse du rendu final.
+   */
+  previewFit?: "cover" | "contain"
   placeholder?: string
 }
 
@@ -33,6 +39,7 @@ export function ImageUpload({
   required = false,
   className,
   previewClassName = "w-32 h-32",
+  previewFit = "cover",
   placeholder = "Uploadez une image ou collez une URL...",
 }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
@@ -178,7 +185,7 @@ export function ImageUpload({
             <img
               src={value}
               alt="Aperçu"
-              className="w-full h-full object-cover"
+              className={cn("w-full h-full", previewFit === "contain" ? "object-contain" : "object-cover")}
               onError={(e) => {
                 (e.target as HTMLImageElement).src = '/placeholder.svg'
               }}

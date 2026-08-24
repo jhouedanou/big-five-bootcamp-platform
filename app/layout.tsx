@@ -91,6 +91,7 @@ import { Providers } from "@/components/providers"
 import { TawkTo } from "@/components/tawk-to"
 import { RgpdBottomSheet } from "@/components/rgpd-bottom-sheet"
 import { ConsentModeBridge } from "@/components/analytics/consent-mode"
+import { TrackingConfig } from "@/components/analytics/tracking-config"
 import { DataLayerRouteTracker } from "@/components/analytics/datalayer-route-tracker"
 import { CONSENT_MODE_BOOTSTRAP } from "@/lib/consent"
 
@@ -166,6 +167,7 @@ export default async function RootLayout({
             et Test Events ne voyait rien (recette du 19/08). */}
         <RgpdBottomSheet />
         <ConsentModeBridge />
+        <TrackingConfig />
         <DataLayerRouteTracker />
         {!useGtm && (
           <>

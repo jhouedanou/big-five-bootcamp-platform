@@ -1,6 +1,14 @@
 # Recette — correctifs des points KO d'août 2026
 
-Branche : `seo` · Migrations à passer avant recette : **#17** et **#18** (cf. [migrations.md](../migrations.md))
+Branche : `seo`
+
+> ## À FAIRE AVANT DE DÉPLOYER
+>
+> Passer les migrations **#17** et **#18** dans le SQL Editor Supabase
+> (cf. [migrations.md](../migrations.md)) **avant** de pousser sur `seo`.
+> Le déploiement part au push, pas au moment de la recette : sans ces
+> migrations, l'enregistrement d'un lead d'étude et la sauvegarde d'une
+> bannière échouent dès la mise en ligne.
 
 ## Comment lire ce document
 
@@ -223,8 +231,15 @@ déduplication ne peut pas fonctionner, quel que soit le jeton saisi.
 Analytics. Changer le pixel dans l'admin change les deux moitiés.
 
 **À rejouer.** Modifier l'identifiant du pixel dans `/admin/integrations`,
-recharger une page publique, vérifier dans les requêtes réseau que le navigateur
-utilise bien le nouvel identifiant, sans redéploiement.
+recharger une page publique, accepter les cookies, puis vérifier dans les
+requêtes réseau que le navigateur envoie bien sur le nouvel identifiant, sans
+redéploiement.
+
+**Précision technique.** Les pages publiques sont rendues à la construction :
+l'identifiant écrit dans leur HTML est celui du dernier déploiement. Le
+navigateur relit donc la configuration à l'exécution et corrige la valeur avant
+le chargement du pixel — qui n'a lieu qu'après acceptation du bandeau. Sur une
+page déjà ouverte au moment du changement, il faut recharger.
 
 **État : Livré** · commit `1bdcb50`
 
@@ -258,6 +273,16 @@ Ordre à respecter, repris du brief (§14) :
    `/admin/integrations` — la bascule est alors instantanée et sans déploiement.
 4. Comparer les données pendant 72 heures avant de considérer la migration finie.
 
+**Ce qui cesse de remonter dans Google Analytics après la bascule.** Le
+conteneur ne reçoit que le vocabulaire d'événements spécifié au brief. Les
+signaux d'interface et d'administration (ouverture d'une pop-up, filtres de
+l'admin, aperçu de webinaire, recherche sans résultat…) restent mesurés dans la
+base Laveiye et alimentent toujours les tableaux de bord internes, mais ils
+n'iront ni dans GA4 ni chez Meta. La liste exacte est dans `lib/datalayer.ts`
+(`NOT_FORWARDED_TO_DATALAYER`). Les mesures que l'équipe suit — impressions et
+clics de bannière, funnel des études, inscriptions aux webinaires — sont bien
+transmises.
+
 **Parcours de recette obligatoire du brief (§15)**, à rejouer en préproduction :
 visite anonyme de l'accueil → téléchargement du guide → création de compte →
 vérification de l'e-mail → fin d'inscription → connexion → recherche et filtre →
@@ -285,3 +310,11 @@ navigation, aucun doublon sur les événements clés.
 5. **Expéditeur Mailchimp** — le nom et l'e-mail d'envoi doivent être renseignés
    dans Paramètres → Mailchimp, sinon la campagne hebdomadaire ne peut pas être
    créée.
+6. **Audience Mailchimp** — la synchronisation ajoute tout compte Laveiye à
+   l'audience avec le statut « abonné », et elle tourne désormais chaque lundi
+   au lieu d'être déclenchée à la main. Elle ne réabonne jamais quelqu'un qui
+   s'est désabonné : le statut n'est modifié que dans le sens du désabonnement.
+   `?dryRun=1` saute l'envoi mais exécute quand même la synchronisation.
+7. **Segment déjà créé** — le segment « Laveiye — alertes hebdo » n'est créé
+   qu'une fois. Si ses conditions doivent changer plus tard, le supprimer dans
+   Mailchimp pour qu'il soit recréé, ou l'ajuster à la main.

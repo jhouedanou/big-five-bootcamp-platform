@@ -76,9 +76,11 @@ remontent dans le tableau des contacts et dans l'export CSV.
 
 **L'alerte hebdomadaire part désormais par Mailchimp**, en une seule campagne
 vers un segment, et non plus en e-mail individuel. La mise en forme est reprise
-à la charte. Deux conséquences : le désabonnement est géré par Mailchimp, et le
+à la charte. Trois conséquences : le désabonnement est géré par Mailchimp ; le
 nom et l'e-mail d'expéditeur doivent être renseignés dans Paramètres → Mailchimp
-sinon la campagne ne peut pas être créée.
+sinon la campagne ne peut pas être créée ; et la synchronisation de l'audience
+tourne maintenant chaque lundi automatiquement, là où il fallait cliquer. Elle
+ne réabonne jamais quelqu'un qui s'est désabonné.
 
 **Le bloc « À ne pas manquer » se coupe depuis `/admin/temps-forts`** quand
 aucune session Décrypte n'est prévue. Le carrousel reprend alors toute la
@@ -91,9 +93,10 @@ ligne, avec ce qu'il faut vérifier exactement, est dans le document de recette
 joint. Rien n'a été validé fonctionnellement de mon côté : l'environnement de
 développement n'a pas accès à la base, la vérification vous revient.
 
-**Deux migrations de base sont à passer avant la recette** (numéros 17 et 18) :
-sans elles, le mode « Visuel complet » reste sans effet et le formulaire de
-l'étude échoue à l'enregistrement.
+**Deux migrations de base sont à passer AVANT la mise en ligne** (numéros 17 et
+18), pas avant la recette : le déploiement part dès que le code est poussé. Sans
+elles, l'enregistrement d'un lead d'étude et la sauvegarde d'une bannière
+échouent dès la mise en ligne.
 
 **La bascule Google Tag Manager est à programmer.** Le conteneur est installé,
 mais tant qu'aucun identifiant `GTM-` n'est saisi dans `/admin/integrations`,

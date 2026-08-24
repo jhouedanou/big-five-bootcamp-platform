@@ -66,6 +66,7 @@ export const SYNC_MERGE_FIELDS: MergeFieldDef[] = [
   { tag: 'LNAME', name: 'Nom', type: 'text' },
   { tag: 'PLAN', name: 'Offre', type: 'text' },
   { tag: 'SUBSTATUS', name: 'Statut abonnement', type: 'text' },
+  { tag: 'STATUS', name: 'Statut du compte', type: 'text' },
 ]
 
 /**
@@ -352,7 +353,7 @@ export class MailchimpService {
     const supabase = getSupabaseAdmin()
     const { data: users, error } = await supabase
       .from('users')
-      .select('email, name, plan, subscription_status, email_unsubscribed')
+      .select('email, name, plan, status, subscription_status, email_unsubscribed')
 
     if (error) {
       return { success: false, synced: 0, errors: [`Erreur récupération utilisateurs: ${error.message}`] }
@@ -391,6 +392,11 @@ export class MailchimpService {
             LNAME: user.name?.split(' ').slice(1).join(' ') || '',
             PLAN: getPlanDisplayName(user.plan),
             SUBSTATUS: user.subscription_status || 'none',
+            // Statut du COMPTE, distinct de celui de l'abonnement : un compte
+            // suspendu peut avoir un abonnement encore actif. Sans ce champ,
+            // le segment hebdomadaire l'inclurait, alors que l'ancien filtre
+            // SQL l'excluait.
+            STATUS: user.status || 'unknown',
           },
         }
 
@@ -474,6 +480,14 @@ export class MailchimpService {
    * Créé à la demande et réutilisé ensuite (Mailchimp refuse deux segments de
    * même nom). Les conditions portent sur les merge fields écrits par
    * `syncUsersWithAudience` — la synchronisation doit donc précéder l'envoi.
+   *
+   * Les trois conditions reproduisent exactement le filtre SQL de l'ancien
+   * envoi : compte actif, abonnement actif, offre payante. Le désabonnement,
+   * lui, est porté par le statut Mailchimp du membre, pas par le segment.
+   *
+   * ATTENTION : un segment déjà créé n'est PAS mis à jour ici. Après un
+   * changement de conditions, supprimer le segment dans Mailchimp pour qu'il
+   * soit recréé, ou l'ajuster à la main.
    */
   async ensureWeeklySegment(name = 'Laveiye — alertes hebdo'): Promise<{ id: number; name: string }> {
     const { config } = await this.apiBase()
@@ -502,6 +516,12 @@ export class MailchimpService {
               field: 'PLAN',
               op: 'not',
               value: getPlanDisplayName('Free'),
+            },
+            {
+              condition_type: 'TextMerge',
+              field: 'STATUS',
+              op: 'is',
+              value: 'active',
             },
           ],
         },

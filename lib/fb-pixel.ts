@@ -44,6 +44,34 @@ export function getFbPixelId(): string {
 export { hasMarketingConsent }
 
 let pixelLoaded = false
+/** Identifiant réellement passé à `fbq('init')`, pour détecter un changement. */
+let initializedPixelId: string | null = null
+
+/**
+ * Applique l'identifiant lu à l'exécution depuis /admin/integrations.
+ *
+ * Les pages publiques sont rendues à la construction : sans cet appel, un
+ * changement en admin n'aurait d'effet qu'au redéploiement suivant. Si le pixel
+ * est déjà initialisé sur un autre identifiant, on l'initialise sur le nouveau —
+ * Meta accepte plusieurs `init`, les événements suivants partent alors sur les
+ * deux, ce qui vaut mieux que de continuer sur un pixel abandonné.
+ */
+export function applyRuntimeFbPixelId(pixelId: string): void {
+  if (typeof window === "undefined") return
+  const next = pixelId.trim()
+  if (!next || next === window.__LAVEIYE_FB_PIXEL_ID__) return
+
+  window.__LAVEIYE_FB_PIXEL_ID__ = next
+
+  if (pixelLoaded && initializedPixelId && initializedPixelId !== next) {
+    try {
+      window.fbq?.("init", next)
+      initializedPixelId = next
+    } catch {
+      // La mesure ne doit jamais casser la page.
+    }
+  }
+}
 
 /** Injecte le script fbevents.js et initialise le pixel. Idempotent. */
 export function loadFbPixel(): void {
@@ -71,7 +99,8 @@ export function loadFbPixel(): void {
     document.head.appendChild(script)
   }
 
-  w.fbq("init", getFbPixelId())
+  initializedPixelId = getFbPixelId()
+  w.fbq("init", initializedPixelId)
 }
 
 /** event_id partagé pixel/CAPI pour le dédoublonnage Meta. */

@@ -3,12 +3,14 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { LibraryPickerDialog, type LibraryItem } from "@/components/studio/library-picker-dialog";
 import {
   ArrowUp,
   Check,
   Copy,
   Download,
   ImagePlus,
+  Library,
   Loader2,
   RotateCcw,
   Sparkles,
@@ -147,6 +149,7 @@ function StudioConversation() {
   const [stage, setStage] = useState<Stage>({ kind: "reference" });
   const [brief, setBrief] = useState<Record<string, string>>({});
   const [referencePath, setReferencePath] = useState<string | null>(null);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(null);
@@ -215,6 +218,48 @@ function StudioConversation() {
     },
     [say]
   );
+
+  /**
+   * Référence prise dans la bibliothèque Laveiye plutôt que sur le bureau.
+   * L'image est récupérée et recopiée côté serveur : le navigateur n'envoie
+   * que l'identifiant de la campagne.
+   */
+  const applyLibraryReference = async (item: LibraryItem) => {
+    if (busy) return;
+    setBusy(true);
+
+    say({ role: "user", imageUrl: item.thumbnail || undefined, text: item.title });
+
+    try {
+      const res = await fetch("/api/studio/reference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ campaignId: item.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        say({
+          role: "assistant",
+          error: true,
+          text: `${data.error || "La récupération du visuel a échoué."} Choisissez-en une autre ou téléversez votre propre création.`,
+        });
+        return;
+      }
+
+      setReferencePath(data.path);
+      say({ role: "assistant", text: "Bien reçu, votre référence est enregistrée." });
+      advance(brief);
+    } catch {
+      say({
+        role: "assistant",
+        error: true,
+        text: "Erreur réseau pendant la récupération. Vérifiez votre connexion puis réessayez.",
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const uploadReference = async (file: File) => {
     if (busy) return;
@@ -478,24 +523,38 @@ function StudioConversation() {
           />
 
           {stage.kind === "reference" ? (
-            <Button
-              size="lg"
-              disabled={busy}
-              onClick={() => fileRef.current?.click()}
-              className="w-full bg-[#F2B33D] text-[#0F0F0F] hover:bg-[#E4A82F]"
-            >
-              {busy ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Envoi de l&apos;image…
-                </>
-              ) : (
-                <>
-                  <ImagePlus className="mr-2 h-5 w-5" />
-                  Envoyer ma création de référence
-                </>
-              )}
-            </Button>
+            /* Deux points d'entrée : un fichier du bureau, ou une créa déjà
+               présente dans la bibliothèque Laveiye (demande de recette). */
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                size="lg"
+                disabled={busy}
+                onClick={() => fileRef.current?.click()}
+                className="w-full bg-[#F2B33D] text-[#0F0F0F] hover:bg-[#E4A82F] sm:flex-1"
+              >
+                {busy ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Envoi de l&apos;image…
+                  </>
+                ) : (
+                  <>
+                    <ImagePlus className="mr-2 h-5 w-5" />
+                    Envoyer ma création de référence
+                  </>
+                )}
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                disabled={busy}
+                onClick={() => setLibraryOpen(true)}
+                className="w-full border-[#F2B33D]/50 hover:bg-[#FFF6E3] hover:text-[#0F0F0F] sm:flex-1"
+              >
+                <Library className="mr-2 h-5 w-5" />
+                Choisir dans la bibliothèque
+              </Button>
+            </div>
           ) : (
             <form
               className="flex items-center gap-2"
@@ -532,6 +591,12 @@ function StudioConversation() {
           )}
         </div>
       </main>
+
+      <LibraryPickerDialog
+        open={libraryOpen}
+        onOpenChange={setLibraryOpen}
+        onSelect={applyLibraryReference}
+      />
     </div>
   );
 }

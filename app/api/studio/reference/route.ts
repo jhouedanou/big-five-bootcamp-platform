@@ -3,6 +3,8 @@ import { getSupabaseAdmin, getAuthenticatedUser } from '@/lib/supabase-server'
 import { canAccessPremiumContent } from '@/lib/pricing'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { safeErrorMessage } from '@/lib/api-errors'
+import { ssrfSafeFetch } from '@/lib/ssrf-fetch'
+import { getGoogleDriveImageUrl } from '@/lib/utils'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -32,7 +34,8 @@ async function ensureBucketExists(admin: ReturnType<typeof getSupabaseAdmin>) {
 
 /**
  * POST /api/studio/reference
- * Multipart: file
+ * Multipart: `file` — la création de l'utilisateur
+ * ou JSON: `{ campaignId }` — une créa de la bibliothèque Laveiye
  *
  * Téléverse la création de référence dans le bucket PRIVÉ `ad-studio` et
  * retourne son chemin. Contrairement au PDF des études, le fichier transite ici
@@ -72,12 +75,79 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const formData = await request.formData()
-    const file = formData.get('file')
+    // Deux sources possibles : un fichier téléversé, ou une campagne de la
+    // bibliothèque. Dans le second cas l'image est récupérée côté serveur puis
+    // recopiée dans le bucket privé — elle ne transite jamais par le navigateur,
+    // le verrou premium ci-dessus reste donc la seule porte d'entrée.
+    const contentType = request.headers.get('content-type') || ''
+    let file: File
 
-    if (!(file instanceof File)) {
-      return NextResponse.json({ error: 'Aucun fichier reçu.' }, { status: 400 })
+    if (contentType.includes('application/json')) {
+      const body = await request.json().catch(() => null)
+      const campaignId = String((body as any)?.campaignId || '').trim()
+      if (!campaignId) {
+        return NextResponse.json({ error: 'Campagne non précisée.' }, { status: 400 })
+      }
+
+      const { data: campaign } = await admin
+        .from('campaigns')
+        .select('thumbnail, status')
+        .eq('id', campaignId)
+        .maybeSingle()
+
+      const thumbnail = (campaign as any)?.thumbnail as string | undefined
+      if (!campaign || (campaign as any).status !== 'Publié' || !thumbnail) {
+        return NextResponse.json(
+          { error: "Cette campagne n'a pas de visuel exploitable." },
+          { status: 404 }
+        )
+      }
+
+      // Les visuels Drive doivent passer par leur forme directe, sinon on
+      // télécharge la page HTML de partage au lieu de l'image.
+      const sourceUrl = getGoogleDriveImageUrl(thumbnail) || thumbnail
+
+      let fetched: Response
+      try {
+        fetched = await ssrfSafeFetch(sourceUrl, { redirect: 'follow' })
+      } catch {
+        return NextResponse.json(
+          { error: "Le visuel de cette campagne n'est pas accessible." },
+          { status: 422 }
+        )
+      }
+      if (!fetched.ok) {
+        return NextResponse.json(
+          { error: "Le visuel de cette campagne n'est pas accessible." },
+          { status: 422 }
+        )
+      }
+
+      const blob = await fetched.blob()
+      const mime = (fetched.headers.get('content-type') || blob.type || '').split(';')[0].trim()
+      if (!ALLOWED.includes(mime)) {
+        return NextResponse.json(
+          { error: `Format non supporté : ${mime || 'inconnu'}. Utilisez PNG, JPEG ou WebP.` },
+          { status: 400 }
+        )
+      }
+      if (blob.size > MAX_BYTES) {
+        return NextResponse.json(
+          { error: `Image trop lourde (max ${Math.round(MAX_BYTES / (1024 * 1024))} Mo).` },
+          { status: 400 }
+        )
+      }
+
+      file = new File([blob], `campagne-${campaignId}`, { type: mime })
+    } else {
+      const formData = await request.formData()
+      const uploaded = formData.get('file')
+      if (!(uploaded instanceof File)) {
+        return NextResponse.json({ error: 'Aucun fichier reçu.' }, { status: 400 })
+      }
+      file = uploaded
     }
+
     if (!ALLOWED.includes(file.type)) {
       return NextResponse.json(
         { error: `Format non supporté : ${file.type || 'inconnu'}. Utilisez PNG, JPEG ou WebP.` },

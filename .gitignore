@@ -63,3 +63,7 @@ scripts/diagnose-build-env.local.mjs
 # Local agent settings can contain copied shell commands and secrets
 .claude/settings.local.json
 check-avatars.ts
+
+# macOS
+.DS_Store
+**/.DS_Store

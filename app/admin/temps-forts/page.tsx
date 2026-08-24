@@ -57,6 +57,7 @@ const DEFAULT_OVERRIDES: TempsFortsOverrides = {
   popupSlug: null,
   bannerEnabled: true,
   popupEnabled: true,
+  webinarBlockEnabled: true,
   version: 1,
 }
 
@@ -360,6 +361,13 @@ export default function AdminTempsFortsPage() {
           disabled={savingOverrides}
           onToggle={(v) => saveOverrides({ popupEnabled: v })}
           onSlugChange={(slug) => saveOverrides({ popupSlug: slug })}
+        />
+        <ToggleCard
+          title="Bloc « À ne pas manquer » (#BigFiveDécrypte)"
+          description="Annonce de la prochaine session, en tête du tableau de bord. Sans session programmée, coupez-le : le carrousel reprend alors toute la largeur."
+          enabled={localOverrides.webinarBlockEnabled}
+          disabled={savingOverrides}
+          onToggle={(v) => saveOverrides({ webinarBlockEnabled: v })}
         />
       </section>
 
@@ -811,6 +819,33 @@ function MultiCheckboxField({
           })}
         </div>
       )}
+    </div>
+  )
+}
+
+/** Réglage sans choix de temps fort : un simple interrupteur. */
+function ToggleCard({
+  title,
+  description,
+  enabled,
+  disabled,
+  onToggle,
+}: {
+  title: string
+  description: string
+  enabled: boolean
+  disabled: boolean
+  onToggle: (value: boolean) => void
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:bg-card">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="text-base font-semibold text-foreground">{title}</h3>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{description}</p>
+        </div>
+        <Switch checked={enabled} onCheckedChange={onToggle} disabled={disabled} />
+      </div>
     </div>
   )
 }

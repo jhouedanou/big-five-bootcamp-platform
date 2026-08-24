@@ -26,8 +26,8 @@ const steps = [
     bgColor: "bg-blue-500/20",
     content: [
       "Rendez-vous sur la page /admin/login",
-      "Entrez votre email : jeffrey@bigfive.com",
-      "Entrez votre mot de passe : admin2014!k",
+      "Entrez l'email de votre compte administrateur",
+      "Entrez votre mot de passe personnel",
       "Cliquez sur \"Se connecter\"",
       "Vous serez redirige vers le tableau de bord",
     ],
@@ -167,12 +167,14 @@ export default function GuidePage() {
             </div>
             <div>
               <h3 className="text-foreground font-semibold mb-1">Informations de connexion</h3>
+              {/* Aucun identifiant en clair ici : cette page est du code versionné,
+                  un mot de passe qui y figure est un mot de passe publié. */}
               <p className="text-gray-600 dark:text-gray-400 text-sm">
-                <strong className="text-foreground">Email :</strong> jeffrey@bigfive.com
-                <br />
-                <strong className="text-foreground">Mot de passe :</strong> admin2014!k
-                <br />
                 <strong className="text-foreground">URL :</strong> /admin/login
+                <br />
+                Connectez-vous avec votre compte administrateur personnel. Si vous
+                n&apos;en avez pas encore, demandez-le à l&apos;équipe technique —
+                les identifiants ne sont jamais partagés dans un document.
               </p>
             </div>
           </div>

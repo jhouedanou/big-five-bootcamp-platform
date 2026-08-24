@@ -8,6 +8,7 @@ const DEFAULT: TempsFortsOverrides = {
   popupSlug: null,
   bannerEnabled: true,
   popupEnabled: true,
+  webinarBlockEnabled: true,
   version: 1,
 }
 

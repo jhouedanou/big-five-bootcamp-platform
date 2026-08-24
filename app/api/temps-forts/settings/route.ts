@@ -12,6 +12,12 @@ export type TempsFortsOverrides = {
   popupSlug: string | null
   bannerEnabled: boolean
   popupEnabled: boolean
+  /**
+   * Bloc « À ne pas manquer » (prochaine session #BigFiveDécrypte) en tête du
+   * tableau de bord. Il occupait la moitié du bandeau même sans session
+   * programmée ; l'équipe doit pouvoir libérer cet espace sans déploiement.
+   */
+  webinarBlockEnabled: boolean
   version: number
 }
 
@@ -20,6 +26,7 @@ const DEFAULT_OVERRIDES: TempsFortsOverrides = {
   popupSlug: null,
   bannerEnabled: true,
   popupEnabled: true,
+  webinarBlockEnabled: true,
   version: 1,
 }
 
@@ -110,6 +117,10 @@ export async function PUT(request: NextRequest) {
     popupSlug: body.popupSlug !== undefined ? body.popupSlug : current.popupSlug,
     bannerEnabled: body.bannerEnabled !== undefined ? body.bannerEnabled : current.bannerEnabled,
     popupEnabled: body.popupEnabled !== undefined ? body.popupEnabled : current.popupEnabled,
+    webinarBlockEnabled:
+      body.webinarBlockEnabled !== undefined
+        ? body.webinarBlockEnabled
+        : current.webinarBlockEnabled,
     version: (current.version || 1) + 1,
   }
 

@@ -10,6 +10,7 @@ import { PromoTempsFortsCarousel } from "@/components/promo/promo-temps-forts-ca
 import { PromoPopup } from "@/components/promo/PromoPopup"
 import { WebinarDashboardBlock } from "@/components/webinars/WebinarDashboardBlock"
 import { TempsFortsPopup } from "@/components/temps-forts/temps-forts-popup"
+import { useTempsFortsOverrides } from "@/components/temps-forts/use-temps-forts-overrides"
 import type { DynamicFilterOptions } from "@/components/dashboard/filters-sidebar"
 import { ContentCard, ContentItem } from "@/components/dashboard/content-card"
 import { ContentGridSkeleton } from "@/components/dashboard/content-card-skeleton"
@@ -284,6 +285,7 @@ export default function DashboardPage() {
   const tempsFortFilter = searchParams.get("temps_fort") ?? ""
   const initialSearch = searchParams.get("search") ?? ""
 
+  const tempsFortsOverrides = useTempsFortsOverrides()
   const [campaigns, setCampaigns] = useState<ContentItem[]>([])
   const [weeklyCampaigns, setWeeklyCampaigns] = useState<ContentItem[]>([])
   // Bloc "À explorer pour votre suivi de marques" — un sous-bloc par demande approuvée+payée.
@@ -1159,9 +1161,14 @@ export default function DashboardPage() {
               le bloc Décrypte reprend toute la largeur. */}
           <div className="grid items-stretch gap-4 lg:grid-flow-col lg:auto-cols-fr">
             <PromoTempsFortsCarousel embedded />
-            <div className="min-w-0">
-              <WebinarDashboardBlock />
-            </div>
+            {/* Le bloc Décrypte se coupe depuis /admin/temps-forts : sans session
+                programmée il occupait la moitié du bandeau pour rien. Coupé, la
+                grille rend toute la largeur au carrousel. */}
+            {tempsFortsOverrides?.webinarBlockEnabled !== false && (
+              <div className="min-w-0">
+                <WebinarDashboardBlock />
+              </div>
+            )}
           </div>
         </div>
         <TempsFortsPopup />

@@ -10,6 +10,8 @@ import { ImagePlus, Save, Loader2, Trash2, Upload, Eye } from "lucide-react"
 import { toast } from "sonner"
 import { createClient } from "@/lib/supabase"
 import Image from "next/image"
+import { normalizeImageFile } from "@/lib/image-client"
+import { IMAGE_PRESETS } from "@/lib/image-presets"
 
 interface BrandingSettings {
   logo_url: string
@@ -62,10 +64,12 @@ export default function BrandingPage() {
   const handleUpload = async (file: File, field: keyof BrandingSettings) => {
     if (!file) return
 
-    // Validate file type
-    const allowedTypes = ['image/png', 'image/svg+xml', 'image/webp']
+    // Le SVG est volontairement absent : servi depuis un bucket public, un SVG
+    // porteur de script s'exécuterait sur l'origine du stockage. /api/upload le
+    // rejette en 400 — l'annoncer ici évitait un échec incompréhensible.
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp']
     if (!allowedTypes.includes(file.type)) {
-      toast.error("Formats acceptés : SVG, PNG, WEBP")
+      toast.error("Formats acceptés : PNG, JPG, WEBP")
       return
     }
 
@@ -77,8 +81,13 @@ export default function BrandingPage() {
 
     setUploading(field)
     try {
+      // Le logo est rendu entre 132 et 208 px. Sans cette normalisation, un
+      // export de 10068 x 10068 part tel quel : 261 Ko sur le réseau, mais
+      // ~405 Mo de mémoire au décodage, sur chaque page qui affiche le logo.
+      const payload = await normalizeImageFile(file, IMAGE_PRESETS.brand)
       const formData = new FormData()
-      formData.append("file", file)
+      formData.append("file", payload)
+      formData.append("maxWidth", String(IMAGE_PRESETS.brand))
 
       const res = await fetch("/api/upload", {
         method: "POST",
@@ -187,7 +196,7 @@ export default function BrandingPage() {
               <input
                 id="logo-upload"
                 type="file"
-                accept=".svg,.png,.webp,image/svg+xml,image/png,image/webp"
+                accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
                 title="Formats acceptés : SVG, PNG, WEBP"
                 className="hidden"
                 onChange={(e) => {
@@ -264,7 +273,7 @@ export default function BrandingPage() {
               <input
                 id="logo-dark-upload"
                 type="file"
-                accept=".svg,.png,.webp,image/svg+xml,image/png,image/webp"
+                accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
                 title="Formats acceptés : SVG, PNG, WEBP"
                 className="hidden"
                 onChange={(e) => {
@@ -341,7 +350,7 @@ export default function BrandingPage() {
               <input
                 id="favicon-upload"
                 type="file"
-                accept=".svg,.png,.webp,image/svg+xml,image/png,image/webp"
+                accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
                 title="Formats acceptés : SVG, PNG, WEBP"
                 className="hidden"
                 onChange={(e) => {

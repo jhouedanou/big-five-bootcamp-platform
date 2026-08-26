@@ -100,7 +100,13 @@ export function OnboardingForm({ source, onCompleted }: OnboardingFormProps) {
       }
 
       // GA4 : onboarding_completed (Supabase est écrit côté serveur).
-      trackGA4("onboarding_completed", { source, sectors_count: selected.length })
+      // `profile_type` (brief §6) : la fonction déclarée est ce qui qualifie le
+      // profil, et c'est sur elle que reposent les segments métier.
+      trackGA4("onboarding_completed", {
+        source,
+        sectors_count: selected.length,
+        profile_type: jobFunction || undefined,
+      })
       // Pour le flux popup, persister aussi l'événement critique dédié.
       if (source === "popup") {
         trackEvent(

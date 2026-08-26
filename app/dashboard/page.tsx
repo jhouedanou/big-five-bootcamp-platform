@@ -586,7 +586,7 @@ export default function DashboardPage() {
       if (searchQuota.limit !== null) {
         const used = searchQuota.counts['_shared'] || 0
         if (used >= searchQuota.limit) {
-          showUpgrade('searches-bar')
+          showUpgrade('searches-bar', { limit_value: searchQuota.limit, current_plan: userPlan })
           setSearchQuery("")
           return
         }
@@ -610,7 +610,7 @@ export default function DashboardPage() {
               setSearchQuota((s) => ({ ...s, counts: data.counts, limit: data.limit ?? s.limit }))
             }
           } catch { /* ignore */ }
-          showUpgrade('searches-bar')
+          showUpgrade('searches-bar', { limit_value: searchQuota.limit, current_plan: userPlan })
           setSearchQuery("")
           return
         }
@@ -873,7 +873,7 @@ export default function DashboardPage() {
     // Gate Premium : les campagnes "premium" sont réservées aux abonnés Basic ou Pro.
     // Les comptes Découverte (Free) doivent passer en Basic ou Pro pour y accéder.
     if (_content.accessLevel === 'premium' && !canAccessPremiumContent(userPlan)) {
-      showUpgrade("premium")
+      showUpgrade("premium", { current_plan: userPlan })
       return false
     }
     // Le tracking est désormais fait par la page détail au chargement du contenu.
@@ -884,7 +884,7 @@ export default function DashboardPage() {
       if (res.ok) {
         const data = await res.json()
         if (data.isFree && data.limit != null && (data.clicks || 0) >= data.limit) {
-          showUpgrade("clicks")
+          showUpgrade("clicks", { limit_value: MONTHLY_CLICK_LIMIT, current_plan: userPlan })
           return false
         }
       }
@@ -964,8 +964,16 @@ export default function DashboardPage() {
     setCommittedSearchQuery(q)
     setCurrentPage(1)
 
+    // Nombre de résultats, calculé une fois : le brief §7 le demande sur
+    // l'événement, et la règle de quota juste en dessous s'en sert aussi.
+    const resultsCount = countMatching(selectedFilters, q)
+
     // Événement d'activité réelle (QA T54) — indépendant du quota.
-    trackEvent("search_performed", { query: q })
+    trackEvent("search_performed", {
+      query: q,
+      search_type: "library",
+      results_count: resultsCount,
+    })
     // Pixel Facebook : Search (LOT F).
     fbTrack("Search", { search_string: q })
 
@@ -975,14 +983,14 @@ export default function DashboardPage() {
     if (q === lastCountedSearchRef.current) return
     lastCountedSearchRef.current = q
 
-    if (countMatching(selectedFilters, q) === 0) {
+    if (resultsCount === 0) {
       // Pas de résultat : on garde la ref mais on ne consomme pas le quota.
       return
     }
     if (searchQuota.limit !== null) {
       const used = searchQuota.counts['_shared'] || 0
       if (used >= searchQuota.limit) {
-        showUpgrade('searches-bar')
+        showUpgrade('searches-bar', { limit_value: searchQuota.limit, current_plan: userPlan })
         return
       }
     }
@@ -1004,7 +1012,7 @@ export default function DashboardPage() {
             setSearchQuota((s) => ({ ...s, counts: data.counts, limit: data.limit ?? s.limit }))
           }
         } catch { /* ignore */ }
-        showUpgrade('searches-bar')
+        showUpgrade('searches-bar', { limit_value: searchQuota.limit, current_plan: userPlan })
         return
       }
       if (res.ok) {
@@ -1030,28 +1038,42 @@ export default function DashboardPage() {
     // Un "filtre" au sens quota = une categorie (Pays, Secteur, ...).
     // On incremente une fois par categorie ayant recu une nouvelle valeur.
     const newlyAddedCategories: string[] = []
+    // Valeurs réellement ajoutées : le brief §7 demande `filter_value` en plus
+    // du type de filtre.
+    const newlyAddedValues: string[] = []
     for (const [category, values] of Object.entries(filters)) {
       const prev = selectedFilters[category] || []
-      const added = values.some((v) => !prev.includes(v))
-      if (added) newlyAddedCategories.push(category)
-    }
-
-    // Événement d'activité réelle (QA T54) — indépendant du quota.
-    if (newlyAddedCategories.length > 0) {
-      trackEvent("filter_used", { categories: newlyAddedCategories })
-      // Pixel Facebook : Search — l'usage des filtres compte comme recherche (LOT F).
-      fbTrack("Search", { search_string: newlyAddedCategories.join(", "), kind: "filter" })
+      const added = values.filter((v) => !prev.includes(v))
+      if (added.length > 0) {
+        newlyAddedCategories.push(category)
+        newlyAddedValues.push(...added)
+      }
     }
 
     // Clic tag = soumission implicite : on commit la recherche en cours
     // (le live searchQuery) en même temps que l'on applique le filtre.
     const q = searchQuery.trim()
+
+    // Calculé une fois : sert au tracking (brief §7) et à la règle de quota.
+    const filteredResultsCount = countMatching(filters, q)
+
+    // Événement d'activité réelle (QA T54) — indépendant du quota.
+    if (newlyAddedCategories.length > 0) {
+      trackEvent("filter_used", {
+        categories: newlyAddedCategories,
+        filter_value: newlyAddedValues,
+        results_count: filteredResultsCount,
+      })
+      // Pixel Facebook : Search — l'usage des filtres compte comme recherche (LOT F).
+      fbTrack("Search", { search_string: newlyAddedCategories.join(", "), kind: "filter" })
+    }
+
     setCommittedSearchQuery(q)
 
     // Regle metier : un filtre qui ne renvoie aucun resultat ne consomme pas
     // de quota (l'utilisateur voit "Aucune campagne trouvee" — ne doit pas
     // bruler son compteur mensuel partage).
-    const wouldReturnResults = countMatching(filters, q) > 0
+    const wouldReturnResults = filteredResultsCount > 0
 
     if (!wouldReturnResults) {
       setSelectedFilters(filters)
@@ -1064,7 +1086,7 @@ export default function DashboardPage() {
     if (newlyAddedCategories.length > 0 && searchQuota.limit !== null) {
       const used = searchQuota.counts['_shared'] || 0
       if (used >= searchQuota.limit) {
-        showUpgrade('searches-filters')
+        showUpgrade('searches-filters', { limit_value: searchQuota.limit, current_plan: userPlan })
         return
       }
     }
@@ -1088,7 +1110,7 @@ export default function DashboardPage() {
               setSearchQuota((q) => ({ ...q, counts: data.counts, limit: data.limit ?? q.limit }))
             }
           } catch { /* ignore */ }
-          showUpgrade('searches-filters')
+          showUpgrade('searches-filters', { limit_value: searchQuota.limit, current_plan: userPlan })
           return
         }
         if (res.ok) {
@@ -1163,8 +1185,14 @@ export default function DashboardPage() {
             <PromoTempsFortsCarousel embedded />
             {/* Le bloc Décrypte se coupe depuis /admin/temps-forts : sans session
                 programmée il occupait la moitié du bandeau pour rien. Coupé, la
-                grille rend toute la largeur au carrousel. */}
-            {tempsFortsOverrides?.webinarBlockEnabled !== false && (
+                grille rend toute la largeur au carrousel.
+                On attend le réglage (=== true, pas !== false) : sinon le bloc
+                s'affiche le temps du fetch puis disparaît, et le carrousel saute
+                de la demi-largeur à la pleine largeur à chaque chargement. Même
+                garde que la bannière et le carrousel (if (!overrides) return []).
+                Le hook retombe sur les valeurs par défaut si l'appel échoue :
+                une panne réseau laisse donc le bloc visible, pas masqué. */}
+            {tempsFortsOverrides?.webinarBlockEnabled === true && (
               <div className="min-w-0">
                 <WebinarDashboardBlock />
               </div>
@@ -1293,7 +1321,7 @@ export default function DashboardPage() {
               className="hidden w-64 shrink-0 lg:block"
               dynamicOptions={dynamicFilterOptions}
               isFreeUser={isFreeUser}
-              onLockedFilterClick={() => showUpgrade("filters")}
+              onLockedFilterClick={() => showUpgrade("filters", { current_plan: userPlan })}
               searchQuota={searchQuota}
             />
 
@@ -1313,7 +1341,7 @@ export default function DashboardPage() {
                     onFilterChange={handleFilterChange}
                     dynamicOptions={dynamicFilterOptions}
                     isFreeUser={isFreeUser}
-                    onLockedFilterClick={() => { setShowMobileFilters(false); showUpgrade("filters") }}
+                    onLockedFilterClick={() => { setShowMobileFilters(false); showUpgrade("filters", { current_plan: userPlan }) }}
                     searchQuota={searchQuota}
                   />
                 </div>

@@ -1,6 +1,7 @@
 ﻿"use client"
 
 import { useState, useEffect, useRef } from "react"
+import { trackEvent } from "@/lib/analytics"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
@@ -13,6 +14,8 @@ import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { getPlanConfig } from "@/lib/pricing"
 import { DevicesSection } from "@/components/profile/devices-section"
+import { normalizeImageFile } from "@/lib/image-client"
+import { IMAGE_PRESETS } from "@/lib/image-presets"
 
 interface UserProfile {
   name: string
@@ -257,12 +260,17 @@ export default function ProfilePage() {
         return
       }
 
-      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg"
+      // Rendu au plus à 128 px : un export d'appareil photo de 4 Mo n'apporte
+      // rien. Le bucket `avatars` n'a ni limite ni restriction de type côté
+      // stockage, cette normalisation est le seul garde-fou du chemin.
+      const payload = await normalizeImageFile(file, IMAGE_PRESETS.avatar)
+      const ext = payload.type === "image/webp" ? "webp"
+        : payload.name.split(".").pop()?.toLowerCase() || "jpg"
       const path = `${authUser.id}/avatar-${Date.now()}.${ext}`
 
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(path, file, { cacheControl: "3600", upsert: true })
+        .upload(path, payload, { cacheControl: "3600", upsert: true })
 
       if (uploadError) {
         setAvatarError(uploadError.message || "Échec de l'upload.")
@@ -772,6 +780,12 @@ export default function ProfilePage() {
                             </a>
                             <a
                               href={`/api/payment/receipt/${payment.id}?download=1`}
+                              onClick={() =>
+                                trackEvent("export_used", {
+                                  export_type: "payment_receipt",
+                                  content_count: 1,
+                                })
+                              }
                               className="flex items-center gap-1 rounded-md bg-blue-50 border border-blue-200 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 transition-colors"
                             >
                               <Download className="h-3 w-3" />

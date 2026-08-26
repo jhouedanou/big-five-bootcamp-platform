@@ -59,6 +59,9 @@ function shouldNoIndexPath(pathname: string) {
     pathname.startsWith('/studio-pub') ||
     pathname.startsWith('/campaign-generator') ||
     pathname.startsWith('/notifications') ||
+    // Lien personnel porteur d'un jeton : hors index. Le reste de /etudes
+    // reste indexable, c'est la destination des campagnes.
+    pathname.startsWith('/etudes/telechargement') ||
     pathname.startsWith('/decrypte') ||
     pathname.startsWith('/temps-forts') ||
     pathname.startsWith('/login') ||
@@ -89,7 +92,7 @@ async function isMaintenanceModeEnabled() {
   }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
     maintenanceCache = { enabled: false, expiresAt: now + MAINTENANCE_CACHE_TTL_MS }

@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import type { StudyContent } from "@/lib/studies";
 import { trackEvent } from "@/lib/analytics";
 import { fbTrack, hasMarketingConsent } from "@/lib/fb-pixel";
 import { CountrySelect } from "@/components/ui/country-select";
-import { COUNTRY_DIAL_CODES } from "@/lib/countries";
+import { COUNTRY_DIAL_CODES, nationalDigits, toE164 } from "@/lib/countries";
 
 interface UtmParams {
   utm_source?: string;
@@ -20,6 +20,8 @@ interface Props {
   onClose: () => void;
   study: StudyContent;
   utm: UtmParams;
+  /** CTA qui a ouvert la modale — repris tel quel dans l'événement d'abandon. */
+  cta?: string;
 }
 
 interface FormState {
@@ -59,11 +61,18 @@ type Status =
   | { kind: "error"; message: string }
   | { kind: "success"; message: string };
 
-export function StudyLeadModal({ open, onClose, study, utm }: Props) {
+export function StudyLeadModal({ open, onClose, study, utm, cta = "hero" }: Props) {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [sectors, setSectors] = useState<string[]>([]);
   const [status, setStatus] = useState<Status>({ kind: "idle" });
   const [submitting, setSubmitting] = useState(false);
+  // Le succès ne ferme pas la modale : le visiteur lit le message puis ferme
+  // lui-même. Sans ce drapeau, chaque conversion produirait aussi un abandon.
+  const submittedRef = useRef(false);
+  // Lu par `handleClose` : dépendre de l'état rendrait le callback instable et
+  // réabonnerait l'écouteur clavier à chaque frappe.
+  const formRef = useRef(form);
+  formRef.current = form;
   const dialogRef = useRef<HTMLDivElement>(null);
   const firstFieldRef = useRef<HTMLInputElement>(null);
   const titleId = useId();
@@ -96,13 +105,50 @@ export function StudyLeadModal({ open, onClose, study, utm }: Props) {
     };
   }, [open, sectors.length]);
 
+  // Chaque ouverture repart d'une ardoise vierge : rouvrir la modale après un
+  // envoi réussi doit pouvoir produire un abandon si le visiteur renonce.
+  useEffect(() => {
+    if (open) submittedRef.current = false;
+  }, [open]);
+
+  /**
+   * Fermeture sans envoi réussi : c'est le point de perte principal du funnel,
+   * et il était invisible — on voyait `study_form_open` puis `generate_lead`,
+   * jamais l'écart entre les deux.
+   *
+   * `fields_filled` est un COMPTE, jamais une valeur : rien de ce que le
+   * visiteur a saisi ne sort du formulaire.
+   */
+  const handleClose = useCallback(() => {
+    if (!submittedRef.current) {
+      const current = formRef.current;
+      const filled = [
+        current.firstName,
+        current.lastName,
+        current.email,
+        current.phone,
+        current.country,
+        current.sector,
+        current.company,
+        current.jobTitle,
+      ].filter((value) => value.trim() !== "").length;
+
+      trackEvent(
+        "study_form_abandoned",
+        { study_slug: study.slug, cta, fields_filled: filled, source: "web" },
+        true
+      );
+    }
+    onClose();
+  }, [onClose, study.slug, cta]);
+
   // Échap ferme la modale, et le scroll de la page est gelé pendant l'ouverture
   // pour que la position de défilement soit intacte à la fermeture.
   useEffect(() => {
     if (!open) return;
 
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") handleClose();
     };
     document.addEventListener("keydown", onKeyDown);
 
@@ -114,7 +160,7 @@ export function StudyLeadModal({ open, onClose, study, utm }: Props) {
       document.removeEventListener("keydown", onKeyDown);
       document.body.style.overflow = previousOverflow;
     };
-  }, [open, onClose]);
+  }, [open, handleClose]);
 
   if (!open) return null;
 
@@ -145,7 +191,7 @@ export function StudyLeadModal({ open, onClose, study, utm }: Props) {
           ...form,
           // Numéro complet en E.164 : l'indicatif du pays choisi est préfixé au
           // numéro national, sans espaces. C'est cette forme qui est stockée.
-          phone: `${dialCode}${form.phone.replace(/\D/g, "")}`,
+          phone: toE164(form.phone, form.countryCode),
           ...utm,
           marketingConsent: hasMarketingConsent(),
         }),
@@ -167,7 +213,21 @@ export function StudyLeadModal({ open, onClose, study, utm }: Props) {
           utm_source: utm.utm_source || "direct",
           already_registered: !!data.alreadyRegistered,
           source: "web",
+          // Brief §6 : `generate_lead` attend lead_type et form_id (guide_id
+          // vient de study_slug via la table de renommage).
+          lead_type: "study_guide",
+          form_id: `study-${study.slug}`,
         },
+        true
+      );
+
+      // `contact_opt_in_updated` (brief §6) : la case de consentement est
+      // obligatoire pour soumettre et le serveur refuse le lead sans elle — le
+      // choix est donc bien enregistré côté serveur, comme l'exige le brief.
+      // C'est ce signal qui autorisera plus tard les envois Mailchimp.
+      trackEvent(
+        "contact_opt_in_updated",
+        { channel: "email", status: "granted", source: "study" },
         true
       );
 
@@ -200,9 +260,13 @@ export function StudyLeadModal({ open, onClose, study, utm }: Props) {
             ? "Cette adresse email était déjà enregistrée pour cette étude. Nous venons de vous renvoyer le lien de téléchargement."
             : "Votre demande a bien été prise en compte. Un email contenant l'accès à l'étude vient de vous être envoyé.",
         });
-        trackEvent("study_download", { study_slug: study.slug, source: "web" }, true);
       }
 
+      // `guide_download` ne part PLUS ici. Le brief §6 le définit comme
+      // « accès effectif au fichier » : il est désormais émis par la page de
+      // relais /etudes/telechargement, quand le visiteur ouvre le lien du mail.
+      // Ici, l'email vient d'être envoyé — ce n'est pas un téléchargement.
+      submittedRef.current = true;
       setForm(EMPTY);
     } catch {
       setStatus({
@@ -220,7 +284,7 @@ export function StudyLeadModal({ open, onClose, study, utm }: Props) {
       onMouseDown={(e) => {
         // Clic en dehors de la carte : fermeture. On écoute mousedown sur la
         // seule cible du fond pour ne pas fermer sur un glisser depuis l'intérieur.
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) handleClose();
       }}
     >
       <div
@@ -232,7 +296,7 @@ export function StudyLeadModal({ open, onClose, study, utm }: Props) {
       >
         <button
           type="button"
-          onClick={onClose}
+          onClick={handleClose}
           aria-label="Fermer"
           className="absolute right-4 top-3 text-[28px] leading-none text-[#5c5c5c] transition-colors hover:text-[#171717]"
         >
@@ -251,7 +315,7 @@ export function StudyLeadModal({ open, onClose, study, utm }: Props) {
             <p className="text-[15px] leading-relaxed text-emerald-900">{status.message}</p>
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="mt-4 rounded-[10px] bg-[linear-gradient(135deg,#7b3f9a,#2c4095)] px-5 py-2.5 font-bold text-white hover:brightness-95"
             >
               Fermer
@@ -325,6 +389,14 @@ export function StudyLeadModal({ open, onClose, study, utm }: Props) {
                     disabled={!form.countryCode}
                     value={form.phone}
                     onChange={(e) => set("phone", e.target.value.replace(/[^\d\s]/g, ""))}
+                    onBlur={() => {
+                      // Le visiteur a recopié l'indicatif que le champ porte
+                      // déjà : on le retire sous ses yeux plutôt que de le
+                      // doubler en silence à l'envoi. La saisie normale, elle,
+                      // garde les espaces de lecture que le visiteur a tapés.
+                      const cleaned = nationalDigits(form.phone, form.countryCode);
+                      if (cleaned !== form.phone.replace(/\D/g, "")) set("phone", cleaned);
+                    }}
                     className={`${inputClass} flex-1 disabled:cursor-not-allowed disabled:bg-[#f7f7f7]`}
                     autoComplete="tel-national"
                     placeholder={form.countryCode ? "07 00 00 00 00" : "Choisissez d'abord votre pays"}

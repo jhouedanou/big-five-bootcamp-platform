@@ -7,6 +7,11 @@ import Link from "next/link"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { BrandRequestCampaignsManager } from "@/components/admin/brand-request-campaigns-manager"
 import { sanitizeHtml } from "@/lib/sanitize-html"
+import {
+  DOCUMENT_ALLOWED_TYPES,
+  DOCUMENT_MAX_BYTES,
+  DOCUMENT_MAX_LABEL,
+} from "@/lib/storage-buckets"
 
 interface BrandRequest {
   id: string
@@ -194,28 +199,59 @@ export default function AdminBrandRequestsPage() {
     setUploadError(null)
   }
 
-  // Upload PDF du devis vers /api/upload (bucket Supabase Storage)
-  const handlePdfUpload = async (file: File) => {
+  // Upload PDF du devis vers le bucket PRIVÉ `documents`, via URL signée.
+  //
+  // L'ancienne version postait à /api/upload : cette route ne valide que des
+  // types image et dépose dans `shoo`, qui est public. Elle répondait donc 400
+  // sur tout PDF, et un devis n'aurait de toute façon pas sa place dans un
+  // bucket public. Le fichier part maintenant directement vers Supabase Storage,
+  // sans transiter par la fonction serverless dont le corps est plafonné à
+  // ~4,5 Mo sur Vercel — en deçà des 10 Mo autorisés ici.
+  const handlePdfUpload = async (file: File, requestId: string) => {
     setUploadError(null)
-    if (file.type !== 'application/pdf') {
+    if (!DOCUMENT_ALLOWED_TYPES.includes(file.type)) {
       setUploadError('Seuls les fichiers PDF sont acceptés.')
       return
     }
-    if (file.size > 10 * 1024 * 1024) {
-      setUploadError('Le fichier dépasse 10 Mo.')
+    if (file.size > DOCUMENT_MAX_BYTES) {
+      setUploadError(`Le fichier dépasse ${DOCUMENT_MAX_LABEL}.`)
       return
     }
     setUploadingPdf(true)
     try {
-      const formData = new FormData()
-      formData.append('file', file)
-      const res = await fetch('/api/upload', { method: 'POST', body: formData })
+      // 1) Demander une URL d'upload signée.
+      const res = await fetch('/api/admin/brand-requests/devis/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: requestId,
+          contentType: file.type,
+          size: file.size,
+        }),
+      })
       const data = await res.json().catch(() => ({} as any))
-      if (!res.ok || !data.url) {
+      if (!res.ok || !data.uploadUrl) {
         setUploadError(data?.error || `Erreur ${res.status}`)
         return
       }
-      setDevisUrl(data.url)
+
+      // 2) Envoi direct vers Supabase Storage.
+      const putRes = await fetch(data.uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      })
+      if (!putRes.ok) {
+        const text = await putRes.text().catch(() => '')
+        setUploadError(
+          `Échec de l'envoi vers le stockage (${putRes.status}). ${text.slice(0, 120)}`,
+        )
+        return
+      }
+
+      // 3) Le PDF n'a pas d'URL publique : on retient le lien de lecture, qui
+      //    signe à la demande. Enregistré en base au « Sauvegarder ».
+      setDevisUrl(data.devisUrl)
     } catch (e: any) {
       setUploadError(e?.message || 'Erreur réseau lors de l\'upload')
     } finally {
@@ -705,7 +741,7 @@ export default function AdminBrandRequestsPage() {
                               className="hidden"
                               onChange={(e) => {
                                 const f = e.target.files?.[0]
-                                if (f) handlePdfUpload(f)
+                                if (f) handlePdfUpload(f, req.id)
                                 if (pdfInputRef.current) pdfInputRef.current.value = ''
                               }}
                             />

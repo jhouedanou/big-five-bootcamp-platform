@@ -1,7 +1,12 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { fbTrack, hasMarketingConsent } from "@/lib/fb-pixel"
+import {
+  claimNativePixel,
+  fbTrack,
+  hasMarketingConsent,
+  releaseNativePixel,
+} from "@/lib/fb-pixel"
 import { CONSENT_EVENT } from "@/lib/consent"
 
 type FbEventName = "PageView" | "ViewContent" | "Search"
@@ -32,8 +37,36 @@ function useFbEventOnMount(event: FbEventName, params: Record<string, unknown>) 
   }, [event])
 }
 
-/** PageView pixel — landing home et pricing (spec LOT F). */
-export function FbPageView({ page }: { page: string }) {
+/**
+ * La route porte le pixel elle-même plutôt que de le laisser au conteneur.
+ *
+ * Déclaré AVANT l'effet d'événement pour que la propriété soit revendiquée
+ * avant le premier `fbTrack` : les effets frères partent dans l'ordre de
+ * déclaration, et l'inverse ferait partir le PageView par le conteneur.
+ */
+function useNativePixelOwnership(enabled: boolean) {
+  useEffect(() => {
+    if (!enabled) return
+    claimNativePixel()
+    return () => releaseNativePixel()
+  }, [enabled])
+}
+
+/**
+ * PageView pixel — landing home et pricing (spec LOT F).
+ *
+ * `nativePixel` réserve le pixel à cette route : demandé par le brief
+ * complémentaire pour la landing de campagne, qui doit collecter que le
+ * conteneur soit configuré ou non.
+ */
+export function FbPageView({
+  page,
+  nativePixel = false,
+}: {
+  page: string
+  nativePixel?: boolean
+}) {
+  useNativePixelOwnership(nativePixel)
   useFbEventOnMount("PageView", { page })
   return null
 }

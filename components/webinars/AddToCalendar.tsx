@@ -52,7 +52,19 @@ export function AddToCalendar({ webinar, variant = "outline", size = "sm" }: Add
           </a>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
-          <a href={`/api/webinars/${webinar.id}/calendar.ics`} onClick={() => track("ics")}>
+          <a
+            href={`/api/webinars/${webinar.id}/calendar.ics`}
+            onClick={() => {
+              track("ics")
+              // Seul le .ics est un fichier téléchargé : Google et Outlook
+              // ouvrent un agenda en ligne, sans rien remettre au visiteur.
+              trackEvent("export_used", {
+                export_type: "webinar_calendar",
+                content_count: 1,
+                webinar_id: webinar.id,
+              })
+            }}
+          >
             Fichier .ics
           </a>
         </DropdownMenuItem>

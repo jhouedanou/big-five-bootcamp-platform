@@ -3,7 +3,7 @@
 import React from "react"
 
 import Link from "next/link"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, Check, Shield, User, Phone } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -46,6 +46,9 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [website, setWebsite] = useState("")
+  // Consentement marketing (brief §6). Décoché par défaut : une case pré-cochée
+  // ne vaut pas consentement, et le §9 exige un opt-in traçable.
+  const [marketingOptIn, setMarketingOptIn] = useState(false)
   const [phone, setPhone] = useState<PhoneInputValue>({
     country: "CIV",
     localDigits: "",
@@ -99,6 +102,18 @@ export default function RegisterPage() {
     }
   }
 
+  /**
+   * `sign_up_started` (brief §6) — « première étape d'inscription réellement
+   * commencée ». Le premier caractère saisi dans le formulaire fait foi :
+   * l'affichage de la page, lui, est déjà couvert par `page_view`.
+   */
+  const signUpStartedRef = useRef(false)
+  const handleFirstInput = () => {
+    if (signUpStartedRef.current) return
+    signUpStartedRef.current = true
+    trackEvent("sign_up_started", { signup_method: "email" }, true)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -128,6 +143,7 @@ export default function RegisterPage() {
           elapsedMs: Date.now() - formStartedAt,
           redirect: redirectTo || undefined,
           fbEventId,
+          marketingOptIn,
         }),
       })
 
@@ -161,7 +177,32 @@ export default function RegisterPage() {
       // Mesure GA4 / Supabase du niveau « Sign Up » du brief trackers.
       // Ajoutée en plus du pixel ci-dessus, pas à la place : renommer
       // l'événement Meta casserait les audiences déjà constituées.
-      trackEvent("sign_up", { needs_email_confirmation: !!data.needsEmailConfirmation }, true)
+      trackEvent(
+        "sign_up",
+        {
+          needs_email_confirmation: !!data.needsEmailConfirmation,
+          // Brief §6 : `account_created` attend user_id et signup_method. Le
+          // user_id vient de la réponse serveur — à cet instant, la session
+          // n'existe pas encore quand une confirmation e-mail est requise.
+          user_id: data.user?.id,
+          signup_method: "email",
+        },
+        true
+      )
+
+      // `contact_opt_in_updated` (brief §6). Émis dans les DEUX sens : un refus
+      // est une information, et c'est lui qui interdit les envois. Le serveur
+      // vient de l'enregistrer, la condition « enregistré côté serveur » du
+      // brief est donc satisfaite.
+      trackEvent(
+        "contact_opt_in_updated",
+        {
+          channel: "email",
+          status: marketingOptIn ? "granted" : "denied",
+          source: "register",
+        },
+        true
+      )
 
       if (data.needsEmailConfirmation) {
         toast.success("Compte créé ! 📧", {
@@ -310,7 +351,7 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+          <form onSubmit={handleSubmit} onChange={handleFirstInput} className="mt-8 space-y-6">
             <div className="space-y-4">
               <div>
                 <Label htmlFor="name" className="text-sm font-medium text-foreground">
@@ -410,6 +451,25 @@ export default function RegisterPage() {
                       </button>
                     }
                   />
+                </Label>
+              </div>
+
+              {/* Consentement marketing, distinct de l'acceptation des CGU :
+                  facultatif, décoché par défaut, et révocable depuis les
+                  paramètres du compte (brief §6 et §9). */}
+              <div className="flex items-start gap-2.5">
+                <Checkbox
+                  id="marketing-opt-in"
+                  checked={marketingOptIn}
+                  onCheckedChange={(checked) => setMarketingOptIn(checked as boolean)}
+                  className="mt-0.5 size-5 border-2 border-primary/70 bg-white shadow-sm data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                />
+                <Label
+                  htmlFor="marketing-opt-in"
+                  className="text-sm leading-relaxed text-foreground/80 cursor-pointer"
+                >
+                  Je souhaite recevoir les actualités et les alertes de veille de
+                  Laveiye. <span className="text-muted-foreground">(facultatif, révocable à tout moment)</span>
                 </Label>
               </div>
 

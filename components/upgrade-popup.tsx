@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { X, Sparkles, Zap, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { trackEvent } from "@/lib/analytics"
 
 interface UpgradePopupProps {
   open: boolean
@@ -104,14 +105,50 @@ export function UpgradePopup({ open, onClose, reason }: UpgradePopupProps) {
   )
 }
 
+/**
+ * Traduction des motifs internes vers le `limit_type` du brief (§7).
+ *
+ * `content` est absent : ce motif sert à expliquer une fonctionnalité, il ne
+ * traduit aucune limite atteinte.
+ */
+const LIMIT_TYPES: Record<string, string> = {
+  clicks: "campaign_views",
+  searches: "searches",
+  "searches-bar": "searches",
+  "searches-filters": "searches",
+  filters: "filters",
+  premium: "premium_content",
+  download: "downloads",
+}
+
 // Hook to manage upgrade popup state
 export function useUpgradePopup() {
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState<UpgradePopupProps["reason"]>()
 
-  const showUpgrade = (r?: UpgradePopupProps["reason"]) => {
+  /**
+   * `meta` porte la limite et le plan courant, que le hook ne peut pas deviner.
+   * Optionnel : un appelant qui ne les passe pas émet quand même l'événement.
+   */
+  const showUpgrade = (
+    r?: UpgradePopupProps["reason"],
+    meta?: { limit_value?: number | null; current_plan?: string }
+  ) => {
     setReason(r)
     setOpen(true)
+
+    // Brief §7 : cette popup ne s'ouvre que lorsqu'une limite produit empêche
+    // réellement l'action suivante. Mesurer ici plutôt que chez chaque appelant
+    // garantit qu'aucun blocage n'est oublié — c'est ce qui manquait.
+    const limitType = r ? LIMIT_TYPES[r] : undefined
+    if (limitType) {
+      trackEvent("plan_limit_reached", {
+        limit_type: limitType,
+        limit_value: meta?.limit_value ?? undefined,
+        current_plan: meta?.current_plan,
+        source: "dashboard",
+      })
+    }
   }
 
   return { open, reason, showUpgrade, closeUpgrade: () => setOpen(false) }

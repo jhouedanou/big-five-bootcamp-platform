@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { trackEvent } from "@/lib/analytics"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
@@ -26,7 +27,8 @@ import {
   XCircle,
   Download,
   Receipt,
-  FileText
+  FileText,
+  Mail
 } from "lucide-react"
 import { getPlanDisplayName } from "@/lib/pricing"
 
@@ -223,6 +225,59 @@ export default function SettingsPage() {
   const [isCancelling, setIsCancelling] = useState(false)
   const [cancellationRequested, setCancellationRequested] = useState(false)
 
+  /**
+   * Consentement marketing (brief §6 et §9).
+   *
+   * `null` = jamais répondu, distinct d'un refus. L'interrupteur reflète donc
+   * l'état réel plutôt que de présumer un consentement.
+   */
+  const [marketingOptIn, setMarketingOptIn] = useState<boolean | null>(null)
+  const [savingOptIn, setSavingOptIn] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    fetch("/api/me/marketing-opt-in")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled && data) setMarketingOptIn(data.optIn)
+      })
+      .catch(() => {
+        /* l'écran reste utilisable sans cette préférence */
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const toggleMarketingOptIn = async (next: boolean) => {
+    if (savingOptIn) return
+    setSavingOptIn(true)
+    const previous = marketingOptIn
+    setMarketingOptIn(next)
+    try {
+      const res = await fetch("/api/me/marketing-opt-in", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ optIn: next }),
+      })
+      if (!res.ok) throw new Error("échec")
+
+      // Le serveur a enregistré le choix : c'est la condition du brief §6.
+      // Émis dans les deux sens — un retrait est ce qui interdit les envois.
+      trackEvent(
+        "contact_opt_in_updated",
+        { channel: "email", status: next ? "granted" : "denied", source: "settings" },
+        true
+      )
+      toast.success(next ? "Vous recevrez nos actualités." : "Vous ne recevrez plus nos actualités.")
+    } catch {
+      setMarketingOptIn(previous)
+      toast.error("Enregistrement impossible", { description: "Réessayez dans un instant." })
+    } finally {
+      setSavingOptIn(false)
+    }
+  }
+
   // Annuler l'abonnement — crée un enregistrement admin de demande de désactivation
   const handleCancelSubscription = async () => {
     const confirmed = window.confirm(
@@ -273,6 +328,19 @@ export default function SettingsPage() {
             .eq("id", user.id)
         }
       }
+
+      // `subscription_cancelled` (brief §8). Le produit enregistre une demande
+      // d'annulation, traitée ensuite par l'admin : c'est le geste de
+      // l'utilisateur qui est mesuré ici, pas la clôture effective du compte.
+      trackEvent(
+        "subscription_cancelled",
+        {
+          plan_name: subscription.plan,
+          cancellation_reason: "user_request",
+          source: "dashboard",
+        },
+        true
+      )
 
       setCancellationRequested(true)
 
@@ -608,6 +676,53 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
+        </section>
+
+        {/* Section Communications — révocation du consentement marketing.
+            Le brief §9 n'autorise les envois qu'avec un opt-in traçable : il
+            faut donc pouvoir le retirer depuis le site, pas seulement le
+            donner à l'inscription. */}
+        <section className="mt-6 rounded-2xl border-2 border-[#F5F5F5] bg-white p-6 shadow-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 shadow-lg shadow-sky-500/25">
+              <Mail className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h2 className="font-[family-name:var(--font-heading)] text-xl font-bold text-[#0F0F0F]">
+                Communications
+              </h2>
+              <p className="text-sm font-medium text-[#0F0F0F]/60">
+                Ce que vous acceptez de recevoir
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start justify-between gap-4 rounded-xl border-2 border-[#F5F5F5] p-4">
+            <div>
+              <p className="font-semibold text-[#0F0F0F]">Actualités et alertes de veille</p>
+              <p className="mt-1 text-sm text-[#0F0F0F]/60">
+                Nouvelles campagnes, temps forts et études. Les emails liés à
+                votre compte et à vos paiements vous seront envoyés dans tous les cas.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={marketingOptIn === true}
+              aria-label="Recevoir les actualités et alertes de veille"
+              disabled={savingOptIn || marketingOptIn === null}
+              onClick={() => toggleMarketingOptIn(!marketingOptIn)}
+              className={`relative mt-1 h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-50 ${
+                marketingOptIn ? "bg-[#F2B33D]" : "bg-[#D4D4D4]"
+              }`}
+            >
+              <span
+                className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all ${
+                  marketingOptIn ? "left-6" : "left-1"
+                }`}
+              />
+            </button>
+          </div>
         </section>
 
         {/* Section Historique & Reçus de paiement */}

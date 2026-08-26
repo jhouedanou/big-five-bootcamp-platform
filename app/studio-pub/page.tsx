@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { trackEvent } from "@/lib/analytics";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { LibraryPickerDialog, type LibraryItem } from "@/components/studio/library-picker-dialog";
@@ -20,6 +21,8 @@ import { Button } from "@/components/ui/button";
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar";
 import { useRequireActiveSubscription } from "@/hooks/use-require-active-subscription";
 import { cn } from "@/lib/utils";
+import { normalizeImageFile } from "@/lib/image-client";
+import { IMAGE_PRESETS } from "@/lib/image-presets";
 
 /**
  * Studio publicitaire — parcours conversationnel.
@@ -269,8 +272,11 @@ function StudioConversation() {
     say({ role: "user", imageUrl: localPreview });
 
     try {
+      // La référence repart en base64 vers le modèle de vision : la normaliser
+      // allège le stockage ET le coût de l'appel.
+      const payload = await normalizeImageFile(file, IMAGE_PRESETS.studioReference);
       const body = new FormData();
-      body.append("file", file);
+      body.append("file", payload);
       const res = await fetch("/api/studio/reference", { method: "POST", body });
       const data = await res.json().catch(() => ({}));
 
@@ -666,7 +672,15 @@ function ResultBubble({ result, onRegenerate }: { result: GenResult; onRegenerat
       <div className="flex flex-wrap gap-2">
         {result.imageUrl && (
           <Button asChild size="sm" className="bg-[#F2B33D] text-[#0F0F0F] hover:bg-[#E4A82F]">
-            <a href={result.imageUrl} download target="_blank" rel="noopener noreferrer">
+            <a
+              href={result.imageUrl}
+              download
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() =>
+                trackEvent("export_used", { export_type: "studio_image", content_count: 1 })
+              }
+            >
               <Download className="mr-1.5 h-4 w-4" />
               Télécharger
             </a>

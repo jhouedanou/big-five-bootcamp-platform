@@ -67,8 +67,8 @@ if [ -f .env ]; then
 fi
 
 check_env "NEXT_PUBLIC_SUPABASE_URL"
-check_env "NEXT_PUBLIC_SUPABASE_ANON_KEY"
-check_env "SUPABASE_SERVICE_ROLE_KEY"
+check_env "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"
+check_env "SUPABASE_SECRET_KEY"
 
 echo ""
 

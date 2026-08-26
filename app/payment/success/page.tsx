@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle2, Download, Calendar, User, Mail, Loader2, Clock, AlertCircle, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useAuthContext } from '@/components/auth-provider';
+import { trackEvent } from '@/lib/analytics';
 
 interface PaymentData {
   payment: {
@@ -68,6 +69,7 @@ function PaymentSuccessContent() {
   const maxRetries = 5;
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const profileRefreshedRef = useRef(false);
+  const purchaseTrackedRef = useRef(false);
 
   const verifyPayment = async (ref_command: string, attempt: number = 0) => {
     try {
@@ -164,6 +166,77 @@ function PaymentSuccessContent() {
       }
     };
   }, []);
+
+  /**
+   * `purchase` (brief §8) — sur la confirmation serveur du paiement, jamais au
+   * clic sur « Payer » : cette page n'affiche le récapitulatif qu'une fois le
+   * statut vérifié auprès du prestataire.
+   *
+   * Mesuré dans le navigateur, et non à l'activation côté serveur, parce que
+   * GA4 a besoin du client_id du visiteur pour rattacher l'achat à sa session
+   * et à son canal d'acquisition. Envoyé depuis le serveur, il atterrirait sur
+   * un identifiant synthétique et le chiffre d'affaires ne serait attribuable
+   * à aucune campagne — ce qui lui retire l'essentiel de son intérêt.
+   *
+   * Contrepartie assumée : un acheteur qui ne revient jamais sur le site après
+   * son paiement mobile money n'est pas compté dans GA4. La conversion Meta,
+   * elle, part quand même — la Conversions API l'envoie à l'activation.
+   */
+  useEffect(() => {
+    const payment = paymentData?.payment;
+    if (!payment || payment.status !== 'completed' || !payment.ref_command) return;
+    if (purchaseTrackedRef.current) return;
+
+    // GA4 ne dédoublonne pas les achats : un rechargement de la page ou un
+    // retour par l'historique compterait une seconde vente.
+    const storageKey = `laveiye-purchase-tracked:${payment.ref_command}`;
+    try {
+      if (window.localStorage.getItem(storageKey)) return;
+      window.localStorage.setItem(storageKey, new Date().toISOString());
+    } catch {
+      // Navigation privée : on mesure quand même, le doublon reste marginal.
+    }
+    purchaseTrackedRef.current = true;
+
+    const planName =
+      payment.metadata?.plan ||
+      payment.metadata?.plan_label ||
+      payment.item_name ||
+      null;
+
+    trackEvent(
+      'payment_successful',
+      {
+        transaction_id: payment.ref_command,
+        plan_name: planName,
+        value: payment.amount,
+        currency: payment.currency || 'XOF',
+        // Même identifiant que le Purchase envoyé par la Conversions API à
+        // l'activation : le jour où le conteneur portera une balise Meta
+        // Purchase, les deux moitiés se dédoublonneront (brief §12).
+        event_id: `purchase_${payment.ref_command}`,
+        source: 'checkout',
+      },
+      true
+    );
+
+    // `subscription_renewed` (brief §8) : renouvellement confirmé. Émis EN PLUS
+    // de `purchase`, pas à la place — le chiffre d'affaires doit rester complet
+    // dans GA4 ; le renouvellement qualifie cet achat, il ne le remplace pas.
+    if (payment.metadata?.renewal) {
+      trackEvent(
+        'subscription_renewed',
+        {
+          transaction_id: payment.ref_command,
+          plan_name: planName,
+          value: payment.amount,
+          currency: payment.currency || 'XOF',
+          source: 'checkout',
+        },
+        true
+      );
+    }
+  }, [paymentData]);
 
   useEffect(() => {
     // PawaPay redirige avec paymentId, paymentStatus et ref_command dans l'URL
@@ -460,7 +533,17 @@ function PaymentSuccessContent() {
               Accéder à la bibliothèque
             </Button>
           </Link>
-          <Button variant="outline" className="flex-1 h-12" onClick={() => window.print()}>
+          <Button
+            variant="outline"
+            className="flex-1 h-12"
+            onClick={() => {
+              trackEvent("export_used", {
+                export_type: "payment_confirmation",
+                content_count: 1,
+              })
+              window.print()
+            }}
+          >
             <Download className="mr-2 h-4 w-4" />
             Télécharger la confirmation
           </Button>

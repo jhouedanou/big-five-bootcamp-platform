@@ -330,6 +330,7 @@ export function StudyEditor({ study, onSaved, onDeleted }: Props) {
         <h3 className="font-semibold">Visuels</h3>
 
         <ImageUpload
+          preset="studyCover"
           label="Couverture (mockup livre)"
           value={draft.cover_url || ""}
           onChange={(url) => set("cover_url", url)}
@@ -367,6 +368,7 @@ export function StudyEditor({ study, onSaved, onDeleted }: Props) {
                 </Button>
               </div>
               <ImageUpload
+                preset="studyCover"
                 value={slide.src}
                 onChange={(url) =>
                   set(

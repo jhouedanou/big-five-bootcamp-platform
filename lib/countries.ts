@@ -263,3 +263,65 @@ export function filterCountries(query: string): Country[] {
   if (!q) return [...ALL_COUNTRIES]
   return ALL_COUNTRIES.filter((c) => normalizeCountrySearch(c.name).includes(q))
 }
+
+/**
+ * Nombre minimal de chiffres pour qu'une suite ressemble à un numéro national.
+ * Aligné sur la borne basse E.164 déjà retenue au checkout.
+ */
+const MIN_NATIONAL_DIGITS = 6
+
+/**
+ * Numéro national seul, débarrassé de l'indicatif que le visiteur a pu
+ * recopier alors que le formulaire l'impose déjà.
+ *
+ * Sans ce nettoyage, « +225 07 11 06 47 21 » saisi dans un champ déjà préfixé
+ * « +225 » est stocké « +2252250711064721 » : un numéro injoignable, et le
+ * contraire du format homogène recherché.
+ *
+ * Formes reconnues (exemple Côte d'Ivoire, indicatif 225) :
+ *   "07 11 06 47 21"   → "0711064721"  (déjà national)
+ *   "+225 0711064721"  → "0711064721"
+ *   "225 0711064721"   → "0711064721"
+ *   "00225 0711064721" → "0711064721"
+ *
+ * Le retrait n'a lieu que s'il reste un numéro plausible derrière : un numéro
+ * national court commençant par les mêmes chiffres que son propre indicatif
+ * n'est pas amputé.
+ */
+export function nationalDigits(raw: string, iso2: string): string {
+  const digits = raw.replace(/\D/g, "")
+  const dial = COUNTRY_DIAL_CODES[iso2]
+  if (!dial) return digits
+
+  // « 00 » = préfixe international composé à l'ancienne.
+  const international = "00" + dial
+  if (
+    digits.startsWith(international) &&
+    digits.length - international.length >= MIN_NATIONAL_DIGITS
+  ) {
+    return digits.slice(international.length)
+  }
+
+  // Un seul retrait, jamais en boucle : la répétition unique est le cas réel,
+  // et boucler amputerait les pays à indicatif d'un chiffre (US « 1 »).
+  if (digits.startsWith(dial) && digits.length - dial.length >= MIN_NATIONAL_DIGITS) {
+    return digits.slice(dial.length)
+  }
+
+  return digits
+}
+
+/**
+ * Numéro complet en E.164 (« +2250711064721 ») à partir du numéro saisi et du
+ * pays déclaré. Chaîne vide si le pays est inconnu ou le numéro absent.
+ *
+ * Le zéro initial des numéros nationaux est conservé tel quel : il fait partie
+ * du numéro en Côte d'Ivoire (« +225 07… ») alors qu'il s'efface en France.
+ * Trancher pays par pays demanderait une table de préfixes interurbains.
+ */
+export function toE164(raw: string, iso2: string): string {
+  const dial = COUNTRY_DIAL_CODES[iso2]
+  const national = nationalDigits(raw, iso2)
+  if (!dial || !national) return ""
+  return `+${dial}${national}`
+}

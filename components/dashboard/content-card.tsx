@@ -162,10 +162,15 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
   const canHoverPreview =
     !!content.isVideo && !!content.videoUrl && !isPremiumLocked && isDirectVideoFile(content.videoUrl)
   const { hovering, onMouseEnter, onMouseLeave } = useDelayedHover()
+  // Visuel dont l'URL répond mais ne renvoie pas une image → repli initiales.
+  const [imageFailed, setImageFailed] = React.useState(false)
 
   // Sans image principale, YouTube et Drive exposent une vignette déductible de
   // l'URL. Avant, la carte tombait directement sur les initiales : une campagne
   // vidéo sans thumbnail s'affichait sans aucun visuel (recette du 19/08).
+  // `imageFailed` couvre le cas d'un visuel dont l'URL répond mais ne renvoie
+  // pas une image : sans lui, la carte affiche l'icône d'image brisée du
+  // navigateur au lieu du repli maison.
   const displayImageUrl =
     content.imageUrl || (content.videoUrl ? getVideoThumbnail(content.videoUrl) : null)
   const { isFavorite, toggleFavorite, isAuthenticated, loading: favLoading } = useFavorites()
@@ -220,12 +225,13 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
             {canHoverPreview && (
               <HoverVideoPreview src={content.videoUrl!} active={hovering} />
             )}
-            {displayImageUrl ? (
+            {displayImageUrl && !imageFailed ? (
               <Image
                 src={getGoogleDriveImageUrl(displayImageUrl) || "/placeholder.svg"}
                 alt={content.title}
                 fill
                 sizes="160px"
+                onError={() => setImageFailed(true)}
                 className={cn(
                   "object-cover transition-transform duration-300 group-hover:scale-105",
                   isPremiumLocked && "blur-md scale-110 group-hover:scale-110"
@@ -350,12 +356,13 @@ export function ContentCard({ content, viewMode = "grid", onBeforeNavigate, isBl
           {canHoverPreview && (
             <HoverVideoPreview src={content.videoUrl!} active={hovering} />
           )}
-          {displayImageUrl ? (
+          {displayImageUrl && !imageFailed ? (
             <Image
               src={getGoogleDriveImageUrl(displayImageUrl) || "/placeholder.svg"}
               alt={content.title}
               fill
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              onError={() => setImageFailed(true)}
               className={cn(
                 "object-cover transition-transform duration-300 group-hover:scale-105",
                 isPremiumLocked && "blur-lg scale-110 group-hover:scale-110"

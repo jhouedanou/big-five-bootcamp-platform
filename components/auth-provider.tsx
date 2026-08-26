@@ -333,7 +333,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     // Best-effort : horodatage dernière connexion + event "login" (KPI actifs).
     if (!error && data?.session) {
-      fetch("/api/me/login-ping", { method: "POST", keepalive: true }).catch(() => {})
+      fetch("/api/me/login-ping", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ method: "password" }),
+          keepalive: true,
+        }).catch(() => {})
     }
     return { data, error }
   }, [supabase])

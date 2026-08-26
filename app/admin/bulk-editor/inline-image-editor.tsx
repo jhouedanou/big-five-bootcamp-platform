@@ -26,6 +26,7 @@ import {
   BULK_MAX_FILE_LABEL,
   RESIZE_HINT,
 } from "@/hooks/use-bulk-upload"
+import { normalizeImageFile } from "@/lib/image-client"
 import { useMediaValidation } from "@/hooks/use-media-validation"
 import {
   isVideoFile,
@@ -42,7 +43,8 @@ type DriveState = "unknown" | "checking" | "public" | "restricted"
  * - Affiche l'image déjà uploadée (thumbnail courante).
  * - Détecte les images Google Drive et vérifie leurs permissions (publique ?
  *   restreinte ?) ; si publique, les re-héberge sur Supabase (URL stable).
- * - Permet de remplacer par upload (≤ 2 Mo) ou de coller une URL.
+ * - Permet de remplacer par upload ou de coller une URL. Le fichier est
+ *   normalisé dans le navigateur avant l'envoi (580 px de large max, WebP).
  */
 export function InlineImageEditor({
   value,
@@ -93,8 +95,10 @@ export function InlineImageEditor({
     }
     setUploading(true)
     try {
+      // 580 px de large max + WebP : le bucket ne reçoit que la version utile.
+      const normalized = await normalizeImageFile(file)
       const fd = new FormData()
-      fd.append("file", file)
+      fd.append("file", normalized)
       const res = await fetch("/api/upload", { method: "POST", body: fd })
       const data = await res.json()
       if (!res.ok || !data.url) throw new Error(data?.error || "Upload échoué")

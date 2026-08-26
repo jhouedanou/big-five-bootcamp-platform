@@ -390,6 +390,7 @@ export default function AdminBannersPage() {
               </div>
 
               <ImageUpload
+                preset="banner"
                 label={isFullImage ? "Visuel de la bannière *" : "Visuel de la bannière"}
                 value={draft.imageUrl || ""}
                 onChange={(url) => setDraft({ ...draft, imageUrl: url })}

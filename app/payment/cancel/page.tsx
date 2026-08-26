@@ -7,6 +7,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { trackEvent } from '@/lib/analytics';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,32 @@ export default function PaymentCancelPage() {
       sessionStorage.removeItem('payment_ref');
       sessionStorage.removeItem('payment_session_id');
     };
+  }, []);
+
+  /**
+   * `payment_failed` (brief §8) — le prestataire a renvoyé l'utilisateur sur
+   * l'URL d'abandon. Une clé locale par référence évite qu'un rechargement de
+   * la page compte un second échec : GA4 ne dédoublonne pas.
+   */
+  useEffect(() => {
+    const ref = sessionStorage.getItem('payment_ref');
+    const key = `laveiye-payment-failed:${ref || 'unknown'}`;
+    try {
+      if (window.localStorage.getItem(key)) return;
+      window.localStorage.setItem(key, new Date().toISOString());
+    } catch {
+      // Navigation privée : on mesure quand même.
+    }
+    trackEvent(
+      'payment_failed',
+      {
+        payment_provider: 'chariow',
+        failure_type: 'cancelled',
+        transaction_id: ref || undefined,
+        source: 'checkout',
+      },
+      true
+    );
   }, []);
 
   const handleRetry = () => {

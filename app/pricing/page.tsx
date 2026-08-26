@@ -11,12 +11,13 @@ import { cn } from "@/lib/utils"
 import content from "@/lib/homepage-content.json"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { FbPageView } from "@/components/analytics/fb-events"
+import { ViewPricing } from "@/components/analytics/view-pricing"
 
 const pricingContent = content.pricing
 
 const VEILLE_SLIDES = [
-    { src: "/veilleconcurrentielle/screen_1.jpg", alt: "Aperçu rapport de veille concurrentielle — 1" },
-    { src: "/veilleconcurrentielle/screen_2.jpeg", alt: "Aperçu rapport de veille concurrentielle — 2" },
+    { src: "/veilleconcurrentielle/screen_1.webp", alt: "Aperçu rapport de veille concurrentielle — 1" },
+    { src: "/veilleconcurrentielle/screen_2.webp", alt: "Aperçu rapport de veille concurrentielle — 2" },
 ] as const
 
 const plans = pricingContent.plans.map((plan) => ({
@@ -69,6 +70,7 @@ export default function PricingPage() {
     return (
         <div className="flex min-h-screen flex-col bg-background">
             <FbPageView page="pricing" />
+            <ViewPricing source="pricing" />
             <Navbar />
             <main className="flex-1">
                 {/* Hero */}

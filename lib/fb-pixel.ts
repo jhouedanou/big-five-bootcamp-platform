@@ -12,6 +12,7 @@
  */
 
 import { hasMarketingConsent } from "@/lib/consent"
+import { pushDataLayer } from "@/lib/datalayer"
 
 /** Repli si l'identifiant n'a pas été posé par le layout. */
 const FALLBACK_FB_PIXEL_ID = "1889630218258683"
@@ -22,6 +23,8 @@ declare global {
     _fbq?: unknown
     /** Posé dans le <head> par app/layout.tsx, depuis /admin/integrations. */
     __LAVEIYE_FB_PIXEL_ID__?: string
+    /** Posé dans le <head> quand un conteneur GTM pilote les balises. */
+    __LAVEIYE_GTM_META__?: boolean
   }
 }
 
@@ -42,6 +45,44 @@ export function getFbPixelId(): string {
 }
 
 export { hasMarketingConsent }
+
+/**
+ * Routes qui revendiquent le pixel pour elles-mêmes.
+ *
+ * La landing de campagne doit collecter même si le conteneur n'est pas
+ * configuré : le brief complémentaire demande le pixel « également installé sur
+ * la landing page ». Elle le charge donc elle-même et n'annonce jamais
+ * `meta_event` au conteneur.
+ *
+ * Aucun doublon n'est possible : la balise Meta du conteneur se déclenche sur
+ * `meta_event`, que ces routes n'émettent pas. C'est le code qui porte la
+ * séparation, pas une règle de déclenchement GTM qu'on peut oublier de
+ * configurer.
+ */
+let nativePixelRoute = false
+
+/** La route courante porte le pixel elle-même. Voir `FbPageView nativePixel`. */
+export function claimNativePixel(): void {
+  nativePixelRoute = true
+}
+
+/** Rendu au démontage : la navigation interne repasse au conteneur. */
+export function releaseNativePixel(): void {
+  nativePixelRoute = false
+}
+
+/**
+ * Le conteneur GTM porte-t-il la balise Meta ?
+ *
+ * Le drapeau est posé par le layout dans le même souffle que le script du
+ * conteneur : il est donc toujours cohérent avec la page réellement servie.
+ * Une page statique construite avant la bascule garde son pixel — elle n'a pas
+ * de conteneur pour le doubler.
+ */
+export function isMetaManagedByGtm(): boolean {
+  if (typeof window === "undefined") return false
+  return window.__LAVEIYE_GTM_META__ === true && !nativePixelRoute
+}
 
 let pixelLoaded = false
 /** Identifiant réellement passé à `fbq('init')`, pour détecter un changement. */
@@ -76,6 +117,10 @@ export function applyRuntimeFbPixelId(pixelId: string): void {
 /** Injecte le script fbevents.js et initialise le pixel. Idempotent. */
 export function loadFbPixel(): void {
   if (typeof window === "undefined" || pixelLoaded) return
+  // Le conteneur porte la balise Meta : charger fbevents.js ici enverrait
+  // chaque conversion deux fois, et la balise du conteneur n'aurait pas le même
+  // event_id que la moitié CAPI — la déduplication du §12 échouerait.
+  if (isMetaManagedByGtm()) return
   pixelLoaded = true
 
   // Stub officiel Meta (équivalent du snippet <script> fourni par le
@@ -130,6 +175,19 @@ export function fbTrack(
 ): void {
   if (typeof window === "undefined") return
   if (!hasMarketingConsent()) return
+
+  // Après la bascule, le site annonce l'événement et le conteneur porte la
+  // balise. `event_id` est relayé tel quel : c'est lui qui dédoublonne la
+  // conversion avec la moitié envoyée par la Conversions API.
+  if (isMetaManagedByGtm()) {
+    pushDataLayer(
+      "meta_event",
+      { ...params, meta_event_name: eventName },
+      eventId ? { event_id: eventId } : {}
+    )
+    return
+  }
+
   loadFbPixel()
   try {
     window.fbq?.("track", eventName, params, eventId ? { eventID: eventId } : undefined)

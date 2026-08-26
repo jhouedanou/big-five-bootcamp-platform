@@ -10,6 +10,7 @@ import { cn, getGoogleDriveImageUrl } from "@/lib/utils";
 import { ReactionButtons } from "@/components/ui/reaction-buttons";
 import { useAuthContext } from "@/components/auth-provider";
 import { UpgradePopup } from "@/components/upgrade-popup";
+import { trackEvent } from "@/lib/analytics";
 
 interface LightboxProps {
   images: string[];
@@ -121,6 +122,10 @@ export function Lightbox({ images: rawImages, initialIndex = 0, isOpen, onClose,
     setIsDownloading(true);
     const src = images[currentIndex];
     const fallbackName = `campagne-${campaignId || "visuel"}-${currentIndex + 1}`;
+    // Brief §7 : l'événement part quand le téléchargement est RÉELLEMENT lancé,
+    // pas au clic — un visiteur non premier est renvoyé vers l'offre au-dessus,
+    // et un échec réseau ne doit pas compter comme un export.
+    let launched = false;
     try {
       const res = await fetch(src, { mode: "cors" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -133,6 +138,7 @@ export function Lightbox({ images: rawImages, initialIndex = 0, isOpen, onClose,
       document.body.appendChild(link);
       link.click();
       link.remove();
+      launched = true;
       setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch {
       // Fallback : ouverture dans un nouvel onglet si le fetch CORS échoue
@@ -142,8 +148,16 @@ export function Lightbox({ images: rawImages, initialIndex = 0, isOpen, onClose,
       link.target = "_blank";
       link.rel = "noopener noreferrer";
       link.click();
+      launched = true;
     } finally {
       setIsDownloading(false);
+      if (launched) {
+        trackEvent("export_used", {
+          export_type: "campaign_visual",
+          content_count: 1,
+          campaign_id: campaignId,
+        });
+      }
     }
   };
 

@@ -82,9 +82,12 @@ export default async function StudyLandingPage({
 
   return (
     <>
-      {/* PageView Meta sur la principale page d'atterrissage publicitaire : elle
-          n'en émettait aucun, seul l'événement GA4 partait. */}
-      <FbPageView page={`etude:${slug}`} />
+      {/* PageView Meta sur la principale page d'atterrissage publicitaire.
+          `nativePixel` : cette page charge le pixel elle-même au lieu de le
+          laisser au conteneur GTM — le brief complémentaire demande qu'il soit
+          « également installé sur la landing page ». Elle n'émet donc jamais
+          `meta_event`, ce qui rend tout doublon impossible. */}
+      <FbPageView page={`etude:${slug}`} nativePixel />
       <StudyLandingClient study={study.content} />
     </>
   )

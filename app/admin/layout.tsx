@@ -7,6 +7,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAdmin } from "./AdminContext";
 import {
+  Activity,
   LayoutDashboard,
   Users,
   LogOut,
@@ -55,6 +56,7 @@ const sidebarLinks = [
   { href: "/admin/keynote", label: "Keynote 21 mai", icon: Megaphone, description: "Inscriptions & codes promo" },
   { href: "/admin/decrypte", label: "#BigFiveDecrypte", icon: Sparkles, description: "Inscriptions session Pro" },
   { href: "/admin/webinars", label: "Webinaires", icon: Video, description: "Sessions & inscriptions" },
+  { href: "/admin/tracking", label: "Suivi du tracking", icon: Activity, description: "Événements reçus & conformité" },
   { href: "/admin/integrations", label: "Intégrations", icon: KeyRound, description: "Clés Analytics, Meta & IA" },
   { href: "/admin/branding", label: "Branding", icon: Palette, description: "Logo et identité" },
   { href: "/admin/settings", label: "Paramètres", icon: Settings, description: "Configuration" },

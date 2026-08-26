@@ -88,6 +88,13 @@ interface CreativeCardProps {
 
 export function CreativeCard({ creative }: CreativeCardProps) {
     const [isVideoPopupOpen, setIsVideoPopupOpen] = useState(false)
+    // Un visuel dont l'URL répond mais ne renvoie pas une image (fichier source
+    // supprimé) laissait apparaître l'icône d'image brisée du navigateur.
+    const [thumbFailed, setThumbFailed] = useState(false)
+    const thumbSrc =
+        thumbFailed || !creative.thumbnail
+            ? "/placeholder.svg"
+            : getGoogleDriveImageUrl(creative.thumbnail)
     
     // Déterminer si c'est une vidéo Facebook/Instagram
     const videoPlatform = creative.videoUrl ? getVideoPlatform(creative.videoUrl) : null
@@ -101,7 +108,8 @@ export function CreativeCard({ creative }: CreativeCardProps) {
                     {/* Thumbnail */}
                     <div className="relative aspect-[4/5] overflow-hidden">
                         <Image
-                            src={getGoogleDriveImageUrl(creative.thumbnail) || "/placeholder.svg"}
+                            src={thumbSrc}
+                            onError={() => setThumbFailed(true)}
                             alt={creative.title}
                             fill
                             className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -180,7 +188,8 @@ export function CreativeCard({ creative }: CreativeCardProps) {
                                             onClick={() => setIsVideoPopupOpen(true)}
                                         >
                                             <Image
-                                                src={getGoogleDriveImageUrl(creative.thumbnail) || "/placeholder.jpg"}
+                                                src={thumbSrc}
+                                                onError={() => setThumbFailed(true)}
                                                 alt={creative.title}
                                                 fill
                                                 className="object-contain rounded-lg"
@@ -204,7 +213,8 @@ export function CreativeCard({ creative }: CreativeCardProps) {
                         ) : (
                             <div className="relative w-full h-full min-h-[400px]">
                                 <Image
-                                    src={getGoogleDriveImageUrl(creative.thumbnail) || "/placeholder.jpg"}
+                                    src={thumbSrc}
+                                                onError={() => setThumbFailed(true)}
                                     alt={creative.title}
                                     fill
                                     className="object-contain"
@@ -258,7 +268,8 @@ export function CreativeCard({ creative }: CreativeCardProps) {
                         {/* Grande image/visuel */}
                         <div className="relative w-full aspect-[9/16] max-h-[80vh] bg-black">
                             <Image
-                                src={getGoogleDriveImageUrl(creative.thumbnail) || "/placeholder.jpg"}
+                                src={thumbSrc}
+                                                onError={() => setThumbFailed(true)}
                                 alt={creative.title}
                                 fill
                                 className="object-contain"

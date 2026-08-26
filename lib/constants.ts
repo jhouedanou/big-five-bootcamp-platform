@@ -99,3 +99,14 @@ export const BRAND_COLORS = {
     accent14: "#F5F5F5",
     accent15: "#0F0F0F",
 };
+
+/**
+ * Nombre de lignes CSV traitées par requête d'import.
+ *
+ * Depuis que l'import rapatrie les visuels dans le stockage LAVEIYE, chaque
+ * ligne implique un téléchargement (1,2 Mo en médiane sur la bibliothèque
+ * actuelle) : un CSV de 300 lignes représente plus de 350 Mo et expirerait
+ * largement dans une requête unique. L'interface envoie donc des lots
+ * successifs, ce qui permet aussi d'afficher l'avancement.
+ */
+export const CSV_IMPORT_BATCH = 10;

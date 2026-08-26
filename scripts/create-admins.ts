@@ -5,7 +5,7 @@
  * 
  * Prérequis: Variables d'environnement configurées dans .env.local
  *   - NEXT_PUBLIC_SUPABASE_URL
- *   - SUPABASE_SERVICE_ROLE_KEY (clé service_role, PAS la clé anon)
+ *   - SUPABASE_SECRET_KEY (clé service_role, PAS la clé anon)
  *   - DEFAULT_ADMIN_PASSWORD
  */
 
@@ -25,13 +25,13 @@ if (existsSync(envLocalPath)) {
 }
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const serviceRoleKey = process.env.SUPABASE_SECRET_KEY
 const defaultAdminPassword = process.env.DEFAULT_ADMIN_PASSWORD
 
 if (!supabaseUrl || !serviceRoleKey || !defaultAdminPassword) {
   console.error('❌ Variables manquantes:')
   if (!supabaseUrl) console.error('   - NEXT_PUBLIC_SUPABASE_URL')
-  if (!serviceRoleKey) console.error('   - SUPABASE_SERVICE_ROLE_KEY')
+  if (!serviceRoleKey) console.error('   - SUPABASE_SECRET_KEY')
   if (!defaultAdminPassword) console.error('   - DEFAULT_ADMIN_PASSWORD')
   console.error('\nAssurez-vous que ces variables sont dans votre fichier .env.local')
   process.exit(1)

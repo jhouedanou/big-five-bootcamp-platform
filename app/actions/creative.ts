@@ -5,12 +5,15 @@ import { revalidatePath } from "next/cache"
 import { generateSlug, getGoogleDriveImageUrl } from "@/lib/utils"
 import { getViewerAccess, redactPremiumFields, redactPremiumFieldsList } from "@/lib/content-access"
 import { checkAdmin } from "@/lib/admin-auth"
+import { secureImageUrl } from "@/lib/media-validate-server"
+import type { MediaState } from "@/lib/media-validation"
+import { CSV_IMPORT_BATCH } from "@/lib/constants"
 
 function getSupabaseAdmin() {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const key = process.env.SUPABASE_SECRET_KEY
     if (!url || !key) {
-        throw new Error('SUPABASE_SERVICE_ROLE_KEY required for admin operations')
+        throw new Error('SUPABASE_SECRET_KEY required for admin operations')
     }
     return createClient(url, key)
 }
@@ -363,6 +366,13 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
     const admin = await checkAdmin()
     if (!admin) return { success: false, error: "Accès refusé : admin requis" }
 
+    if (rows.length > CSV_IMPORT_BATCH) {
+        return {
+            success: false,
+            error: `Maximum ${CSV_IMPORT_BATCH} lignes par lot — l'import doit être envoyé par lots successifs.`,
+        }
+    }
+
     const supabase = getSupabaseAdmin()
     const errors: string[] = []
     let imported = 0
@@ -381,7 +391,7 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
                 : []
 
             // Validate and normalize status
-            const status = VALID_STATUSES.includes(row.status?.trim() || '')
+            const requestedStatus = VALID_STATUSES.includes(row.status?.trim() || '')
                 ? row.status!.trim()
                 : 'Brouillon'
 
@@ -393,10 +403,30 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
             // Parse year as number
             const year = row.year ? parseInt(row.year, 10) : null
 
-            // Convert Google Drive URLs to direct image URLs
-            const thumbnail = row.imageUrl?.trim()
-                ? getGoogleDriveImageUrl(row.imageUrl.trim())
-                : null
+            // Le visuel est rapatrié dans le stockage LAVEIYE dès l'import : une
+            // URL externe ne doit jamais devenir la source d'affichage du
+            // front-office (brief §4). Le lien d'origine reste conservé.
+            const sourceImageUrl = row.imageUrl?.trim() || null
+            let thumbnail: string | null = null
+            let mediaStatus: MediaState = 'empty'
+            let mediaReason: string | null = null
+
+            if (sourceImageUrl) {
+                const secured = await secureImageUrl(sourceImageUrl)
+                if (secured.ok && secured.url) {
+                    thumbnail = secured.url
+                    mediaStatus = 'secured'
+                } else {
+                    // Publier avec un visuel qu'on sait fragile revient à
+                    // reproduire l'incident. La campagne arrive en brouillon,
+                    // signalée, et remonte dans le filtre « Inaccessible ».
+                    thumbnail = sourceImageUrl
+                    mediaStatus = 'broken'
+                    mediaReason = secured.reason || 'Visuel non récupérable'
+                }
+            }
+
+            // La vidéo s'intègre en lecteur : pas de re-hébergement.
             const videoUrl = row.videoUrl?.trim()
                 ? getGoogleDriveImageUrl(row.videoUrl.trim())
                 : null
@@ -433,6 +463,14 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
             // CSV "accessLevel" → DB "access_level"
             // CSV "featured" → DB "featured" (boolean)
 
+            // Un visuel irrécupérable retient la publication (brief §6).
+            const status = mediaStatus === 'broken' ? 'Brouillon' : requestedStatus
+            if (mediaStatus === 'broken') {
+                errors.push(
+                    `Ligne ${i + 1} (${titleTrimmed}) : visuel non récupéré — importée en Brouillon. ${mediaReason}`,
+                )
+            }
+
             const { error } = await supabase.from('campaigns').insert({
                 title: titleTrimmed,
                 slug,
@@ -457,6 +495,10 @@ export async function importCreativesFromCSV(rows: CSVCreativeRow[]) {
                     : [],
                 featured: row.featured?.trim().toLowerCase() === 'true' ? true : false,
                 publication_url: row.publication_url?.trim() || null,
+                media_status: mediaStatus,
+                media_checked_at: new Date().toISOString(),
+                media_reason: mediaReason,
+                media_source_url: sourceImageUrl,
             })
 
             if (error) {

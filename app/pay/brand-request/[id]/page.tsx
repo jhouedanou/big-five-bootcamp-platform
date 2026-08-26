@@ -14,6 +14,8 @@
  */
 
 import { notFound } from 'next/navigation'
+import { devisObjectPath } from '@/lib/brand-request-devis'
+import { DOCUMENTS_BUCKET } from '@/lib/storage-buckets'
 import { getSupabaseAdmin } from '@/lib/supabase-server'
 import { BrandRequestPaymentForm } from './payment-form'
 
@@ -35,6 +37,21 @@ export default async function BrandRequestPaymentPage({ params }: PageProps) {
     .maybeSingle()
 
   if (!req) notFound()
+
+  // Le devis est dans un bucket PRIVÉ. Cette page étant publique — l'UUID de la
+  // demande fait office de jeton — on signe ici un lien court plutôt que
+  // d'ouvrir /api/brand-requests/[id]/devis aux visiteurs anonymes.
+  let devisSignedUrl: string | null = null
+  if (req.devis_url) {
+    const { data: signed, error: signError } = await admin.storage
+      .from(DOCUMENTS_BUCKET.name)
+      .createSignedUrl(devisObjectPath(req.id), 60 * 60)
+    // Un devis illisible ne doit pas empêcher de payer : on masque le lien.
+    if (signError) {
+      console.error('[pay/brand-request] signature du devis échouée :', signError.message)
+    }
+    devisSignedUrl = signed?.signedUrl ?? null
+  }
 
   const isPaid = !!req.paid_at
   const isClosed = req.status === 'cancelled' || req.status === 'rejected'
@@ -80,9 +97,9 @@ export default async function BrandRequestPaymentPage({ params }: PageProps) {
                 {new Intl.NumberFormat('fr-FR').format(Number(req.devis_amount))}{' '}
                 <span className="text-base font-medium text-[#0F0F0F]/60">{req.devis_currency || 'XOF'}</span>
               </p>
-              {req.devis_url && (
+              {devisSignedUrl && (
                 <a
-                  href={req.devis_url}
+                  href={devisSignedUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-2 inline-block text-xs text-[#80368D] hover:underline"

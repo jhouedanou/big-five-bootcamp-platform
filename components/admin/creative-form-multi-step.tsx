@@ -419,6 +419,7 @@ export function CreativeFormMultiStep({ creative, isEdit = false }: CreativeForm
                             onChange={(url) => updateField("thumbnail", url)}
                             label="Image Miniature (Thumbnail) *"
                             required
+                            preset="campaignThumb"
                             previewClassName="w-full max-w-sm h-48"
                         />
 

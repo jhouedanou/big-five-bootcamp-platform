@@ -9,7 +9,7 @@ async function getAuthenticatedAdmin() {
   const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookies: {
         getAll() { return cookieStore.getAll() },
@@ -28,7 +28,7 @@ async function getAuthenticatedAdmin() {
 
   // Vérifier que l'utilisateur est admin
   const adminUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const adminKey = process.env.SUPABASE_SECRET_KEY
   if (!adminUrl || !adminKey) {
     // Misconfig serveur — fail-safe. Le caller voit "non autorisé" plutôt
     // que de remonter un détail de config.

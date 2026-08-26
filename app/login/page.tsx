@@ -4,6 +4,7 @@ import React from "react"
 
 import Link from "next/link"
 import { useState, useEffect } from "react"
+import { trackEvent } from "@/lib/analytics"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -151,10 +152,20 @@ export default function LoginPage() {
       // Horodatage dernière connexion + event login_success (KPI actifs,
       // statut d'activité admin — QA T54/T18). Best-effort, non bloquant.
       try {
-        await fetch("/api/me/login-ping", { method: "POST", keepalive: true })
+        await fetch("/api/me/login-ping", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ method: "password" }),
+          keepalive: true,
+        })
       } catch {
         // Non bloquant : le tracking ne doit pas empêcher la connexion.
       }
+
+      // `login` (brief §6). `login_success` figure dans SERVER_WRITTEN_EVENTS :
+      // l'appel ci-dessus l'a déjà écrit en base, `trackEvent` ne fait donc que
+      // le pousser dans le dataLayer, sans doublon Supabase.
+      trackEvent("login_success", { method: "password" })
 
       // Vérifie immédiatement la limite multi-appareils. Si l'utilisateur
       // dépasse le quota (cette session étant celle de trop), on l'envoie

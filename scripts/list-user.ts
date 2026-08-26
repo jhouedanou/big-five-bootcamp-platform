@@ -9,7 +9,7 @@ if (existsSync(envLocalPath)) config({ path: envLocalPath })
 else if (existsSync(envPath)) config({ path: envPath })
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const key = process.env.SUPABASE_SERVICE_ROLE_KEY!
+const key = process.env.SUPABASE_SECRET_KEY!
 const supabase = createClient(url, key, { auth: { autoRefreshToken: false, persistSession: false } })
 
 const frag = (process.argv[2] || '').toLowerCase()

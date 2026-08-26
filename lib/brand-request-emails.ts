@@ -42,6 +42,19 @@ function appUrl(): string {
   ).replace(/\/$/, '')
 }
 
+/**
+ * `brand_requests.devis_url` retient un chemin d'application (/api/…) et non
+ * une URL de stockage : le PDF vit dans un bucket privé et se lit par une route
+ * qui signe à la demande. Un e-mail exige une URL absolue, et l'origine diffère
+ * entre Cloudflare et Vercel — on la calcule à l'envoi plutôt que de la figer
+ * en base. Les valeurs déjà absolues sont laissées telles quelles.
+ */
+function absoluteUrl(path?: string | null): string | null {
+  if (!path) return null
+  if (/^https?:\/\//i.test(path)) return path
+  return `${appUrl()}${path.startsWith('/') ? path : `/${path}`}`
+}
+
 async function getFromEmail(): Promise<string> {
   try {
     const admin = getSupabaseAdmin()
@@ -160,8 +173,9 @@ function build({ userName, brandName, ctaUrl, context }: TemplateInput, kind: Br
             <p style="margin:4px 0 0;font-size:24px;font-weight:bold;color:#0F0F0F;">${escapeHtml(amount)}</p>
           </div>`
         : ''
-      const docLink = context.devisUrl
-        ? `<p style="margin:8px 0;"><a href="${escapeHtml(context.devisUrl)}" style="color:#F2B33D;">Télécharger le devis (PDF)</a></p>`
+      const devisLink = absoluteUrl(context.devisUrl)
+      const docLink = devisLink
+        ? `<p style="margin:8px 0;"><a href="${escapeHtml(devisLink)}" style="color:#F2B33D;">Télécharger le devis (PDF)</a></p>`
         : ''
       const body = `<p style="margin:0 0 12px;">${greeting}</p>
         <p style="margin:0 0 12px;line-height:1.6;">

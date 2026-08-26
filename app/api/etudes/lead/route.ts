@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto'
 import { getSupabaseAdmin } from '@/lib/supabase-server'
 import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { sendStudyDeliveryEmail } from '@/lib/study-emails'
+import { toE164 } from '@/lib/countries'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
     const firstName = clean((payload as any).firstName, LIMITS.first_name)
     const lastName = clean((payload as any).lastName, LIMITS.last_name)
     const email = clean((payload as any).email, LIMITS.email).toLowerCase()
-    const phone = clean((payload as any).phone, LIMITS.phone)
+    const rawPhone = clean((payload as any).phone, LIMITS.phone)
     // Pays et secteur : demandés par le brief « Formulaire de collecte ». Le
     // pays porte aussi l'indicatif du numéro, déjà préfixé côté formulaire.
     const country = clean((payload as any).country, 100)
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
     const jobTitle = clean((payload as any).jobTitle, LIMITS.job_title) || null
     const consent = (payload as any).consent === true
 
-    if (!firstName || !lastName || !email || !phone) {
+    if (!firstName || !lastName || !email || !rawPhone) {
       return NextResponse.json(
         { error: 'Prénom, nom, email et numéro de contact sont obligatoires.' },
         { status: 400 }
@@ -86,8 +87,11 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    // Le formulaire envoie un numéro déjà en E.164 : on refuse ce qui n'y
-    // ressemble pas, sinon la contrainte d'indicatif ne sert à rien.
+    // L'API est publique : le E.164 est RECONSTRUIT à partir du pays déclaré
+    // plutôt que repris tel quel. Un indicatif recopié dans le numéro national
+    // serait sinon stocké en double, et la contrainte d'indicatif ne servirait
+    // à rien dès qu'on sort du formulaire.
+    const phone = toE164(rawPhone, countryCode)
     if (!/^\+\d{7,20}$/.test(phone)) {
       return NextResponse.json(
         { error: 'Numéro invalide. Vérifiez le pays et le numéro saisi.' },

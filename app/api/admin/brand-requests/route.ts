@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-server'
 import { checkAdmin } from '@/lib/admin-auth'
+import { isDevisReadPath, removeDevisObject } from '@/lib/brand-request-devis'
 import {
   sendBrandRequestEmail,
   createBrandRequestNotification,
@@ -46,10 +47,10 @@ const STATUS_TO_EMAIL: Partial<Record<string, BrandEmailKind>> = {
 
 export async function GET() {
   try {
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('[admin/brand-requests] missing SUPABASE_SERVICE_ROLE_KEY')
+    if (!process.env.SUPABASE_SECRET_KEY) {
+      console.error('[admin/brand-requests] missing SUPABASE_SECRET_KEY')
       return NextResponse.json(
-        { error: 'Server misconfiguration: SUPABASE_SERVICE_ROLE_KEY not set' },
+        { error: 'Server misconfiguration: SUPABASE_SECRET_KEY not set' },
         { status: 500 }
       )
     }
@@ -88,10 +89,10 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('[admin/brand-requests PATCH] missing SUPABASE_SERVICE_ROLE_KEY')
+    if (!process.env.SUPABASE_SECRET_KEY) {
+      console.error('[admin/brand-requests PATCH] missing SUPABASE_SECRET_KEY')
       return NextResponse.json(
-        { error: 'Server misconfiguration: SUPABASE_SERVICE_ROLE_KEY not set' },
+        { error: 'Server misconfiguration: SUPABASE_SECRET_KEY not set' },
         { status: 500 }
       )
     }
@@ -160,7 +161,21 @@ export async function PATCH(request: NextRequest) {
     if (adminNotes !== undefined) updateData.admin_notes = adminNotes
     if (devisAmount !== undefined) updateData.devis_amount = devisAmount
     if (devisCurrency !== undefined) updateData.devis_currency = devisCurrency
-    if (devisUrl !== undefined) updateData.devis_url = devisUrl
+    // `devis_url` n'est plus une URL libre mais le lien de lecture signée de
+    // CETTE demande — la seule valeur que produit l'envoi du PDF. On refuse
+    // tout le reste : une URL arbitraire ferait pointer « Voir le PDF » où bon
+    // lui semble, y compris dans l'e-mail envoyé au client.
+    let devisCleared = false
+    if (devisUrl !== undefined) {
+      devisCleared = devisUrl === null || devisUrl === ''
+      if (!devisCleared && !isDevisReadPath(devisUrl, id)) {
+        return NextResponse.json(
+          { error: 'Lien de devis invalide : passez par l’envoi du PDF.' },
+          { status: 400 },
+        )
+      }
+      updateData.devis_url = devisCleared ? null : devisUrl
+    }
     if (nextRenewalAt !== undefined) updateData.next_renewal_at = nextRenewalAt
     if (autoRenew !== undefined) updateData.auto_renew = autoRenew
     if (paymentReference !== undefined) updateData.payment_reference = paymentReference
@@ -209,6 +224,17 @@ export async function PATCH(request: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+    // « Retirer » vide la colonne : le PDF doit suivre, sinon il survit dans le
+    // bucket sans plus aucun lien pour le retrouver ni le supprimer.
+    //
+    // Volontairement inconditionnel, y compris quand la colonne était déjà
+    // vide : l'envoi écrit dans le stockage avant l'enregistrement, donc un
+    // « Annuler » après un envoi laisse un orphelin que rien ne référence. Le
+    // premier enregistrement sans devis le balaie.
+    if (devisCleared) {
+      void removeDevisObject(admin, id)
+    }
+
     // Email + notification suivant le nouveau statut. On considère aussi
     // les changements implicites (ex : forceApprove → status='completed').
     const effectiveStatus = (updateData.status as string | undefined) || status
@@ -256,10 +282,10 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('[admin/brand-requests DELETE] missing SUPABASE_SERVICE_ROLE_KEY')
+    if (!process.env.SUPABASE_SECRET_KEY) {
+      console.error('[admin/brand-requests DELETE] missing SUPABASE_SECRET_KEY')
       return NextResponse.json(
-        { error: 'Server misconfiguration: SUPABASE_SERVICE_ROLE_KEY not set' },
+        { error: 'Server misconfiguration: SUPABASE_SECRET_KEY not set' },
         { status: 500 }
       )
     }

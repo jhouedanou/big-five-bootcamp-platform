@@ -118,6 +118,18 @@ export function CheckoutClient() {
       fbEventId
     )
 
+    // `begin_checkout` (brief §8) : l'intention de paiement, au moment où la
+    // session est créée — et non au clic sur une offre, que le brief §5 exclut
+    // explicitement. `event_id` est partagé avec le pixel et la CAPI.
+    trackEvent("begin_checkout", {
+      plan_name: selected?.plan,
+      value: selected?.price,
+      currency: "XOF",
+      event_id: fbEventId,
+      selection,
+      source,
+    }, true)
+
     try {
       const res = await fetch("/api/checkout/create-payment", {
         method: "POST",

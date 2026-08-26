@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
+import { trackEvent } from "@/lib/analytics"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -138,6 +139,12 @@ export function AddToCollectionModal({
       if (res.ok) {
         const data = await res.json()
         const newCol = data.collection
+
+        // Brief §7 : signal d'engagement, règle d'entrée du segment « Engagé ».
+        trackEvent("collection_created", {
+          collection_id: newCol?.id,
+          source: "dashboard",
+        })
 
         // Ajouter la campagne à cette nouvelle collection
         await fetch("/api/collections/items", {

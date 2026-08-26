@@ -64,6 +64,9 @@ export type AnalyticsEventName =
   | "study_form_open"
   | "study_form_submitted"
   | "study_download"
+  | "study_preview_navigated"
+  | "study_faq_opened"
+  | "study_form_abandoned"
   // Bibliothèque / contenu
   | "login_success"
   | "campaign_viewed"
@@ -73,6 +76,19 @@ export type AnalyticsEventName =
   | "filter_used"
   | "campaign_saved"
   | "premium_content_clicked"
+  // Événements du brief tracking émis sous leur nom d'origine, sans détour par
+  // un nom interne historique : tout nouveau point de mesure parle désormais la
+  // langue du brief.
+  | "begin_checkout"
+  | "view_pricing"
+  | "sign_up_started"
+  | "contact_opt_in_updated"
+  | "activation_completed"
+  | "plan_limit_reached"
+  | "collection_created"
+  | "export_used"
+  | "subscription_renewed"
+  | "subscription_cancelled"
 
 /** Événements "activité réelle" (KPI actifs + maj last_activity_at). */
 export const ACTIVITY_EVENTS: string[] = [
@@ -90,6 +106,11 @@ export const ACTIVITY_EVENTS: string[] = [
   "promo_popup_clicked",
   "promo_offer_selected",
   "checkout_option_selected",
+  // Signaux d'usage produit : ils valent bien une « dernière activité ».
+  "collection_created",
+  "export_used",
+  "plan_limit_reached",
+  "activation_completed",
 ]
 
 /**
@@ -101,6 +122,9 @@ const SERVER_WRITTEN_EVENTS: string[] = [
   "login_success",
   "webinar_registration_completed",
   "webinar_confirmation_email_sent",
+  // Écrit par /api/analytics/track lui-même, au moment où il constate
+  // l'activation : le client ne fait que relayer l'annonce vers le dataLayer.
+  "activation_completed",
 ]
 
 /** Sources standardisées (champ `source`). */
@@ -133,8 +157,14 @@ export const GA4_FORWARD_EVENTS: string[] = [
   "onboarding_completed",
   "promo_offer_selected",
   "payment_attempted",
-  "payment_successful",
-  "payment_failed",
+  // `payment_successful` est volontairement absent : GA4 le reçoit par le
+  // dataLayer depuis /payment/success (événement `purchase` du brief §8). Le
+  // relayer aussi par Measurement Protocol compterait chaque achat deux fois —
+  // GA4, contrairement à Meta, ne dédoublonne pas sur event_id. `payment_failed`
+  // est retiré pour la même raison : il passe désormais par le dataLayer.
+  //
+  // RÈGLE : un événement va SOIT dans LEGACY_EVENT_MAP (dataLayer → GTM → GA4),
+  // SOIT dans cette liste (Measurement Protocol). Jamais les deux.
   "subscription_started",
   "plan_upgraded",
   "plan_downgraded",
@@ -185,11 +215,12 @@ export function trackGA4(name: AnalyticsEventName, params: Record<string, any> =
   if (typeof window === "undefined") return
   // Toujours pousser l'événement métier : c'est GTM qui décide des destinations.
   pushBusinessEvent(name, params)
+  // `window.gtag` est toujours défini : CONSENT_MODE_BOOTSTRAP le pose dans le
+  // <head> avant toute balise. Sous conteneur, gtag.js n'est pas chargé et cet
+  // appel n'empile qu'un objet `arguments` inerte — le conteneur, lui, lit
+  // l'événement métier poussé juste au-dessus.
   if (typeof window.gtag === "function") {
     window.gtag("event", name, params)
-  } else if (Array.isArray(window.dataLayer)) {
-    // Fallback : pousser dans le dataLayer si gtag pas encore prêt.
-    window.dataLayer.push({ event: name, ...params })
   }
 }
 
@@ -206,10 +237,30 @@ export function trackClientEvent(name: AnalyticsEventName, params: Record<string
   }
 }
 
-/** Persiste un événement dans Supabase via l'API (best-effort, non bloquant). */
+/** Clé locale : évite de re-pousser `activation_completed` à chaque page. */
+const ACTIVATION_STORAGE_KEY = "laveiye-activation-completed"
+
+/** L'utilisateur a-t-il déjà atteint la première valeur produit ? */
+export function hasCompletedActivation(): boolean {
+  if (typeof window === "undefined") return false
+  try {
+    return window.localStorage.getItem(ACTIVATION_STORAGE_KEY) === "1"
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Persiste un événement dans Supabase via l'API (best-effort, non bloquant).
+ *
+ * La réponse est lue pour un seul motif : `activation_completed` (brief §7) doit
+ * être déclenché « une seule fois par utilisateur », ce que seul le serveur peut
+ * garantir. Il nous répond quand il vient de le constater, et on relaie
+ * l'annonce vers le dataLayer.
+ */
 async function trackSupabase(name: AnalyticsEventName, metadata: Record<string, any> = {}) {
   try {
-    await fetch("/api/analytics/track", {
+    const res = await fetch("/api/analytics/track", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -221,6 +272,20 @@ async function trackSupabase(name: AnalyticsEventName, metadata: Record<string, 
       }),
       keepalive: true,
     })
+
+    const body = await res.json().catch(() => null)
+    if (body?.activation_completed) {
+      try {
+        window.localStorage.setItem(ACTIVATION_STORAGE_KEY, "1")
+      } catch {
+        /* navigation privée : l'événement part quand même */
+      }
+      // Émis ici et non côté serveur : `pushDataLayer` n'existe que dans le
+      // navigateur, et c'est GTM qui doit le recevoir.
+      trackClientEvent("activation_completed", {
+        activation_method: body.activation_method || "search_then_campaign",
+      })
+    }
   } catch {
     // Le tracking ne doit jamais casser l'UX.
   }

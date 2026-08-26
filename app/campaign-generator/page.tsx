@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { trackEvent } from "@/lib/analytics"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
@@ -781,13 +782,19 @@ function CampaignGeneratorContent() {
                   <Button
                     variant="outline"
                     className="gap-1.5"
-                    onClick={() =>
+                    onClick={() => {
                       downloadText(
                         "calendrier-editorial.ics",
                         calendarToIcs(calendar.posts),
                         "text/calendar",
                       )
-                    }
+                      // Le seul export dont le volume varie : `content_count`
+                      // porte ici le nombre de publications du calendrier.
+                      trackEvent("export_used", {
+                        export_type: "editorial_calendar",
+                        content_count: calendar.posts.length,
+                      })
+                    }}
                   >
                     <Download className="h-3.5 w-3.5" /> .ics
                   </Button>

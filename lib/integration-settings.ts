@@ -52,7 +52,7 @@ export const INTEGRATION_FIELDS: IntegrationField[] = [
     key: 'gtm_container_id',
     label: 'Google Tag Manager — identifiant du conteneur',
     help:
-      'Commence par GTM-. Une fois renseigné, GTM devient le pilote des balises : la balise Google Analytics codée dans le site est retirée automatiquement pour éviter de compter chaque page deux fois. Configurez alors GA4 et le pixel Meta dans le conteneur.',
+      'Commence par GTM-. Une fois renseigné, GTM devient le pilote des balises : la balise Google Analytics et le pixel Meta codés dans le site sont retirés automatiquement, pour éviter de compter chaque conversion deux fois. Configurez alors GA4 dans le conteneur, et la balise Meta sur l’événement « meta_event » du dataLayer — nom de l’événement dans « meta_event_name », identifiant dans « event_id ». Sans cet identifiant, la déduplication avec la Conversions API ne fonctionne plus. Exception voulue : la landing d’étude (/etudes/…) garde son propre pixel et n’émet pas « meta_event » — la balise du conteneur ne s’y déclenche donc pas, et c’est ce qui empêche le doublon.',
     secret: false,
     envVar: 'NEXT_PUBLIC_GTM_ID',
     group: 'tracking',

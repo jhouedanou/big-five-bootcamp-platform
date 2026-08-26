@@ -65,6 +65,12 @@ export async function GET(
         completed_at: payment.completed_at,
         metadata: {
           item_name: meta.item_name ?? null,
+          // Plan normalisé (`basic` / `pro`) : le brief le demande comme
+          // paramètre de l'événement `purchase`. Ce n'est pas une donnée
+          // personnelle, contrairement au reste de la metadata.
+          plan: meta.plan ?? null,
+          // Distingue un renouvellement d'un premier achat (brief §8).
+          renewal: meta.renewal === true,
           plan_label: meta.plan_label ?? null,
           promo_bonus: meta.promo_bonus ?? null,
         },

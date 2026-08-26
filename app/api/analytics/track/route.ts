@@ -16,6 +16,57 @@ const schema = z.object({
 })
 
 /**
+ * Constate — au plus une fois par utilisateur — l'atteinte de la première
+ * valeur produit (brief §7 : `activation_completed`).
+ *
+ * Définition du brief : « première recherche suivie de l'ouverture d'une
+ * campagne ; déclenché une seule fois par utilisateur ». Le « une seule fois »
+ * ne peut pas être garanti par le navigateur : un autre appareil, un autre
+ * profil, un stockage vidé et l'événement repartirait. C'est donc le serveur
+ * qui tranche, sur la trace déjà présente dans `analytics_events`.
+ *
+ * Renvoie `true` uniquement quand il vient de l'inscrire : l'appelant sait
+ * alors qu'il doit relayer l'événement vers le dataLayer.
+ */
+async function markActivationIfEarned(
+  supabase: ReturnType<typeof getSupabaseAdmin>,
+  userId: string
+): Promise<boolean> {
+  try {
+    // Déjà activé ? C'est le cas le plus fréquent après quelques jours : on
+    // sort sur une seule lecture.
+    const { data: already } = await supabase
+      .from("analytics_events")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("event_name", "activation_completed")
+      .limit(1)
+    if (already && already.length > 0) return false
+
+    // Une recherche antérieure est la condition d'entrée. L'ouverture de
+    // campagne qui déclenche cet appel est déjà, elle, en base.
+    const { data: searched } = await supabase
+      .from("analytics_events")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("event_name", "search_performed")
+      .limit(1)
+    if (!searched || searched.length === 0) return false
+
+    const { error } = await supabase.from("analytics_events").insert({
+      user_id: userId,
+      event_name: "activation_completed",
+      source: "web",
+      metadata: { activation_method: "search_then_campaign" },
+    })
+    return !error
+  } catch {
+    // L'activation est une mesure : elle ne doit jamais faire échouer l'appel.
+    return false
+  }
+}
+
+/**
  * POST /api/analytics/track
  *
  * Source de vérité Supabase pour les événements + relais GA4 (Measurement
@@ -76,7 +127,23 @@ export async function POST(request: Request) {
       )
     }
 
-    return NextResponse.json({ success: true })
+    // 3) Première valeur produit : une recherche, puis l'ouverture d'une
+    //    campagne. C'est cette seconde étape qui la scelle.
+    let activationCompleted = false
+    if (user && event_name === "campaign_viewed") {
+      // Pas de relais Measurement Protocol ici : le navigateur pousse
+      // l'événement dans le dataLayer à la lecture de cette réponse, avec le
+      // vrai client_id. L'envoyer aussi depuis le serveur le compterait deux
+      // fois — GA4, contrairement à Meta, ne dédoublonne pas.
+      activationCompleted = await markActivationIfEarned(supabase, user.id)
+    }
+
+    return NextResponse.json({
+      success: true,
+      ...(activationCompleted
+        ? { activation_completed: true, activation_method: "search_then_campaign" }
+        : {}),
+    })
   } catch (err) {
     // Le tracking ne doit jamais casser l'expérience.
     return NextResponse.json(

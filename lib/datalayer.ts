@@ -50,7 +50,19 @@ export type DataLayerEvent =
   | "banner_click"
   | "study_page_view"
   | "study_form_open"
+  // Interactions de la landing de campagne. Le §10 autorise l'événement
+  // personnalisé « si nécessaire » : sans eux, on voit l'arrivée et le lead,
+  // jamais ce qui se joue entre les deux.
+  | "study_preview_navigated"
+  | "study_faq_opened"
+  | "study_form_abandoned"
   | "webinar_registration_completed"
+  // Relais du pixel Meta quand un conteneur GTM pilote les balises : le site
+  // n'appelle plus `fbq` lui-même, il annonce l'événement Meta (son nom dans
+  // `meta_event_name`, son `event_id`) et le conteneur porte la balise. Sans ce
+  // relais, migrer le pixel dans GTM ferait partir chaque conversion deux fois
+  // (brief §12 et §14).
+  | "meta_event"
 
 /** Paramètres transversaux du brief (§5). */
 export interface DataLayerContext {
@@ -64,6 +76,54 @@ export interface DataLayerContext {
 }
 
 const UTM_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content"] as const
+
+/**
+ * Identité transversale du visiteur (brief §5).
+ *
+ * `user_id`, `user_stage` et `subscription_plan` doivent accompagner CHAQUE
+ * événement, pas seulement ceux qui les nomment. On les garde donc ici, posés
+ * une fois par `components/analytics/datalayer-identity.tsx`, plutôt que de les
+ * répéter sur chaque appel — où ils finiraient par manquer quelque part.
+ *
+ * `dormant` n'est volontairement jamais posé côté client : le brief §9 en fait
+ * un calcul quotidien du back-end, pas un état que le navigateur peut connaître.
+ */
+let identity: DataLayerContext = {}
+
+export function setDataLayerIdentity(next: DataLayerContext): void {
+  const clean: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(next)) {
+    if (v !== undefined && v !== null && v !== "") clean[k] = v
+  }
+  identity = clean as DataLayerContext
+}
+
+export function clearDataLayerIdentity(): void {
+  identity = {}
+}
+
+/**
+ * Renommages entre les paramètres internes du site et ceux que le brief nomme.
+ *
+ * Le renommage se fait ICI et non aux points d'appel : les mêmes objets sont
+ * écrits dans `analytics_events` (Supabase), qui alimente les tableaux de bord
+ * internes. Renommer à la source aurait cassé ces tableaux pour un gain
+ * purement cosmétique côté GA4.
+ */
+export const PARAM_ALIASES: Partial<Record<DataLayerEvent, Record<string, string>>> = {
+  campaign_view: { campaign_id: "content_id" },
+  favorite_added: { campaign_id: "content_id" },
+  export_used: { campaign_id: "content_id" },
+  search: { query: "search_term" },
+  filter_applied: { categories: "filter_type" },
+  guide_download: { study_slug: "guide_id" },
+  generate_lead: { study_slug: "guide_id" },
+  // La ligne Supabase de `signup_completed` est écrite par le serveur
+  // (app/api/me/onboarding), qui connaît la fonction déclarée sous son nom
+  // métier. Le brief §6 l'appelle `profile_type` : c'est exactement le cas
+  // d'usage de cette table — renommer ici plutôt que de dupliquer le champ.
+  signup_completed: { job_function: "profile_type" },
+}
 
 /** Clés interdites dans le dataLayer : données personnelles directes. */
 const FORBIDDEN_KEYS = new Set([
@@ -84,6 +144,8 @@ const FORBIDDEN_KEYS = new Set([
 declare global {
   interface Window {
     dataLayer?: any[]
+    /** Posé dans le <head> quand un conteneur GTM pilote les balises. */
+    __LAVEIYE_GTM_META__?: boolean
   }
 }
 
@@ -99,6 +161,20 @@ function environment(): "production" | "staging" {
   if (host === "localhost" || host.endsWith(".local") || host.startsWith("127.")) return "staging"
   if (host.endsWith(".vercel.app")) return "staging"
   return "production"
+}
+
+/**
+ * Un conteneur GTM pilote-t-il les balises ?
+ *
+ * Le drapeau est posé par le layout dans le même souffle que le script du
+ * conteneur, donc toujours cohérent avec la page réellement servie. Sans
+ * conteneur, le site garde son `gtag` direct et doit lui parler lui-même :
+ * `gtag.js` ne consomme que les objets `arguments` de son propre shim et ignore
+ * les objets simples poussés ici pour GTM.
+ */
+export function isGtmActive(): boolean {
+  if (typeof window === "undefined") return false
+  return window.__LAVEIYE_GTM_META__ === true
 }
 
 /** UTM de la page courante, pour l'attribution du premier contact. */
@@ -134,8 +210,13 @@ export function pushDataLayer(
     event,
     environment: environment(),
     ...currentUtm(),
+    // L'identité vient avant le contexte explicite : un appelant qui précise
+    // lui-même un `user_id` reste prioritaire.
+    ...identity,
     ...context,
   }
+
+  const aliases = PARAM_ALIASES[event] ?? {}
 
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || value === null) continue
@@ -147,7 +228,7 @@ export function pushDataLayer(
       }
       continue
     }
-    payload[key] = value
+    payload[aliases[key] ?? key] = value
   }
 
   try {
@@ -169,6 +250,9 @@ export function pushDataLayer(
 export const LEGACY_EVENT_MAP: Record<string, DataLayerEvent> = {
   study_page_view: "study_page_view",
   study_form_open: "study_form_open",
+  study_preview_navigated: "study_preview_navigated",
+  study_faq_opened: "study_faq_opened",
+  study_form_abandoned: "study_form_abandoned",
   study_form_submitted: "generate_lead",
   study_download: "guide_download",
   sign_up: "account_created",
@@ -179,15 +263,42 @@ export const LEGACY_EVENT_MAP: Record<string, DataLayerEvent> = {
   filter_used: "filter_applied",
   campaign_viewed: "campaign_view",
   campaign_saved: "favorite_added",
-  premium_content_clicked: "plan_limit_reached",
-  checkout_option_selected: "begin_checkout",
   payment_successful: "purchase",
   payment_failed: "payment_failed",
-  plan_upgraded: "subscription_renewed",
   banner_impression: "banner_impression",
   banner_click: "banner_click",
   webinar_registration_completed: "webinar_registration_completed",
+  // Événements ajoutés pour la conformité : le site les émet directement sous
+  // le nom du brief, sans passer par un nom interne historique.
+  begin_checkout: "begin_checkout",
+  view_pricing: "view_pricing",
+  sign_up_started: "sign_up_started",
+  contact_opt_in_updated: "contact_opt_in_updated",
+  activation_completed: "activation_completed",
+  plan_limit_reached: "plan_limit_reached",
+  collection_created: "collection_created",
+  export_used: "export_used",
+  subscription_renewed: "subscription_renewed",
+  subscription_cancelled: "subscription_cancelled",
 }
+
+/**
+ * Anciennes correspondances retirées, et pourquoi.
+ *
+ * - `premium_content_clicked` → `plan_limit_reached` : un clic sur un contenu
+ *   premium n'est pas « une limite produit empêche l'action suivante ». Le
+ *   véritable événement est désormais émis là où la limite bloque réellement.
+ * - `checkout_option_selected` → `begin_checkout` : choisir une offre est un
+ *   clic, pas une intention de paiement. Le brief §5 demande de déclencher
+ *   « après confirmation de l'action » : `begin_checkout` part désormais au
+ *   moment où la session de paiement est réellement créée.
+ * - `plan_upgraded` → `subscription_renewed` : une montée en gamme n'est pas un
+ *   renouvellement. Le renouvellement est émis à la confirmation du paiement,
+ *   quand la commande porte `renewal`.
+ *
+ * Ni l'un ni l'autre n'était déclenché nulle part : leur retrait ne fait donc
+ *rien disparaître de GA4.
+ */
 
 /**
  * Événements internes VOLONTAIREMENT absents du dataLayer.
@@ -221,4 +332,11 @@ export const NOT_FORWARDED_TO_DATALAYER = [
   "webinar_calendar_added",
   "brand_viewed",
   "search_no_result",
+  // Signal d'interface : mesure l'appétence pour le contenu premium, pas
+  // l'atteinte d'une limite (cf. correspondances retirées ci-dessus).
+  "premium_content_clicked",
+  "plan_upgraded",
+  // Sélection d'offre : signal d'interface, conservé dans Supabase pour le
+  // funnel interne. L'intention de paiement, elle, est `begin_checkout`.
+  "checkout_option_selected",
 ] as const

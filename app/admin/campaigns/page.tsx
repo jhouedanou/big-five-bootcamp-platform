@@ -1466,6 +1466,7 @@ function CampaignsPageContent() {
                   onChange={(url) => setFormData({ ...formData, imageUrl: url })}
                   label="Image principale (thumbnail) *"
                   required
+                  preset="campaignThumb"
                   previewClassName="w-40 h-40"
                 />
 
@@ -1568,6 +1569,7 @@ function CampaignsPageContent() {
                   {/* Boutons pour ajouter une nouvelle image */}
                   <div className="flex gap-2">
                     <ImageUploadButton
+                      preset="gallery"
                       onUploaded={(url) => {
                         setFormData({ ...formData, images: [...(formData.images || []), url] });
                       }}

@@ -57,8 +57,12 @@ export async function sendStudyDeliveryEmail(opts: {
   downloadToken?: string | null
 }): Promise<{ ok: boolean; error?: string }> {
   const { to, firstName, studyTitle, studySubtitle, downloadToken } = opts
+  // Passe par la page de relais, qui mesure le téléchargement avant de laisser
+  // l'API servir le fichier (brief §6 : « accès effectif au fichier »). Les
+  // mails déjà envoyés pointent sur /api/etudes/download, qui reste en service
+  // — ils délivrent l'étude, simplement sans mesure.
   const downloadUrl = downloadToken
-    ? `${appUrl()}/api/etudes/download?token=${downloadToken}`
+    ? `${appUrl()}/etudes/telechargement?token=${downloadToken}`
     : null
 
   const body = downloadUrl

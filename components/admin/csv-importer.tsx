@@ -24,6 +24,7 @@ import {
 import { Upload, FileSpreadsheet, Download, AlertCircle, CheckCircle2, Loader2, X } from "lucide-react"
 import { toast } from "sonner"
 import { importCreativesFromCSV } from "@/app/actions/creative"
+import { CSV_IMPORT_BATCH } from "@/lib/constants"
 import { cn } from "@/lib/utils"
 
 interface CSVRow {
@@ -111,6 +112,7 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
     const [errors, setErrors] = useState<string[]>([])
     const [warnings, setWarnings] = useState<string[]>([])
     const [fileName, setFileName] = useState<string>("")
+    const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     const downloadTemplate = () => {
@@ -183,6 +185,11 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
         })
     }
 
+    /**
+     * Envoi par lots : chaque ligne fait télécharger son visuel côté serveur
+     * pour le déposer dans le stockage LAVEIYE, donc un CSV entier ne tient pas
+     * dans une seule requête. L'avancement est affiché ligne par ligne.
+     */
     const handleImport = async () => {
         if (errors.length > 0 || parsedData.length === 0) {
             toast.error("Veuillez corriger les erreurs avant d'importer")
@@ -190,27 +197,52 @@ export function CSVImporter({ onImportComplete }: CSVImporterProps) {
         }
 
         setIsLoading(true)
+        setProgress({ done: 0, total: parsedData.length })
 
         try {
-            const result = await importCreativesFromCSV(parsedData)
+            let imported = 0
+            const allErrors: string[] = []
 
-            if (result.success) {
-                toast.success(`${result.imported} créative(s) importée(s)`)
-                setIsOpen(false)
-                setParsedData([])
-                setFileName("")
-                setWarnings([])
-                onImportComplete?.()
-            } else {
-                toast.error(result.error || "Erreur lors de l'import")
-                if (result.errors) {
-                    setErrors(result.errors)
+            for (let i = 0; i < parsedData.length; i += CSV_IMPORT_BATCH) {
+                const batch = parsedData.slice(i, i + CSV_IMPORT_BATCH)
+                const result = await importCreativesFromCSV(batch)
+
+                if (result.imported) imported += result.imported
+                if (result.errors) allErrors.push(...result.errors)
+
+                // Un lot entier refusé (droits, configuration) : inutile de continuer.
+                if (!result.success && !result.imported) {
+                    toast.error(result.error || "Erreur lors de l'import")
+                    setErrors(allErrors.length ? allErrors : [result.error || "Erreur inconnue"])
+                    return
                 }
+
+                setProgress({ done: Math.min(i + batch.length, parsedData.length), total: parsedData.length })
             }
+
+            if (allErrors.length > 0) {
+                // Les visuels non récupérés arrivent ici : les campagnes sont
+                // créées en Brouillon, il faut que l'admin le sache.
+                toast.warning(`${imported} créative(s) importée(s), ${allErrors.length} à vérifier`, {
+                    description: "Certains visuels n'ont pas pu être récupérés : ces campagnes sont en Brouillon.",
+                    duration: 10000,
+                })
+                setErrors(allErrors)
+                onImportComplete?.()
+                return
+            }
+
+            toast.success(`${imported} créative(s) importée(s)`)
+            setIsOpen(false)
+            setParsedData([])
+            setFileName("")
+            setWarnings([])
+            onImportComplete?.()
         } catch (error) {
             toast.error("Erreur lors de l'import")
         } finally {
             setIsLoading(false)
+            setProgress(null)
         }
     }
 

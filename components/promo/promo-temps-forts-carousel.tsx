@@ -167,75 +167,107 @@ export function PromoTempsFortsCarousel({ className, embedded }: Props) {
   const goNext = () => setIndex((i) => (i + 1) % slides.length)
   const hasMultiple = slides.length > 1
 
+  // Mode « visuel entier » : la composition du graphiste porte déjà son titre,
+  // son texte et son bouton. Rien ne doit la recouvrir — les commandes
+  // descendent donc dans une barre SOUS le visuel, au lieu d'être posées
+  // dessus. Ailleurs elles restent superposées, mais toutes à droite : la
+  // colonne de texte occupe la gauche, et la flèche « précédent » y recouvrait
+  // le titre.
+  const isFullImage =
+    current.kind === "banner" &&
+    current.banner.displayMode === "image" &&
+    !!current.banner.imageUrl
+
+  const navBtn =
+    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-card/90 text-card-foreground shadow-sm transition hover:bg-card"
+
+  const dots = hasMultiple ? (
+    <div className="flex items-center gap-1.5">
+      {slides.map((slide, i) => (
+        <button
+          key={
+            slide.kind === "tf"
+              ? slide.tf.id
+              : slide.kind === "banner"
+                ? slide.banner.id
+                : "promo"
+          }
+          type="button"
+          onClick={() => setIndex(i)}
+          aria-label={`Aller à la diapositive ${i + 1}`}
+          aria-current={i === index}
+          className={`h-1.5 rounded-full transition-all ${
+            i === index ? "w-6 bg-foreground" : "w-2 bg-foreground/30 hover:bg-foreground/50"
+          }`}
+        />
+      ))}
+    </div>
+  ) : null
+
+  const prevBtn = (
+    <button type="button" onClick={goPrev} aria-label="Diapositive précédente" className={navBtn}>
+      <ChevronLeft className="h-4 w-4" />
+    </button>
+  )
+  const nextBtn = (
+    <button type="button" onClick={goNext} aria-label="Diapositive suivante" className={navBtn}>
+      <ChevronRight className="h-4 w-4" />
+    </button>
+  )
+  const closeBtn = (
+    <button type="button" onClick={closeBanner} aria-label="Fermer la bannière" className={navBtn}>
+      <X className="h-4 w-4" />
+    </button>
+  )
+
   const card = (
     <div
-      className="relative h-full overflow-hidden rounded-2xl border border-[#F2B33D]/30 bg-[#F2B33D]/15 shadow-sm"
+      className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-[#F2B33D]/30 bg-[#F2B33D]/15 shadow-sm"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {current.kind === "tf" ? (
-        <TempsFortCard tf={current.tf} index={index} total={slides.length} hasMultiple={hasMultiple} />
-      ) : current.kind === "banner" ? (
-        <BannerCard banner={current.banner} />
-      ) : (
-        promo && (
-          <PromoCard
-            endIso={promo.campaign.end_date}
-            campaignId={promo.campaign.id}
-            onExpire={() => setPromoExpired(true)}
-          />
-        )
-      )}
+      <div className="relative min-w-0 flex-1">
+        {current.kind === "tf" ? (
+          <TempsFortCard tf={current.tf} index={index} total={slides.length} hasMultiple={hasMultiple} />
+        ) : current.kind === "banner" ? (
+          <BannerCard banner={current.banner} />
+        ) : (
+          promo && (
+            <PromoCard
+              endIso={promo.campaign.end_date}
+              campaignId={promo.campaign.id}
+              onExpire={() => setPromoExpired(true)}
+            />
+          )
+        )}
 
-      {hasMultiple && (
-        <>
-          <button
-            type="button"
-            onClick={goPrev}
-            aria-label="Diapositive précédente"
-            className="absolute left-3 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-card/90 text-card-foreground shadow-sm transition hover:bg-card sm:flex"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={goNext}
-            aria-label="Diapositive suivante"
-            className="absolute right-16 top-1/2 z-10 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-card/90 text-card-foreground shadow-sm transition hover:bg-card sm:flex"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
+        {!isFullImage && (
+          <>
+            <div className="absolute right-4 top-4 z-10">{closeBtn}</div>
+            {hasMultiple && (
+              <div className="absolute bottom-3 right-3 z-10 flex items-center gap-2">
+                {/* Sous sm, la colonne de texte occupe toute la largeur : on
+                    s'en tient aux pastilles, comme avant, pour ne pas venir
+                    toucher le bouton d'action. */}
+                <span className="hidden sm:flex">{prevBtn}</span>
+                {dots}
+                <span className="hidden sm:flex">{nextBtn}</span>
+              </div>
+            )}
+          </>
+        )}
+      </div>
 
-          <div className="absolute bottom-3 left-6 flex items-center gap-1.5 sm:left-8">
-            {slides.map((slide, i) => (
-              <button
-                key={
-                  slide.kind === "tf"
-                    ? slide.tf.id
-                    : slide.kind === "banner"
-                      ? slide.banner.id
-                      : "promo"
-                }
-                type="button"
-                onClick={() => setIndex(i)}
-                aria-label={`Aller à la diapositive ${i + 1}`}
-                className={`h-1.5 rounded-full transition-all ${
-                  i === index ? "w-6 bg-foreground" : "w-2 bg-foreground/30 hover:bg-foreground/50"
-                }`}
-              />
-            ))}
+      {isFullImage && (
+        <div className="flex shrink-0 items-center justify-between gap-3 px-3 py-2">
+          <div className="min-w-0">{dots}</div>
+          <div className="flex items-center gap-1.5">
+            {hasMultiple && prevBtn}
+            {hasMultiple && nextBtn}
+            {closeBtn}
           </div>
-        </>
+        </div>
       )}
-
-      <button
-        type="button"
-        onClick={closeBanner}
-        className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-card text-card-foreground shadow-sm transition hover:bg-muted"
-        aria-label="Fermer la bannière"
-      >
-        <X className="h-4 w-4" />
-      </button>
     </div>
   )
 
@@ -288,19 +320,44 @@ function BannerCard({ banner }: { banner: DashboardBanner }) {
       className="group block h-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#F2B33D]"
     >
       {fullImage ? (
-        // `object-contain` et non `object-cover` : rien ne doit être rogné,
-        // c'est tout l'objet du mode. Le titre reste en `alt`, il ne s'affiche
-        // pas par-dessus le visuel.
-        <div className="relative h-full min-h-56 w-full">
+        <>
+          {/* Le visuel porte déjà son titre, son texte et son bouton : il
+              s'affiche ENTIER, à son propre rapport de forme, sans rognage ni
+              surimpression. `h-auto` laisse la hauteur suivre l'image au lieu
+              de la contraindre — le plafond ne sert qu'aux visuels
+              anormalement hauts. Le titre reste porté par `alt`. */}
           <Image
             src={banner.imageUrl as string}
             alt={banner.title}
-            fill
-            sizes="(max-width: 1024px) 100vw, 50vw"
-            className="object-contain"
+            width={1920}
+            height={400}
+            sizes="(max-width: 1024px) 100vw, 1200px"
+            className="hidden h-auto max-h-[340px] w-full object-contain md:block"
             priority
           />
-        </div>
+
+          {/* Sous md, une composition panoramique se réduit à une frise
+              illisible : on repasse au rendu éditorial, où le texte reste du
+              vrai texte. Sans ce repli, le mode « visuel entier » réglerait le
+              bureau en cassant le mobile. */}
+          <div className="flex min-h-40 flex-col justify-center gap-2 px-6 py-6 md:hidden">
+            <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-foreground/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide">
+              <Sparkles className="h-3 w-3" />
+              À la une
+            </span>
+
+            <h3 className="text-lg font-bold leading-snug">{banner.title}</h3>
+
+            {banner.body && (
+              <p className="line-clamp-3 text-sm text-muted-foreground">{banner.body}</p>
+            )}
+
+            <span className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-full bg-[#F2B33D] px-4 py-2 text-sm font-bold text-[#0F0F0F] transition-transform group-hover:translate-x-0.5">
+              {banner.ctaLabel}
+              <ArrowRight className="h-4 w-4" />
+            </span>
+          </div>
+        </>
       ) : (
         <>
           {banner.imageUrl && (

@@ -9,13 +9,19 @@ let warnedFallback = false
 /**
  * Récupère la clé de chiffrement depuis les variables d'environnement.
  *
- * - Si `ENCRYPTION_KEY` est définie (64 caractères hex), elle est utilisée.
- * - Sinon, on dérive déterministiquement la clé depuis
- *   `SUPABASE_SERVICE_ROLE_KEY` (déjà secret, présent en prod).
+ * `ENCRYPTION_KEY` (64 caractères hex) est la seule source valable en
+ * production. Le repli historique — dériver `sha256(SUPABASE_SECRET_KEY)` — est
+ * désormais réservé au développement : depuis la migration vers les clés API
+ * `sb_secret_...` (2026-08-26), la clé secrète Supabase est rotable
+ * indépendamment, et une rotation changerait silencieusement la clé de
+ * chiffrement. Les secrets déjà en base (mailchimp_api_key, meta_capi_token,
+ * ga4_api_secret, cloudflare_api_token) deviendraient alors illisibles, sans
+ * aucune erreur visible : `decrypt()` renvoie '' en cas d'échec.
  *
- * Plus de throw en production : c'était la cause d'un 500 sur
- * `/api/admin/settings` quand ENCRYPTION_KEY n'était pas (correctement) définie.
- * Si vous voulez forcer une vraie clé en prod, définissez `ENCRYPTION_KEY`.
+ * On échoue donc explicitement en production plutôt que de chiffrer avec une
+ * clé fantôme. Le coût est un 500 sur `/api/admin/settings` en cas de
+ * mauvaise configuration — c'est le comportement recherché : une écriture avec
+ * la mauvaise clé est irréversible, un 500 ne l'est pas.
  */
 function getEncryptionKey(): Buffer {
   const envKey = process.env.ENCRYPTION_KEY
@@ -23,17 +29,23 @@ function getEncryptionKey(): Buffer {
     return Buffer.from(envKey, 'hex')
   }
 
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!serviceKey) {
+  if (process.env.NODE_ENV === 'production') {
     throw new Error(
-      'Aucune clé de chiffrement disponible : ENCRYPTION_KEY (64 hex) ou SUPABASE_SERVICE_ROLE_KEY doit être configurée.'
+      'ENCRYPTION_KEY (64 caractères hex) est requise en production. Le repli dérivé de SUPABASE_SECRET_KEY a été retiré : une rotation de la clé secrète Supabase rendrait illisibles les secrets déjà chiffrés dans site_settings.'
     )
   }
 
-  if (!warnedFallback && process.env.NODE_ENV === 'production') {
+  const serviceKey = process.env.SUPABASE_SECRET_KEY
+  if (!serviceKey) {
+    throw new Error(
+      'Aucune clé de chiffrement disponible : ENCRYPTION_KEY (64 hex) ou SUPABASE_SECRET_KEY doit être configurée.'
+    )
+  }
+
+  if (!warnedFallback) {
     warnedFallback = true
     console.warn(
-      '[encryption] ENCRYPTION_KEY absente ou invalide en production — utilisation du fallback dérivé de SUPABASE_SERVICE_ROLE_KEY. Définissez ENCRYPTION_KEY pour plus de sécurité.'
+      '[encryption] ENCRYPTION_KEY absente ou invalide — repli dérivé de SUPABASE_SECRET_KEY (développement uniquement). Les secrets chiffrés avec la clé de production ne seront pas déchiffrables.'
     )
   }
 

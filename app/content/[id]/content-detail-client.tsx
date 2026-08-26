@@ -195,6 +195,16 @@ export default function ContentDetailClient({ id }: { id: string }) {
   const [monthlyExplored, setMonthlyExplored] = useState(0);
   const [isBlocked, setIsBlocked] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  /**
+   * `campaign_view` (brief §7) attend `sector` et `country`.
+   *
+   * L'effet de consultation ci-dessous part avant que la fiche soit chargée, et
+   * un verrou `sessionStorage` empêche la seconde passe : mesurer là-bas
+   * envoyait `sector` et `country` vides à CHAQUE consultation. On attend donc
+   * les deux conditions — consultation réellement comptée, et fiche disponible.
+   */
+  const [consultationCounted, setConsultationCounted] = useState(false);
+  const campaignViewTrackedRef = useRef(false);
   // Auth lue depuis le contexte central — pas de getUser() local.
   const authChecked = !contextAuthLoading;
   const isUserAuthenticated = !!contextUser;
@@ -243,6 +253,13 @@ export default function ContentDetailClient({ id }: { id: string }) {
             if (getData.isFree && (getData.clicks || 0) >= MONTHLY_CLICK_LIMIT) {
               setIsBlocked(true);
               setShowUpgrade(true);
+              // Brief §7 : la limite empêche réellement l'action suivante.
+              trackEvent("plan_limit_reached", {
+                limit_type: "campaign_views",
+                limit_value: MONTHLY_CLICK_LIMIT,
+                current_plan: getData.isFree ? "free" : userPlan,
+                source: "content",
+              });
             }
             // Synchroniser le compteur global (navbar)
             refreshClickCounters().catch(() => {});
@@ -264,6 +281,15 @@ export default function ContentDetailClient({ id }: { id: string }) {
           setIsBlocked(true);
           setShowUpgrade(true);
           if (data.clicks != null) setMonthlyClicks(data.clicks);
+          // Brief §7 : c'est ici que la limite bloque, pas au clic sur un
+          // contenu premium — l'ancienne correspondance mesurait l'envie, pas
+          // le blocage.
+          trackEvent("plan_limit_reached", {
+            limit_type: "campaign_views",
+            limit_value: data.limit ?? MONTHLY_CLICK_LIMIT,
+            current_plan: data.isFree === false ? userPlan : "free",
+            source: "content",
+          });
           return;
         }
 
@@ -279,13 +305,9 @@ export default function ContentDetailClient({ id }: { id: string }) {
           sessionStorage.setItem(trackedKey, Date.now().toString());
         } catch { /* ignore */ }
 
-        // Événement d'activité réelle : consultation campagne (QA T54 —
-        // met à jour last_activity_at + KPI actifs via /api/analytics/track).
-        trackEvent("campaign_viewed", {
-          campaign_id: id,
-          title: content?.title,
-          brand: content?.brand,
-        });
+        // La consultation est comptée : la fiche est réellement ouverte.
+        // L'événement de mesure, lui, part d'un effet séparé — voir plus bas.
+        setConsultationCounted(true);
 
         // Bottom sheet : afficher le compteur de consultations restantes à chaque
         // consultation pour les utilisateurs gratuits (auto-fermeture après 4s).
@@ -299,6 +321,23 @@ export default function ContentDetailClient({ id }: { id: string }) {
     };
     trackConsultation();
   }, [authChecked, isUserAuthenticated, id, content, refreshClickCounters]);
+
+  useEffect(() => {
+    if (!consultationCounted || !content || campaignViewTrackedRef.current) return;
+    campaignViewTrackedRef.current = true;
+
+    // Événement d'activité réelle : consultation campagne (QA T54 —
+    // met à jour last_activity_at + KPI actifs via /api/analytics/track).
+    trackEvent("campaign_viewed", {
+      campaign_id: id,
+      title: content.title,
+      brand: content.brand,
+      // Le brief §7 demande le secteur et le pays : ce sont eux qui rendent
+      // les rapports d'audience exploitables.
+      sector: content.category || undefined,
+      country: content.country || undefined,
+    });
+  }, [consultationCounted, content, id]);
 
   // Barre de progression de lecture
   useEffect(() => {

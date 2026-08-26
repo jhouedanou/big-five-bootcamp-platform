@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label"
 import { Upload, X, Loader2, ImagePlus, Link2, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 import { cn, isEphemeralGoogleImageUrl, isGoogleDriveHostedUrl } from "@/lib/utils"
+import { normalizeImageFile } from "@/lib/image-client"
+import { IMAGE_PRESETS, type ImagePreset } from "@/lib/image-presets"
 import {
   isVideoFile,
   VIDEO_UPLOAD_ERROR_TITLE,
@@ -30,6 +32,14 @@ interface ImageUploadProps {
    */
   previewFit?: "cover" | "contain"
   placeholder?: string
+  /**
+   * Usage du visuel, qui détermine sa largeur de stockage
+   * (cf. `lib/image-presets.ts`). OBLIGATOIRE : quand ce réglage était
+   * optionnel, cinq formulaires l'ont simplement oublié et déposaient des
+   * exports pleine résolution. Le rendre obligatoire fait de l'oubli une
+   * erreur de compilation plutôt qu'une régression silencieuse.
+   */
+  preset: ImagePreset
 }
 
 export function ImageUpload({
@@ -41,6 +51,7 @@ export function ImageUpload({
   previewClassName = "w-32 h-32",
   previewFit = "cover",
   placeholder = "Uploadez une image ou collez une URL...",
+  preset,
 }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
@@ -65,7 +76,7 @@ export function ImageUpload({
     }
 
     // Vérifier le type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml']
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif']
     if (!allowedTypes.includes(file.type)) {
       setUploadError(`${IMAGE_TYPE_ERROR_TITLE} (${file.type || "inconnu"}). ${IMAGE_TYPE_ERROR_DESCRIPTION}`)
       toast.error(IMAGE_TYPE_ERROR_TITLE, {
@@ -83,8 +94,13 @@ export function ImageUpload({
 
     setIsUploading(true)
     try {
+      const maxWidth: number = IMAGE_PRESETS[preset]
+      const payload = await normalizeImageFile(file, maxWidth)
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', payload)
+      // Le serveur ne peut pas deviner l'usage : sans cette valeur son filet
+      // retomberait sur la plus grande largeur du catalogue.
+      formData.append('maxWidth', String(maxWidth))
 
       const response = await fetch('/api/upload', {
         method: 'POST',
@@ -338,9 +354,11 @@ export function ImageUpload({
 interface ImageUploadButtonProps {
   onUploaded: (url: string) => void
   className?: string
+  /** Usage du visuel — voir `ImageUploadProps.preset`. */
+  preset: ImagePreset
 }
 
-export function ImageUploadButton({ onUploaded, className }: ImageUploadButtonProps) {
+export function ImageUploadButton({ onUploaded, className, preset }: ImageUploadButtonProps) {
   const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -352,7 +370,7 @@ export function ImageUploadButton({ onUploaded, className }: ImageUploadButtonPr
       })
       return
     }
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml']
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif']
     if (!allowedTypes.includes(file.type)) {
       toast.error(IMAGE_TYPE_ERROR_TITLE, { description: IMAGE_TYPE_ERROR_DESCRIPTION })
       return
@@ -364,8 +382,11 @@ export function ImageUploadButton({ onUploaded, className }: ImageUploadButtonPr
 
     setIsUploading(true)
     try {
+      const maxWidth: number = IMAGE_PRESETS[preset]
+      const payload = await normalizeImageFile(file, maxWidth)
       const formData = new FormData()
-      formData.append('file', file)
+      formData.append('file', payload)
+      formData.append('maxWidth', String(maxWidth))
 
       const response = await fetch('/api/upload', {
         method: 'POST',

@@ -1,5 +1,16 @@
 
 import { NextResponse } from 'next/server'
+
+/**
+ * Une confirmation d'inscription mène à l'écran /auth/verified, qui émet
+ * `email_verified`. La récupération de mot de passe, elle, va ailleurs.
+ *
+ * Limite connue : si le lien n'expose aucun `type`, on ne peut pas trancher et
+ * la destination reste celle demandée. Aucun événement n'est alors émis.
+ */
+function isSignupFlow(type: string | null, isRecoveryFlow: boolean): boolean {
+    return !isRecoveryFlow && (type === 'signup' || type === 'email')
+}
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { EmailOtpType } from '@supabase/supabase-js'
@@ -30,7 +41,7 @@ export async function GET(request: Request) {
 
     const supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
         {
             cookies: {
                 getAll() {
@@ -50,7 +61,14 @@ export async function GET(request: Request) {
         const { data, error } = await supabase.auth.exchangeCodeForSession(code)
         if (!error && data.session) {
             await ensureUserProfile(data.session.user)
-            return buildRedirect(origin, next, isRecoveryFlow, cookiesToSet, hasRecoveryCookie)
+            // Même écran de confirmation que le flux token_hash ci-dessous.
+            // Sans cela, une confirmation d'e-mail arrivée par lien PKCE
+            // atterrissait droit sur /dashboard et `email_verified` (brief §6,
+            // P0) n'était jamais émis — l'événement n'a jamais été reçu.
+            const targetNext = isSignupFlow(rawType, isRecoveryFlow)
+                ? `/auth/verified${next && next !== '/dashboard' ? `?next=${encodeURIComponent(next)}` : ''}`
+                : next
+            return buildRedirect(origin, targetNext, isRecoveryFlow, cookiesToSet, hasRecoveryCookie)
         }
         console.error('Auth callback (code) error:', error)
     }
@@ -61,10 +79,9 @@ export async function GET(request: Request) {
         const { data, error } = await supabase.auth.verifyOtp({ token_hash, type: otpType })
         if (!error && data.session) {
             await ensureUserProfile(data.session.user)
-            const isSignupFlow = !isRecoveryFlow && (otpType === 'signup' || otpType === 'email')
             // Conserver la destination d'origine (ex: /webinaires?session=slug)
             // à travers l'écran de confirmation → bouton "Se connecter" (QA T53).
-            const targetNext = isSignupFlow
+            const targetNext = isSignupFlow(otpType, isRecoveryFlow)
                 ? `/auth/verified${next && next !== '/dashboard' ? `?next=${encodeURIComponent(next)}` : ''}`
                 : next
             return buildRedirect(origin, targetNext, isRecoveryFlow, cookiesToSet, hasRecoveryCookie)

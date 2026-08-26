@@ -645,12 +645,14 @@ export default function AdminTempsFortsPage() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <ImageUpload
+                preset="tempsFort"
                 value={form.imageUrl || ""}
                 onChange={(url) => setForm({ ...form, imageUrl: url })}
                 label="Image (carte / pop-up)"
                 previewClassName="w-full h-40"
               />
               <ImageUpload
+                preset="tempsFortHero"
                 value={form.heroImageUrl || ""}
                 onChange={(url) => setForm({ ...form, heroImageUrl: url })}
                 label="Image hero (bannière, page détail)"

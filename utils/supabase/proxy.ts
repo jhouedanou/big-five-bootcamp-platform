@@ -87,7 +87,7 @@ export async function updateSession(request: NextRequest) {
     }
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
     // Si la config Supabase n'est pas disponible (mauvaise config env en prod),
     // ne pas casser toute la navigation avec un 500 côté middleware.

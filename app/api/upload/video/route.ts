@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { checkAdmin } from "@/lib/admin-auth"
 import { getSupabaseAdmin } from "@/lib/supabase-server"
 import { safeErrorMessage } from "@/lib/api-errors"
+import {
+  ensureBucket,
+  VIDEO_BUCKET,
+  VIDEO_MAX_BYTES,
+  VIDEO_ALLOWED_TYPES,
+} from "@/lib/storage-buckets"
 
 export const dynamic = "force-dynamic"
 
@@ -19,27 +25,10 @@ export const dynamic = "force-dynamic"
  * fait que générer l'URL signée et renvoyer l'URL publique finale.
  */
 
-const BUCKET_NAME = "videos"
-const VIDEO_MAX_BYTES = 200 * 1024 * 1024 // 200 Mo
-const VIDEO_ALLOWED_TYPES = [
-  "video/mp4",
-  "video/webm",
-  "video/quicktime", // .mov
-]
+const BUCKET_NAME = VIDEO_BUCKET.name
 
 async function ensureBucketExists(supabaseAdmin: ReturnType<typeof getSupabaseAdmin>) {
-  const { data: buckets } = await supabaseAdmin.storage.listBuckets()
-  const exists = buckets?.some((b) => b.name === BUCKET_NAME)
-  if (!exists) {
-    const { error } = await supabaseAdmin.storage.createBucket(BUCKET_NAME, {
-      public: true,
-      fileSizeLimit: VIDEO_MAX_BYTES,
-      allowedMimeTypes: VIDEO_ALLOWED_TYPES,
-    })
-    if (error && !error.message.includes("already exists")) {
-      throw error
-    }
-  }
+  await ensureBucket(supabaseAdmin, VIDEO_BUCKET)
 }
 
 /**

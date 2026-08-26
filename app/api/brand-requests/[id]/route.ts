@@ -9,6 +9,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { removeDevisObject } from '@/lib/brand-request-devis'
 import { getSupabaseServer, getSupabaseAdmin } from '@/lib/supabase-server'
 import {
   sendBrandRequestEmail,
@@ -114,6 +115,13 @@ export async function PATCH(
 
     if (updateErr) {
       return NextResponse.json({ error: updateErr.message }, { status: 500 })
+    }
+
+    // Le devis refusé disparaît aussi du stockage : sans ça le PDF, avec le nom
+    // du client et le montant, resterait indéfiniment dans le bucket derrière
+    // une colonne remise à null.
+    if (action === 'refuse_quote') {
+      void removeDevisObject(admin, id)
     }
 
     if (emailKind) {

@@ -54,10 +54,16 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: 'Laveiye | Bibliothèque de campagnes marketing africaines',
   description: 'Analysez les campagnes publicitaires et social media en Afrique francophone. Benchmark, veille créative, inspirations et filtres par pays, secteur et marque.',
+  // Un favicon se sert en tailles fixes. `favicon_onglet.png` faisait
+  // 8779 x 8779 px pour 568 Ko sur les trois usages — les fichiers aux bonnes
+  // dimensions existaient déjà dans public/, sans être référencés.
   icons: {
-    icon: '/favicon_onglet.png',
-    shortcut: '/favicon_onglet.png',
-    apple: '/favicon_onglet.png',
+    icon: [
+      { url: '/icon-light-32x32.png', media: '(prefers-color-scheme: light)' },
+      { url: '/icon-dark-32x32.png', media: '(prefers-color-scheme: dark)' },
+    ],
+    shortcut: '/icon-light-32x32.png',
+    apple: '/apple-icon.png',
   },
   openGraph: {
     type: 'website',
@@ -93,6 +99,7 @@ import { RgpdBottomSheet } from "@/components/rgpd-bottom-sheet"
 import { ConsentModeBridge } from "@/components/analytics/consent-mode"
 import { TrackingConfig } from "@/components/analytics/tracking-config"
 import { DataLayerRouteTracker } from "@/components/analytics/datalayer-route-tracker"
+import { DataLayerIdentity } from "@/components/analytics/datalayer-identity"
 import { CONSENT_MODE_BOOTSTRAP } from "@/lib/consent"
 
 export default async function RootLayout({
@@ -101,10 +108,11 @@ export default async function RootLayout({
   children: React.ReactNode
 }>) {
   const { gaId: GA_ID, gtmId: GTM_ID, fbPixelId: FB_PIXEL_ID } = await resolveTrackingIds()
-  // Un seul propriétaire de la balise GA4 à la fois. Tant qu'aucun conteneur
-  // n'est configuré, le site garde son gtag ; dès qu'un GTM- est renseigné,
-  // GA4 se configure dans le conteneur et le gtag direct s'efface — sinon
-  // chaque page_view, sign_up et purchase serait compté deux fois (brief §14).
+  // Un seul propriétaire des balises à la fois. Tant qu'aucun conteneur n'est
+  // configuré, le site garde son gtag et son pixel Meta ; dès qu'un GTM- est
+  // renseigné, GA4 et Meta passent dans le conteneur, le gtag direct s'efface
+  // et le site cesse de charger le pixel (cf. lib/fb-pixel.ts) — sinon chaque
+  // page_view, sign_up, Lead et purchase serait compté deux fois (§12 et §14).
   const useGtm = GTM_ID.startsWith('GTM-')
 
   return (
@@ -127,7 +135,7 @@ export default async function RootLayout({
         {useGtm && (
           <script
             dangerouslySetInnerHTML={{
-              __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer',${JSON.stringify(GTM_ID)});`,
+              __html: `window.__LAVEIYE_GTM_META__=true;(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer',${JSON.stringify(GTM_ID)});`,
             }}
           />
         )}
@@ -159,6 +167,9 @@ export default async function RootLayout({
           </noscript>
         )}
         <Providers>
+          {/* Sous <Providers> : ce composant lit le contexte d'authentification
+              pour poser user_id, user_stage et subscription_plan (brief §5). */}
+          <DataLayerIdentity />
           {children}
         </Providers>
         {/* Bandeau RGPD sur TOUTES les routes. Monté sur la seule page d'accueil,

@@ -11,6 +11,7 @@ import { LegalModal } from "@/components/legal-modal"
 import { SubscribeCampaignsCarousel } from "@/components/subscribe-campaigns-carousel"
 import { CountryPhoneField, phoneDigitsValid, phoneErrorMessage } from "@/components/payment/country-phone-field"
 import { fbTrack, newFbEventId } from "@/lib/fb-pixel"
+import { ViewPricing } from "@/components/analytics/view-pricing"
 
 type PlanChoice = "basic" | "pro" | "discovery"
 
@@ -377,6 +378,7 @@ export default function SubscribePage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <ViewPricing source="subscribe" />
       {/* Header */}
       <header className="border-b border-[#F5F5F5] bg-white">
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">

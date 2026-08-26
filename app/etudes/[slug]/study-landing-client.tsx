@@ -19,6 +19,9 @@ const UTM_STORAGE_KEY = "bigfive:etude-utm";
 
 export function StudyLandingClient({ study }: { study: StudyContent }) {
   const [modalOpen, setModalOpen] = useState(false);
+  // Le CTA qui a ouvert la modale voyage jusqu'à l'abandon : savoir laquelle
+  // des deux invitations perd le visiteur est la moitié de l'information.
+  const [modalOrigin, setModalOrigin] = useState("hero");
   const [utm, setUtm] = useState<UtmParams>({});
 
   useEffect(() => {
@@ -64,6 +67,7 @@ export function StudyLandingClient({ study }: { study: StudyContent }) {
   const openModal = useCallback(
     (origin: string) => {
       setModalOpen(true);
+      setModalOrigin(origin);
       trackEvent(
         "study_form_open",
         {
@@ -111,6 +115,7 @@ export function StudyLandingClient({ study }: { study: StudyContent }) {
         onClose={() => setModalOpen(false)}
         study={study}
         utm={utm}
+        cta={modalOrigin}
       />
     </div>
   );
@@ -182,7 +187,7 @@ function PreviewAndBenefits({ study }: { study: StudyContent }) {
     <section className="bg-[#f6f4ef] py-14 lg:py-[78px]">
       <div className="mx-auto w-[min(1180px,calc(100%-40px))]">
         <div className="grid items-center gap-14 lg:grid-cols-[.95fr_1.05fr] lg:gap-[70px]">
-          <Carousel slides={study.slides} />
+          <Carousel slides={study.slides} studySlug={study.slug} />
 
           <div>
             <h2 className="mb-6 font-serif text-[30px] font-medium leading-[1.15] sm:text-[44px]">
@@ -208,11 +213,30 @@ function PreviewAndBenefits({ study }: { study: StudyContent }) {
   );
 }
 
-function Carousel({ slides }: { slides: StudyContent["slides"] }) {
+function Carousel({
+  slides,
+  studySlug,
+}: {
+  slides: StudyContent["slides"];
+  studySlug: string;
+}) {
   const [index, setIndex] = useState(0);
   const liveRef = useRef<HTMLDivElement>(null);
 
-  const go = (next: number) => setIndex((next + slides.length) % slides.length);
+  // La navigation dans l'aperçu est le seul signal qui dise si l'extrait de
+  // l'étude convainc. Mesurée à la vignette réellement affichée, pas au clic.
+  const show = (next: number, method: "arrow" | "dot") => {
+    const target = (next + slides.length) % slides.length;
+    if (target === index) return;
+    setIndex(target);
+    trackEvent(
+      "study_preview_navigated",
+      { study_slug: studySlug, slide_index: target, method, source: "web" },
+      true
+    );
+  };
+
+  const go = (next: number) => show(next, "arrow");
 
   return (
     <div className="relative flex flex-col items-center">
@@ -264,7 +288,7 @@ function Carousel({ slides }: { slides: StudyContent["slides"] }) {
           <button
             key={`dot-${slide.src}-${i}`}
             type="button"
-            onClick={() => setIndex(i)}
+            onClick={() => show(i, "dot")}
             aria-label={`Afficher la page ${i + 1}`}
             aria-current={i === index}
             className={`h-2.5 w-2.5 rounded-full transition-colors ${
@@ -280,15 +304,39 @@ function Carousel({ slides }: { slides: StudyContent["slides"] }) {
 /* ------------------------------------------------------------------- FAQ */
 
 function Faq({ study }: { study: StudyContent }) {
+  // Une question déjà comptée ne repart pas : ouvrir et refermer trois fois
+  // dit la même chose qu'ouvrir une fois, et gonflerait la mesure pour rien.
+  const seen = useRef<Set<number>>(new Set());
+
+  const onToggle = (index: number, question: string) =>
+    (event: React.SyntheticEvent<HTMLDetailsElement>) => {
+      if (!event.currentTarget.open) return;
+      if (seen.current.has(index)) return;
+      seen.current.add(index);
+      trackEvent(
+        "study_faq_opened",
+        {
+          study_slug: study.slug,
+          faq_index: index,
+          // Libellé de la question : c'est du contenu éditorial, jamais une
+          // donnée personnelle. Tronqué pour ne pas alourdir le dataLayer.
+          faq_question: question.slice(0, 120),
+          source: "web",
+        },
+        true
+      );
+    };
+
   return (
     <section className="bg-[#f6f4ef] px-0 pb-9 pt-4 lg:pt-0">
       <div className="mx-auto w-[min(1180px,calc(100%-40px))]">
         {/* <details> natif : chaque question s'ouvre et se ferme indépendamment,
             sans état partagé — conforme au brief. */}
         <div className="mx-auto grid max-w-[950px] gap-3.5">
-          {study.faq.map((item) => (
+          {study.faq.map((item, index) => (
             <details
               key={item.question}
+              onToggle={onToggle(index, item.question)}
               className="rounded-[14px] border border-[#dedede] bg-white px-6 py-5 [&[open]_summary_.chevron]:rotate-180"
             >
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[17px] font-extrabold sm:text-[18px]">

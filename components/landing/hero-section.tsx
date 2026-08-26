@@ -359,7 +359,7 @@ export function PreviewSection() {
             <div className="absolute inset-0 bg-[#F5F5F5]/30 blur-3xl rounded-full opacity-50" />
             <div className="relative rounded-xl border border-[#F5F5F5] shadow-2xl overflow-hidden">
               <Image
-                src="/anu.png"
+                src="/anu.webp"
                 alt="Aperçu de la plateforme Laveiye"
                 width={800}
                 height={600}

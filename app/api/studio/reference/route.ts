@@ -5,31 +5,24 @@ import { rateLimit, getClientIp } from '@/lib/rate-limit'
 import { safeErrorMessage } from '@/lib/api-errors'
 import { ssrfSafeFetch } from '@/lib/ssrf-fetch'
 import { getGoogleDriveImageUrl } from '@/lib/utils'
+import { ensureBucket, AD_STUDIO_BUCKET } from '@/lib/storage-buckets'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const BUCKET = 'ad-studio'
-const MAX_BYTES = 8 * 1024 * 1024
-const ALLOWED = ['image/png', 'image/jpeg', 'image/webp']
+const BUCKET = AD_STUDIO_BUCKET.name
+const MAX_BYTES = AD_STUDIO_BUCKET.fileSizeLimit
+const ALLOWED = AD_STUDIO_BUCKET.allowedMimeTypes
 
 /**
- * Crée le bucket s'il manque. La migration 15 le déclare, mais l'insert direct
- * dans storage.buckets ne passe pas sur toutes les instances Supabase — le
- * bucket était absent en production alors que la table existait, d'où les
- * échecs d'upload. L'API Storage est la voie fiable ; même pattern que
- * /api/upload/video.
+ * Crée le bucket s'il manque, et réaligne sa config s'il a dérivé. La migration
+ * 15 le déclare, mais l'insert direct dans storage.buckets ne passe pas sur
+ * toutes les instances Supabase — le bucket était absent en production alors
+ * que la table existait, d'où les échecs d'upload. L'API Storage est la voie
+ * fiable.
  */
 async function ensureBucketExists(admin: ReturnType<typeof getSupabaseAdmin>) {
-  const { data: buckets } = await admin.storage.listBuckets()
-  if (buckets?.some((b) => b.name === BUCKET)) return
-
-  const { error } = await admin.storage.createBucket(BUCKET, {
-    public: false,
-    fileSizeLimit: MAX_BYTES,
-    allowedMimeTypes: ALLOWED,
-  })
-  if (error && !error.message.includes('already exists')) throw error
+  await ensureBucket(admin, AD_STUDIO_BUCKET)
 }
 
 /**

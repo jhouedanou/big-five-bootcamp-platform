@@ -1,20 +1,24 @@
 "use client"
 
 import { useCallback, useState } from "react"
+import {
+  IMAGE_ALLOWED_TYPES,
+  IMAGE_MAX_BYTES,
+  IMAGE_MAX_LABEL,
+} from "@/lib/storage-buckets"
+import { normalizeImageFile } from "@/lib/image-client"
 
-/** Limite stricte par fichier dans le bulk editor (≠ /api/upload qui est à 10MB). */
-export const BULK_MAX_FILE_BYTES = 2 * 1024 * 1024 // 2 MB
-export const BULK_MAX_FILE_LABEL = "2 Mo"
+/**
+ * Alignés sur la config du bucket et sur /api/upload : une image acceptée ici
+ * ne doit jamais être rejetée plus loin dans la chaîne. Ces trois constantes
+ * sont réexportées parce que l'éditeur d'image inline les consomme aussi.
+ */
+export const BULK_MAX_FILE_BYTES = IMAGE_MAX_BYTES
+export const BULK_MAX_FILE_LABEL = IMAGE_MAX_LABEL
 export const RESIZE_HINT =
-  "Image trop lourde (> 2 Mo). Compressez-la d'abord avec un outil comme iLoveIMG (iloveimg.com) ou iLovePDF, puis réessayez."
+  `Image trop lourde (> ${IMAGE_MAX_LABEL}). Compressez-la d'abord avec un outil comme iLoveIMG (iloveimg.com) ou iLovePDF, puis réessayez.`
 
-const ACCEPTED_IMAGE_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "image/svg+xml",
-]
+const ACCEPTED_IMAGE_TYPES = IMAGE_ALLOWED_TYPES
 
 export type UploadStatus = "pending" | "uploading" | "done" | "error" | "unmatched" | "oversize"
 
@@ -59,10 +63,13 @@ function matchFileToCampaign(fileName: string, targets: SlugTarget[]): SlugTarge
   return null
 }
 
-function uploadWithProgress(
+async function uploadWithProgress(
   file: File,
   onProgress: (pct: number) => void,
 ): Promise<{ url: string }> {
+  // 580 px de large max + WebP avant l'envoi : le bucket ne reçoit que la
+  // version utile, et l'upload lui-même est 10 à 20 fois plus léger.
+  const payload = await normalizeImageFile(file)
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest()
     xhr.open("POST", "/api/upload")
@@ -80,7 +87,7 @@ function uploadWithProgress(
     }
     xhr.onerror = () => reject(new Error("Erreur réseau pendant l'upload"))
     const fd = new FormData()
-    fd.append("file", file)
+    fd.append("file", payload)
     xhr.send(fd)
   })
 }

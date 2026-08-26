@@ -55,6 +55,15 @@ export function VideoModal({
   const platform = detected !== "unknown" ? detected : declared;
   const displayLabel = getVideoPlatformLabel(platform);
   const embedUrl = getEmbedUrl(videoUrl || "");
+  // Jumeau WebM d'un MP4 de notre bucket : même chemin, autre extension. La
+  // convention est posée par `scripts/convert-videos-to-webm.ts`, qui dépose le
+  // WebM à côté du MP4 au lieu de le remplacer. Déclarer `type="video/webm"`
+  // évite toute requête inutile : Safari, qui ne sait pas le décoder, passe
+  // directement au MP4 sans le télécharger.
+  const webmUrl =
+    embedUrl.includes("/storage/v1/object/public/videos/") && /\.mp4$/i.test(embedUrl)
+      ? embedUrl.replace(/\.mp4$/i, ".webm")
+      : null;
   const canEmbed = isEmbeddableVideoUrl(videoUrl || "");
   // Orientation calculée sur la plateforme RÉELLE et sur l'URL, pas sur le
   // libellé déclaré : un Reel Facebook est vertical, une campagne étiquetée
@@ -106,7 +115,7 @@ export function VideoModal({
           >
             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
             <video
-              src={embedUrl}
+              key={embedUrl}
               controls
               playsInline
               preload="metadata"
@@ -117,7 +126,17 @@ export function VideoModal({
                   setFileRatio(el.videoWidth / el.videoHeight);
                 }
               }}
-            />
+            >
+              {/*
+                Sources par ordre de préférence. Le WebM/VP9 est 2 à 3 fois plus
+                léger, mais Safari ne le lit qu'à partir de macOS 16 / iOS 17.4 :
+                sans le repli MP4, un `src` unique ne dégrade pas, il ne lit
+                rien du tout. Le navigateur prend la première source qu'il sait
+                décoder, l'ordre fait donc tout le travail.
+              */}
+              {webmUrl && <source src={webmUrl} type="video/webm" />}
+              <source src={embedUrl} type="video/mp4" />
+            </video>
           </div>
         ) : canEmbed && embedUrl ? (
           isPortrait ? (

@@ -176,7 +176,7 @@ export default async function TempsFortDetailPage({ params }: TempsFortDetailPag
 
 function CampaignTile({ campaign }: { campaign: any }) {
   const slugOrId = campaign.slug || campaign.id
-  const thumbnail = getGoogleDriveImageUrl(campaign.thumbnail || "/placeholder.png")
+  const thumbnail = getGoogleDriveImageUrl(campaign.thumbnail || "/placeholder.svg")
   const title = campaign.title || "Campagne"
   const brand = campaign.brand || ""
   const country = campaign.country || ""

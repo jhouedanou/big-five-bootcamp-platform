@@ -18,6 +18,9 @@ const registerSchema = z.object({
   phoneCountry: z.enum(PHONE_COUNTRY_CODES, {
     errorMap: () => ({ message: "Indicatif pays invalide" }),
   }),
+  // Consentement marketing (brief §6). Facultatif et par défaut refusé : une
+  // case cochée d'avance ne vaut pas consentement.
+  marketingOptIn: z.boolean().optional(),
   phoneE164: z
     .string()
     .regex(/^\+[1-9][0-9]{5,14}$/, "Numéro de téléphone invalide"),
@@ -61,7 +64,7 @@ function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const serviceKey = process.env.SUPABASE_SECRET_KEY
   
   if (!url || !serviceKey) {
     throw new Error('Missing Supabase environment variables')
@@ -87,7 +90,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const { name, email, password, website, phoneCountry, phoneE164, elapsedMs, redirect, fbEventId } = validation.data
+    const { name, email, password, website, phoneCountry, phoneE164, elapsedMs, redirect, fbEventId, marketingOptIn } = validation.data
 
     // Refuser les domaines d'emails jetables / temporaires
     if (isDisposableEmail(email)) {
@@ -167,7 +170,7 @@ export async function POST(request: Request) {
     // → Supabase envoie automatiquement l'email de confirmation (si activé dans le projet).
     // → L'utilisateur n'a PAS de session tant qu'il n'a pas cliqué sur le lien.
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
     if (!url || !anonKey) {
       return NextResponse.json(
         { error: "Configuration Supabase manquante côté serveur" },
@@ -254,6 +257,28 @@ export async function POST(request: Request) {
         phone_country: phoneCountry,
         phone_e164: phoneE164,
       }, { onConflict: 'id' })
+
+    // Consentement marketing, écrit À PART et sans bloquer.
+    //
+    // Volontairement hors de l'upsert ci-dessus : tant que la migration 20 n'est
+    // pas appliquée, la colonne n'existe pas et Postgres rejette la requête
+    // ENTIÈRE. L'inclure ferait perdre le profil complet — téléphone, plan,
+    // campagne — sur chaque inscription. Ici, seul le consentement se perd, et
+    // le compte se crée normalement.
+    //
+    // Un choix explicite dans les deux sens : `false` est un refus daté, pas une
+    // absence de réponse. C'est ce qui rend l'opt-in traçable (§9).
+    const { error: consentError } = await supabaseAdmin
+      .from('users')
+      .update({
+        marketing_opt_in: marketingOptIn === true,
+        marketing_opt_in_at: nowTs.toISOString(),
+      })
+      .eq('id', signUpData.user.id)
+
+    if (consentError) {
+      console.error('Consentement marketing non enregistré:', consentError.message)
+    }
 
     // Trace d'audit campagne (best-effort, n'affecte pas la création du compte)
     if (campaign.active && !profileError) {

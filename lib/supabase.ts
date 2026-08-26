@@ -10,7 +10,7 @@ const globalForSupabase = globalThis as typeof globalThis & {
 
 export const createClient = () => {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
   // During static prerendering or when env vars are missing in production
   // (e.g. NEXT_PUBLIC_* not set in Cloudflare Pages build env) — return a
@@ -20,7 +20,7 @@ export const createClient = () => {
     if (typeof window !== 'undefined') {
       // eslint-disable-next-line no-console
       console.error(
-        '[Supabase] NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY is missing at build time. Set them in your Cloudflare Pages build environment variables.'
+        '[Supabase] NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY is missing at build time. Set them in your Cloudflare Pages build environment variables.'
       )
     }
 
@@ -115,13 +115,13 @@ export const getSupabaseAdmin = () => {
   if (adminClient) return adminClient
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const serviceKey = process.env.SUPABASE_SECRET_KEY
   if (!url || !serviceKey) {
     // Aucun fallback ANON : ces routes ont besoin des privilèges service_role.
     // Tomber sur la clé anon ferait échouer silencieusement les writes admin
     // (RLS) et masquerait l'erreur de config en prod.
     throw new Error(
-      'Supabase admin client unavailable: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required server-side.'
+      'Supabase admin client unavailable: NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY are required server-side.'
     )
   }
 

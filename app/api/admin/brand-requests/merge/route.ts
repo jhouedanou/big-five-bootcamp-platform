@@ -19,10 +19,10 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('[admin/brand-requests/merge] missing SUPABASE_SERVICE_ROLE_KEY')
+    if (!process.env.SUPABASE_SECRET_KEY) {
+      console.error('[admin/brand-requests/merge] missing SUPABASE_SECRET_KEY')
       return NextResponse.json(
-        { error: 'Server misconfiguration: SUPABASE_SERVICE_ROLE_KEY not set' },
+        { error: 'Server misconfiguration: SUPABASE_SECRET_KEY not set' },
         { status: 500 }
       )
     }

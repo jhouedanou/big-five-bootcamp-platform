@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { checkAdmin } from '@/lib/admin-auth'
 import { getSupabaseAdmin } from '@/lib/supabase-server'
 import { safeErrorMessage } from '@/lib/api-errors'
+import {
+  ensureBucket,
+  STUDIES_BUCKET,
+  STUDY_ALLOWED_TYPES,
+  STUDY_MAX_BYTES,
+  STUDY_MAX_LABEL,
+} from '@/lib/storage-buckets'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -19,21 +26,7 @@ export const dynamic = 'force-dynamic'
  * du lead avant de signer un lien temporaire.
  */
 
-const BUCKET_NAME = 'studies'
-const PDF_MAX_BYTES = 100 * 1024 * 1024 // 100 Mo
-const PDF_ALLOWED_TYPES = ['application/pdf']
-
-async function ensureBucketExists(admin: ReturnType<typeof getSupabaseAdmin>) {
-  const { data: buckets } = await admin.storage.listBuckets()
-  if (buckets?.some((b) => b.name === BUCKET_NAME)) return
-
-  const { error } = await admin.storage.createBucket(BUCKET_NAME, {
-    public: false,
-    fileSizeLimit: PDF_MAX_BYTES,
-    allowedMimeTypes: PDF_ALLOWED_TYPES,
-  })
-  if (error && !error.message.includes('already exists')) throw error
-}
+const BUCKET_NAME = STUDIES_BUCKET.name
 
 /**
  * POST /api/admin/studies/upload
@@ -57,21 +50,21 @@ export async function POST(request: NextRequest) {
     const contentType = String(body?.contentType || '')
     const size = Number(body?.size || 0)
 
-    if (!PDF_ALLOWED_TYPES.includes(contentType)) {
+    if (!STUDY_ALLOWED_TYPES.includes(contentType)) {
       return NextResponse.json(
         { error: `Format non supporté : ${contentType || 'inconnu'}. Seul le PDF est accepté.` },
         { status: 400 }
       )
     }
-    if (!size || size > PDF_MAX_BYTES) {
+    if (!size || size > STUDY_MAX_BYTES) {
       return NextResponse.json(
-        { error: `Fichier trop volumineux (max ${Math.round(PDF_MAX_BYTES / (1024 * 1024))} Mo).` },
+        { error: `Fichier trop volumineux (max ${STUDY_MAX_LABEL}).` },
         { status: 400 }
       )
     }
 
     const admin = getSupabaseAdmin()
-    await ensureBucketExists(admin)
+    await ensureBucket(admin, STUDIES_BUCKET)
 
     // Nom horodaté : remplacer une étude ne casse pas les liens déjà envoyés,
     // puisque chaque lead reçoit une URL signée régénérée à la demande.

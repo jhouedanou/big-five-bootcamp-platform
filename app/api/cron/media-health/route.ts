@@ -25,7 +25,7 @@ import { probeImageUrl, inChunks } from '@/lib/media-validate-server'
 import { classifyMediaHosting, type MediaState } from '@/lib/media-validation'
 import { normalizeImageBuffer } from '@/lib/image-server'
 import { IMAGE_PRESETS, NORMALIZED_SUFFIXES, normalizedSuffix } from '@/lib/image-presets'
-import { ensureBucket, AVATAR_BUCKET, AD_STUDIO_BUCKET, DOCUMENTS_BUCKET } from '@/lib/storage-buckets'
+import { ensureBucket, AVATAR_BUCKET, AD_STUDIO_BUCKET, DOCUMENTS_BUCKET, STUDIES_BUCKET } from '@/lib/storage-buckets'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -231,7 +231,9 @@ export async function GET(request: NextRequest) {
     // `shoo` est resté plafonné à 2 Mo pendant des mois. `documents` a bien une
     // route (l'envoi d'un devis), mais quelques envois par mois : sans ce
     // passage, une dérive vers `public: true` tiendrait jusqu'au devis suivant.
-    for (const spec of [AVATAR_BUCKET, AD_STUDIO_BUCKET, DOCUMENTS_BUCKET]) {
+    // `studies` relève du même cas — une poignée d'études par an — et il avait
+    // justement dérivé vers « aucun type ni taille interdits ».
+    for (const spec of [AVATAR_BUCKET, AD_STUDIO_BUCKET, DOCUMENTS_BUCKET, STUDIES_BUCKET]) {
       try {
         await ensureBucket(db, spec)
       } catch (e) {

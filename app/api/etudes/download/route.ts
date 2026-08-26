@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseAdmin } from '@/lib/supabase-server'
+import { STUDIES_BUCKET } from '@/lib/storage-buckets'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: signed, error: signError } = await admin.storage
-      .from('studies')
+      .from(STUDIES_BUCKET.name)
       .createSignedUrl((study as any).file_path, SIGNED_URL_TTL_SECONDS, { download: true })
 
     if (signError || !signed?.signedUrl) {

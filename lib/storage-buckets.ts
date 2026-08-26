@@ -98,6 +98,34 @@ export const DOCUMENTS_BUCKET: BucketSpec = {
   allowedMimeTypes: DOCUMENT_ALLOWED_TYPES,
 }
 
+export const STUDY_MAX_BYTES = 100 * 1024 * 1024
+export const STUDY_MAX_LABEL = "100 Mo"
+export const STUDY_ALLOWED_TYPES = ["application/pdf"]
+
+/**
+ * Aimants à leads : le PDF d'une étude, remis contre une adresse e-mail.
+ *
+ * PRIVÉ, et c'est tout l'intérêt du dispositif : /api/etudes/download vérifie le
+ * jeton du lead avant de signer un lien d'une heure. Une URL publique stable
+ * suffirait à faire circuler le PDF sans laisser une seule adresse en base.
+ *
+ * 100 Mo contre 10 pour `documents` : une étude illustrée pèse bien plus qu'un
+ * devis, et le fichier ne transite pas par la fonction serverless — le
+ * navigateur écrit directement via une URL d'upload signée.
+ *
+ * `application/pdf` seul : le bucket avait dérivé en production vers aucune
+ * restriction de type ni de taille, alors que la route annonçait ces deux
+ * limites depuis toujours. Un HTML ou un SVG porteur de script y était donc
+ * accepté — servi ensuite sur l'origine du stockage par le lien signé, qui ne
+ * regarde pas ce qu'il sert.
+ */
+export const STUDIES_BUCKET: BucketSpec = {
+  name: "studies",
+  public: false,
+  fileSizeLimit: STUDY_MAX_BYTES,
+  allowedMimeTypes: STUDY_ALLOWED_TYPES,
+}
+
 /** Réconcilié une fois par processus : la config ne bouge pas en cours de vie. */
 const reconciled = new Set<string>()
 

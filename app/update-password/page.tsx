@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, Eye, EyeOff, CheckCircle2, ArrowLeft, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,7 +77,7 @@ function UpdatePasswordContent() {
         // Écouter les changements d'auth — PASSWORD_RECOVERY / SIGNED_IN /
         // INITIAL_SESSION valident la session. Pas de boucle de retry getUser() :
         // onAuthStateChange est la source de vérité du flux implicite.
-        const { data: { subscription: sub } } = supabase.auth.onAuthStateChange(async (event, sess) => {
+        const { data: { subscription: sub } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, sess: Session | null) => {
           if (!mounted) return;
           if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || (event === 'INITIAL_SESSION' && sess?.user)) {
             setIsValidSession(true);

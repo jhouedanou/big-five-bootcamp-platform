@@ -61,7 +61,7 @@ function useRecentCampaigns() {
       .from("campaigns")
       .select("id, title, category, thumbnail, slug")
       .eq("status", "Publié")
-      .then(({ data }) => {
+      .then(({ data }: { data: any[] | null }) => {
         const all: RecentCampaign[] = (data || []).map((c: any) => ({
           ...c,
           title: fixBrokenEncoding(c.title),

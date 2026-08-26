@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createClient as createBrowserClient } from "@/lib/supabase";
 
-let _supabaseAdmin: ReturnType<typeof createClient> | null = null;
+// Sans paramètre de schéma, `.from("reactions")` type ses lignes `never` et
+// toute lecture de colonne échoue. Même convention que lib/storage-buckets.ts.
+let _supabaseAdmin: SupabaseClient<any, any, any> | null = null;
 function getSupabaseAdmin() {
   if (!_supabaseAdmin) {
     _supabaseAdmin = createClient(

@@ -138,13 +138,26 @@ un nom `-1200.webp`, suffixe menteur que plus rien ne rattraperait.
   bucket privé avec URL signée.
 - `/grid.svg`, référencé par `app/update-password/page.tsx`, n'existe pas dans le
   dépôt (fond décoratif, antérieur à cette session).
+- **Avertissement d'hydratation sur `/demo`** (« server rendered text did not
+  match »), constaté au passage et antérieur : la page ne contient elle-même
+  aucune source de non-déterminisme, la différence vient d'un composant partagé.
+  Non traité.
 - Bucket `studies` : 1 PDF de 91,7 Mo, le plus gros objet du projet.
 
 ## Pièges connus
 
-- **14 erreurs TypeScript préexistantes** hors chantier (`app/api/reactions`,
-  `app/login`, `app/demo`, `app/update-password`, `components/navbar`,
-  `hero-section`). Vérifié après chaque lot : le compte est resté à 14.
+- **Les 14 erreurs TypeScript préexistantes sont corrigées** (9 lignes, en fin de
+  session) : `npx tsc --noEmit` renvoie désormais **zéro erreur**. Six d'entre
+  elles venaient d'une seule cause — le client admin de
+  `app/api/reactions/[campaignId]/route.ts` était créé sans paramètre de schéma,
+  d'où des lignes typées `never` ; il est maintenant `SupabaseClient<any, any,
+  any>`, comme dans `lib/storage-buckets.ts`. Les 8 autres étaient des
+  annotations manquantes. **Toutes les modifications sont de niveau type
+  (annotations, imports `type`) : effacées à la compilation, aucun effet à
+  l'exécution.**
+- Le seuil de référence n'est donc plus 14 mais **0** : toute nouvelle erreur
+  est à attribuer au code en cours, d'autant que `ignoreBuildErrors: true`
+  empêche le build de les signaler.
 - `hooks/use-bulk-upload.ts` : `useBulkUpload` n'a **aucun appelant**, sa
   normalisation est du code mort. Seules trois constantes servent, dans
   l'éditeur inline. Ne pas s'y fier comme référence.

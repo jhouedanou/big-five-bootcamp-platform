@@ -5,6 +5,7 @@ import React from "react"
 import Link from "next/link"
 import { useState, useEffect } from "react"
 import { trackEvent } from "@/lib/analytics"
+import type { User } from "@supabase/supabase-js"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Eye, EyeOff, Mail, Lock, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -55,7 +56,7 @@ export default function LoginPage() {
   useEffect(() => {
     let cancelled = false
     const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(({ data: { user } }: { data: { user: User | null } }) => {
       if (!cancelled && user) {
         window.location.href = redirectTo
       }

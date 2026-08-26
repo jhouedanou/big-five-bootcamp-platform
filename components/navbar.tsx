@@ -88,12 +88,12 @@ export function Navbar() {
       .select("value")
       .eq("key", "logo_url")
       .single()
-      .then(({ data }) => {
+      .then(({ data }: { data: { value: string } | null }) => {
         if (data?.value) setLogoUrl(data.value)
       })
   }, [])
 
-  const initials = userName ? userName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "?"
+  const initials = userName ? userName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2) : "?"
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[#F5F5F5] bg-white/95 backdrop-blur-xl dark:border-white/10 dark:bg-[#0F0F0F]/95">

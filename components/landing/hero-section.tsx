@@ -60,7 +60,11 @@ function useRecentCampaigns() {
     supabase
       .from("campaigns")
       .select("id, title, category, thumbnail, slug")
-      .eq("status", "Publié")
+      .in("status", ["Publié", "PubliÃ©"])
+      .order("created_at", { ascending: false })
+      // 4 cartes affichées : 24 récentes suffisent à varier le tirage, sans
+      // télécharger tout le catalogue dans le navigateur de chaque visiteur.
+      .limit(24)
       .then(({ data }: { data: any[] | null }) => {
         const all: RecentCampaign[] = (data || []).map((c: any) => ({
           ...c,
@@ -324,7 +328,6 @@ export function FeaturesSection() {
 
 export function PreviewSection() {
   const t = homepageContent.preview
-  const recentCampaigns = useRecentCampaigns()
 
   return (
     <section className="py-24 overflow-hidden bg-white">

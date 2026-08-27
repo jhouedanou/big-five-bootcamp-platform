@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import {
@@ -6,8 +7,11 @@ import {
     LEGAL_VERSION,
 } from "@/components/legal-content"
 
-export const metadata = {
-    title: "Politique de Confidentialité — Laveiye",
+export const metadata: Metadata = {
+    title: "Politique de Confidentialité | Laveiye",
+    description:
+        "Comment Laveiye collecte, utilise et protège vos données personnelles : compte, mesure d'audience, paiements et droits RGPD des utilisateurs.",
+    alternates: { canonical: "/privacy" },
 }
 
 export default function PrivacyPage() {

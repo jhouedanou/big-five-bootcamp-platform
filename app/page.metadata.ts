@@ -22,7 +22,7 @@ export const homeMetadata: Metadata = {
     locale: "fr_FR",
     images: [
       {
-        url: "/logo.png",
+        url: "/og-cover.png",
         width: 1200,
         height: 630,
         alt: homePreview.imageAlt,
@@ -35,7 +35,7 @@ export const homeMetadata: Metadata = {
     description: homePreview.description,
     images: [
       {
-        url: "/logo.png",
+        url: "/og-cover.png",
         alt: homePreview.imageAlt,
       },
     ],

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { cache } from "react";
 import { getSupabaseAdmin } from "@/lib/supabase-server";
 import ContentDetailClient from "./content-detail-client";
-import { permanentRedirect } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { fixBrokenEncoding, getGoogleDriveImageUrl } from "@/lib/utils";
 import { buildCampaignDescription, buildCampaignTitle } from "@/lib/seo/campaign-meta";
 
@@ -125,23 +125,30 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function ContentDetailPage({ params }: PageProps) {
   const { id } = await params;
 
-  // Si c'est un UUID et que la campagne a un slug, consolider vers l'URL slug.
-  if (isUUID(id)) {
-    let slugRedirect: string | null = null;
-    try {
-      const campaign = await getCampaignByIdOrSlug(id);
-      if (campaign?.slug) {
-        slugRedirect = campaign.slug;
-      }
-    } catch {
-      // Timeout ou erreur Supabase, continuer avec l'UUID
-    }
-    // Hors du try/catch : permanentRedirect lève une exception de contrôle,
-    // qui serait avalée par le catch ci-dessus. 308 (et non le 307 de
-    // `redirect`) pour que Google transfère le signal vers le slug.
-    if (slugRedirect) {
-      permanentRedirect(`/content/${slugRedirect}`);
-    }
+  let campaign: any = null;
+  let lookupFailed = false;
+  try {
+    campaign = await getCampaignByIdOrSlug(id);
+  } catch {
+    // Timeout ou erreur Supabase : la campagne existe peut-être. On laisse le
+    // client réessayer plutôt que de renvoyer un 404 à tort.
+    lookupFailed = true;
+  }
+
+  // Hors du try/catch : permanentRedirect et notFound lèvent des exceptions
+  // de contrôle, qui seraient avalées par le catch ci-dessus.
+
+  // UUID avec slug connu : consolider vers l'URL slug. 308 (et non le 307 de
+  // `redirect`) pour que Google transfère le signal.
+  if (isUUID(id) && campaign?.slug) {
+    permanentRedirect(`/content/${campaign.slug}`);
+  }
+
+  // Slug inconnu ou campagne non publiée : un vrai 404. L'ancien rendu
+  // renvoyait HTTP 200 avec un état d'erreur client — des soft-404 en masse
+  // dans Search Console, sur le gabarit qui porte 800+ URL.
+  if (!lookupFailed && (!campaign || !isPublished(campaign.status))) {
+    notFound();
   }
 
   return <ContentDetailClient id={id} />;

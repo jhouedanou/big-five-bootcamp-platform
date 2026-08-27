@@ -49,12 +49,15 @@ export const NOINDEX_PREFIXES: readonly string[] = [
   '/shared', // /shared/[token] — liens de partage privés
   '/account-deletion',
   '/webinaires', // /webinaires/[slug]/preview est réservé aux abonnés
+  // Revenu ici après tentative d'ouverture : la page redirige les anonymes
+  // vers /login et affiche « Plan Pro requis » aux non-Pro. Google verrait
+  // une coquille paywallée sous un beau titre. À rouvrir le jour où une
+  // vitrine publique existera — les balises de app/decrypte/layout.tsx
+  // sont prêtes et attendent ce moment.
+  '/decrypte',
 ]
 
 /**
- * `/decrypte` est volontairement absent des deux listes : la page est
- * publique et porte le cluster « analyse de campagne publicitaire ».
- *
  * Le préfixe est comparé sur une frontière de segment, pas par un
  * `startsWith` nu : sans cela `/pay` capturerait `/paywall`, et les futures
  * routes `/campagnes` et `/marques` risqueraient d'être happées par erreur.

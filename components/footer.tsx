@@ -37,7 +37,7 @@ export function Footer() {
             <Link href="/" className="group inline-flex items-center gap-3 transition-all duration-300">
               <div className="relative">
                 <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-[#F2B33D]/20 to-[#F2B33D]/20 opacity-0 blur transition-opacity duration-300 group-hover:opacity-100" />
-               <img src="/logo.png" className="w-56"/>
+               <img src="/logo.png" alt="Laveiye" width={379} height={80} loading="lazy" className="w-56"/>
               </div>
             </Link>
             <p className="mt-20 pt-6 text-sm leading-relaxed text-muted-foreground">
@@ -58,6 +58,10 @@ export function Footer() {
                   Tarifs
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </Link>
+                <Link href="/etudes/finance" className="group flex items-center text-sm text-muted-foreground transition-colors hover:text-[#F2B33D]">
+                  Étude Finance
+                  <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </Link>
                 {/* <Link href="/dashboard" className="group flex items-center text-sm text-[#0F0F0F]/60 transition-colors hover:text-[#F2B33D]">
                   Démo
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -72,6 +76,10 @@ export function Footer() {
                   Big Five
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </a>
+                <Link href="/about" className="group flex items-center text-sm text-muted-foreground transition-colors hover:text-[#F2B33D]">
+                  À propos
+                  <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </Link>
                 <Link href="/contact" className="group flex items-center text-sm text-muted-foreground transition-colors hover:text-[#F2B33D]">
                   Contact
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -109,6 +117,14 @@ export function Footer() {
                     </button>
                   }
                 />
+                <Link href="/terms" className="group flex items-center text-sm text-muted-foreground transition-colors hover:text-[#F2B33D]">
+                  Conditions d'utilisation
+                  <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </Link>
+                <Link href="/privacy" className="group flex items-center text-sm text-muted-foreground transition-colors hover:text-[#F2B33D]">
+                  Politique de confidentialité
+                  <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </Link>
                 <Link href="/account-deletion" className="group flex items-center text-sm text-muted-foreground transition-colors hover:text-[#F2B33D]">
                   Suppression de compte
                   <ArrowUpRight className="ml-1 h-3 w-3 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />

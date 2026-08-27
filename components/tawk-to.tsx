@@ -8,7 +8,9 @@ export function TawkTo() {
   if (pathname?.startsWith("/admin")) return null
 
   return (
-    <Script id="tawk-to" strategy="afterInteractive">
+    // `lazyOnload` : un widget de chat (~200 Ko) n'a rien à faire en concurrence
+    // avec l'hydratation — il pesait sur INP/TBT de toute la surface publique.
+    <Script id="tawk-to" strategy="lazyOnload">
       {`
         var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
         (function(){

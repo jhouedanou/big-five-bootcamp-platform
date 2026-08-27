@@ -65,9 +65,9 @@ export const metadata: Metadata = {
    */
   title: 'Bibliothèque de campagnes marketing en Afrique | Laveiye',
   description: "Analysez les campagnes publicitaires et social media d'Afrique francophone : filtres par pays, secteur, format, marque. Veille dès 1 000 FCFA/mois.",
-  // Un favicon se sert en tailles fixes. `favicon_onglet.png` faisait
-  // 8779 x 8779 px pour 568 Ko sur les trois usages — les fichiers aux bonnes
-  // dimensions existaient déjà dans public/, sans être référencés.
+  // Les trois PNG ci-dessous portent le visuel du logo — l'artwork historique
+  // de `favicon_onglet.png` (8779 x 8779 px, 568 Ko), réduit aux bonnes
+  // tailles avec sharp. Le fichier source, lui, ne revient pas.
   icons: {
     icon: [
       { url: '/icon-light-32x32.png', media: '(prefers-color-scheme: light)' },
@@ -79,40 +79,26 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     siteName: 'Laveiye',
-    /**
-   * Le mot-clé passe devant la marque : personne ne cherche « Laveiye »
-   * sans déjà la connaître — 92 des 94 clics du trimestre étaient des
-   * requêtes de navigation sur le nom.
-   *
-   * `default` sans `template` : 18 pages écrivent déjà « … | Laveiye » en
-   * dur, un template leur ajouterait un second suffixe.
-   */
-  title: 'Bibliothèque de campagnes marketing en Afrique | Laveiye',
+    title: 'Bibliothèque de campagnes marketing en Afrique | Laveiye',
     description: "Analysez les campagnes publicitaires et social media d'Afrique francophone : filtres par pays, secteur, format, marque. Veille dès 1 000 FCFA/mois.",
     url: siteUrl,
     locale: 'fr_FR',
     images: [
       {
-        url: '/logo.png',
+        // og-cover.png fait réellement 1200 x 630 — l'ancien /logo.png
+        // (379 x 80) déclaré à ces dimensions cassait les cartes de partage.
+        url: '/og-cover.png',
         width: 1200,
         height: 630,
-        alt: 'Laveiye',
+        alt: 'Laveiye — la bibliothèque de campagnes marketing d\'Afrique francophone',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    /**
-   * Le mot-clé passe devant la marque : personne ne cherche « Laveiye »
-   * sans déjà la connaître — 92 des 94 clics du trimestre étaient des
-   * requêtes de navigation sur le nom.
-   *
-   * `default` sans `template` : 18 pages écrivent déjà « … | Laveiye » en
-   * dur, un template leur ajouterait un second suffixe.
-   */
-  title: 'Bibliothèque de campagnes marketing en Afrique | Laveiye',
+    title: 'Bibliothèque de campagnes marketing en Afrique | Laveiye',
     description: "Analysez les campagnes publicitaires et social media d'Afrique francophone : filtres par pays, secteur, format, marque. Veille dès 1 000 FCFA/mois.",
-    images: ['/logo.png'],
+    images: ['/og-cover.png'],
   },
 }
 
@@ -173,12 +159,10 @@ export default async function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Karla:ital,wght@0,200..800;1,200..800&family=Outfit:wght@300;400;500;600;700;800&display=swap"
         />
         {/* Préchargement des icônes du menu utilisateur pour éviter le flash au survol/ouverture */}
-        <link rel="preload" as="image" href="/icons/Bibliotheque.svg" />
-        <link rel="preload" as="image" href="/icons/Temps_forts.svg" />
-        <link rel="preload" as="image" href="/icons/Favoris.svg" />
-        <link rel="preload" as="image" href="/icons/Collections.svg" />
-        <link rel="preload" as="image" href="/icons/Veille.svg" />
-        <link rel="preload" as="image" href="/icons/Profil.svg" />
+        {/* Seul asset réellement affiché parmi les icônes autrefois préchargées
+            (navbar + profil). Les 6 autres SVG ne sont rendus par aucun composant
+            — les précharger en priorité haute sur chaque page retardait la LCP
+            pour rien. */}
         <link rel="preload" as="image" href="/icons/default-avatar.svg" />
       </head>
       <body className="font-sans antialiased">

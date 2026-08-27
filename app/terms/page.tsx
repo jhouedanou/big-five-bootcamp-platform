@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
 import {
@@ -6,8 +7,11 @@ import {
     LEGAL_VERSION,
 } from "@/components/legal-content"
 
-export const metadata = {
-    title: "Conditions Générales d'Utilisation — Laveiye",
+export const metadata: Metadata = {
+    title: "Conditions Générales d'Utilisation | Laveiye",
+    description:
+        "Les conditions d'utilisation et de vente de Laveiye : abonnements, paiements mobile money, accès à la bibliothèque de campagnes et droits des utilisateurs.",
+    alternates: { canonical: "/terms" },
 }
 
 export default function TermsPage() {

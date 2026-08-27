@@ -1,27 +1,25 @@
 import type { MetadataRoute } from "next"
-import { getStudySlugs } from "@/lib/studies"
+import { getAllStudySlugs } from "@/lib/studies-server"
+import { isNoIndexPath } from "@/lib/seo/robots-policy"
 
 const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://laveiye.com").replace(/\/$/, "")
 
 type SitemapEntry = MetadataRoute.Sitemap[number]
 
-/** Landings d'étude — publiques et indexables, cibles des campagnes. */
-const studyRoutes: SitemapEntry[] = getStudySlugs().map((slug) => ({
-  url: `${siteUrl}/etudes/${slug}`,
-  changeFrequency: "monthly",
-  priority: 0.9,
-}))
+/**
+ * Le sitemap lit la table `studies` : figé au build, il raterait toute étude
+ * publiée depuis l'admin entre deux déploiements. `revalidate` serait sans
+ * effet ici — open-next.config.ts ne déclare aucun incrementalCache et
+ * wrangler.jsonc n'a ni KV ni R2, donc rien où écrire un cache incrémental.
+ * Un sitemap n'est demandé que par les crawlers : le coût est négligeable.
+ */
+export const dynamic = "force-dynamic"
 
 const staticRoutes: SitemapEntry[] = [
   {
     url: `${siteUrl}/`,
     changeFrequency: "weekly",
     priority: 1,
-  },
-  {
-    url: `${siteUrl}/library`,
-    changeFrequency: "daily",
-    priority: 0.95,
   },
   {
     url: `${siteUrl}/pricing`,
@@ -32,26 +30,6 @@ const staticRoutes: SitemapEntry[] = [
     url: `${siteUrl}/decrypte`,
     changeFrequency: "weekly",
     priority: 0.85,
-  },
-  {
-    url: `${siteUrl}/keynote`,
-    changeFrequency: "weekly",
-    priority: 0.85,
-  },
-  {
-    url: `${siteUrl}/temps-forts`,
-    changeFrequency: "weekly",
-    priority: 0.8,
-  },
-  {
-    url: `${siteUrl}/community`,
-    changeFrequency: "weekly",
-    priority: 0.75,
-  },
-  {
-    url: `${siteUrl}/demo`,
-    changeFrequency: "monthly",
-    priority: 0.7,
   },
   {
     url: `${siteUrl}/about`,
@@ -76,5 +54,29 @@ const staticRoutes: SitemapEntry[] = [
 ]
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  return [...staticRoutes, ...studyRoutes]
+  // getAllStudySlugs fusionne les slugs codés et ceux de la table `studies` :
+  // getStudySlugs() ne renvoyait que `finance`, et les études créées depuis
+  // l'admin restaient invisibles des crawlers.
+  const studySlugs = await getAllStudySlugs()
+
+  const entries: SitemapEntry[] = [
+    ...staticRoutes,
+    ...studySlugs.map((slug) => ({
+      url: `${siteUrl}/etudes/${slug}`,
+      changeFrequency: "monthly" as const,
+      priority: 0.9,
+    })),
+  ]
+
+  // Filet de sécurité : une route qui deviendrait noindex sort d'elle-même
+  // du sitemap, sans qu'on ait à y penser ici.
+  const indexable = entries.filter((entry) => !isNoIndexPath(new URL(entry.url).pathname))
+
+  if (indexable.length !== entries.length) {
+    console.warn(
+      `[sitemap] ${entries.length - indexable.length} URL noindex écartée(s) du sitemap`,
+    )
+  }
+
+  return indexable
 }

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { MAINTENANCE_MODE_KEY, parseMaintenanceMode } from '@/lib/maintenance-mode'
 import { updateSession } from '@/utils/supabase/proxy'
+import { isNoIndexPath } from '@/lib/seo/robots-policy'
 
 const MAINTENANCE_CACHE_TTL_MS = 15_000
 
@@ -40,36 +41,12 @@ function isMaintenanceBypassPath(pathname: string) {
   )
 }
 
+/**
+ * La liste vit dans lib/seo/robots-policy.ts, partagée avec app/sitemap.ts
+ * pour qu'une route ne puisse plus être à la fois au sitemap et en noindex.
+ */
 function shouldNoIndexPath(pathname: string) {
-  return (
-    pathname === '/maintenance' ||
-    pathname === '/library' ||
-    pathname === '/community' ||
-    pathname === '/demo' ||
-    pathname.startsWith('/admin') ||
-    pathname.startsWith('/onboarding') ||
-    pathname.startsWith('/dashboard') ||
-    pathname.startsWith('/favorites') ||
-    pathname.startsWith('/profile') ||
-    pathname.startsWith('/settings') ||
-    pathname.startsWith('/subscribe') ||
-    pathname.startsWith('/pay') ||
-    pathname.startsWith('/payment') ||
-    pathname.startsWith('/paywall') ||
-    pathname.startsWith('/studio-pub') ||
-    pathname.startsWith('/campaign-generator') ||
-    pathname.startsWith('/notifications') ||
-    // Lien personnel porteur d'un jeton : hors index. Le reste de /etudes
-    // reste indexable, c'est la destination des campagnes.
-    pathname.startsWith('/etudes/telechargement') ||
-    pathname.startsWith('/decrypte') ||
-    pathname.startsWith('/temps-forts') ||
-    pathname.startsWith('/login') ||
-    pathname.startsWith('/register') ||
-    pathname.startsWith('/forgot-password') ||
-    pathname.startsWith('/update-password') ||
-    pathname.startsWith('/auth')
-  )
+  return isNoIndexPath(pathname)
 }
 
 function withRobotsHeader(response: NextResponse, pathname: string) {

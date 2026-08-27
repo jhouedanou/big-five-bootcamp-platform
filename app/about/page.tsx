@@ -3,19 +3,35 @@ import { Footer } from "@/components/footer"
 import { Users, Target, Rocket, Heart } from "lucide-react"
 import type { Metadata } from "next"
 
+/**
+ * « Intelligence créative africaine » est une belle formule mais un mauvais
+ * mot-clé : personne ne la tape. « Veille créative » est le terme que le
+ * métier emploie.
+ */
+const title = "À propos de Laveiye | La veille créative africaine"
+
+const description =
+    "Laveiye rassemble les campagnes marketing d'Afrique francophone en une " +
+    "bibliothèque analysable. Notre mission, notre méthode de collecte et l'équipe."
+
 export const metadata: Metadata = {
-    title: "À propos de Laveiye | Intelligence créative africaine",
-    description:
-        "Découvrez Laveiye, la plateforme de veille créative pensée pour aider les professionnels du marketing à analyser les meilleures campagnes africaines.",
+    title,
+    description,
     alternates: {
         canonical: "/about",
     },
     openGraph: {
-        title: "À propos de Laveiye | Intelligence créative africaine",
-        description:
-            "Découvrez Laveiye, la plateforme de veille créative pensée pour aider les professionnels du marketing à analyser les meilleures campagnes africaines.",
+        title,
+        description,
         url: "/about",
         type: "website",
+        siteName: "Laveiye",
+        locale: "fr_FR",
+    },
+    twitter: {
+        card: "summary_large_image",
+        title,
+        description,
     },
 }
 

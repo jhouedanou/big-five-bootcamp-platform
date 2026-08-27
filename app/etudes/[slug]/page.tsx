@@ -38,7 +38,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params
   const study = await getStudy(slug)
-  if (!study) return { title: 'Étude introuvable' }
+  // Sans robots:noindex, une étude désactivée reste une URL indexable
+  // au titre générique.
+  if (!study) return { title: 'Étude introuvable', robots: { index: false, follow: false } }
 
   const { content } = study
   const title = content.subtitle ? `${content.title} — ${content.subtitle}` : content.title
@@ -56,7 +58,7 @@ export async function generateMetadata({
       url,
       title,
       description: content.metaDescription,
-      siteName: 'Big Five',
+      siteName: 'Laveiye',
       locale: 'fr_FR',
       images: [{ url: image, alt: content.cover.alt }],
     },

@@ -1,10 +1,10 @@
 import type { Metadata } from "next"
 
 const homePreview = {
-  title: "Laveiye | Bibliothèque de campagnes marketing africaines",
+  title: "Bibliothèque de campagnes marketing en Afrique | Laveiye",
   description:
-    "Accédez à une bibliothèque de campagnes marketing réelles en Afrique. Analysez, benchmarkez et trouvez des inspirations créatives par pays, secteur et marque.",
-  imageAlt: "Laveiye - Bibliothèque de campagnes marketing africaines",
+    "Analysez les campagnes publicitaires et social media d'Afrique francophone : filtres par pays, secteur, format, marque. Veille dès 1 000 FCFA/mois.",
+  imageAlt: "Laveiye — bibliothèque de campagnes marketing africaines",
 }
 
 export const homeMetadata: Metadata = {

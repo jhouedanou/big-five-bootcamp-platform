@@ -76,7 +76,7 @@ const FINANCE: StudyContent = {
   finalCtaText:
     'Découvrez les tendances, les axes de communication et les contenus qui structurent la communication digitale des marques financières.',
   metaDescription:
-    'Étude Big Five × Laveiye — Tome 1 : Finance. Tendances créatives, axes de communication et contenus des marques financières en Afrique francophone. Téléchargement gratuit.',
+    'Tome 1 : Finance. Tendances créatives, axes de communication et contenus des banques et fintechs d\'Afrique francophone. Étude Big Five × Laveiye, gratuite.',
 }
 
 const STUDIES: Record<string, StudyContent> = {

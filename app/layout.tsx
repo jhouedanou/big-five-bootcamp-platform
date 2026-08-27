@@ -48,12 +48,23 @@ async function resolveTrackingIds(): Promise<{
   }
 }
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://laveiye.com'
+// Le `.replace` aligne ce fichier sur app/sitemap.ts, app/robots.ts et
+// app/content/sitemap.ts : sans lui, un NEXT_PUBLIC_SITE_URL terminé par un
+// slash produirait des canonicals en `//`.
+const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || 'https://laveiye.com').replace(/\/$/, '')
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: 'Laveiye | Bibliothèque de campagnes marketing africaines',
-  description: 'Analysez les campagnes publicitaires et social media en Afrique francophone. Benchmark, veille créative, inspirations et filtres par pays, secteur et marque.',
+  /**
+   * Le mot-clé passe devant la marque : personne ne cherche « Laveiye »
+   * sans déjà la connaître — 92 des 94 clics du trimestre étaient des
+   * requêtes de navigation sur le nom.
+   *
+   * Pas de `title.template` ici : 18 pages écrivent déjà « … | Laveiye »
+   * en dur, un template leur ajouterait un second suffixe.
+   */
+  title: 'Bibliothèque de campagnes marketing en Afrique | Laveiye',
+  description: "Analysez les campagnes publicitaires et social media d'Afrique francophone : filtres par pays, secteur, format, marque. Veille dès 1 000 FCFA/mois.",
   // Un favicon se sert en tailles fixes. `favicon_onglet.png` faisait
   // 8779 x 8779 px pour 568 Ko sur les trois usages — les fichiers aux bonnes
   // dimensions existaient déjà dans public/, sans être référencés.
@@ -68,8 +79,16 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     siteName: 'Laveiye',
-    title: 'Laveiye | Bibliothèque de campagnes marketing africaines',
-    description: 'Analysez les campagnes publicitaires et social media en Afrique francophone. Benchmark, veille créative, inspirations et filtres par pays, secteur et marque.',
+    /**
+   * Le mot-clé passe devant la marque : personne ne cherche « Laveiye »
+   * sans déjà la connaître — 92 des 94 clics du trimestre étaient des
+   * requêtes de navigation sur le nom.
+   *
+   * `default` sans `template` : 18 pages écrivent déjà « … | Laveiye » en
+   * dur, un template leur ajouterait un second suffixe.
+   */
+  title: 'Bibliothèque de campagnes marketing en Afrique | Laveiye',
+    description: "Analysez les campagnes publicitaires et social media d'Afrique francophone : filtres par pays, secteur, format, marque. Veille dès 1 000 FCFA/mois.",
     url: siteUrl,
     locale: 'fr_FR',
     images: [
@@ -83,8 +102,16 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Laveiye | Bibliothèque de campagnes marketing africaines',
-    description: 'Analysez les campagnes publicitaires et social media en Afrique francophone. Benchmark, veille créative, inspirations et filtres par pays, secteur et marque.',
+    /**
+   * Le mot-clé passe devant la marque : personne ne cherche « Laveiye »
+   * sans déjà la connaître — 92 des 94 clics du trimestre étaient des
+   * requêtes de navigation sur le nom.
+   *
+   * `default` sans `template` : 18 pages écrivent déjà « … | Laveiye » en
+   * dur, un template leur ajouterait un second suffixe.
+   */
+  title: 'Bibliothèque de campagnes marketing en Afrique | Laveiye',
+    description: "Analysez les campagnes publicitaires et social media d'Afrique francophone : filtres par pays, secteur, format, marque. Veille dès 1 000 FCFA/mois.",
     images: ['/logo.png'],
   },
 }

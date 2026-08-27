@@ -47,7 +47,7 @@ const STATUS_TO_EMAIL: Partial<Record<string, BrandEmailKind>> = {
 
 export async function GET() {
   try {
-    if (!process.env.SUPABASE_SECRET_KEY) {
+    if (!(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)) {
       console.error('[admin/brand-requests] missing SUPABASE_SECRET_KEY')
       return NextResponse.json(
         { error: 'Server misconfiguration: SUPABASE_SECRET_KEY not set' },
@@ -89,7 +89,7 @@ export async function GET() {
 
 export async function PATCH(request: NextRequest) {
   try {
-    if (!process.env.SUPABASE_SECRET_KEY) {
+    if (!(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)) {
       console.error('[admin/brand-requests PATCH] missing SUPABASE_SECRET_KEY')
       return NextResponse.json(
         { error: 'Server misconfiguration: SUPABASE_SECRET_KEY not set' },
@@ -282,7 +282,7 @@ export async function PATCH(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    if (!process.env.SUPABASE_SECRET_KEY) {
+    if (!(process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)) {
       console.error('[admin/brand-requests DELETE] missing SUPABASE_SECRET_KEY')
       return NextResponse.json(
         { error: 'Server misconfiguration: SUPABASE_SECRET_KEY not set' },

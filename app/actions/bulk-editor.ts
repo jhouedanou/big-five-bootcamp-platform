@@ -12,7 +12,7 @@ import { classifyMediaHosting, type MediaState } from "@/lib/media-validation"
 
 function getSupabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SECRET_KEY
+  const key = (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)
   if (!url || !key) {
     throw new Error("SUPABASE_SECRET_KEY required for admin operations")
   }

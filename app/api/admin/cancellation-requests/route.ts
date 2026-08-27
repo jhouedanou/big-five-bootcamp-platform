@@ -28,7 +28,7 @@ async function getAuthenticatedAdmin() {
 
   // Vérifier que l'utilisateur est admin
   const adminUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const adminKey = process.env.SUPABASE_SECRET_KEY
+  const adminKey = (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)
   if (!adminUrl || !adminKey) {
     // Misconfig serveur — fail-safe. Le caller voit "non autorisé" plutôt
     // que de remonter un détail de config.

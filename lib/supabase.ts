@@ -115,7 +115,7 @@ export const getSupabaseAdmin = () => {
   if (adminClient) return adminClient
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SECRET_KEY
+  const serviceKey = (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)
   if (!url || !serviceKey) {
     // Aucun fallback ANON : ces routes ont besoin des privilèges service_role.
     // Tomber sur la clé anon ferait échouer silencieusement les writes admin

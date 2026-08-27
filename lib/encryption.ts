@@ -35,7 +35,7 @@ function getEncryptionKey(): Buffer {
     )
   }
 
-  const serviceKey = process.env.SUPABASE_SECRET_KEY
+  const serviceKey = (process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY)
   if (!serviceKey) {
     throw new Error(
       'Aucune clé de chiffrement disponible : ENCRYPTION_KEY (64 hex) ou SUPABASE_SECRET_KEY doit être configurée.'

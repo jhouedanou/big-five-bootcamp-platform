@@ -141,14 +141,27 @@ function StudioGatewayButton({
   content,
   isFreeUser,
 }: {
-  content: { category?: string | null; platforms?: string[] | null }
+  content: {
+    id?: string | null
+    category?: string | null
+    platforms?: string[] | null
+    brand?: string | null
+    format?: string | null
+  }
   isFreeUser: boolean
 }) {
+  // `campaignId` est le paramètre qui compte : le studio s'en sert pour
+  // reprendre le visuel de référence côté serveur (POST /api/studio/reference),
+  // garde premium incluse. Ne jamais passer le thumbnail en URL — contenu
+  // premium, la reprise doit rester serveur.
   const href = isFreeUser
     ? "/pricing?source=studio"
     : `/studio-pub?${new URLSearchParams({
+        ...(content.id ? { campaignId: content.id } : {}),
         ...(content.category ? { secteur: content.category } : {}),
         ...(content.platforms?.[0] ? { canal: content.platforms[0] } : {}),
+        ...(content.brand ? { marque: content.brand } : {}),
+        ...(content.format ? { format: content.format } : {}),
       }).toString()}`
 
   return (
@@ -211,7 +224,12 @@ export default function ContentDetailClient({ id }: { id: string }) {
   const [bottomSheetOpen, setBottomSheetOpen] = useState(false);
   const [bottomSheetRemaining, setBottomSheetRemaining] = useState(0);
   const trackedRef = useRef(false);
-  const isFreeUser = !isPaidPlan(userPlan);
+  // Plan lu depuis le contexte d'auth, comme canViewPremium juste dessous.
+  // L'ancien calcul reposait sur le state local `userPlan`, alimenté
+  // uniquement par la réponse de /api/track-click (qui renvoie isFree pour
+  // Discovery et dont les erreurs sont avalées) : abonnés Discovery, clics
+  // rapides et échecs réseau voyaient le bouton studio pointer sur /pricing.
+  const isFreeUser = !isPaidPlan(contextUserPlan);
   // Gate Premium : seuls les abonnés Basic ou Pro (ou admins) peuvent voir une campagne premium.
   const isPremiumContent = (content?.access_level || '').toLowerCase() === 'premium';
   const canViewPremium = isAdmin || canAccessPremiumContent(contextUserPlan);

@@ -179,28 +179,79 @@ function StudioConversation() {
     const seeded: Record<string, string> = {};
     const secteur = searchParams.get("secteur");
     const canal = searchParams.get("canal");
+    const marque = searchParams.get("marque");
+    const format = searchParams.get("format");
+    const campaignId = searchParams.get("campaignId");
     if (secteur) seeded.secteur = secteur;
     if (canal) seeded.canal = canal;
+    if (marque) seeded.marque = marque;
+    if (format) seeded.format = format;
     if (Object.keys(seeded).length) setBrief(seeded);
 
     say({
       role: "assistant",
       text: "Bonjour ! Je vais vous aider à créer une nouvelle publicité à partir d'une création qui vous inspire. Sa logique — accroche, émotion, structure — sera transposée à votre projet, sans jamais copier le visuel d'origine.",
     });
-    if (seeded.secteur || seeded.canal) {
+    if (seeded.secteur || seeded.canal || seeded.marque) {
       const parts = [
         seeded.secteur ? `le secteur « ${seeded.secteur} »` : null,
         seeded.canal ? `le canal « ${seeded.canal} »` : null,
+        seeded.marque ? `la marque « ${seeded.marque} »` : null,
       ].filter(Boolean);
       say({
         role: "assistant",
-        text: `J'ai repris ${parts.join(" et ")} de la campagne que vous consultiez — vous pourrez me corriger si besoin.`,
+        text: `J'ai repris ${parts.join(", ")} de la campagne que vous consultiez — vous pourrez me corriger si besoin.`,
       });
     }
-    say({
-      role: "assistant",
-      text: "Pour commencer, envoyez-moi votre création de référence (PNG, JPEG ou WebP, 8 Mo max) avec le bouton ci-dessous.",
-    });
+
+    const askForUpload = () =>
+      say({
+        role: "assistant",
+        text: "Pour commencer, envoyez-moi votre création de référence (PNG, JPEG ou WebP, 8 Mo max) avec le bouton ci-dessous.",
+      });
+
+    // Arrivée depuis « S'en inspirer dans le studio » : la campagne consultée
+    // devient la référence, récupérée côté serveur (garde premium comprise).
+    // En cas d'échec — 403 premium_required pour Discovery, visuel absent,
+    // réseau — on retombe simplement sur le parcours d'upload habituel.
+    if (campaignId) {
+      say({ role: "assistant", text: "Je récupère le visuel de la campagne comme référence…" });
+      void (async () => {
+        try {
+          const res = await fetch("/api/studio/reference", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ campaignId }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            say({
+              role: "assistant",
+              error: true,
+              text: data.error || "La récupération du visuel a échoué.",
+            });
+            askForUpload();
+            return;
+          }
+          setReferencePath(data.path);
+          say({ role: "assistant", text: "Bien reçu, votre référence est enregistrée." });
+          advance(seeded);
+        } catch {
+          say({
+            role: "assistant",
+            error: true,
+            text: "Erreur réseau pendant la récupération du visuel.",
+          });
+          askForUpload();
+        }
+      })();
+      return;
+    }
+
+    askForUpload();
+    // advance est déclaré plus bas dans le composant : initialisé au premier
+    // rendu, donc disponible quand cet effet (gardé par startedRef) s'exécute.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [say, searchParams]);
 
   /** Prochaine question obligatoire sans réponse, ou passage aux précisions. */

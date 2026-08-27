@@ -1,12 +1,21 @@
 const required = [
   'NEXT_PUBLIC_SUPABASE_URL',
-  'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
 ]
 
-const missing = required.filter((name) => {
+// L'une OU l'autre des deux clés publiques Supabase suffit (renommage
+// anon key -> publishable key ; les environnements de déploiement peuvent
+// encore définir l'ancien nom).
+const anyOf = ['NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'NEXT_PUBLIC_SUPABASE_ANON_KEY']
+
+const hasValue = (name) => {
   const value = process.env[name]
-  return !value || !String(value).trim()
-})
+  return !!value && !!String(value).trim()
+}
+
+const missing = required.filter((name) => !hasValue(name))
+if (!anyOf.some(hasValue)) {
+  missing.push(anyOf.join(' or '))
+}
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || ''
 const appUrlInvalid =
@@ -14,7 +23,7 @@ const appUrlInvalid =
   (!!appUrl && (!/^https:\/\//i.test(appUrl) || /localhost|127\.0\.0\.1/i.test(appUrl)))
 
 console.log('[verify-build-env] NODE_ENV=', process.env.NODE_ENV || '(unset)')
-for (const name of required) {
+for (const name of [...required, ...anyOf]) {
   const value = process.env[name]
   const status = value ? `ok (len=${String(value).length})` : 'missing'
   console.log(`[verify-build-env] ${name}: ${status}`)

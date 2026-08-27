@@ -10,7 +10,7 @@ const globalForSupabase = globalThis as typeof globalThis & {
 
 export const createClient = () => {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  const key = (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 
   // During static prerendering or when env vars are missing in production
   // (e.g. NEXT_PUBLIC_* not set in Cloudflare Pages build env) — return a

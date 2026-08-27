@@ -15,6 +15,7 @@ import {
   VIDEO_UPLOAD_ERROR_DESCRIPTION,
   IMAGE_TYPE_ERROR_TITLE,
   IMAGE_TYPE_ERROR_DESCRIPTION,
+  WEBP_CONVERTER_URL,
   IMAGE_TOO_LARGE_ERROR,
 } from "@/lib/upload-messages"
 
@@ -76,7 +77,8 @@ export function ImageUpload({
     }
 
     // Vérifier le type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif']
+    // WebP uniquement : cf. lib/upload-messages.ts pour la raison.
+    const allowedTypes = ['image/webp']
     if (!allowedTypes.includes(file.type)) {
       setUploadError(`${IMAGE_TYPE_ERROR_TITLE} (${file.type || "inconnu"}). ${IMAGE_TYPE_ERROR_DESCRIPTION}`)
       toast.error(IMAGE_TYPE_ERROR_TITLE, {
@@ -264,7 +266,20 @@ export function ImageUpload({
                   Cliquez ou glissez une image ici
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
-                  JPG, PNG, WebP, GIF • Max 10 MB
+                  WebP uniquement • Max 10 MB
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Autre format ? Convertissez-le avec{" "}
+                  <a
+                    href={WEBP_CONVERTER_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    WebP Converter
+                  </a>
+                  .
                 </p>
               </div>
             </div>
@@ -284,7 +299,7 @@ export function ImageUpload({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
+        accept="image/webp,.webp"
         className="hidden"
         onChange={handleFileSelect}
         disabled={isUploading}
@@ -370,7 +385,8 @@ export function ImageUploadButton({ onUploaded, className, preset }: ImageUpload
       })
       return
     }
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/gif']
+    // WebP uniquement : cf. lib/upload-messages.ts pour la raison.
+    const allowedTypes = ['image/webp']
     if (!allowedTypes.includes(file.type)) {
       toast.error(IMAGE_TYPE_ERROR_TITLE, { description: IMAGE_TYPE_ERROR_DESCRIPTION })
       return
@@ -415,7 +431,7 @@ export function ImageUploadButton({ onUploaded, className, preset }: ImageUpload
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
+        accept="image/webp,.webp"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0]

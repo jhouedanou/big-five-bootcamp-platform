@@ -15,7 +15,20 @@ export const VIDEO_UPLOAD_ERROR_TITLE = "Fichier vidéo refusé — ce champ acc
 export const VIDEO_UPLOAD_ERROR_DESCRIPTION =
   "Les vidéos (MP4, MOV…) ne s'uploadent pas ici. Mettez la vidéo en ligne sur la chaîne YouTube du compte analyticsbigfive@gmail.com, puis collez le lien YouTube dans le champ « Lien vidéo » de la campagne."
 
-export const IMAGE_TYPE_ERROR_TITLE = "Type de fichier non supporté"
-export const IMAGE_TYPE_ERROR_DESCRIPTION = "Formats acceptés : JPG, PNG, WebP, GIF, SVG."
+/**
+ * Décision produit (27/08/2026) : l'admin n'accepte plus que le WebP.
+ * La conversion serveur repose sur sharp, absent du runtime Cloudflare
+ * Workers — un JPG accepté en prod partait donc plein poids dans le bucket.
+ * L'admin convertit en amont avec l'app recommandée ci-dessous.
+ */
+export const WEBP_CONVERTER_URL =
+  "https://apps.apple.com/us/app/webp-converter/id1522368690?mt=12"
+
+export const VIDEO_CONVERTER_URL =
+  "https://apps.apple.com/us/app/the-video-converter/id1082682593?mt=12"
+
+export const IMAGE_TYPE_ERROR_TITLE = "Seuls les fichiers WebP sont acceptés"
+export const IMAGE_TYPE_ERROR_DESCRIPTION =
+  "Convertissez votre visuel en WebP avec l'application gratuite WebP Converter, puis re-déposez-le ici."
 
 export const IMAGE_TOO_LARGE_ERROR = "Fichier trop volumineux (10 Mo maximum)."

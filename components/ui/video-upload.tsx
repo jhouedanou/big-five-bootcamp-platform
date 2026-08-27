@@ -15,9 +15,12 @@ import { cn } from "@/lib/utils"
 import { normalizeImageFile } from "@/lib/image-client"
 import { IMAGE_PRESETS } from "@/lib/image-presets"
 import { captureVideoPoster } from "@/lib/video-poster"
+import { VIDEO_CONVERTER_URL } from "@/lib/upload-messages"
 
 const VIDEO_MAX_BYTES = 200 * 1024 * 1024 // garder aligné avec /api/upload/video
-const VIDEO_ALLOWED_TYPES = ["video/mp4", "video/webm", "video/quicktime"]
+// MOV retiré : WebM ou MP4 recommandés, convertis en amont par l'admin
+// (The Video Converter — lien dans lib/upload-messages.ts).
+const VIDEO_ALLOWED_TYPES = ["video/mp4", "video/webm"]
 
 /**
  * Résolution maximale acceptée. Comme pour les images (580 px), l'objectif est
@@ -73,6 +76,23 @@ export function VideoConvertHelpDialog({
         </DialogHeader>
 
         <div className="space-y-4 text-sm">
+          <div className="rounded-md border border-[#F2B33D]/50 bg-[#FFF9EC] p-3 dark:bg-transparent">
+            <p className="font-semibold">Recommandé — The Video Converter (Mac, App Store)</p>
+            <p className="mt-1.5 text-muted-foreground">
+              Installez{" "}
+              <a
+                href={VIDEO_CONVERTER_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 underline"
+              >
+                The Video Converter <ExternalLink className="h-3 w-3" />
+              </a>{" "}
+              : glissez la vidéo, choisissez <strong>WebM</strong> (ou MP4), et
+              uploadez le fichier produit ici.
+            </p>
+          </div>
+
           <div className="rounded-md border p-3">
             <p className="font-semibold">
               Option 1 — CloudConvert (en ligne, sans installation)
@@ -154,7 +174,8 @@ export function VideoUploadButton({ onUploaded, className }: VideoUploadButtonPr
   const uploadFile = async (file: File) => {
     if (!VIDEO_ALLOWED_TYPES.includes(file.type)) {
       toast.error(`Format non supporté : ${file.type || "inconnu"}`, {
-        description: "Formats acceptés : MP4, WebM, MOV.",
+        description:
+          "Formats acceptés : WebM ou MP4. Convertissez votre fichier avec The Video Converter (App Store) puis re-déposez-le.",
       })
       return
     }
@@ -249,7 +270,7 @@ export function VideoUploadButton({ onUploaded, className }: VideoUploadButtonPr
       <input
         ref={fileInputRef}
         type="file"
-        accept="video/mp4,video/webm,video/quicktime"
+        accept="video/mp4,video/webm"
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0]

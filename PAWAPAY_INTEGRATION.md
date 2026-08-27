@@ -161,7 +161,7 @@ Le callback `deposit` activera automatiquement l'abonnement si
 
 ```bash
 # Terminal 1 — Next.js
-pnpm dev
+npm run dev
 
 # Terminal 2 — ngrok
 ngrok http 3000

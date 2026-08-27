@@ -82,7 +82,23 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   // Les vignettes sont souvent des liens Drive « /file/d/…/view », illisibles
   // par les scrapers Open Graph.
-  const image = campaign.thumbnail ? getGoogleDriveImageUrl(campaign.thumbnail) : null;
+  //
+  // Repli sur la couverture de marque : sans lui, une fiche sans visuel
+  // partait sans og:image du tout (le bloc openGraph de la page écrase
+  // entièrement celui du layout — rien n'est hérité). `media_status ===
+  // 'broken'` couvre les visuels dont l'audit média a constaté la mort
+  // (ex-liens Google Drive qui servent du HTML) : émettre leur URL cassait
+  // la carte de partage.
+  const hasLiveThumbnail = !!campaign.thumbnail && campaign.media_status !== "broken";
+  const image = hasLiveThumbnail
+    ? getGoogleDriveImageUrl(campaign.thumbnail)
+    : "/og-cover.png";
+  // Les dimensions ne sont déclarées que pour le repli, dont elles sont
+  // exactes. Pour un thumbnail réel elles sont inconnues : une déclaration
+  // fausse est pire qu'une absence, les scrapers mesurent eux-mêmes.
+  const ogImages = hasLiveThumbnail
+    ? [{ url: image, alt: socialTitle }]
+    : [{ url: image, width: 1200, height: 630, alt: socialTitle }];
 
   return {
     // `absolute` : le titre porte déjà « | Laveiye », le template du layout
@@ -102,22 +118,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       ...(campaign.campaign_date || campaign.created_at
         ? { publishedTime: campaign.campaign_date || campaign.created_at }
         : {}),
-      ...(image && {
-        images: [
-          {
-            url: image,
-            width: 1200,
-            height: 630,
-            alt: socialTitle,
-          },
-        ],
-      }),
+      images: ogImages,
     },
     twitter: {
       card: "summary_large_image",
       title: socialTitle,
       description,
-      ...(image && { images: [image] }),
+      images: [image],
     },
   };
 }

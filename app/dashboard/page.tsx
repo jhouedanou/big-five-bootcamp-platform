@@ -102,6 +102,29 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled
 }
 
+/**
+ * Aléatoire à l'intérieur de chaque mois, mois du plus récent au plus ancien.
+ *
+ * L'ancien shuffle global détruisait la chronologie : avec 9 items par page,
+ * une campagne du mois avait ~9 chances sur 500 d'apparaître en page 1 — les
+ * nouveautés étaient diluées, pas absentes. Ici la pagination découpe une
+ * liste ordonnée par mois, et le groupement mensuel existant (groupedContent)
+ * produit des sections cohérentes : août d'abord, puis juillet, etc.
+ *
+ * Les items arrivent triés created_at desc (SQL) : Map préservant l'ordre
+ * d'insertion, les buckets sortent déjà du plus récent au plus ancien.
+ */
+function shuffleWithinMonths(items: ContentItem[]): ContentItem[] {
+  const buckets = new Map<string, ContentItem[]>()
+  for (const item of items) {
+    const key = (item.createdAt || item.date || "").slice(0, 7) // "2026-08"
+    const list = buckets.get(key)
+    if (list) list.push(item)
+    else buckets.set(key, [item])
+  }
+  return Array.from(buckets.values()).flatMap((bucket) => shuffleArray(bucket))
+}
+
 // Mapping campagne brute (Supabase) → ContentItem (UI). Centralisé pour que
 // le bloc "Suivi de marques" puisse réutiliser le même format que la liste
 // principale, sans dépendre du chargement préalable du state `campaigns`.
@@ -486,8 +509,8 @@ export default function DashboardPage() {
 
         const formattedCampaigns: ContentItem[] = (data || []).map(mapCampaignToContentItem)
 
-        // Mélanger aléatoirement les campagnes pour varier l'affichage
-        setCampaigns(shuffleArray(formattedCampaigns))
+        // Aléatoire intra-mois seulement : la chronologie mensuelle reste lisible
+        setCampaigns(shuffleWithinMonths(formattedCampaigns))
 
         // Filtrer les campagnes de la semaine
         // Priorité 1 : campagnes marquées "featured" par l'admin

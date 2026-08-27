@@ -27,6 +27,13 @@ const CREATIVE_DETAIL_COLUMNS = 'id, title, slug, summary, description, thumbnai
 // Colonnes nécessaires au dashboard (liste enrichie côté connecté)
 const DASHBOARD_COLUMNS = 'id, title, summary, description, thumbnail, platforms, country, category, format, tags, created_at, video_url, images, brand, agency, year, axe, analyse, how_to_use, status, access_level, featured, publication_url, temps_fort_slugs'
 
+// Le statut « publié » existe en base sous deux graphies : la propre et la
+// variante mojibake issue d'imports CSV mal encodés. Filtrer sur la seule
+// graphie propre fait silencieusement disparaître des campagnes du dashboard
+// alors qu'elles restent visibles au sitemap et sur /content/[slug], qui
+// gèrent les deux (cf. app/content/sitemap.ts).
+const PUBLISHED_STATUSES = ['Publié', 'PubliÃ©']
+
 // PostgREST plafonne chaque requête à 1000 lignes : on pagine par range
 // pour récupérer la totalité des campagnes (510+ en base).
 const FETCH_PAGE_SIZE = 1000
@@ -127,7 +134,7 @@ export async function getDashboardCampaigns() {
             supabase
                 .from('campaigns')
                 .select(DASHBOARD_COLUMNS)
-                .eq('status', 'Publié')
+                .in('status', PUBLISHED_STATUSES)
                 .order('created_at', { ascending: false })
                 .range(from, to)
         )
@@ -285,7 +292,7 @@ export async function getRelatedCampaigns(campaignId: string, tags: string[] | n
                 .from('campaigns')
                 .select(CREATIVE_LIST_COLUMNS)
                 .neq('id', campaignId)
-                .eq('status', 'Publié')
+                .in('status', PUBLISHED_STATUSES)
                 .overlaps('tags', tags)
                 .limit(8)
             if (data) related = data
@@ -298,7 +305,7 @@ export async function getRelatedCampaigns(campaignId: string, tags: string[] | n
                 .from('campaigns')
                 .select(CREATIVE_LIST_COLUMNS)
                 .not('id', 'in', `(${existingIds.join(',')})`)
-                .eq('status', 'Publié')
+                .in('status', PUBLISHED_STATUSES)
                 .eq('category', category)
                 .limit(8 - related.length)
             if (data) related = [...related, ...data]
@@ -311,7 +318,7 @@ export async function getRelatedCampaigns(campaignId: string, tags: string[] | n
                 .from('campaigns')
                 .select(CREATIVE_LIST_COLUMNS)
                 .not('id', 'in', `(${existingIds.join(',')})`)
-                .eq('status', 'Publié')
+                .in('status', PUBLISHED_STATUSES)
                 .eq('brand', brand)
                 .limit(8 - related.length)
             if (data) related = [...related, ...data]
@@ -324,7 +331,7 @@ export async function getRelatedCampaigns(campaignId: string, tags: string[] | n
                 .from('campaigns')
                 .select(CREATIVE_LIST_COLUMNS)
                 .not('id', 'in', `(${existingIds.join(',')})`)
-                .eq('status', 'Publié')
+                .in('status', PUBLISHED_STATUSES)
                 .order('created_at', { ascending: false })
                 .limit(8 - related.length)
             if (data) related = [...related, ...data]
